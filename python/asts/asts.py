@@ -150,10 +150,10 @@ class AST:
         self.ensure_type("FUNCTION-AST")
         return _interface.dispatch(AST.function_body.__name__, self)
 
-    def call_module(self, root: "AST") -> Optional[str]:
-        """Return AST's module.  AST must be of type call."""
+    def provided_by(self, root: "AST") -> Optional[str]:
+        """Return library providing AST's function.  AST must be of type call."""
         self.ensure_type("CALL-AST")
-        return _interface.dispatch(AST.call_module.__name__, root, self)
+        return _interface.dispatch(AST.provided_by.__name__, root, self)
 
     def call_function(self) -> "AST":
         """Return AST's function.  AST must be of type call."""

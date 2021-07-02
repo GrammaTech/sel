@@ -253,11 +253,11 @@ function name from the API followed by the arguments."
 (-> int/function-body (ast) ast)
 (defun int/function-body (ast) (function-body ast))
 
+(-> int/provided-by (ast ast) string)
+(defun int/provided-by (root ast) (provided-by root ast))
+
 (-> int/call-function (ast) ast)
 (defun int/call-function (ast) (call-function ast))
-
-(-> int/call-module (ast ast) string)
-(defun int/call-module (root ast) (provided-by root ast))
 
 (-> int/call-arguments (ast) list)
 (defun int/call-arguments (ast) (call-arguments ast))

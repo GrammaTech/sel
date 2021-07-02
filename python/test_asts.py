@@ -141,7 +141,7 @@ class CallsiteTestDriver(unittest.TestCase):
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]
-        self.assertEqual(None, call.call_module(root))
+        self.assertEqual(None, call.provided_by(root))
         self.assertEqual("foo", call.call_function().source_text())
         self.assertEqual([], call.call_arguments())
 
@@ -151,16 +151,16 @@ class CallsiteTestDriver(unittest.TestCase):
 
         call = root.call_asts()[0]
         args = [a.source_text() for a in call.call_arguments()]
-        self.assertEqual(None, call.call_module(root))
+        self.assertEqual(None, call.provided_by(root))
         self.assertEqual("bar", call.call_function().source_text())
         self.assertEqual(["a", "b"], args)
 
-    def test_module(self):
+    def test_provided_by(self):
         root = asts.AST("python", "os.path.join(a, b)")
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]
-        self.assertEqual("os.path", call.call_module(root))
+        self.assertEqual("os.path", call.provided_by(root))
 
 
 class ErrorTestDriver(unittest.TestCase):
