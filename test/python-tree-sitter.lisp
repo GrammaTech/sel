@@ -841,6 +841,12 @@ x"
     (is (not (equal (type-of one-parameter-copy)
                     (type-of no-parameters-copy))))))
 
+(deftest test-python-predecessor-whitespace ()
+  (let* ((ast (with (convert 'python-ast "x.y" :deepest t)
+                    '(python-attribute)
+                    (make 'python-identifier :text "z"))))
+    (is (equal (source-text ast) "x.z"))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
