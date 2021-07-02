@@ -82,9 +82,6 @@
 (defmethod declarator-name ((ast c/cpp-function-declarator))
   (declarator-name (c/cpp-declarator ast)))
 
-(defmethod computed-text-node-p ((instance source-text-fragment)) t)
-(defmethod indentablep ((instance source-text-fragment)) nil)
-
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
   "Transform PARSE-TREE such that any specifiers are placed in relevants slots."
