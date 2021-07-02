@@ -847,6 +847,13 @@ x"
                     (make 'python-identifier :text "z"))))
     (is (equal (source-text ast) "x.z"))))
 
+(deftest test-python-no-whitespace-after-blank ()
+  (is (equal "lambda y: 1"
+             (source-text
+              (with (python "lambda x: 1")
+                    '(python-parameters (children . 0))
+                    (make 'python-identifier :text "y"))))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file

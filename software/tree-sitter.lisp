@@ -5308,8 +5308,10 @@ indicates the number of groupings to drop from the stack."
   (:method (s ast1 (ast2 (eql :||))) "")
   ;; Sensible defaults for most (all?) programming languages.
   (:method (s (ast1 symbol) (ast2 ast))
-    "No whitespace after an opening delimiter."
-    (if (some (op (string$= _ ast1)) "([{") "" " "))
+    "No whitespace after an opening delimiter or blank."
+    (if (some (op (string$= _ ast1))
+              #.(string+ "([{" whitespace))
+        "" " "))
   (:method (s (ast1 null) (ast2 ast)) "")
   (:method (s (ast1 ast) (ast2 symbol))
     "No whitespace before a closing delimiter or a comma."
