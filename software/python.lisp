@@ -552,7 +552,7 @@ AST ast to return the scopes for"
                 (equal (aget :name alist1) (aget :name alist2)))
         :from-end t))))))
 
-(defmethod get-unbound-vals ((obj python) (ast python-ast))
+(defmethod get-unbound-vals ((obj python) (ast python-ast) &key)
   "Return all variables used (but not defined) within AST.
 * OBJ python software object containing AST
 * AST ast to retrieve unbound variables within"

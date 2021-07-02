@@ -118,7 +118,7 @@ AST ast to return the enclosing scope for"
 (defmethod outer-declarations ((ast javascript-variable-declarator))
   (identifiers (javascript-name ast)))
 
-(defmethod get-unbound-vals ((obj javascript) (ast javascript-ast))
+(defmethod get-unbound-vals ((obj javascript) (ast javascript-ast) &key)
   "Return all variables used (but not defined) within AST.
 * OBJ javascript software object containing AST
 * AST ast to retrieve unbound variables within"

@@ -2734,7 +2734,7 @@ in the AST.  SOFTWARE is the software object to which AST belongs."
                                     (child-asts ast)))
                      :test #'equal))
 
-(defmethod get-unbound-vals ((software clang) (ast clang-ast))
+(defmethod get-unbound-vals ((software clang) (ast clang-ast) &key)
   "DOCFIXME
 * SOFTWARE DOCFIXME
 * AST DOCFIXME

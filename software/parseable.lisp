@@ -639,7 +639,7 @@ Returns nil if no full statement parent is found."))
 (defgeneric get-unbound-funs (software ast)
   (:documentation "Functions used (but not defined) within the AST."))
 
-(defgeneric get-unbound-vals (software ast)
+(defgeneric get-unbound-vals (software ast &rest rest &key &allow-other-keys)
   (:documentation "Variables used (but not defined) within the AST."))
 
 (defgeneric enclosing-scope (software ast)
