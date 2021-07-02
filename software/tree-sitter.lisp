@@ -4444,6 +4444,23 @@ are ordered for reproduction as source text.")
                   (change-class ast (slot-value ast 'choice-superclass)))
                  (error rule-error)))))))))
 
+(defmethod predecessor ((root structured-text) (node structured-text))
+  (when-let (parent (parent root node))
+    (let ((predecessor
+           (second
+            (member node (reverse (output-transformation parent))))))
+      (if (stringp predecessor)
+          (make-keyword predecessor)
+          predecessor))))
+
+(defmethod successor ((root structured-text) (node structured-text))
+  (when-let (parent (parent root node))
+    (let ((successor
+           (second (member node (output-transformation parent)))))
+      (if (stringp successor)
+          (make-keyword successor)
+          successor))))
+
 (defgeneric computed-text-node-p (ast)
   (:documentation "Return T if AST is a computed-text node. This is a
 node where part of the input will need to be computed and stored to reproduce
@@ -5280,7 +5297,9 @@ indicates the number of groupings to drop from the stack."
 (defgeneric whitespace-between (style ast1 ast2)
   (:method (s ast1 ast2) "")
   (:method (s (ast1 null) ast2) "")
+  (:method (s (ast1 (eql :||)) ast2) "")
   (:method (s ast1 (ast2 null)) "")
+  (:method (s ast1 (ast2 (eql :||))) "")
   ;; Sensible defaults for most (all?) programming languages.
   (:method (s (ast1 symbol) (ast2 ast))
     "No whitespace after an opening delimiter."

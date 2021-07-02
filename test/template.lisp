@@ -224,3 +224,17 @@ def $READ_NAME():
   (let ((ast (c "1 $OP_ARG 2;" :op-arg (make-instance 'c-+))))
     (is (find-if (of-type 'c-binary-expression) ast))
     (is (equal (source-text ast) "1 + 2;"))))
+
+(deftest test-template-predecessor-whitespace ()
+  "Test for two bugs: (1) the wrong whitespace because predecessor
+returns the previous AST and (2) there not being a finger in the
+predecessor AST."
+  ;; This would invalidate the test.
+  (is (not (stringp (template-subtree 'python-ast
+                                      (make 'python-identifier :text "x")))))
+  (is (equal "x.y"
+             (source-text
+              (python "$X.$Y"
+                      ;; The bugs only happens when the args are ASTs.
+                      :x (make 'python-identifier :text "x")
+                      :y (make 'python-identifier :text "y"))))))
