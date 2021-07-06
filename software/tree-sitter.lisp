@@ -633,38 +633,38 @@ searched to populate `*tree-sitter-language-files*'.")
        (c-parameter-declaration
         (c-pre-specifiers
          :accessor c-pre-specifiers
-         :initarg c-pre-specifiers
+         :initarg :c-pre-specifiers
          :initform nil)
         (c-post-specifiers
          :accessor c-post-specifiers
-         :initarg c-post-specifiers
+         :initarg :c-post-specifiers
          :initform nil))
        (c-field-declaration
         (c-pre-specifiers
          :accessor c-pre-specifiers
-         :initarg c-pre-specifiers
+         :initarg :c-pre-specifiers
          :initform nil)
         (c-post-specifiers
          :accessor c-post-specifiers
-         :initarg c-post-specifiers
+         :initarg :c-post-specifiers
          :initform nil))
        (c-declaration
         (c-pre-specifiers
          :accessor c-pre-specifiers
-         :initarg c-pre-specifiers
+         :initarg :c-pre-specifiers
          :initform nil)
         (c-post-specifiers
          :accessor c-post-specifiers
-         :initarg c-post-specifiers
+         :initarg :c-post-specifiers
          :initform nil))
        (c-function-definition
         (c-pre-specifiers
          :accessor c-pre-specifiers
-         :initarg c-pre-specifiers
+         :initarg :c-pre-specifiers
          :initform nil)
         (c-post-specifiers
          :accessor c-post-specifiers
-         :initarg c-post-specifiers
+         :initarg :c-post-specifiers
          :initform nil))
        (c-sized-type-specifier
         (c-modifiers
@@ -675,38 +675,38 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-parameter-declaration
         (cpp-pre-specifiers
          :accessor cpp-pre-specifiers
-         :initarg cpp-pre-specifiers
+         :initarg :cpp-pre-specifiers
          :initform nil)
         (cpp-post-specifiers
          :accessor cpp-post-specifiers
-         :initarg cpp-post-specifiers
+         :initarg :cpp-post-specifiers
          :initform nil))
        (cpp-field-declaration
         (cpp-pre-specifiers
          :accessor cpp-pre-specifiers
-         :initarg cpp-pre-specifiers
+         :initarg :cpp-pre-specifiers
          :initform nil)
         (cpp-post-specifiers
          :accessor cpp-post-specifiers
-         :initarg cpp-post-specifiers
+         :initarg :cpp-post-specifiers
          :initform nil))
        (cpp-declaration
         (cpp-pre-specifiers
          :accessor cpp-pre-specifiers
-         :initarg cpp-pre-specifiers
+         :initarg :cpp-pre-specifiers
          :initform nil)
         (cpp-post-specifiers
          :accessor cpp-post-specifiers
-         :initarg cpp-post-specifiers
+         :initarg :cpp-post-specifiers
          :initform nil))
        (cpp-function-definition
         (cpp-pre-specifiers
          :accessor cpp-pre-specifiers
-         :initarg cpp-pre-specifiers
+         :initarg :cpp-pre-specifiers
          :initform nil)
         (cpp-post-specifiers
          :accessor cpp-post-specifiers
-         :initarg cpp-post-specifiers
+         :initarg :cpp-post-specifiers
          :initform nil))
        (cpp-field-expression
         (cpp-operator
@@ -722,17 +722,17 @@ searched to populate `*tree-sitter-language-files*'.")
        (python-function-definition
         (python-async
          :accessor python-async
-         :initarg python-async
+         :initarg :python-async
          :initform nil))
        (python-for-statement
         (python-async
          :accessor python-async
-         :initarg python-async
+         :initarg :python-async
          :initform nil))
        (python-with-statement
         (python-async
          :accessor python-async
-         :initarg python-async
+         :initarg :python-async
          :initform nil)))
       (:javascript
        (javascript-lexical-declaration
