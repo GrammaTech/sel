@@ -67,7 +67,7 @@
 
 (deftest (javascript-can-parse-a-software-object :long-running) ()
   (with-fixture hello-world-javascript
-    (is (= 7 (size *soft*)))
+    (is (= 8 (size *soft*)))
     (is (equal (file-to-string
                 (javascript-dir #P"hello-world/hello-world.js"))
                (genome-string *soft*))))
@@ -78,7 +78,7 @@
 
 (deftest javascript-can-handle-multibyte-characters ()
   (with-fixture multibyte-javascript
-    (is (= 8 (size *soft*)))
+    (is (= 9 (size *soft*)))
     (is (equal* (file-to-string (original-path *soft*))
                 (genome-string *soft*)
                 (source-text (genome *soft*))))))
@@ -271,7 +271,8 @@
                      ((1 . 1) (1 . 8))
                      ((1 . 9) (1 . 12))
                      ((1 . 12) (1 . 27))
-                     ((1 . 13) (1 . 26)))
+                     ((1 . 13) (1 . 26))
+                     ((1 . 14) (1 . 25)))
                    :test #'equalp))))
 
 #+broken

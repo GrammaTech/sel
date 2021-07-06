@@ -1512,34 +1512,6 @@ definitions.")
           ((:TYPE . "CHOICE")
            (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))
                      ((:TYPE . "BLANK")))))))
-       (:STRING
-        (:TYPE . "CHOICE")
-        (:MEMBERS
-         ((:TYPE . "SEQ")
-          (:MEMBERS
-           ((:TYPE . "STRING") (:VALUE . "\""))
-           ((:TYPE . "REPEAT")
-            (:CONTENT
-             (:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "SYMBOL") (:NAME . "escape_sequence"))
-              ((:TYPE . "IMMEDIATE_TOKEN")
-               (:CONTENT
-                (:TYPE . "PREC") (:VALUE . 1)
-                (:CONTENT (:TYPE . "PATTERN") (:VALUE . "[^\"\\\\]+")))))))
-           ((:TYPE . "STRING") (:VALUE . "\""))))
-         ((:TYPE . "SEQ")
-          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "'"))
-           ((:TYPE . "REPEAT")
-            (:CONTENT
-             (:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "SYMBOL") (:NAME . "escape_sequence"))
-              ((:TYPE . "IMMEDIATE_TOKEN")
-               (:CONTENT
-                (:TYPE . "PREC") (:VALUE . 1)
-                (:CONTENT (:TYPE . "PATTERN") (:VALUE . "[^'\\\\]+")))))))
-           ((:TYPE . "STRING") (:VALUE . "'"))))))
        (:LEXICAL-DECLARATION
         (:TYPE . "SEQ")
         (:MEMBERS
