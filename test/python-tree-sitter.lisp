@@ -854,6 +854,11 @@ x"
                     '(python-parameters (children . 0))
                     (make 'python-identifier :text "y"))))))
 
+(deftest python-can-parse-chained-is-not ()
+  "Chained 'is not' operators can be parsed and reproduced correctly."
+  (let ((source "x is not y is not z"))
+    (is (equal source (source-text (convert 'python-ast source))))))
+
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file

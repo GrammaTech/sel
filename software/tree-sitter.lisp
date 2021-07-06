@@ -1447,7 +1447,38 @@ definitions.")
           ((:TYPE . "FIELD") (:NAME . "body")
            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite")))))
        (:POSITIONAL-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "/"))
-       (:KEYWORD-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "*")))
+       (:KEYWORD-ONLY-SEPARATOR (:TYPE . "STRING") (:VALUE . "*"))
+       ;; NOTE: remove this if backtracking is implemented for
+       ;;       match-parsed-children.
+       (:COMPARISON-OPERATOR (:TYPE . "PREC_LEFT") (:VALUE . 2)
+        (:CONTENT (:TYPE . "SEQ")
+         (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "primary_expression"))
+          ((:TYPE . "REPEAT1")
+           (:CONTENT
+            (:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD")
+              (:NAME . "operators")
+              (:CONTENT
+               (:TYPE . "CHOICE")
+               (:MEMBERS
+                ((:TYPE . "STRING") (:VALUE . "<"))
+                ((:TYPE . "STRING") (:VALUE . "<="))
+                ((:TYPE . "STRING") (:VALUE . "=="))
+                ((:TYPE . "STRING") (:VALUE . "!="))
+                ((:TYPE . "STRING") (:VALUE . ">="))
+                ((:TYPE . "STRING") (:VALUE . ">"))
+                ((:TYPE . "STRING") (:VALUE . "<>"))
+                ((:TYPE . "SEQ")
+                 (:MEMBERS
+                  ((:TYPE . "STRING") (:VALUE . "not"))
+                  ((:TYPE . "STRING") (:VALUE . "in"))))
+                ((:TYPE . "STRING") (:VALUE . "in"))
+                ((:TYPE . "SEQ")
+                 (:MEMBERS ((:TYPE . "STRING") (:VALUE . "is"))
+                           ((:TYPE . "STRING") (:VALUE . "not"))))
+                ((:TYPE . "STRING") (:VALUE . "is")))))
+             ((:TYPE . "SYMBOL") (:NAME . "primary_expression")))))))))
       (:javascript
        ;; TODO: add a substitution for javascript-array.
        ;;       This will add a javascript-blank-ast between any two
