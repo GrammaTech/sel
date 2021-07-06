@@ -165,7 +165,7 @@ Provided to make it easier to debug problems with AST printing.")
         (format stream "~a~@[ :TEXT ~s~]"
                 (serial-number obj)
                 (and +print-object-source-text+
-                     (ellipsize (first (lines (source-text obj) :count 1))
+                     (ellipsize (or (first (lines (source-text obj) :count 1)) "<NIL>")
                                 cutoff))))))
 
 (defmethod print-object ((obj conflict-ast) stream)
