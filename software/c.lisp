@@ -234,6 +234,6 @@ field."
 (defmethod whitespace-between ((style t)
                                (y c-ast)
                                (x c-preproc-include))
-  (whitespace-between style y x))
+  (whitespace-between style x y))
 
 ) ; #+:TREE-SITTER-C

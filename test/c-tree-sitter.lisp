@@ -13,6 +13,7 @@
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
+  (:shadowing-import-from :functional-trees)
   (:export :test-c-tree-sitter))
 (in-package :software-evolution-library/test/c-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -41,6 +42,8 @@
     (asdf:system-relative-pathname :software-evolution-library)
     "test/etc/c-fragments/short.c")))
 
+
+  
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
@@ -485,3 +488,48 @@ int main () {
          (expected-declaration (find-if (of-type 'c-function-declarator) genome)))
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
+
+;; Test that (with <root> (ast-path <root> <node>) <node>) leaves
+;; the tree the same (under fset:equal?)
+;; (deftest with-property-test ()
+  
+  
+(defun test-the-with-property (ast node)
+  "Given NODE in the genome of AST, test that the tree remains equal
+(under tree equality) if NODE is replaced by itself.  Return true
+if property holds, false if not."
+  (let* ((path (ast-path ast node))
+         (new-ast (with ast path node)))
+    (equal? ast new-ast)))
+
+(defgeneric with-property-fails-on-some-node (ast &key &allow-other-keys)
+  (:documentation
+  "Check that the with property applies to all nodes of an ast.
+If any fails, return that node.  Otherwise, return NIL.")
+  (:method ((ast functional-trees:node) &key)
+    (block done
+      (mapc (lambda (n)
+              (unless (test-the-with-property ast n)
+                (return-from done n)))
+            ast)
+      nil))
+  (:method ((sw software) &key)
+    (with-property-fails-on-some-node (genome sw)))
+  (:method ((s string) &key (lang 'c))
+    (with-property-fails-on-some-node (from-string (make-instance lang) s)))
+  (:method ((pn pathname) &key (lang 'c))
+    (with-property-fails-on-some-node (from-file (make-instance lang) pn))))
+
+#+nil
+(deftest (with-property :long-running) ()
+  (let ((paths
+          (directory (make-pathname :directory (append +c-tree-sitter-dir+
+                                                       '(:up :wild-inferiors))
+                                    :name :wild
+                                    :type "c"))))
+    (is (equal
+         (iter (for pn in paths)
+               (let ((result (with-property-fails-on-some-node pn)))
+                 (when result
+                   (collect (list pn result)))))
+         nil))))
