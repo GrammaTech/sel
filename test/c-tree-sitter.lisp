@@ -508,10 +508,17 @@ if property holds, false if not."
 If any fails, return that node.  Otherwise, return NIL.")
   (:method ((ast functional-trees:node) &key)
     (block done
-      (mapc (lambda (n)
-              (unless (test-the-with-property ast n)
-                (return-from done n)))
-            ast)
+      (populate-fingers ast)
+      (let ((count 0))
+        (declare (ignorable count))
+        (mapc (lambda (n)
+                #+trace-with-property
+                (when (eql (nth-value 1 (floor (incf count) 100)) 0)
+                  (format t " ~a" count)
+                  (finish-output))
+                (unless (test-the-with-property ast n)
+                  (return-from done n)))
+            ast))
       nil))
   (:method ((sw software) &key)
     (with-property-fails-on-some-node (genome sw)))
@@ -520,12 +527,11 @@ If any fails, return that node.  Otherwise, return NIL.")
   (:method ((pn pathname) &key (lang 'c))
     (with-property-fails-on-some-node (from-file (make-instance lang) pn))))
 
-#+nil
-(deftest (with-property :long-running) ()
+(deftest with-property ()
   (let ((paths
           (directory (make-pathname :directory (append +c-tree-sitter-dir+
                                                        '(:up :wild-inferiors))
-                                    :name :wild
+                                    :name "odd-even"
                                     :type "c"))))
     (is (equal
          (iter (for pn in paths)
