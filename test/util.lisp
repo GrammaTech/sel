@@ -34,6 +34,8 @@
            :fully-every
            :different-asts
            :range-to-list
+           :scope-contains-string-p
+           :scopes-contains-string-p
            ;; Directory functions
            :gcd-dir
            :fib-dir
@@ -235,6 +237,15 @@ AST holding STMT is found.")
     (stmt-with-text- asts text trim at-start))
   (:method ((asts ast) (text string) &key trim at-start &allow-other-keys)
     (stmt-with-text- asts text trim at-start)))
+
+(defun scope-contains-string-p (scope string)
+  "Return the variable alist associated with STRING if it exists in SCOPE."
+  (find-if [{equalp string} {aget :name}] scope))
+
+(defun scopes-contains-string-p (scopes string)
+  "Return the variable alist associated with STRING if it exists in SCOPES."
+  (mappend {scope-contains-string-p _ string} scopes))
+
 
 
 ;;; Software.

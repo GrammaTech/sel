@@ -134,14 +134,6 @@
           (,genome-var (genome ,software-var)))
      ,@body))
 
-(defun scope-contains-string-p (scope string)
-  "Return the variable alist associated with STRING if it exists in SCOPE."
-  (find-if [{equalp string} {aget :name}] scope))
-
-(defun scopes-contains-string-p (scopes string)
-  "Return the variable alist associated with STRING if it exists in SCOPES."
-  (mappend {scope-contains-string-p _ string} scopes))
-
 (defun is-gets-vars (expected-vars result-vars)
   "Test that EXPECTED-VARS matches RESULT-VARS."
   (let ((result-var-names (mapcar {aget :name} result-vars)))

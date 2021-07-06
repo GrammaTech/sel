@@ -438,3 +438,34 @@ the current state of the AST."
   ;; regression test
   (let* ((source (format nil "#if defined(A)~%int x() { }~%#endif~%")))
     (is (equal source (source-text (convert 'c-ast source))))))
+
+(deftest c-scopes-1 ()
+  "scopes gets the bindings from 'for' statements."
+  (let* ((source "for (int i = 0; i < 10; i++) {
+  return;
+}")
+         (genome (convert 'c-ast source))
+         (software (make 'c :genome genome))
+         (i-alist
+           (scopes-contains-string-p
+            (scopes software (find-if (of-type 'c-return-statement) genome))
+            "i"))
+         (expected-declaration (find-if (of-type 'c-init-declarator) genome))
+         (expected-scope (find-if (of-type 'c-for-statement) genome)))
+    (is (eq (aget :decl i-alist) expected-declaration))
+    (is (eq (aget :scope i-alist) expected-scope))))
+
+(deftest c-scopes-2 ()
+  "scopes gets the bindings from a variable declaration."
+  (let* ((source "int i = 0; ;")
+         (genome (convert 'c-ast source))
+         (software (make 'c :genome genome))
+         (i-alist
+           (scopes-contains-string-p
+            (scopes software (find-if (of-type 'c-expression-statement)
+                                      genome))
+            "i"))
+         (expected-declaration (find-if (of-type 'c-init-declarator)
+                                        genome)))
+    (is (eq (aget :decl i-alist) expected-declaration))
+    (is (eq (aget :scope i-alist) genome))))

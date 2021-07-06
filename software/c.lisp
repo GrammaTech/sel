@@ -105,9 +105,6 @@ field."
 (defmethod no-fallthrough ((ast c-continue-statement)) t)
 (defmethod no-fallthrough ((ast c-break-statement)) t)
 
-(defmethod inner-declarations ((ast c-for-statement))
-  (c-left (c-initializer ast)))
-
 (defmethod type-in ((c c) (ast c-ast))
   (when-let ((decl (find-if «or {typep _ 'c-declaration}
                              {typep _ 'c-parameter-declaration}»
@@ -155,6 +152,9 @@ field."
 (defmethod equal? ((a c-identifier) (b c-identifier))
   (equal (first (text a)) (first (text b))))
 
+
+;;; Methods common to all software objects
+
 (defmethod get-function-from-function-call
     ((obj c) (callexpr c-ast))
   "Given a c software object and a call-expression, return the
@@ -166,6 +166,40 @@ field."
       :c-function
       (c-identifier :text text))
      (enclosing-find-c-function obj callexpr text))))
+
+(defmethod enclosing-scope ((obj c) (ast c-ast))
+  (let* ((parents (get-parent-asts* obj ast))
+         (scope (find-if (lambda (ast)
+                           (typep ast
+                                  ;; TODO: are these the best? Should probably
+                                  ;;       define a 'scope-ast' mixin.
+                                  '(or function-ast loop-ast compound-ast)))
+                         parents))
+         (scope-parent (cadr parents)))
+    (cond
+      ((not scope)
+       (genome obj))
+      ;; Treat the compound statement of a 'for' as the same scope
+      ;; as the for statement.
+      ((and (typep scope 'compound-ast)
+            (typep scope-parent 'c-for-statement))
+       scope-parent)
+      (scope))))
+
+
+;;; Methods for tree-sitter generics
+
+(defmethod statements-in-scope ((obj c) (scope c-for-statement) (ast c-ast))
+  (iter
+    (iter:with body = (car (direct-children scope)))
+    (for c in (remove nil (append (children scope)
+                                  (when (typep body 'c-compound-statement)
+                                    (children body)))))
+    (while (path-later-p obj ast c))
+    (collect c)))
+
+
+;;; C Utility
 
 (defun c-functions (c-soft)
   "Returns the list of c functions in the C software object.

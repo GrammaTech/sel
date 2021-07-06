@@ -73,6 +73,8 @@
   (source-text ast))
 (defmethod declarator-name ((ast c/cpp-type-identifier))
   (source-text ast))
+(defmethod declarator-name ((ast c/cpp-init-declarator))
+  (declarator-name (c/cpp-declarator ast)))
 (defmethod declarator-name ((ast c/cpp-parenthesized-declarator))
   (source-text (car (children ast))))
 (defmethod declarator-name ((ast c/cpp-pointer-declarator))
