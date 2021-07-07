@@ -237,13 +237,13 @@ class _interface:
                 )
 
                 # If the interface was built using the deploy package for use
-                # in a python wheel file, read standard output waiting for the
+                # in a python wheel file, read standard error waiting for the
                 # requisite tree-sitter libraries to be loaded and the launching
                 # application notification to be given.
                 if cmd != _interface._DEFAULT_CMD_NAME:
-                    for line in _interface._proc.stdout:
-                        stdout = line.decode("ascii")
-                        if stdout.strip() == "==> Launching application.":
+                    for line in _interface._proc.stderr:
+                        line = line.decode("ascii").strip()
+                        if line == "==> Launching application.":
                             break
 
                 # Wait _DEFAULT_STARTUP_WAIT seconds for the interface to
