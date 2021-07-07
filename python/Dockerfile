@@ -44,6 +44,7 @@ RUN for language in bash c cpp css go html java javascript jsdoc json python reg
         cp grammar.json node-types.json /usr/share/tree-sitter/${language};                                                     \
         cd -;                                                                                                                   \
     done
+ENV LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
@@ -53,7 +54,6 @@ COPY .cl-make /root/quicklisp/local-projects/sel/.cl-make
 COPY Makefile /root/quicklisp/local-projects/sel/Makefile
 COPY .qlfile.external /root/quicklisp/local-projects/sel/.qlfile.external
 COPY .qlfile.grammatech /root/quicklisp/local-projects/sel/.qlfile.grammatech
-RUN sed -i 's|(:default "libtree-sitter")|(:default "libtree-sitter") (:default "/usr/lib/libtree-sitter")|' /root/quicklisp/local-projects/cl-tree-sitter/low-level.lisp
 RUN make -C /root/quicklisp/local-projects/sel dependencies
 RUN rm -rf /root/quicklisp/local-projects/sel
 RUN rm /root/quicklisp/local-projects/system-index.txt
