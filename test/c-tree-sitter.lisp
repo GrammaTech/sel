@@ -432,3 +432,9 @@ the current state of the AST."
   ;; This works around a bug in tree-sitter.
   (let ((source (format nil "#define a ~%")))
     (is (equal source (source-text (convert 'c-ast source))))))
+
+(deftest c-source-text-uses-the-correct-root ()
+  "source-text doesn't signal a no-ast-path error when ancestor-check is called."
+  ;; regression test
+  (let* ((source (format nil "#if defined(A)~%int x() { }~%#endif~%")))
+    (is (equal source (source-text (convert 'c-ast source))))))

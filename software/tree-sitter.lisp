@@ -6184,7 +6184,7 @@ of the parent."
                           (indent-p (box nil))
                           (indentation-ast (box nil))
                           (trim t)
-                        &aux (root ast))
+                          (root ast))
   ;; Trim removes the before and after text from the output and the comments.
   ;; Note that it will always trim with the first AST it sees since
   ;; the top most AST shouldn't have any before or after text this
@@ -6310,7 +6310,8 @@ of the parent."
                           :parents ast-parents
                           :indent-p indent-p
                           :indentation-ast indentation-ast
-                          :trim nil)))
+                          :trim nil
+                          :root root)))
     (let ((indentablep (indentablep ast)))
       ;; before and after text is always considered indentable.
       (handle-text (before-text ast) ast t parents)
