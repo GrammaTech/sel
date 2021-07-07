@@ -348,27 +348,6 @@
     (is (= 3 (length (comments-for *soft* (find-if {typep _ 'c-while-statement} *soft*)))))
     (is (= 1 (length (comments-for *soft* (stmt-with-text *soft* "printf" :at-start t)))))))
 
-(deftest test-scopes ()
-  (let* ((c (sel:from-string (make 'c) (fmt "~
-int main () {
-  int x = 1;
-  int z;
-  y();
-}")))
-         (scopes (software-evolution-library/software/parseable:scopes
-                  c
-                  (find-if (of-type 'call-ast) c)))
-         (bindings (apply #'append scopes))
-         (x-binding (find "x" bindings
-                          :test #'equal
-                          :key {assocdr :name}))
-         (z-binding (find "z" bindings
-                          :test #'equal
-                          :key {assocdr :name})))
-    (is x-binding)
-    (is z-binding)
-    (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))
-
 (deftest c-tree-sitter-inserts-comments-in-correct-order ()
   (let ((source "{ a /*  */ /* */ ;}"))
     (is (equal
@@ -439,6 +418,28 @@ the current state of the AST."
   (let* ((source (format nil "#if defined(A)~%int x() { }~%#endif~%")))
     (is (equal source (source-text (convert 'c-ast source))))))
 
+
+;;;; Scopes tests
+
+(deftest c-test-scopes ()
+  (let* ((c (sel:from-string (make 'c) (fmt "~
+int main () {
+  int x = 1;
+  int z;
+  y();
+}")))
+         (scopes (scopes c (find-if (of-type 'call-ast) c)))
+         (bindings (apply #'append scopes))
+         (x-binding (find "x" bindings
+                          :test #'equal
+                          :key {assocdr :name}))
+         (z-binding (find "z" bindings
+                          :test #'equal
+                          :key {assocdr :name})))
+    (is x-binding)
+    (is z-binding)
+    (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))
+
 (deftest c-scopes-1 ()
   "scopes gets the bindings from 'for' statements."
   (let* ((source "for (int i = 0; i < 10; i++) {
@@ -467,5 +468,20 @@ the current state of the AST."
             "i"))
          (expected-declaration (find-if (of-type 'c-init-declarator)
                                         genome)))
+    (is (eq (aget :decl i-alist) expected-declaration))
+    (is (eq (aget :scope i-alist) genome))))
+
+(deftest c-scopes-3 ()
+  "scopes gets bindings from a function declaration."
+  (let* ((source "void i () {
+  return;
+}")
+         (genome (convert 'c-ast source))
+         (software (make 'c :genome genome))
+         (i-alist
+           (scopes-contains-string-p
+            (scopes software (find-if (of-type 'c-return-statement) genome))
+            "i"))
+         (expected-declaration (find-if (of-type 'c-function-declarator) genome)))
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
