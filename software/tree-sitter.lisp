@@ -1346,22 +1346,50 @@ definitions.")
        ;; TODO: when the docker image is updated,
        ;;       remove this and c's substitution, add slot, and parse tree
        ;;       transform as it has been patched upstream.
-       (:FIELD-EXPRESSION (:TYPE . "SEQ")
+
+       (:FIELD-EXPRESSION (:TYPE . "CHOICE")
         (:MEMBERS
-         ((:TYPE . "PREC") (:VALUE . 15)
-          (:CONTENT (:TYPE . "SEQ")
-           (:MEMBERS
-            ((:TYPE . "FIELD")
-             (:NAME . "argument")
-             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
-            ((:TYPE . "FIELD")
-             (:NAME . "operator")
-             (:CONTENT
-              (:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
-                        ((:TYPE . "STRING") (:VALUE . "->"))))))))
-         ((:TYPE . "FIELD") (:NAME . "field")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_field_identifier")))))
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "PREC")
+            (:VALUE . 15)
+            (:CONTENT
+             (:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "FIELD")
+               (:NAME . "argument")
+               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
+              ((:TYPE . "FIELD")
+               (:NAME . "operator")
+               (:CONTENT
+                (:TYPE . "CHOICE")
+                (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
+                          ((:TYPE . "STRING") (:VALUE . "->"))))))))
+           ((:TYPE . "FIELD")
+            (:NAME . "field")
+            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_field_identifier")))))
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "PREC")
+            (:VALUE . 15)
+            (:CONTENT
+             (:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "FIELD")
+               (:NAME . "argument")
+               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
+              ((:TYPE . "FIELD")
+               (:NAME . "operator")
+               (:CONTENT
+                (:TYPE . "CHOICE")
+                (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
+                          ((:TYPE . "STRING") (:VALUE . "->"))))))))
+           ((:TYPE . "FIELD")
+            (:NAME . "field")
+            (:CONTENT
+             (:TYPE . "CHOICE")
+             (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "destructor_name"))
+                       ((:TYPE . "SYMBOL") (:NAME . "template_method")))))))))
        ;; TODO: when the docker image is updated,
        ;;       remove this and c's substitution, add slot, and parse tree
        ;;       transform as it has been patched upstream.

@@ -132,3 +132,15 @@ int main () {
       (is (typep (@ g '(0 2 5 0 2)) 'cpp-field-expression))
       (is (string-equal (source-text  (@ g '(0 2 5 0 2 1)))
                         "->")))))
+
+
+;;;; Rule Substitution tests
+;;; These tests that the rule substitutions are working as intended.
+;;; These help identify issues when tree-sitter libs are updated upstream.
+;;; NOTE: these should be incorporated into a parsing test when one is added
+;;;       for Cpp.
+
+(deftest cpp-field-expression-rule-substitution ()
+  "The field-expression substitution parses and reproduces source text."
+  (let ((source "int a = (x->y < u && z >= w);"))
+    (is (equal source (source-text (convert 'c-ast source))))))
