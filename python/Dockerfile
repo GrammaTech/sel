@@ -49,13 +49,4 @@ RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-proj
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
 
-# Pre-download and compile a number of dependency packages.
-COPY .cl-make /root/quicklisp/local-projects/sel/.cl-make
-COPY Makefile /root/quicklisp/local-projects/sel/Makefile
-COPY .qlfile.external /root/quicklisp/local-projects/sel/.qlfile.external
-COPY .qlfile.grammatech /root/quicklisp/local-projects/sel/.qlfile.grammatech
-RUN make -C /root/quicklisp/local-projects/sel dependencies
-RUN rm -rf /root/quicklisp/local-projects/sel
-RUN rm /root/quicklisp/local-projects/system-index.txt
-
 WORKDIR /root/quicklisp/local-projects
