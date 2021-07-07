@@ -45,7 +45,6 @@ RUN for language in bash c cpp css go html java javascript jsdoc json python reg
         cd -;                                                                                                                   \
     done
 ENV LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
-RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
 
