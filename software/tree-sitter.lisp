@@ -4783,23 +4783,32 @@ should be rebound.")
 (defclass normal-scope () ()
   (:documentation "Tree-sitter mixin for languages with \"normal\" scoping."))
 
+(defgeneric get-parent-decl (obj identifier)
+  (:documentation "For the given IDENTIFIER AST, return the parent declaration.")
+  (:method (obj identifier)
+    (car (remove-if-not {typep _ 'variable-declaration-ast}
+                        (get-parent-asts obj identifier)))))
+
+(defgeneric ast-to-scope-alist (obj scope ast)
+  (:documentation "Return a scope alist based on AST with SCOPE.
+The alist should contain at least the following:
+ - :name :: a string which contains the name of the identifier.
+ - :decl :: an AST which represents the declaration.
+ - :scope :: an AST which represents the scope of the identifier.")
+  (:method (obj scope ast)
+    `((:name . ,(source-text ast))
+      (:decl . ,(or (get-parent-decl obj ast) ast))
+      (:scope . ,scope))))
+
 (defmethod scopes ((obj normal-scope) (ast ast))
-  (labels ((get-parent-decl (obj identifier)
-             "For the given IDENTIFIER AST, return the parent declaration."
-             (car (remove-if-not {typep _ 'variable-declaration-ast}
-                                 (get-parent-asts obj identifier))))
-           (ast-to-scope (obj scope ast)
-             `((:name . ,(source-text ast))
-               (:decl . ,(or (get-parent-decl obj ast) ast))
-               (:scope . ,scope))))
-    (unless (null (ast-path obj ast))
-      (let ((scope (enclosing-scope obj ast)))
-        (cons (reverse
-               (mapcar {ast-to-scope obj scope}
-                       (append (inner-declarations scope)
-                               (mappend #'outer-declarations
-                                        (statements-in-scope obj scope ast)))))
-              (scopes obj scope))))))
+  (unless (null (ast-path obj ast))
+    (let ((scope (enclosing-scope obj ast)))
+      (cons (reverse
+             (mapcar {ast-to-scope-alist obj scope}
+                     (append (inner-declarations scope)
+                             (mappend #'outer-declarations
+                                      (statements-in-scope obj scope ast)))))
+            (scopes obj scope)))))
 
 (defgeneric find-enclosing (type software ast)
   (:documentation "Return the nearest enclosing AST of TYPE in SOFTWARE.")

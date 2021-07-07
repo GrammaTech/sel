@@ -198,6 +198,25 @@ field."
     (while (path-later-p obj ast c))
     (collect c)))
 
+(defmethod get-parent-decl ((obj c) (identifier c-ast))
+  (or (car (remove-if-not (of-type '(and (or c--declarator
+                                          variable-declaration-ast)
+                                     (not identifier-ast)))
+                          (get-parent-asts obj identifier)))
+      identifier))
+
+(defmethod ast-to-scope-alist ((obj c) (scope c-ast) (ast c-ast))
+  (let ((decl (get-parent-decl obj ast)))
+    `((:name . ,(source-text ast))
+      (:decl . ,(or decl ast))
+      (:scope . ,(if (typep decl 'c-function-declarator)
+                     (genome obj)
+                     scope)))))
+
+(defmethod outer-declarations ((ast c-function-declarator))
+  ;; Special handling for uninitialized variables.
+  (list (c-declarator ast)))
+
 
 ;;; C Utility
 
