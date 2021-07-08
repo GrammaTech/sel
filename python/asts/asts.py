@@ -50,6 +50,10 @@ class AST:
         """Return a deep copy of AST conforming to copy.deepcopy."""
         return self.__copy__()
 
+    def serial_number(self) -> int:
+        """Return the fset serial number for this AST."""
+        return self.handle
+
     def ast_refcount(self) -> int:
         """Return the AST's reference count."""
         return _interface.dispatch(AST.ast_refcount.__name__, self)
