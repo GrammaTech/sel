@@ -4907,6 +4907,9 @@ Every element in the list has the following form:
               LOCAL-DECLARATIONS removed from it."
              (remove-if
               (lambda (identifier)
+                ;; unbound-identifiers and local-declarations are lists ASTs of
+                ;; type identifier-ast. Any unbound identifier which is used
+                ;; in a declaration should not be considered unbound.
                 (member identifier local-declarations :test #'eq))
               unbound-identifiers))
            (get-unbound-children ()
