@@ -489,11 +489,6 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
 
-;; Test that (with <root> (ast-path <root> <node>) <node>) leaves
-;; the tree the same (under fset:equal?)
-;; (deftest with-property-test ()
-  
-  
 (defun test-the-with-property (ast node)
   "Given NODE in the genome of AST, test that the tree remains equal
 (under tree equality) if NODE is replaced by itself.  Return true
