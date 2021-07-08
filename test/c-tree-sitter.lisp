@@ -13,7 +13,6 @@
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
-  (:shadowing-import-from :functional-trees)
   (:export :test-c-tree-sitter))
 (in-package :software-evolution-library/test/c-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
