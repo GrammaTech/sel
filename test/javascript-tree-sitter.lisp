@@ -431,3 +431,7 @@
              javascript-throw-statement)
             (#P"with-statement.js" javascript-with-statement)
             (#P"yield-expression.js" javascript-yield-expression)))))
+
+(deftest parse-a-regex-clause ()
+  (is (some-cons {equalp '(PPCRE "foo bar baz")}
+                 (convert 'match "i = \"=~/foo bar baz/\";" :language 'javascript))))
