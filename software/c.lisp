@@ -167,28 +167,10 @@ field."
       (c-identifier :text text))
      (enclosing-find-c-function obj callexpr text))))
 
-(defmethod enclosing-scope ((obj c) (ast c-ast))
-  (let* ((parents (get-parent-asts* obj ast))
-         (scope (find-if (lambda (ast)
-                           (typep ast
-                                  ;; TODO: are these the best? Should probably
-                                  ;;       define a 'scope-ast' mixin.
-                                  '(or function-ast loop-ast compound-ast)))
-                         parents))
-         (scope-parent (cadr parents)))
-    (cond
-      ((not scope)
-       (genome obj))
-      ;; Treat the compound statement of a 'for' as the same scope
-      ;; as the for statement.
-      ((and (typep scope 'compound-ast)
-            (typep scope-parent 'c-for-statement))
-       scope-parent)
-      (scope))))
-
 
-;;; Methods for tree-sitter generics
+;;;; Methods for tree-sitter generics
 
+;;; TODO: add this for C++.
 (defmethod statements-in-scope ((obj c) (scope c-for-statement) (ast c-ast))
   (iter
     (iter:with body = (car (direct-children scope)))
@@ -198,6 +180,7 @@ field."
     (while (path-later-p obj ast c))
     (collect c)))
 
+;;; TODO: add this for C++.
 (defmethod get-parent-decl ((obj c) (identifier c-ast))
   (or (car (remove-if-not (of-type '(and (or c--declarator
                                           variable-declaration-ast)
@@ -213,6 +196,7 @@ field."
                      (genome obj)
                      scope)))))
 
+;;; TODO: add this for C++.
 (defmethod outer-declarations ((ast c-function-declarator))
   ;; Special handling for uninitialized variables.
   (list (c-declarator ast)))
