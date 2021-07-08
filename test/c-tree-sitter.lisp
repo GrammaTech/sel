@@ -421,7 +421,7 @@ the current state of the AST."
     (is (equal source (source-text (convert 'c-ast source))))))
 
 
-;;;; Scopes tests
+;;;; SCOPES tests
 
 (deftest c-test-scopes ()
   (let* ((c (sel:from-string (make 'c) (fmt "~
@@ -535,3 +535,44 @@ If any fails, return that node.  Otherwise, return NIL.")
                  (when result
                    (collect (list pn result)))))
          nil))))
+
+
+;;;; GET-UNBOUND-VALS tests
+(deftest c-get-unbound-vals-1 ()
+  "get-unbound-vals handles variable shadowing."
+  (let* ((source "int i = 10;
+
+for (int i = i; i < i; i++) {}")
+         (software (make 'c :genome (convert 'c-ast source)))
+         (unbound-vals
+           (get-unbound-vals software (find-if (of-type 'c-for-statement)
+                                               (genome software)))))
+    (is (member "i" unbound-vals :key #'source-text :test #'equal))))
+
+(deftest c-get-unbound-vals-2 ()
+  "get-unbound-vals gets variables that aren't defined in an AST."
+  (let* ((source "int x = 0;
+int y = 0;
+
+for (int i = 0; i < x; i++) {
+  x = i;
+  y = x;
+  i += i;
+}")
+         (software (make 'c :genome (convert 'c-ast source)))
+         (for-statement (find-if (of-type 'c-for-statement) (genome software)))
+         (unbound-vals (get-unbound-vals software for-statement)))
+    (is (equal (collect-if (op (equal "x" (source-text _))) for-statement)
+               (remove-if-not {equal "x"} unbound-vals :key #'source-text)))
+    (is (equal (list (find-if {equal "y"} for-statement :key #'source-text))
+               (remove-if-not {equal "y"} unbound-vals :key #'source-text)))
+    ;; Doesn't contain unexpected identifiers.
+    (is (null (remove-if {member _ '("x" "y") :test #'equal} unbound-vals
+                         :key #'source-text)))))
+
+(deftest c-get-unbound-vals-3 ()
+  "get-unbound-vals doesn't return unbound function call identifiers."
+  (let* ((source "x ();")
+         (software (make 'c :genome (convert 'c-ast source)))
+         (unbound-vals (get-unbound-vals software (genome software))))
+    (is (null unbound-vals))))

@@ -4881,6 +4881,53 @@ Every element in the list has the following form:
   (:documentation "Is AST a comparison?")
   (:method ((ast t)) nil))
 
+(defgeneric evaluation-order-children (ast)
+  (:documentation
+   "Return the children of AST in the order they are evaluated.")
+  (:method (ast) (children ast)))
+
+(defmethod get-unbound-vals ((obj normal-scope) (ast ast)
+                             &key local-declarations)
+  (labels ((function-call-identifier-p
+               (identifier &aux (parent (parent (genome obj) identifier)))
+             "Return T if identifier is the function identifier in a
+              function call."
+             (and (typep parent 'call-ast)
+                  (eq identifier (call-function parent))))
+           (unbound-val-p (identifier)
+             "Return T if IDENTIFIER is unbound in LOCAL-SCOPES and
+              isn't the function identifier in a function call."
+             (not (or (member (source-text identifier) local-declarations
+                               :key #'source-text
+                               :test #'equal)
+                      (function-call-identifier-p identifier))))
+           (remove-declaration-identifiers
+               (unbound-identifiers local-declarations)
+             "Return UNBOUND-IDENTIFIERS with all ASTs present in
+              LOCAL-DECLARATIONS removed from it."
+             (remove-if
+              (lambda (identifier)
+                (member identifier local-declarations :test #'eq))
+              unbound-identifiers))
+           (get-unbound-children ()
+             "Return all unbound vals in the children of AST."
+             (iter
+               (for locals first
+                    (append local-declarations (inner-declarations ast))
+                    then (append locals (outer-declarations child)))
+               ;; NOTE: use evaluation order here for cases where
+               ;;       variable shadowing may become an issue.
+               (for child in (evaluation-order-children ast))
+               (appending
+                   (get-unbound-vals obj child :local-declarations locals)
+                 into unbound-children)
+               (finally
+                (return (remove-declaration-identifiers
+                         unbound-children locals))))))
+    (if (and (typep ast 'identifier-ast) (unbound-val-p ast))
+        (list ast)
+        (get-unbound-children))))
+
 
 ;;;; Cross-language generics and methods
 (defgeneric end-of-parameter-list (software node)
