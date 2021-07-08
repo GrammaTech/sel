@@ -489,6 +489,8 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
 
+
+;;;; With Property tests
 (defun test-the-with-property (ast node)
   "Given NODE in the genome of AST, test that the tree remains equal
 (under tree equality) if NODE is replaced by itself.  Return true
