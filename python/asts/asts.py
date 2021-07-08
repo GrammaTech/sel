@@ -50,6 +50,10 @@ class AST:
         """Return a deep copy of AST conforming to copy.deepcopy."""
         return self.__copy__()
 
+    def ast_refcount(self) -> int:
+        """Return the AST's reference count."""
+        return _interface.dispatch(AST.ast_refcount.__name__, self)
+
     def ast_at_point(self, line: int, column: int) -> "AST":
         """Return the most specific AST covering LINE and COLUMN."""
         return _interface.dispatch(AST.ast_at_point.__name__, self, line, column)
@@ -63,10 +67,6 @@ class AST:
     def ast_language(self) -> str:
         """Return the AST's language."""
         return _interface.dispatch(AST.ast_language.__name__, self)
-
-    def ast_refcount(self) -> int:
-        """Return the AST's reference count."""
-        return _interface.dispatch(AST.ast_refcount.__name__, self)
 
     def ast_type(self) -> str:
         """Return the AST's type."""
