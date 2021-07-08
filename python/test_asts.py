@@ -34,7 +34,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
     def test_parent(self):
         children = self.binop.children()
         for child in children:
-            self.assertEqual(self.binop, child.parent(self.root))
+            self.assertTrue(self.binop.ast_equal(child.parent(self.root)))
 
     # AST children-slots
     def test_child_slots(self):

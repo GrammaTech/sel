@@ -32,16 +32,6 @@ class AST:
             _interface.dispatch(AST.__del__.__name__, self.handle)
             self.handle = None
 
-    def __hash__(self) -> int:
-        """Return the hashcode for the AST."""
-        return _interface.dispatch(AST.__hash__.__name__, self)
-
-    def __eq__(self, other: "AST") -> bool:
-        """Return true if AST is equal to OTHER."""
-        if isinstance(other, AST):
-            return _interface.dispatch(AST.__eq__.__name__, self, other)
-        return False
-
     def __copy__(self) -> "AST":
         """Return a copy of AST conforming to copy.copy."""
         return AST(handle=_interface.dispatch(AST.__copy__.__name__, self))
@@ -57,6 +47,16 @@ class AST:
     def ast_refcount(self) -> int:
         """Return the AST's reference count."""
         return _interface.dispatch(AST.ast_refcount.__name__, self)
+
+    def ast_hash(self) -> int:
+        """Return the hashcode for the AST using SEL's notion of hashing."""
+        return _interface.dispatch(AST.ast_hash.__name__, self)
+
+    def ast_equal(self, other: Any) -> bool:
+        """Return true if AST is equal to OTHER using SEL's notion of AST equality."""
+        if isinstance(other, AST):
+            return _interface.dispatch(AST.ast_equal.__name__, self, other)
+        return False
 
     def ast_at_point(self, line: int, column: int) -> "AST":
         """Return the most specific AST covering LINE and COLUMN."""
