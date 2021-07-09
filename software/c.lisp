@@ -183,8 +183,10 @@ field."
 ;;; TODO: add this for C++.
 (defmethod get-parent-decl ((obj c) (identifier c-ast))
   (or (car (remove-if-not (of-type '(and (or c--declarator
-                                          variable-declaration-ast)
-                                     (not identifier-ast)))
+                                          variable-declaration-ast
+                                          c-parameter-declaration)
+                                     (not (or identifier-ast
+                                           c-pointer-declarator))))
                           (get-parent-asts obj identifier)))
       identifier))
 

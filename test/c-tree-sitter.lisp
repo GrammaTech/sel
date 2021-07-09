@@ -488,6 +488,33 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
 
+(deftest c-scopes-4 ()
+  "scopes gets the bindings from a parameter list."
+  (labels ((is-parameter-p (scopes name-string)
+             "Test that NAME-STRING exists in SCOPES and has the expected
+              scope and declaration."
+             (let* ((parameter-alist
+                      (scopes-contains-string-p scopes name-string))
+                    (decl (aget :decl parameter-alist)))
+               (is (equal (aget :name parameter-alist) name-string))
+               (is (typep decl 'c-parameter-declaration))
+               (is (typep (aget :scope parameter-alist) 'c-function-definition))
+               (is (equal name-string
+                          (source-text
+                           (find-if (of-type 'identifier-ast)
+                                    (c-declarator decl))))))))
+    (let* ((source "void i (int a, void b, float *c) {
+  return;
+}")
+           (genome (convert 'c-ast source))
+           (software (make 'c :genome genome))
+           (scopes (scopes software (find-if (of-type 'c-return-statement)
+                                             genome))))
+      (is (scopes-contains-string-p scopes "i"))
+      (is-parameter-p scopes "a")
+      (is-parameter-p scopes "b")
+      (is-parameter-p scopes "c"))))
+
 
 ;;;; With Property tests
 (defun test-the-with-property (ast node)
