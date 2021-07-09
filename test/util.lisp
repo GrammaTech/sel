@@ -36,7 +36,6 @@
            :range-to-list
            :scope-contains-string-p
            :scopes-contains-string-p
-           :some-cons
            ;; Directory functions
            :gcd-dir
            :fib-dir
@@ -246,12 +245,6 @@ AST holding STMT is found.")
 (defun scopes-contains-string-p (scopes string)
   "Return the variable alist associated with STRING if it exists in SCOPES."
   (mappend {scope-contains-string-p _ string} scopes))
-
-(defun some-cons (predicate cons-tree)
-  (or (funcall predicate cons-tree)
-      (typecase cons-tree
-        (cons (or (some-cons predicate (car cons-tree))
-                  (some-cons predicate (cdr cons-tree)))))))
 
 
 ;;; Software.

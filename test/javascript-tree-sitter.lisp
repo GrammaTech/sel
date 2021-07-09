@@ -433,5 +433,5 @@
             (#P"yield-expression.js" javascript-yield-expression)))))
 
 (deftest parse-a-regex-clause ()
-  (is (some-cons {equalp '(PPCRE "foo bar baz")}
+  (is (occurs-if {equalp '(PPCRE "foo bar baz")}
                  (convert 'match "i = \"=~/foo bar baz/\";" :language 'javascript))))
