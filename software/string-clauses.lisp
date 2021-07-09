@@ -86,7 +86,9 @@ similar matches, and elipses for matching series of ASTs."
                          (find-package :sel/sw/ts))
                  wild-symbol)
            wild-symbol)))
-    ((string-ast :children (list* (ast :text (ppcre "^=~/(.+)/$" re)) rest))
+    ((ast :text (ppcre "^[\"']?=~/(.+)/[\"']?$" re))
+     `(ast :text (ppcre ,re)))
+    ((string-ast :children (list* (ast :text (ppcre "^[\"']?=~/(.+)/[\"']?$" re)) rest))
      `(ast :text (ppcre ,re)))
     (otherwise
      (let ((result '())
