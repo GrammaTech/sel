@@ -128,7 +128,7 @@ are created if they're present in PARSE-TREE."
 (defmethod provided-by ((root python-ast) (ast python-identifier))
   (if (member (source-text ast) (built-ins root) :test #'equal)
       "builtins"
-      (car (find-if [{equalp (source-text ast)} #'third] (imports root)))))
+      (car (find-if [{equal (source-text ast)} #'third] (imports root)))))
 
 (defmethod provided-by ((root python-ast) (ast python-attribute))
   (labels ((top-attribute (root ast)
