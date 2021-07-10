@@ -20,10 +20,8 @@
 ;;;; Command line interface:
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +interface-command-line-options+
-    '((("stdio") :type boolean :optional t
-       :documentation "communicate over standard input/output")
-      (("port") :type integer :initial-value 4495
-       :documentation "port to listen for requests on"))
+    '((("port") :type integer
+       :documentation "listen for requests on the given port"))
     "tree-sitter-interface command line options."))
 
 (defvar *external-asts* (make-hash-table)
@@ -148,17 +146,17 @@ function name from the API followed by the arguments."
             (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose load eval language manual))
   (when help (show-help-for-tree-sitter-interface) (exit-command tree-sitter-interface 0))
-  (if stdio
-      (iter (for request = (read-request *standard-input*))
-            (until (equalp request "quit"))
-            (handle-request request *standard-output*))
+  (if port
       (with-socket-listener (socket "localhost" port)
         (iter (for connection = (socket-accept socket))
               (unwind-protect
                   (let ((request (read-request connection)))
                     (until (equalp request "quit"))
                     (handle-request request connection))
-                (socket-close connection))))))
+                (socket-close connection))))
+      (iter (for request = (read-request *standard-input*))
+            (until (equalp request "quit"))
+            (handle-request request *standard-output*))))
 
 ;;;; API:
 (-> int/ast (string string) (or ast null))

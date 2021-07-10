@@ -235,7 +235,7 @@ class _interface:
                 if _interface._DEFAULT_PORT:
                     cmdline = [cmd, "--port", str(_interface._DEFAULT_PORT)]
                 else:
-                    cmdline = [cmd, "--stdio"]
+                    cmdline = [cmd]
 
                 # Startup the interface subprocess.
                 _interface._proc = subprocess.Popen(
