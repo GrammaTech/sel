@@ -156,7 +156,7 @@ class CallsiteTestDriver(unittest.TestCase):
         self.assertEqual(["a", "b"], args)
 
     def test_provided_by(self):
-        root = asts.AST("python", "os.path.join(a, b)")
+        root = asts.AST("python", "import os\nos.path.join(a, b)")
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]

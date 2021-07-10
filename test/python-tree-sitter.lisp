@@ -762,7 +762,10 @@ and keyword parameters with defaults."
     (is (string= "heapq" (provided-by *soft* (stmt-with-text *soft* "h.foo()"))))
 
     ;; Builtins.
-    (is (string= "builtins" (provided-by *soft* (stmt-with-text *soft* "abs(1.0)"))))))
+    (is (string= "builtins" (provided-by *soft* (stmt-with-text *soft* "abs(1.0)"))))
+
+    ;; Undefined.
+    (is (null (provided-by *soft* (stmt-with-text *soft* "obj.str()"))))))
 
 (deftest test-python-types-parameter-name ()
   (flet ((of-name (name)

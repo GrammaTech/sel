@@ -11,3 +11,5 @@ byteorder()
 h.foo()
 
 abs(1.0)
+
+obj.str()

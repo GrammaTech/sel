@@ -132,20 +132,38 @@ are created if they're present in PARSE-TREE."
 
 (defmethod provided-by ((root python-ast) (ast python-attribute))
   (labels ((top-attribute (root ast)
+             "Return the last ancestor of AST which is an attribute AST."
              (let ((parent (get-parent-ast root ast)))
                (if (and parent (typep parent 'python-attribute))
                    (top-attribute root parent)
-                   ast))))
-    (let ((module (source-text (python-object (top-attribute root ast)))))
-      ;; Check to see if the module name is aliased in an import and, if so,
-      ;; unalias the module.  Otherwise, return the module name directly.
-      (iter (for i in (imports root))
-            (multiple-value-bind (unaliased matchp)
-                (regex-replace (format nil "^(~a)(\\.|$)" (second i))
-                               module
-                               (format nil "~a\\2" (first i)))
-              (when matchp (return unaliased)))
-            (finally (return module))))))
+                   ast)))
+           (attribute-module (root ast)
+             "Return the module name associated with the attribute AST."
+             (source-text (first (children (top-attribute root ast)))))
+           (attribute-aliased-import (root ast)
+             "Return the import associated with the attribute AST if the
+              attribute uses an alias."
+             (let ((module (attribute-module root ast)))
+               (iter (for (imprt alias) in (imports root))
+                     (when (and imprt alias)
+                       (multiple-value-bind (unaliased matchp)
+                           (regex-replace (format nil "^~a(\\.[A-Za-z0-9_.]+)?$"
+                                                  alias)
+                                          module
+                                          (format nil "~a\\1" imprt))
+                         (when matchp (return unaliased)))))))
+           (attribute-unaliased-import (root ast)
+             "Return the import associated with the attribute AST if the
+              attribute does not use an alias."
+             (let ((module (attribute-module root ast)))
+               (when (find-if «and [{equal 1} #'length]
+                                   [{scan _ module}
+                                    {format nil "^~a(\\.[A-Za-z0-9_.]+)?$"}
+                                    #'first]»
+                              (imports root))
+                 module))))
+    (or (attribute-aliased-import root ast)
+        (attribute-unaliased-import root ast))))
 
 (defmethod provided-by ((root python-ast) (ast python-expression-statement))
   (provided-by root (first (children ast))))
