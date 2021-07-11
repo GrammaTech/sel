@@ -173,6 +173,10 @@ are created if they're present in PARSE-TREE."
 
 (defmethod provided-by ((root python-ast) (ast python-ast)) nil)
 
+(defmethod provided-by :around ((root python-ast) (ast python-ast))
+  (when-let ((result (call-next-method)))
+    (string-left-trim "." result)))
+
 (defmethod phenome ((obj python) &key (bin (temp-file-name)))
   (interpreted-phenome obj bin))
 
