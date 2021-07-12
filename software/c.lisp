@@ -182,17 +182,20 @@ field."
 
 ;;; TODO: add this for C++.
 (defmethod get-parent-decl ((obj c) (identifier c-ast))
-  (or (car (remove-if-not (of-type '(and (or c--declarator
-                                          variable-declaration-ast
-                                          c-parameter-declaration)
-                                     (not (or identifier-ast
-                                           c-pointer-declarator))))
-                          (get-parent-asts obj identifier)))
-      identifier))
+  (labels ((get-parent-declarations ()
+             "Return the first run of declarations in the parent ASTs of
+              IDENTIFIER."
+             (take-while (of-type '(or c--declarator variable-declaration-ast))
+                         (drop-while (of-type 'identifier-ast)
+                                     (get-parent-asts obj identifier)))))
+    (or (lastcar (get-parent-declarations))
+        identifier)))
 
 (defmethod ast-to-scope-alist ((obj c) (scope c-ast) (ast c-ast))
   (let ((decl (get-parent-decl obj ast)))
-    `((:name . ,(source-text ast))
+    ;; NOTE: outer-declarations handles array and pointer declarations.
+    `((:name . ,(source-text (or (car (outer-declarations ast))
+                                 ast)))
       (:decl . ,(or decl ast))
       (:scope . ,(if (typep decl 'c-function-declarator)
                      (genome obj)

@@ -493,16 +493,14 @@ int main () {
   (labels ((is-parameter-p (scopes name-string)
              "Test that NAME-STRING exists in SCOPES and has the expected
               scope and declaration."
-             (let* ((parameter-alist
-                      (scopes-contains-string-p scopes name-string))
-                    (decl (aget :decl parameter-alist)))
+             (let ((parameter-alist
+                     (scopes-contains-string-p scopes name-string)))
                (is (equal (aget :name parameter-alist) name-string))
-               (is (typep decl 'c-parameter-declaration))
                (is (typep (aget :scope parameter-alist) 'c-function-definition))
                (is (equal name-string
                           (source-text
                            (find-if (of-type 'identifier-ast)
-                                    (c-declarator decl))))))))
+                                    (aget :decl parameter-alist))))))))
     (let* ((source "void i (int a, void b, float *c) {
   return;
 }")
@@ -514,6 +512,32 @@ int main () {
       (is-parameter-p scopes "a")
       (is-parameter-p scopes "b")
       (is-parameter-p scopes "c"))))
+
+(deftest c-scopes-5 ()
+  "scopes gets bindings from array declarations."
+  (let* ((source "int i[1][1]; return;")
+         (genome (convert 'c-ast source))
+         (software (make 'c :genome genome))
+         (i-alist
+           (scopes-contains-string-p
+            (scopes software (find-if (of-type 'c-return-statement) genome))
+            "i"))
+         (expected-declaration (find-if (of-type 'c-array-declarator) genome)))
+    (is (eq (aget :decl i-alist) expected-declaration))
+    (is (eq (aget :scope i-alist) genome))))
+
+(deftest c-scopes-6 ()
+  "scopes gets bindings from pointer declarations."
+  (let* ((source "int **i; return;")
+         (genome (convert 'c-ast source))
+         (software (make 'c :genome genome))
+         (i-alist
+           (scopes-contains-string-p
+            (scopes software (find-if (of-type 'c-return-statement) genome))
+            "i"))
+         (expected-declaration (find-if (of-type 'c-pointer-declarator) genome)))
+    (is (eq (aget :decl i-alist) expected-declaration))
+    (is (eq (aget :scope i-alist) genome))))
 
 
 ;;;; With Property tests

@@ -45,11 +45,29 @@
                  (convert 'list (c/cpp-parameters ast))))
 
 (defmethod outer-declarations ((ast c/cpp-declaration))
-  ;; Special handling for uninitialized variables.
-  (iter (for d in (c/cpp-declarator ast))
-    (collect (if (typep d 'c/cpp-identifier)
-                 d
-                 (c/cpp-declarator d)))))
+  (flatten
+   (iter (for d in (c/cpp-declarator ast))
+     (collect
+         (typecase d
+           (c/cpp-identifier d)
+           ((or c/cpp-array-declarator c/cpp-pointer-declarator)
+            (outer-declarations d))
+           ;; Special handling for uninitialized variables.
+           (t (c/cpp-declarator d)))))))
+
+(defun get-nested-declaration (ast)
+  "Get the declaration nested in AST. This is useful for array and
+pointer declarations which are nested on themselves."
+  (let ((declarator (c/cpp-declarator ast)))
+    (if (typep declarator 'c/cpp-identifier)
+        (list declarator)
+        (outer-declarations declarator))))
+
+(defmethod outer-declarations ((ast c/cpp-array-declarator))
+  (get-nested-declaration ast))
+
+(defmethod outer-declarations ((ast c/cpp-pointer-declarator))
+  (get-nested-declaration ast))
 
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
   (find-enclosing '(or definition-ast cpp-class-specifier
