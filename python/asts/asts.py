@@ -112,9 +112,9 @@ class AST:
         """Return AST's parent under ROOT."""
         return _interface.dispatch(AST.parent.__name__, root, self)
 
-    def imports(self) -> List[List[str]]:
-        """Return a list of the imports of AST."""
-        return _interface.dispatch(AST.imports.__name__, self) or []
+    def imports(self, root: "AST") -> List[List[str]]:
+        """Return a list of imports available at AST."""
+        return _interface.dispatch(AST.imports.__name__, root, self) or []
 
     def function_asts(self) -> List["AST"]:
         """Return any function ASTs under AST."""

@@ -215,8 +215,11 @@ class VarsInScopeTestDriver(unittest.TestCase):
 class ImportsTestDriver(unittest.TestCase):
     def test_no_imports(self):
         root = asts.AST("python", "")
-        self.assertEqual([], root.imports())
+        self.assertEqual([], root.imports(root))
 
     def test_imports(self):
-        root = asts.AST("python", "import os\nimport sys as s\nfrom json import dump")
-        self.assertEqual([["os"], ["sys", "s"], ["json", None, "dump"]], root.imports())
+        code = "import os\nimport sys as s\nfrom json import dump\nprint('Hello')"
+        root = asts.AST("python", code)
+        ast = root.children()[-1]
+        imports = ast.imports(root)
+        self.assertEqual([["os"], ["sys", "s"], ["json", None, "dump"]], imports)

@@ -4932,10 +4932,10 @@ Return NIL on the empty list.")
   (:documentation "Find the enclosing definition AST in which AST resides,
 or NIL if none."))
 
-(defgeneric imports (ast)
-  (:documentation "Return a list of the imports of AST.
+(defgeneric imports (software ast)
+  (:documentation "Return a list of the imports available in SOFTWARE at AST.
 Every element in the list has the following form:
-    (full-name alias/nickname . named-imports)"))
+    (full-name alias/nickname named-imports)"))
 
 (defgeneric provided-by (software ast)
   (:documentation

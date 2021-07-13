@@ -99,28 +99,32 @@ are created if they're present in PARSE-TREE."
 (defmethod initialize-instance :after ((self python-empty-parameters) &key)
   (setf (text self) "()"))
 
-(defmethod imports ((software python))
-  (imports (genome software)))
+(defmethod imports ((software python) (ast python-ast))
+  (imports (genome software) ast))
 
-(defmethod imports ((ast python-ast)) nil)
+(defmethod imports ((root python-module) (ast python-ast)
+                    &aux (parent (get-parent-ast root ast)))
+  (append (imports root parent)
+          (mappend #'ast-imports (take-until {eq ast} (children parent)))))
 
-(defmethod imports ((ast python-module))
-  (mappend #'imports (children ast)))
+(defmethod imports ((root python-module) (ast python-module)) nil)
 
-(defmethod imports ((ast python-import-statement))
-  (mapcar #'imports (python-name ast)))
-
-(defmethod imports ((ast python-dotted-name))
-  (list (source-text ast)))
-
-(defmethod imports ((ast python-aliased-import))
-  (list (source-text (python-name ast)) (source-text (python-alias ast))))
-
-(defmethod imports ((ast python-import-from-statement))
-  (if (python-name ast)
-      (mapcar [{list (source-text (python-module-name ast)) nil} #'source-text]
-              (python-name ast))
-      (list (list (source-text (python-module-name ast))))))
+(defgeneric ast-imports (ast)
+  (:documentation "Return a list of imports provided by AST.
+Every element in the list has the following form:
+(full-name alias/nickname named-imports)")
+  (:method ((ast t)) nil)
+  (:method ((ast python-import-statement))
+    (mapcar #'ast-imports (python-name ast)))
+  (:method ((ast python-dotted-name))
+    (list (source-text ast)))
+  (:method ((ast python-aliased-import))
+    (list (source-text (python-name ast)) (source-text (python-alias ast))))
+  (:method ((ast python-import-from-statement))
+    (if (python-name ast)
+        (mapcar [{list (source-text (python-module-name ast)) nil} #'source-text]
+                (python-name ast))
+        (list (list (source-text (python-module-name ast)))))))
 
 (defmethod provided-by ((software python) ast)
   (provided-by (genome software) ast))
@@ -128,7 +132,7 @@ are created if they're present in PARSE-TREE."
 (defmethod provided-by ((root python-ast) (ast python-identifier))
   (if (member (source-text ast) (built-ins root) :test #'equal)
       "builtins"
-      (car (find-if [{equal (source-text ast)} #'third] (imports root)))))
+      (car (find-if [{equal (source-text ast)} #'third] (imports root ast)))))
 
 (defmethod provided-by ((root python-ast) (ast python-attribute))
   (labels ((top-attribute (root ast)
@@ -144,7 +148,7 @@ are created if they're present in PARSE-TREE."
              "Return the import associated with the attribute AST if the
               attribute uses an alias."
              (let ((module (attribute-module root ast)))
-               (iter (for (imprt alias) in (imports root))
+               (iter (for (imprt alias) in (imports root ast))
                      (when (and imprt alias)
                        (multiple-value-bind (unaliased matchp)
                            (regex-replace (format nil "^~a(\\.[A-Za-z0-9_.]+)?$"
@@ -160,7 +164,7 @@ are created if they're present in PARSE-TREE."
                                    [{scan _ module}
                                     {format nil "^~a(\\.[A-Za-z0-9_.]+)?$"}
                                     #'first]»
-                              (imports root))
+                              (imports root ast))
                  module))))
     (or (attribute-aliased-import root ast)
         (attribute-unaliased-import root ast))))
