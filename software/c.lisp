@@ -206,6 +206,12 @@ field."
   ;; Special handling for uninitialized variables.
   (list (c-declarator ast)))
 
+(defmethod field-name ((ast c/cpp-field-declaration))
+  (find-if (of-type 'c/cpp-field-identifier) ast))
+
+(defmethod field-name ((ast c/cpp-enumerator))
+  (c/cpp-name field-ast))
+
 
 ;;; C Utility
 

@@ -493,6 +493,7 @@
            :operator
            :control-flow-condition
            :end-of-parameter-list
+           :field-name
            :function-name
            :call-arguments
            :function-parameters
@@ -4869,6 +4870,15 @@ If NODE is not a function node, return nil.")
     (unless (subtypep type 'lambda-ast)
       (warn "FUNCTION-NAME undefined for ~a" type))
     nil))
+
+(defgeneric field-name (node)
+  (:documentation "Extract the name (as a string) of a field from NODE.
+If NODE is not a thing that has fields, return nil.")
+  (:method ((node t)) nil)
+  (:method :around ((node t))
+    (let ((result (call-next-method)))
+      (when (typep result 'tree-sitter-ast)
+        (source-text result)))))
 
 (defgeneric type-in (software ast)
   (:documentation "Return the type of AST in SOFTWARE."))

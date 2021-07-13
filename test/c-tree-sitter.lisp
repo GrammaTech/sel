@@ -627,3 +627,11 @@ for (int i = 0; i < x; i++) {
          (software (make 'c :genome (convert 'c-ast source)))
          (unbound-vals (get-unbound-vals software (genome software))))
     (is (null unbound-vals))))
+
+(deftest field-name-test ()
+  (is (equal (field-name (find-if (of-type 'c/cpp-field-declaration)
+                                  (genome (from-string
+                                           (make-instance 'c)
+                                           "struct { int x; };"))))
+             "x"))
+  (is (null (field-name (genome (from-string (make-instance 'c) "int x;"))))))
