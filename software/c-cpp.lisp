@@ -102,6 +102,11 @@ pointer declarations which are nested on themselves."
 (defmethod declarator-name ((ast c/cpp-function-declarator))
   (declarator-name (c/cpp-declarator ast)))
 
+(defmethod field-name ((ast c/cpp-field-declaration))
+  (find-if (of-type 'c/cpp-field-identifier) ast))
+(defmethod field-name ((ast c/cpp-enumerator))
+  (c/cpp-name field-ast))
+
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
   "Transform PARSE-TREE such that any specifiers are placed in relevants slots."
