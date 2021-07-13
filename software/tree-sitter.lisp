@@ -444,9 +444,13 @@
            ;; C
            :c-source-text-fragment
            :c-variadic-declaration
+           :c-pre-specifiers
+           :c-post-specifiers
            ;; Cpp
            :cpp-source-text-fragment
            :cpp-variadic-declaration
+           :cpp-pre-specifiers
+           :cpp-post-specifiers
            ;; Cross-language Mix-ins
            :c/cpp
            :ecma
