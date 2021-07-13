@@ -635,130 +635,44 @@ searched to populate `*tree-sitter-language-files*'.")
   (defparameter *tree-sitter-ast-extra-slots*
     '((:c
        (c-parameter-declaration
-        (c-pre-specifiers
-         :accessor c-pre-specifiers
-         :initarg :c-pre-specifiers
-         :initform nil)
-        (c-post-specifiers
-         :accessor c-post-specifiers
-         :initarg :c-post-specifiers
-         :initform nil))
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
        (c-field-declaration
-        (c-pre-specifiers
-         :accessor c-pre-specifiers
-         :initarg :c-pre-specifiers
-         :initform nil)
-        (c-post-specifiers
-         :accessor c-post-specifiers
-         :initarg :c-post-specifiers
-         :initform nil))
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
        (c-declaration
-        (c-pre-specifiers
-         :accessor c-pre-specifiers
-         :initarg :c-pre-specifiers
-         :initform nil)
-        (c-post-specifiers
-         :accessor c-post-specifiers
-         :initarg :c-post-specifiers
-         :initform nil))
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
        (c-function-definition
-        (c-pre-specifiers
-         :accessor c-pre-specifiers
-         :initarg :c-pre-specifiers
-         :initform nil)
-        (c-post-specifiers
-         :accessor c-post-specifiers
-         :initarg :c-post-specifiers
-         :initform nil))
-       (c-sized-type-specifier
-        (c-modifiers
-         :accessor c-modifiers
-         :initarg :c-modifiers
-         :initform nil)))
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
+       (c-sized-type-specifier (:modifiers (:multiple . t))))
       (:cpp
        (cpp-parameter-declaration
-        (cpp-pre-specifiers
-         :accessor cpp-pre-specifiers
-         :initarg :cpp-pre-specifiers
-         :initform nil)
-        (cpp-post-specifiers
-         :accessor cpp-post-specifiers
-         :initarg :cpp-post-specifiers
-         :initform nil))
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
        (cpp-field-declaration
-        (cpp-pre-specifiers
-         :accessor cpp-pre-specifiers
-         :initarg :cpp-pre-specifiers
-         :initform nil)
-        (cpp-post-specifiers
-         :accessor cpp-post-specifiers
-         :initarg :cpp-post-specifiers
-         :initform nil))
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
        (cpp-declaration
-        (cpp-pre-specifiers
-         :accessor cpp-pre-specifiers
-         :initarg :cpp-pre-specifiers
-         :initform nil)
-        (cpp-post-specifiers
-         :accessor cpp-post-specifiers
-         :initarg :cpp-post-specifiers
-         :initform nil))
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
        (cpp-function-definition
-        (cpp-pre-specifiers
-         :accessor cpp-pre-specifiers
-         :initarg :cpp-pre-specifiers
-         :initform nil)
-        (cpp-post-specifiers
-         :accessor cpp-post-specifiers
-         :initarg :cpp-post-specifiers
-         :initform nil))
-       (cpp-field-expression
-        (cpp-operator
-         :accessor cpp-operator
-         :initarg :cpp-operator
-         :initform nil))
-       (cpp-assignment-expression
-        (cpp-operator
-         :accessor cpp-operator
-         :initarg :cpp-operator
-         :initform nil)))
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
+       (cpp-field-expression (:operator))
+       (cpp-assignment-expression (:operator)))
       (:python
-       (python-function-definition
-        (python-async
-         :accessor python-async
-         :initarg :python-async
-         :initform nil))
-       (python-for-statement
-        (python-async
-         :accessor python-async
-         :initarg :python-async
-         :initform nil))
-       (python-with-statement
-        (python-async
-         :accessor python-async
-         :initarg :python-async
-         :initform nil)))
+       (python-function-definition (:async))
+       (python-for-statement (:async))
+       (python-with-statement (:async)))
       (:javascript
-       (javascript-lexical-declaration
-        (javascript-declaration-kind
-         :accessor javascript-declaration-kind
-         :initarg :javascript-declaration-kind
-         :initform nil))
-       (javascript-function-declaration
-        (javascript-async
-         :accessor javascript-async
-         :initarg :javascript-async
-         :initform nil))
-       (javascript-for-in-statement
-        (javascript-declaration-type
-         :accessor javascript-declaration-type
-         :initarg :javascript-declaration-type
-         :initform nil)
-        (javascript-iteration-type
-         :accessor javascript-iteration-type
-         :initarg :javascript-iteration-type
-         :initform nil))))
-    "Alist from languages to classes with extra slots.")
+       (javascript-lexical-declaration (:declaration-kind))
+       (javascript-function-declaration (:async))
+       (javascript-for-in-statement (:declaration-type) (:iteration-type))))
+    "Alist from languages to classes with extra slots.
+The form should be the same as the fields in the note-types.json
+for the language.")
 
   (defparameter *tree-sitter-ast-extra-slot-options*
     '((:c
@@ -4146,36 +4060,43 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
              (create-type-class (type fields grammar-rules
                                  &aux (class-name (make-class-name type)))
                "Create a new class for TYPE using FIELDS and CHILDREN for slots."
-               (let* ((extra-slots (gethash class-name class->extra-slots))
+               (let* ((extra-fields (gethash class-name class->extra-slots))
+                      (all-fields (append fields extra-fields))
                       (child-slot-order
                         (append
-                         (when fields
+                         (when all-fields
                            (mapcar
                             (lambda (slot-keyword)
                               (cons
                                (translate-to-slot-name slot-keyword name-prefix)
-                               (if (aget :multiple (aget slot-keyword fields))
+                               (if (aget :multiple
+                                         (aget slot-keyword all-fields))
                                    0
                                    1)))
-                            (slot-order type fields grammar-rules)))
-                         (when extra-slots
+                            (slot-order type all-fields grammar-rules)))
+                         (when extra-fields
                            ;; Assume an arity of 0 for now.
-                           (mapcar (op (cons (car _) 0)) extra-slots))))
+                           (mapcar
+                            (op (cons
+                                 (translate-to-slot-name (car _1) name-prefix)
+                                 (if (aget :multiple (cdr _1))
+                                     0
+                                     1)))
+                            extra-fields))))
                       (definer
-                        (if fields 'define-node-class 'defclass)))
+                        (if all-fields 'define-node-class 'defclass)))
                  `(,definer
                    ,class-name
                    (,@(or (get-supertypes-for-type type)
                           `(,ast-superclass)))
-                   (,@(create-slots class-name fields)
+                   (,@(create-slots class-name all-fields)
                     (child-slots
                      :initform
                      ',(append '((before-asts . 0))
                                child-slot-order
                                '((children . 0))
                                '((after-asts . 0)))
-                     :allocation :class)
-                    ,@extra-slots)
+                     :allocation :class))
                    ;; NOTE: this is primarily for determing which rule this
                    ;;       was generated for.
                    (:documentation ,(format nil "Generated for ~a." type))
@@ -4189,7 +4110,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                                 (format-symbol 'sel/sw/ts "~a-~a"
                                                name-prefix
                                                (convert-name type))
-                                symbols-to-export)
+                                class-name->class-definition)
                                (make-class-name
                                 (format-symbol 'sel/sw/ts "~a-~a"
                                                (string-upcase type) 'terminal))
