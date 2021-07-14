@@ -201,7 +201,7 @@ class _interface:
     def _check_for_process_crash() -> None:
         """Check if the LISP subprocess has crashed and, if so, throw an error."""
         if not _interface.is_process_running():
-            stderr = _interface._proc.stderr.read().decode("ascii").strip()
+            stderr = _interface._proc.stderr.read().decode().strip()
             if stderr:
                 msg = f"{_interface._DEFAULT_CMD_NAME} crashed with:\n\n{stderr}"
             else:
@@ -246,7 +246,7 @@ class _interface:
                 # application notification to be given.
                 if cmd != _interface._DEFAULT_CMD_NAME:
                     for line in _interface._proc.stderr:
-                        line = line.decode("ascii").strip()
+                        line = line.decode().strip()
                         if line == "==> Launching application.":
                             break
 
@@ -312,13 +312,13 @@ class _interface:
         # and replacing underscores with hyphens.
         fn = fn.replace("__", "").replace("_", "-")
         request = [fn] + [serialize(arg) for arg in args]
-        request = f"{json.dumps(request)}\n".encode("ascii")
+        request = f"{json.dumps(request)}\n".encode()
 
         # Send the request to the tree-sitter-interface and receive the response.
         response = _interface._communicate(request)
 
         # Load the response from the LISP subprocess.
-        return deserialize(handle_errors(json.loads(response.decode("ascii"))))
+        return deserialize(handle_errors(json.loads(response.decode())))
 
     @staticmethod
     def _gc() -> None:
@@ -333,7 +333,7 @@ class _interface:
                     for _ in range(len(_interface._gc_handles))
                 ],
             ]
-            request = f"{json.dumps(request)}\n".encode("ascii")
+            request = f"{json.dumps(request)}\n".encode()
             _interface._communicate(request)
 
     @staticmethod

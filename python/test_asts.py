@@ -223,3 +223,11 @@ class ImportsTestDriver(unittest.TestCase):
         ast = root.children()[-1]
         imports = ast.imports(root)
         self.assertEqual([["os"], ["sys", "s"], ["json", None, "dump"]], imports)
+
+
+class UTF8TestDriver(unittest.TestCase):
+    def test_utf8_multibyte_characters(self):
+        root = asts.AST("python", '"反复请求多次"')
+        rnge = root.ast_source_ranges()[0][1]
+        self.assertEqual('"反复请求多次"', root.source_text())
+        self.assertEqual([[1, 1], [1, 9]], rnge)
