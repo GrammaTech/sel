@@ -614,15 +614,13 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
    :test #'equal))
 
 ;; TODO: move into parseable?
-(-> find-if-in-scopes (function list) list)
-(defun find-if-in-scopes (predicate scopes)
+(-> find-if-in-scopes (function list &key (:key function))
+  (values list &optional))
+(defun find-if-in-scopes (predicate scopes &key (key #'identity))
   "Return the first binding in SCOPES that satisfies PREDICATE."
-  (mapc
-   (lambda (scope)
-     (when-let ((return-value (find-if predicate scope)))
-       (return-from find-if-in-scopes return-value)))
-   scopes)
-  nil)
+  (some (lambda (scope)
+         (find-if predicate scope :key key))
+       scopes))
 
 (defmethod get-function-from-function-call ((obj python) (ast python-ast))
   (match ast
