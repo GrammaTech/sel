@@ -643,7 +643,10 @@ searched to populate `*tree-sitter-language-files*'.")
        (c-function-definition
         (:pre-specifiers (:multiple . t))
         (:post-specifiers (:multiple . t)))
-       (c-sized-type-specifier (:modifiers (:multiple . t))))
+       (c-sized-type-specifier (:modifiers (:multiple . t)))
+       (c-type-descriptor
+        (:pre-type-qualifiers (:multiple . t))
+        (:post-type-qualifiers (:multiple . t))))
       (:cpp
        (cpp-parameter-declaration
         (:pre-specifiers (:multiple . t))
@@ -658,7 +661,10 @@ searched to populate `*tree-sitter-language-files*'.")
         (:pre-specifiers (:multiple . t))
         (:post-specifiers (:multiple . t)))
        (cpp-field-expression (:operator))
-       (cpp-assignment-expression (:operator)))
+       (cpp-assignment-expression (:operator))
+       (cpp-type-descriptor
+        (:pre-type-qualifiers (:multiple . t))
+        (:post-type-qualifiers (:multiple . t))))
       (:python
        (python-function-definition (:async))
        (python-for-statement (:async))
@@ -1183,7 +1189,30 @@ definitions.")
                   ((:TYPE . "SYMBOL") (:NAME . "identifier"))
                   ((:TYPE . "STRING") (:VALUE . "...")))))))))
            ((:TYPE . "BLANK"))))
-         ((:TYPE . "STRING") (:VALUE . ")")))))
+         ((:TYPE . "STRING") (:VALUE . ")"))))
+       (:TYPE-DESCRIPTOR
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "REPEAT")
+          (:CONTENT
+           (:TYPE . "FIELD") (:NAME . "pre_type_qualifiers")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "type_qualifier"))))
+         ((:TYPE . "FIELD")
+          (:NAME . "type")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
+         ((:TYPE . "REPEAT")
+          (:CONTENT
+           (:TYPE . "FIELD") (:NAME . "post_type_qualifiers")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "type_qualifier"))))
+         ((:TYPE . "FIELD")
+          (:NAME . "declarator")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SYMBOL") (:NAME . "_abstract_declarator"))
+            ((:TYPE . "BLANK"))))))))
       (:cpp
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
         (:MEMBERS
@@ -1333,7 +1362,30 @@ definitions.")
              ((:TYPE . "STRING") (:VALUE . "^="))
              ((:TYPE . "STRING") (:VALUE . "|=")))))
           ((:TYPE . "FIELD") (:NAME . "right")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))))))
+           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression"))))))
+       (:TYPE-DESCRIPTOR
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "REPEAT")
+          (:CONTENT
+           (:TYPE . "FIELD") (:NAME . "pre_type_qualifiers")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "type_qualifier"))))
+         ((:TYPE . "FIELD")
+          (:NAME . "type")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
+         ((:TYPE . "REPEAT")
+          (:CONTENT
+           (:TYPE . "FIELD") (:NAME . "post_type_qualifiers")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "type_qualifier"))))
+         ((:TYPE . "FIELD")
+          (:NAME . "declarator")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SYMBOL") (:NAME . "_abstract_declarator"))
+            ((:TYPE . "BLANK"))))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.

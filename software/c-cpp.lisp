@@ -127,4 +127,23 @@ pointer declarations which are nested on themselves."
          (t child-tree)))
      (lastcar parse-tree)))))
 
+(defun transform-c-type-qualifiers
+    (parse-tree &aux (position-slot :pre-type-qualifiers))
+  "Transform PARSE-TREE such that any specifiers are placed in relevants slots."
+  (append
+   (butlast parse-tree)
+   (list
+    (mapcar
+     (lambda (child-tree &aux (car (car child-tree)))
+       (cond
+         ((and (consp car)
+               (eql (car car) :type))
+          (setf position-slot :post-type-qualifiers)
+          child-tree)
+         ((member car '(:type-qualifier))
+          (cons (list position-slot (car child-tree))
+                (cdr child-tree)))
+         (t child-tree)))
+     (lastcar parse-tree)))))
+
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)

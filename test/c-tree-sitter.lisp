@@ -147,6 +147,9 @@
   (with-fixture w/while
     (is (stringp (source-text (find-if {typep _ 'c-while-statement} *soft*))))))
 
+
+;;;; tree-sitter rule substitution tests
+
 (deftest preprocessor-test-1 () ;; address sel issue 136
   "Ensure that #ifndef is not converted to #ifdef"
   (let ((*soft* (from-string (make-instance 'c) 
@@ -229,6 +232,14 @@
       (is (typep (@ g '(0 2 5 0 2)) 'c-field-expression))
       (is (string-equal (source-text  (@ g '(0 2 5 0 2 1)))
                         "->")))))
+
+(deftest c-type-descriptor-1 ()
+  "type descriptors should maintain the correct order of type qualifiers."
+  (let ((source "x const* a = (x const *) m->n->o[i];"))
+    (is (equal source (source-text (convert 'c-ast source))))))
+
+
+;;;; Parsing test
 
 (defun parsing-test-dir (path)
   (merge-pathnames-as-file

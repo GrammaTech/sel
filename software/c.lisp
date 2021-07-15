@@ -78,6 +78,10 @@ field."
     ((language (eql ':c)) (class (eql 'c-parameter-declaration)) parse-tree &key)
   (transform-c-declaration-specifiers parse-tree))
 
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-type-descriptor)) parse-tree &key)
+  (transform-c-type-qualifiers parse-tree))
+
 (defgeneric pointers (c-declarator)
   (:documentation "Return the number of pointers around C-DECLARATOR.")
   (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))
