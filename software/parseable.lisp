@@ -577,14 +577,14 @@ optionally writing to STREAM.")
                             fun-replacements))
             :initial-value ast)))
 
-(defgeneric collect-if (predicate tree)
+(defgeneric collect-if (predicate tree &key key)
   (:documentation
    "Traverse TREE collecting every node that satisfies PREDICATE.")
-  (:method ((predicate function) (tree ast))
+  (:method ((predicate function) (tree ast) &key (key #'identity))
     ;; reverse it to maintain the order it was found in.
     (reverse
      (reduce (lambda (accum ast)
-               (if (funcall predicate ast)
+               (if (funcall predicate (funcall key ast))
                    (cons ast accum)
                    accum))
              tree))))
