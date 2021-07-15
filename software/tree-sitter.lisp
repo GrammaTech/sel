@@ -426,7 +426,6 @@
            :*tree-sitter-language-files*
            :ast-type-to-rebind-p
            :ast-mixin-subclasses
-           :collect-var-uses
            :collect-fun-uses
            :javascript
            :python
@@ -485,6 +484,9 @@
            :return-ast
            :goto-ast
            :terminal-symbol
+           ;; Generics
+           ;; TODO: should this be in parseable?
+           :collect-var-uses
            ;; Cross-language Generics
            :direct-children
            :body
@@ -4906,6 +4908,9 @@ Every element in the list has the following form:
     (if (and (typep ast 'identifier-ast) (unbound-val-p ast))
         (list ast)
         (get-unbound-children))))
+
+(defgeneric collect-var-uses (obj identifier &key &allow-other-keys)
+  (:documentation "Collect uses of IDENTIFIER in OBJ."))
 
 
 ;;;; Cross-language generics and methods
