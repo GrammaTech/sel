@@ -646,3 +646,50 @@ for (int i = 0; i < x; i++) {
                                            "struct { int x; };"))))
              "x"))
   (is (null (field-name (genome (from-string (make-instance 'c) "int x;"))))))
+
+
+;;;; variable-use-p tests
+(defun bulk-variable-use-p (obj variables)
+  "Return a list of variable-use-p results for every node in obj which has
+source text equal to any value in variables."
+  (mapcar {variable-use-p obj}
+          (collect-if
+           (op (member _ variables :test #'equal))
+           (genome obj) :key #'source-text)))
+
+(deftest c-variable-use-p-test ()
+  "variable-use-p returns T on variable uses and NIL on non-variables."
+  (iter
+    (for (source failure-output variable-use-names non-variable-names) in
+         '(("x->y;" "Field Expression" ("x") ("y"))
+           ("x [y];" "Subscript Expression" ("x" "y"))
+           ("x + y;" "Binary Expression" ("x" "y"))
+           ("(x);" "Parenthesized Expression" ("x"))
+           ("x++;" "Update Expression" ("x"))
+           ("!x;" "Unary Expression" ("x"))
+           ("x;" "Expression Statement" ("x"))
+           ("*x;" "Pointer Expression" ("x"))
+           ("int x = y;" "Init Declarator" ("y") ("x"))
+           ("struct x y = { .a = m, .b = n };" "Initializer Pair"
+            ("m" "n")
+            ("x" "y" "a" "b"))
+           ("int x [y];" "Array Declarator" ("y") ("x"))))
+    (let* ((obj (make 'c :genome source))
+           (variable-use-result (bulk-variable-use-p obj variable-use-names))
+           (non-variable-result (bulk-variable-use-p obj non-variable-names)))
+      (when variable-use-names
+        ;; Ensure results
+        (is (consp variable-use-result)
+            "~a: variable uses empty result."
+            failure-output)
+        (is (notany #'null variable-use-result)
+            "~a: variable uses failure."
+            failure-output))
+      (when non-variable-names
+        ;; Ensure results
+        (is (consp non-variable-result)
+            "~a: non-variables empty result."
+            failure-output)
+        (is (every #'null non-variable-result)
+            "~a: non-variables failure."
+            failure-output)))))

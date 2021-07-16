@@ -146,4 +146,47 @@ pointer declarations which are nested on themselves."
          (t child-tree)))
      (lastcar parse-tree)))))
 
+;;; TODO: variable-use-p isn't fleshed out completely for C++.
+(defmethod variable-use-p ((obj c/cpp) identifier &key &allow-other-keys)
+  nil)
+
+(defmethod variable-use-p ((obj c/cpp) (identifier c/cpp-identifier)
+                           &key (parents (get-parent-asts* obj identifier))
+                           &allow-other-keys)
+  (variable-use-p obj (car parents)
+                  :parents (cdr parents) :identifier identifier))
+
+(defmethod variable-use-p ((obj c/cpp) (ast c/cpp-array-declarator)
+                           &key identifier
+                           &allow-other-keys)
+  (eq (c/cpp-size ast) identifier))
+
+(defmacro define-identical-variable-use-p (((&rest types) &rest keys) &body body)
+  `(progn
+     ,@(iter
+         (for type in types)
+         (collect
+             `(defmethod variable-use-p ((obj c/cpp) (ast ,type)
+                                         &key ,@keys &allow-other-keys)
+                ,@body)))))
+
+;;; TODO: have a common mixin for these instead? What would it be named?
+(define-identical-variable-use-p
+    ((c/cpp-init-declarator c/cpp-initializer-pair)
+     identifier)
+  (eq (c/cpp-value ast) identifier))
+
+;;; TODO: have a common mixin for these instead? What would it be named?
+(define-identical-variable-use-p
+    ((c/cpp-parenthesized-expression c/cpp-binary-expression c/cpp-argument-list
+      c/cpp-update-expression c/cpp-pointer-expression c/cpp-subscript-expression
+      c/cpp-unary-expression c/cpp-expression-statement)
+     identifier)
+  ;; variable-use-p climbs up the parents of an identifier to determine if it is
+  ;; being used as a variable. If the identifier key is passed in, it means that
+  ;; a direct child is an identifier and that a recursive call has been made from
+  ;; that child up to the current node which is a parent. In all of these cases,
+  ;; the child is being used as a variable.
+  identifier)
+
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)

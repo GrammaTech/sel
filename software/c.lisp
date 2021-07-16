@@ -210,6 +210,11 @@ field."
   ;; Special handling for uninitialized variables.
   (list (c-declarator ast)))
 
+;;; TODO: add this for C++. It is likely more complicated with classes.
+(defmethod variable-use-p ((obj c/cpp) (ast c-field-expression)
+                           &key identifier
+                           &allow-other-keys)
+  (eq (c-argument ast) identifier))
 
 
 ;;; C Utility
