@@ -180,7 +180,8 @@ pointer declarations which are nested on themselves."
 (define-identical-variable-use-p
     ((c/cpp-parenthesized-expression c/cpp-binary-expression c/cpp-argument-list
       c/cpp-update-expression c/cpp-pointer-expression c/cpp-subscript-expression
-      c/cpp-unary-expression c/cpp-expression-statement)
+      c/cpp-unary-expression c/cpp-expression-statement
+      c/cpp-assignment-expression)
      identifier)
   ;; variable-use-p climbs up the parents of an identifier to determine if it is
   ;; being used as a variable. If the identifier key is passed in, it means that

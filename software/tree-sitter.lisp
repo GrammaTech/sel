@@ -782,6 +782,7 @@ for the language.")
        (:c/cpp-++ c-++)
        (:c/cpp--- c---)
        (:c/cpp-argument-list c-argument-list)
+       (:c/cpp-assignment-expression c-assignment-expression)
        (:c/cpp-array-declarator c-array-declarator)
        (:c/cpp-binary-expression c-binary-expression)
        (:c/cpp-comment c-comment)
@@ -876,6 +877,7 @@ for the language.")
        (:c/cpp-++ cpp-++)
        (:c/cpp--- cpp---)
        (:c/cpp-argument-list cpp-argument-list)
+       (:c/cpp-assignment-expression cpp-assignment-expression)
        (:c/cpp-array-declarator cpp-array-declarator)
        (:c/cpp-binary-expression cpp-binary-expression)
        (:c/cpp-break-statement cpp-break-statement)
@@ -4890,10 +4892,12 @@ Every element in the list has the following form:
            (unbound-val-p (identifier)
              "Return T if IDENTIFIER is unbound in LOCAL-SCOPES and
               isn't the function identifier in a function call."
-             (not (or (member (source-text identifier) local-declarations
+             (and
+              (not (or (member (source-text identifier) local-declarations
                                :key #'source-text
                                :test #'equal)
-                      (function-call-identifier-p identifier))))
+                       (function-call-identifier-p identifier)))
+              (variable-use-p obj identifier)))
            (remove-declaration-identifiers
                (unbound-identifiers local-declarations)
              "Return UNBOUND-IDENTIFIERS with all ASTs present in
