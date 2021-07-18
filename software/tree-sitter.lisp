@@ -1025,6 +1025,7 @@ for the language.")
        (:loop-ast
         python-while-statement python-for-statement python-for-in-clause)
        (:statement-ast python--compound-statement python--simple-statement)
+       (:compound-ast python-block)
        (:call-ast python-call)
        (:arguments-ast python-argument-list)
        (:unary-ast python-unary-operator python-not-operator)
