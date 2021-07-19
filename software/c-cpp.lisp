@@ -161,6 +161,11 @@ pointer declarations which are nested on themselves."
                            &allow-other-keys)
   (eq (c/cpp-size ast) identifier))
 
+(defmethod variable-use-p ((obj c/cpp) (ast c/cpp-return-statement)
+                           &key identifier
+                           &allow-other-keys)
+  (eq (car (direct-children ast)) identifier))
+
 (defmacro define-identical-variable-use-p (((&rest types) &rest keys) &body body)
   `(progn
      ,@(iter

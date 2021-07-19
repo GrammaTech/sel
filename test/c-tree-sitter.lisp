@@ -673,7 +673,8 @@ source text equal to any value in variables."
            ("struct x y = { .a = m, .b = n };" "Initializer Pair"
             ("m" "n")
             ("x" "y" "a" "b"))
-           ("int x [y];" "Array Declarator" ("y") ("x"))))
+           ("int x [y];" "Array Declarator" ("y") ("x"))
+           ("return x;" "Return Statement" ("x"))))
     (let* ((obj (make 'c :genome source))
            (variable-use-result (bulk-variable-use-p obj variable-use-names))
            (non-variable-result (bulk-variable-use-p obj non-variable-names)))
