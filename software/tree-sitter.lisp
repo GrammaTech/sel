@@ -4932,7 +4932,68 @@ Every element in the list has the following form:
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
 (defgeneric collect-var-uses (obj identifier &key &allow-other-keys)
-  (:documentation "Collect uses of IDENTIFIER in OBJ."))
+  (:documentation "Collect uses of IDENTIFIER in OBJ.")
+  (:method ((obj normal-scope) (identifier identifier-ast)
+            &key &aux after-decl-flag)
+    (labels ((initial-declaration-p ()
+               "Return T the first time this is called per collect-var-uses
+                call."
+               (when (not after-decl-flag)
+                 (setf after-decl-flag t)))
+             (contains-identifier-p (declarations)
+               "Return T if DECLARATIONS contains a declaration with the
+                same name as identifier."
+               (member (source-text identifier) declarations
+                       :test #'equal :key #'source-text))
+             (variable-shadowed-p (declarations)
+               "Return T if the variable is shadowed by a declaration
+                in DECLARATIONS."
+               (and (contains-identifier-p declarations)
+                    ;; This is a hack to get around the original decl of the
+                    ;; variable. This is caused bycollect-var-use-children
+                    ;; starting at the enclosing scope and
+                    ;; outer/inner-declarations not returning enough information
+                    ;; to determine if the decl is the original one.
+                    (not (initial-declaration-p))))
+             (get-declaration-ast ()
+               "Get the declaration AST associated with identifier."
+               (or
+                ;; Check if this identifier is part of a declaration before
+                ;; checking scopes to avoid returning a shadowed variable.
+                (iter
+                  (for parent in (get-parent-asts* obj identifier))
+                  (when (member identifier
+                                (append (outer-declarations parent)
+                                        (inner-declarations parent))
+                                ;; Looking for the exact AST.
+                                :test #'eq)
+                    (return parent)))
+                (aget :decl
+                      (find-if-in-scopes
+                       {equal (source-text identifier)}
+                       (scopes obj identifier)
+                       :key {aget :name}))))
+             (collect-var-use-children (ast parents)
+               "Return all variable uses in the children of AST."
+               (cond
+                 ((and (typep ast 'identifier-ast)
+                       (variable-use-p obj ast :parents parents)
+                       (equal (source-text identifier) (source-text ast)))
+                  (list ast))
+                 ((variable-shadowed-p (inner-declarations ast)) nil)
+                 (t
+                  (iter
+                    ;; NOTE: use evaluation order here for cases where
+                    ;;       variable shadowing may become an issue.
+                    (for child in (evaluation-order-children ast))
+                    (appending
+                     (collect-var-use-children child (cons ast parents)))
+                    (until (variable-shadowed-p (outer-declarations child))))))))
+      (when-let ((declaration-ast (get-declaration-ast)))
+        (remove-if-not
+         (op (path-later-p obj _ declaration-ast))
+         (collect-var-use-children
+          (enclosing-scope obj declaration-ast) nil))))))
 
 
 ;;;; Cross-language generics and methods

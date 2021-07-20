@@ -694,3 +694,46 @@ source text equal to any value in variables."
         (is (every #'null non-variable-result)
             "~a: non-variables failure."
             failure-output)))))
+
+
+;;;; collect-var-uses tests
+(deftest c-collect-var-uses-1 ()
+  "collect-var-uses doesn't collect shadowed variable uses."
+  (let* ((source "void f (int a) {
+  a += 1;
+
+  for (char a = 0; a < 0; a++) {
+    return a;
+  }
+}")
+         (software (make 'c :genome source))
+         (target-ast
+           (second
+            (collect-if {equal "a"} (genome software) :key #'source-text)))
+         (var-uses (collect-var-uses software target-ast)))
+    (is (eql 1 (length var-uses)))
+    (is (eq target-ast (car var-uses)))))
+
+(deftest c-collect-var-uses-2 ()
+  "collect-var-uses gets uses of a variable."
+  (let* ((source "void f (int a) {
+  a += 1;
+
+  for (a = 0; a < 0; a++) {
+    if (a == a) {
+      break;
+    }
+
+    return a;
+  }
+
+  return a;
+}")
+         (software (make 'c :genome source))
+         (genome (genome software))
+         (target-ast
+           (find-if {equal "a"} genome :key #'source-text))
+         (var-uses (collect-var-uses software target-ast)))
+    (is (eql 8 (length var-uses)))
+    (is (equal var-uses
+               (cdr (collect-if {equal "a"} genome :key #'source-text))))))
