@@ -211,10 +211,10 @@ field."
   (list (c-declarator ast)))
 
 ;;; TODO: add this for C++. It is likely more complicated with classes.
-(defmethod variable-use-p ((obj c/cpp) (ast c-field-expression)
-                           &key identifier
-                           &allow-other-keys)
-  (eq (c-argument ast) identifier))
+(defmethod child-variable-use-p
+    ((obj c/cpp) (child identifier-ast) (parent c-field-expression)
+     &key &allow-other-keys)
+  (eq (c-argument parent) child))
 
 
 ;;; C Utility
