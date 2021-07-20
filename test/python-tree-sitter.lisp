@@ -748,7 +748,7 @@ and keyword parameters with defaults."
                 (imports *soft* (stmt-with-text *soft* "obj.int()"))))
     (is (equalp '(("os") ("sys" nil "byteorder")
                   ("heapq" "h") ("bar") ("baz") ("qux")
-                  ("foo"))
+                  ("foo" nil "*"))
                 (imports *soft* (stmt-with-text *soft* "obj.str()"))))))
 
 (deftest python-provided-by ()

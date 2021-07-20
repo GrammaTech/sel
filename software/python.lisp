@@ -124,7 +124,7 @@ Every element in the list has the following form:
     (if (python-name ast)
         (mapcar [{list (source-text (python-module-name ast)) nil} #'source-text]
                 (python-name ast))
-        (list (list (source-text (python-module-name ast)))))))
+        (list (list (source-text (python-module-name ast)) nil "*")))))
 
 (defmethod provided-by ((software python) ast)
   (provided-by (genome software) ast))
