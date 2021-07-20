@@ -10,6 +10,8 @@ import time
 
 from typing import Any, ByteString, Dict, List, Optional, Tuple
 
+SUPPORTED_LANGUAGES = ["PYTHON", "C", "CPP", "JAVASCRIPT"]
+
 
 class AST:
     def __init__(
@@ -22,6 +24,10 @@ class AST:
         Parse source-code string source of language and return the root
         of the resulting AST.
         """
+
+        if language and language.upper() not in SUPPORTED_LANGUAGES:
+            raise ASTException(f"{language} is not a supported language.")
+
         if handle is None:
             self.handle = _interface.dispatch(AST.__init__.__name__, language, source)
         else:
