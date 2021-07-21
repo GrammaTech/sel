@@ -829,8 +829,6 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
 ;;; Indentation
 
-(defmethod indentablep ((ast python-string)) nil)
-
 (defmethod get-default-indentation ((ast python-ast) (parents list))
   ;; Search for the first AST which has a colon in its source-text and
   ;; use its indent-children value. If none are found, call-next-method.
