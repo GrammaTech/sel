@@ -105,7 +105,7 @@ pointer declarations which are nested on themselves."
 (defmethod field-name ((ast c/cpp-field-declaration))
   (find-if (of-type 'c/cpp-field-identifier) ast))
 (defmethod field-name ((ast c/cpp-enumerator))
-  (c/cpp-name field-ast))
+  (c/cpp-name ast))
 
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
