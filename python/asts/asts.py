@@ -161,8 +161,7 @@ class AST:
         return _interface.dispatch(AST.function_body.__name__, self)
 
     def provided_by(self, root: "AST") -> Optional[str]:
-        """Return library providing AST's function.  AST must be of type call."""
-        self.ensure_type("CALL-AST")
+        """Return library providing AST's identifier."""
         return _interface.dispatch(AST.provided_by.__name__, root, self)
 
     def call_function(self) -> "AST":
