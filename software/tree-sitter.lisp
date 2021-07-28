@@ -5750,12 +5750,13 @@ the indentation slots."
                 ;; The idea here is that, after we have transferred
                 ;; indentation *i* from the before-text of child *n*
                 ;; to the parent, we need to go back and remove *i*
-                ;; spaces of indentation from the children 0..n-1. But
-                ;; if there is no explicit indentation adjustment on a
-                ;; child we should leave it alone.
+                ;; spaces of indentation from the children 0..n-1.
+                ;; If there is no explicit indentation adjustment on a
+                ;; child, assume the current value is 0.
                 (symbol-macrolet ((indent-adjustment (indent-adjustment ast)))
-                  (when indent-adjustment
-                    (decf indent-adjustment indentation))))
+                  (if indent-adjustment
+                      (decf indent-adjustment indentation)
+                      (setf indent-adjustment (- indentation)))))
               (ldiff asts (member current-ast asts))))
            (backpatch-indent-children-slots (ast indentation)
              "Backpatch any child of AST that already has a value in the

@@ -20,7 +20,8 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-indentation "Indentation."
     (and (python-tree-sitter-available-p)
-         (go-tree-sitter-available-p)))
+         (go-tree-sitter-available-p)
+         (c-tree-sitter-available-p)))
 
 
 ;;; Utility
@@ -117,6 +118,15 @@ const (
   (let ((source "import
         \"\""))
     (is (equal source (source-text (convert 'golang-ast source))))))
+
+(deftest indentation-backpatches-sibling-indentation ()
+  "Process indentation backpatches the indent-adjustment slot of siblings
+after the parent indent-children slot is set."
+  (let ((source "if (1) {
+  return 0;
+} else
+  return 1;"))
+    (is (equal source (source-text (convert 'c-ast source))))))
 
 
 ;;; Mutation Tests
