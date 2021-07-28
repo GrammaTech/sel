@@ -434,6 +434,7 @@
            :after-text
            :before-asts
            :after-asts
+           :computed-text
            ;; Python
            :find-if-in-scopes
            :get-asts-in-namespace
@@ -1881,6 +1882,10 @@ stored as a list of interleaved text. This should ideally only be used for leaf
     ()
     (:documentation "AST for input from tree-sitter."))
 
+  (defclass computed-text ()
+    ()
+    (:documentation "A mixin for computed text ASTs."))
+
   (defclass text-fragment (tree-sitter-ast)
     ((text
       :accessor text
@@ -1888,7 +1893,7 @@ stored as a list of interleaved text. This should ideally only be used for leaf
       :initform nil))
     (:documentation "A wrapper class for text fragments in computed text ASTs."))
 
-  (defclass source-text-fragment ()
+  (defclass source-text-fragment (computed-text)
     ((text :accessor text
            :initform ""
            :initarg :text)
@@ -3404,13 +3409,24 @@ outside of repeats."
       json-rule)
      (not children?)))
 
+  ;;; TODO: clean up everything that calls this. This no longer generates
+  ;;;       anything but instead adds a superclass to a relevant class
+  ;;;       definition. All of the callsites should be updated to reflect
+  ;;;       this, and it should be renamed.
+  ;;;
+  ;;;       This was created before the class-name->class-definition hash table
+  ;;;       was available.
   (defun generate-computed-text-method
-      (transformed-json-rule class-name language &key skip-checking-json)
+      (transformed-json-rule class-name language class-name->class-definition
+       &key skip-checking-json)
     "Generate an input transformation method for RULE if one is needed.
-CLASS-NAME is used as the specialization for the generated method."
+CLASS-NAME is used as the specialization for the generated method.
+The definition of CLASS-NAME is updated to include the computed-text mixin."
     (when (or skip-checking-json
               (computed-text-ast-p language class-name transformed-json-rule))
-      `(defmethod computed-text-node-p ((instance ,class-name)) t)))
+      (add-superclass-to-class-definition
+       class-name class-name->class-definition 'computed-text)
+      nil))
 
 
   (defun add-slot-to-class-definition
@@ -3439,6 +3455,14 @@ CLASS-NAME->CLASS-DEFINITION. Return NIL on failure and non-NIL on success."
                         (if add-to-child-slots
                             (update-child-slots slots)
                             slots))))))))
+
+  (defun add-superclass-to-class-definition
+      (class-name class-name->class-definition superclass)
+    "Destructively add SUPERCLASS to CLASS-NAME's definition in
+CLASS-NAME->CLASS-DEFINITION."
+    (when-let ((class-definition (gethash class-name class-name->class-definition)))
+      (symbol-macrolet ((supers (caddr class-definition)))
+        (pushnew superclass supers))))
 
   (defun generate-children-method
       (pruned-rule json-rule class-name class-name->class-definition)
@@ -3725,9 +3749,10 @@ subclass based on the order of the children were read in."
              (generate-computed-text-methods (json-expansions subclass-pairs)
                "Generate the variable text methods for the rules in
                 JSON-EXPANSION."
-               (mapcar
-                (op (generate-computed-text-method _ (car _) language-prefix))
-                json-expansions subclass-pairs))
+               (map nil
+                    (op (generate-computed-text-method
+                         _ (car _) language-prefix class-name->class-definition))
+                    json-expansions subclass-pairs))
              (generate-output-transformations
                  (pruned-expansions json-expansions subclass-pairs)
                "Generate the output transformations for each subclass."
@@ -3770,7 +3795,8 @@ subclass based on the order of the children were read in."
           ;; Don't expand choices if the super class is computed text.
           `(progn
              ,(generate-computed-text-method
-               json-rule superclass language-prefix))
+               json-rule superclass language-prefix
+               class-name->class-definition))
           (mvlet* ((pruned-rule-expansions
                     ;; NOTE: if json-expansions has 1 item, it does NOT mean that
                     ;;       it is the same as json-rule! This is important
@@ -3948,7 +3974,8 @@ subclass based on the order of the children were read in."
                 ;; that shouldn't happen often and should cover external
                 ;; named nodes.
                 (generate-computed-text-method
-                 nil lisp-type language-prefix :skip-checking-json t))
+                 nil lisp-type language-prefix class-name->class-definition
+                 :skip-checking-json t))
                (t
                 ;; If a type doesn't have a rule and is unnamed, it is considered
                 ;; a terminal symbol.
@@ -4523,12 +4550,13 @@ are ordered for reproduction as source text.")
           (make-keyword successor)
           successor))))
 
+;;; TODO: deprecate this generic.
 (defgeneric computed-text-node-p (ast)
   (:documentation "Return T if AST is a computed-text node. This is a
 node where part of the input will need to be computed and stored to reproduce
 the source-text.")
   (:method (ast) nil)
-  (:method ((ast source-text-fragment)) t))
+  (:method ((ast computed-text)) t))
 
 (defgeneric root-rule-ast-p (ast)
   (:documentation "Return T if AST represents the root rule or entry point
