@@ -488,6 +488,8 @@
            ;; TODO: should this be in parseable?
            :collect-var-uses
            :variable-use-p
+           :patch-whitespace
+           :prettify-software
            ;; Cross-language Generics
            :direct-children
            :body
@@ -529,8 +531,6 @@
            :java
            :text-fragment
            :choice-superclass
-           ;; Functions
-           :patch-whitespace
            ;; string-clauses.lisp
            :ast-for-match
            :wildcard?
@@ -5518,6 +5518,18 @@ AST1 and AST2.
 STYLE can be used to control whitespace based on a standard format or
 on the calculated format of a particular file."))
 
+(defgeneric get-style-indentation (style software ast &key)
+  (:method (style software (ast indentation) &key) (indent-children ast))
+  (:documentation "Return a the indent-children value for AST in SOFTWARE for
+STYLE."))
+
+(defgeneric get-style-indentation-adjustment
+    (style software ast parent &key parents)
+  (:method (style software (ast indentation) parent &key parents)
+    (declare (ignorable parents))
+    (indent-adjustment ast))
+  (:documentation "Return a value to set the indent-adjustment slot of AST."))
+
 (defmethod predecessor :around ((root tree-sitter-ast) (node tree-sitter-ast))
   ;; Ensure fingers are populated on tree-sitter ASTs (not done by the parser currently).
   (unless (finger node) (populate-fingers root))
@@ -5555,34 +5567,78 @@ on the calculated format of a particular file."))
   space to the before-text and after-text slots that need it.")
   (:method ((ast t) &key) ast)
   (:method ((ast terminal-symbol) &key) ast)
-  (:method ((ast structured-text) &key style (recursive t))
-    (labels ((patch-whitespace (ast)
+  (:method ((ast structured-text) &key style software prettify (recursive t))
+    "Destructively patch whitespace on AST by adding a
+space to the before-text and after-text slots that need it.
+
+:software can be provided for to help determine indentation that
+depends on parent ASTS.
+
+:prettify will always set the relevant before/after text as opposed to only
+setting it if it isn't already set."
+    ;; TODO: add functionality to create inner-whitespace objects and store them
+    ;;       in the relevant inner-asts slot. This will be useful for some ASTs
+    ;;       which have two terminals in a row that require whitespace between
+    ;;       them, such as python-yield with 'yield' and 'from'.
+    (labels ((update-indentation (ast parents)
+               "Update the indentation of AST."
+               (let ((indentation (get-style-indentation style software ast))
+                     (indentation-adjustment
+                       (get-style-indentation-adjustment
+                        style software ast (car parents) :parents parents)))
+                 (symbol-macrolet ((indent-children (indent-children ast))
+                                   (indent-adjustment (indent-adjustment ast)))
+                   (cond-every
+                     ((or prettify
+                          (and indentation (not indent-children)))
+                      (setf indent-children indentation))
+                     ((or prettify
+                          (and indentation-adjustment (not indent-adjustment)))
+                      (setf indent-adjustment indentation-adjustment))))))
+             (patch-whitespace (ast parents)
+               (update-indentation ast parents)
                (iter
-                (for item in (cdr (butlast (output-transformation ast))))
-                (for previous-item previous item)
-                (for white-space =
-                     (whitespace-between/parent ast
-                                                style
-                                                previous-item item))
-                (when (and recursive
-                           (typep item '(and tree-sitter-ast
-                                         (not terminal-symbol)))
-                           (not (computed-text-node-p ast)))
-                  (patch-whitespace item))
-                (cond
-                  ((emptyp white-space))
-                  ((typep item 'structured-text)
-                   (when (emptyp (before-text item))
-                     (if (typep previous-item 'structured-text)
-                         (when (emptyp (after-text previous-item))
-                           (setf (before-text item) white-space))
-                         (setf (before-text item) white-space))))
-                  ((typep previous-item 'structured-text)
-                   (when (emptyp (after-text previous-item))
-                     (setf (after-text previous-item) white-space))))
-                (finally (return ast)))))
+                 (for item in (cdr (butlast (output-transformation ast))))
+                 (for previous-item previous item)
+                 (for white-space =
+                      (whitespace-between/parent ast
+                                                 style
+                                                 previous-item item))
+                 (when (and recursive
+                            (typep item '(and tree-sitter-ast
+                                          (not terminal-symbol)))
+                            (not (computed-text-node-p ast)))
+                   (patch-whitespace item (cons ast parents)))
+                 (cond
+                   ((and (not prettify) (emptyp white-space)))
+                   ((typep item 'structured-text)
+                    (when (or prettify (emptyp (before-text item)))
+                      (if (typep previous-item 'structured-text)
+                          (when (emptyp (after-text previous-item))
+                            (setf (before-text item) white-space))
+                          (setf (before-text item) white-space))))
+                   ((typep previous-item 'structured-text)
+                    (when (or prettify (emptyp (after-text previous-item)))
+                      (setf (after-text previous-item) white-space))))
+                 (finally (return ast)))))
       (declare (dynamic-extent #'patch-whitespace))
-      (patch-whitespace ast))))
+      (patch-whitespace ast (and software (get-parent-ast software ast))))))
+
+(defgeneric prettify-software (style software &key ast)
+  (:documentation "Return a copy of SOFTWARE with its whitespace inserted based
+on STYLE.
+
+:AST can be provided to prettify an AST locally. It will still patch its
+parent in the cases where the parent indentation changes.")
+  (:method (style software &key (ast (genome software)))
+      (lret ((ast-path (ast-path software ast))
+             (new-software (copy software :genome (tree-copy (genome software)))))
+        (when-let ((parent (lookup new-software (butlast ast-path))))
+          (setf (indent-children parent)
+                (get-style-indentation style software parent)))
+        (patch-whitespace
+         (lookup new-software ast-path)
+         :recursive t :prettify t :software new-software :style style))))
 
 (defmacro define-empty-whitespace-methods ((&optional (style t))
                                            &body pairs)
