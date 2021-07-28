@@ -532,6 +532,8 @@
            :java
            :text-fragment
            :choice-superclass
+           ;; Styles
+           :c-style-indentation
            ;; string-clauses.lisp
            :ast-for-match
            :wildcard?
@@ -693,7 +695,12 @@ for the language.")
         (c-function :reader call-function)
         (c-arguments :reader call-arguments))
        (c-while-statement
-        (c-body :reader body)))
+        (c-body :reader body :initarg :body))
+       (c-do-statement
+        (c-body :reader body :initarg :body))
+       (c-if-statement
+        (c-consequence :initarg :consequence :reader consequence)
+        (c-alternative :initarg :alternative :reader alternative)))
       (:cpp
        (cpp-init-declarator
         (cpp-declarator :initarg :lhs :reader lhs)
@@ -703,7 +710,14 @@ for the language.")
         (cpp-right :initarg :rhs :reader rhs))
        (cpp-call-expression
         (cpp-function :reader call-function)
-        (cpp-arguments :reader call-arguments)))
+        (cpp-arguments :reader call-arguments))
+       (cpp-while-statement
+        (cpp-body :reader body :initarg :body))
+       (cpp-do-statement
+        (cpp-body :reader body :initarg :body))
+       (cpp-if-statement
+        (cpp-consequence :initarg :consequence :reader consequence)
+        (cpp-alternative :initarg :alternative :reader alternative)))
       (:python
        (python-call
         (python-function :reader call-function)
@@ -735,18 +749,19 @@ for the language.")
 
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
+       (:root-ast c-translation-unit)
        (:comment-ast c-comment)
        (:definition-ast c-type-definition c-struct-specifier c-union-specifier
         c-field-declaration c-enum-specifier c-preproc-def
         c-preproc-function-def)
-       (:statement-ast c--statement c-function-definition)
+       (:statement-ast c--statement c-function-definition c-declaration)
        (:expression-ast c--expression)
        (:parenthesized-expression-ast c-parenthesized-expression)
        (:compound-ast c-compound-statement)
        (:control-flow-ast c-switch-statement c-case-statement)
        (:if-ast c-if-statement)
        (:while-ast c-while-statement)
-       (:loop-ast c-while-statement c-for-statement)
+       (:loop-ast c-while-statement c-for-statement c-do-statement)
        (:parse-error-ast c-error)
        (:variable-declaration-ast c-init-declarator c-assignment-expression)
        (:function-ast c-function-definition)
@@ -803,6 +818,7 @@ for the language.")
        (:c/cpp-enumerator c-enumerator)
        (:c/cpp-field-declaration c-field-declaration)
        (:c/cpp-field-identifier c-field-identifier)
+       (:c/cpp-for-statement c-for-statement)
        (:c/cpp-function-declarator c-function-declarator)
        (:c/cpp-function-definition c-function-definition)
        (:c/cpp-identifier c-identifier)
@@ -817,6 +833,8 @@ for the language.")
        (:c/cpp-pointer-expression c-pointer-expression)
        (:c/cpp-preproc-arg c-preproc-arg)
        (:c/cpp-preproc-def c-preproc-def)
+       (:c/cpp-preproc-elif c-preproc-elif)
+       (:c/cpp-preproc-else c-preproc-else)
        (:c/cpp-preproc-function-def c-preproc-function-def)
        (:c/cpp-preproc-include c-preproc-include)
        (:c/cpp-preproc-params c-preproc-params)
@@ -833,6 +851,7 @@ for the language.")
        (:c/cpp-update-expression c-update-expression)
        (:c/cpp-while-statement c-while-statement))
       (:cpp
+       (:root-ast cpp-translation-unit)
        (:comment-ast cpp-comment)
        (:definition-ast cpp-type-definition cpp-struct-specifier
         cpp-union-specifier
@@ -840,6 +859,7 @@ for the language.")
         cpp-enum-specifier cpp-preproc-def
         cpp-preproc-function-def)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
+       (:statement-ast cpp--statement cpp-function-definition cpp-declaration)
        (:compound-ast cpp-compound-statement)
        (:string-ast cpp-string-literal cpp-raw-string-literal)
        (:char-ast cpp-char-literal)
@@ -855,6 +875,7 @@ for the language.")
        (:goto-ast cpp-goto-statement)
        (:identifier-ast cpp-identifier)
        (:catch-ast cpp-catch-clause)
+       (:loop-ast cpp-while-statement cpp-for-statement cpp-do-statement)
        (:c/cpp-+ cpp-+)
        (:c/cpp-- cpp--)
        (:c/cpp-* cpp-*)
@@ -898,6 +919,7 @@ for the language.")
        (:c/cpp-expression-statement cpp-expression-statement)
        (:c/cpp-field-declaration cpp-field-declaration)
        (:c/cpp-field-identifier cpp-field-identifier)
+       (:c/cpp-for-statement cpp-for-statement)
        (:c/cpp-function-declarator cpp-function-declarator)
        (:c/cpp-function-definition cpp-function-definition)
        (:c/cpp-identifier cpp-identifier)
@@ -912,6 +934,8 @@ for the language.")
        (:c/cpp-pointer-expression cpp-pointer-expression)
        (:c/cpp-preproc-arg cpp-preproc-arg)
        (:c/cpp-preproc-def cpp-preproc-def)
+       (:c/cpp-preproc-elif cpp-preproc-elif)
+       (:c/cpp-preproc-else cpp-preproc-else)
        (:c/cpp-preproc-function-def cpp-preproc-function-def)
        (:c/cpp-preproc-include cpp-preproc-include)
        (:c/cpp-preproc-params cpp-preproc-params)
@@ -5524,7 +5548,8 @@ indicates the number of groupings to drop from the stack."
   (:method (p s (ast1 inner-whitespace) ast2)
     "")
   (:method (p s ast1 (ast2 inner-whitespace))
-    ""))
+    "")
+  (:method ((parent computed-text) s ast1 ast2) ""))
 
 (defgeneric whitespace-between (style ast1 ast2)
   (:method (s ast1 ast2) "")
@@ -6599,6 +6624,104 @@ the rebinding"
                                                     var-replacements
                                                     fun-replacements))))))
                       (child-slots ast)))))
+
+
+;;;; Whitespace styles
+(defclass c-style-indentation ()
+  ;; NOTE: it might make sense to store indentation size on a style object
+  ;;       instead of the software object.
+  ()
+  (:documentation "A class used to represent indentation in c-style languages."))
+
+(defmethod get-style-indentation ((style c-style-indentation) software ast &key)
+  nil)
+
+(defmethod get-style-indentation
+    ((style c-style-indentation) software (ast compound-ast) &key)
+  t)
+
+(defmethod get-style-indentation
+    ((style c-style-indentation) software (ast if-ast) &key)
+  (not (or (typep (consequence ast) 'compound-ast)
+           (typep (alternative ast) 'compound-ast))))
+
+(defmethod get-style-indentation
+    ((style c-style-indentation) software (ast loop-ast) &key)
+  (not (typep (body ast) 'compound-ast)))
+
+(defmethod get-style-indentation-adjustment
+    ((style c-style-indentation) software ast (parent if-ast)
+     &key parents)
+  (let ((target-child-list (list (consequence parent) (alternative parent))))
+    (when (and (not (typep ast 'compound-ast))
+               (member ast target-child-list :test #'eq)
+               (some {typep _ 'compound-ast} target-child-list))
+      (get-default-indentation ast parents))))
+
+(defmethod whitespace-between/parent ((parent root-ast)
+                                      (style c-style-indentation)
+                                      (ast1 ast)
+                                      (ast2 ast))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent ((parent compound-ast)
+                                      (style c-style-indentation)
+                                      (ast1 statement-ast)
+                                      (ast2 statement-ast))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent ((parent compound-ast)
+                                      (style c-style-indentation)
+                                      (ast1 (eql ':|{|))
+                                      (ast2 statement-ast))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent ((parent compound-ast)
+                                      (style c-style-indentation)
+                                      (ast1 statement-ast)
+                                      (ast2 (eql ':|}|)))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent ((parent if-ast)
+                                      (style c-style-indentation)
+                                      ast1
+                                      (ast2 statement-ast))
+  (if (and (not (typep ast2 'compound-ast))
+           (or (eq (consequence parent) ast2)
+               (eq (alternative parent) ast2)))
+      #.(fmt "~%")
+      (call-next-method)))
+
+(defmethod whitespace-between/parent ((parent if-ast)
+                                      (style c-style-indentation)
+                                      (ast1 statement-ast)
+                                      ast2)
+  (if (and (not (typep ast1 'compound-ast))
+           (or (eq (consequence parent) ast1)
+               (eq (alternative parent) ast1)))
+      #.(fmt "~%")
+      (call-next-method)))
+
+(defmethod whitespace-between/parent ((parent loop-ast)
+                                      (style c-style-indentation)
+                                      ast1
+                                      (ast2 statement-ast))
+  (if (and (not (typep ast2 'compound-ast))
+           (eq (body parent) ast2))
+      #.(fmt "~%")
+      (call-next-method)))
+
+(defmethod whitespace-between/parent (parent
+                                      (style c-style-indentation)
+                                      ast1
+                                      (ast2 comment-ast))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent (parent
+                                      (style c-style-indentation)
+                                      (ast1 comment-ast)
+                                      ast2)
+  #.(fmt "~%"))
 
 
 ;;;; Parse Tree Util

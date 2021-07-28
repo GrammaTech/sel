@@ -107,6 +107,11 @@ pointer declarations which are nested on themselves."
 (defmethod field-name ((ast c/cpp-enumerator))
   (c/cpp-name ast))
 
+;;; TODO: find a better way to make this accessor. Can't use extra
+;;;       slot options since the slot is defined in a superclass.
+(defmethod body ((ast c/cpp-for-statement))
+  (car (direct-children ast)))
+
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
   "Transform PARSE-TREE such that any specifiers are placed in relevants slots."
@@ -192,5 +197,42 @@ determined by looking at PARENT.")
      c/cpp-unary-expression c/cpp-expression-statement
      c/cpp-assignment-expression)
   t)
+
+
+
+;;;; Whitespace
+(defmethod whitespace-between/parent ((parent c/cpp-do-statement)
+                                      (style c-style-indentation)
+                                      (ast1 ast)
+                                      ast2)
+  (if (or (typep ast1 'compound-ast)
+          (not (eq ast1 (body parent))))
+      (call-next-method)
+      #.(fmt "~%")))
+
+(defmethod whitespace-between/parent (parent
+                                      (style c-style-indentation)
+                                      ast1
+                                      (ast2 (eql ':|#endif|)))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent (parent
+                                      (style c-style-indentation)
+                                      ast1
+                                      (ast2 c/cpp-preproc-elif))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent (parent
+                                      (style c-style-indentation)
+                                      ast1
+                                      (ast2 c/cpp-preproc-else))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent (parent
+                                      (style c-style-indentation)
+                                      (ast1 (eql ':|#else|))
+                                      ast2)
+  #.(fmt "~%"))
+
 
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)

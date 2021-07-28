@@ -737,3 +737,47 @@ source text equal to any value in variables."
     (is (eql 8 (length var-uses)))
     (is (equal var-uses
                (cdr (collect-if {equal "a"} genome :key #'source-text))))))
+
+
+;;;; patch-whitespace tests
+(defun strip-surrounding-text (ast)
+  "Destructively strip all before and after text from AST."
+  (setf (before-text ast) ""
+        (after-text ast) "")
+  (iter
+    (for child in (children ast))
+    (strip-surrounding-text child))
+  ast)
+
+(defun prettify-software-dir (path)
+  (merge-pathnames-as-file
+   (make-pathname :directory (append +c-tree-sitter-dir+
+                                     (list "prettify")))
+   path))
+
+(defun prettify-software-test (path)
+  "Test that the file at PATH can have its AST reproduced by prettify-software
+when its surrounding text is removed."
+  (let* ((software (from-file (make 'c) (prettify-software-dir path)))
+         ;; Get the string directly before #'genome turns it into an AST.
+         (original-source (slot-value software 'genome))
+         (software-copy (make 'c :genome (strip-surrounding-text
+                                          (tree-copy (genome software))))))
+    (is (equal (trim-whitespace original-source)
+               (source-text
+                (genome
+                 (prettify-software
+                  (make 'c-style-indentation)
+                  software-copy)))))))
+
+(deftest c-round-trip-prettify-software ()
+  "prettify-software will prettify C."
+  (mapc #'prettify-software-test
+        ;; NOTE: these files can be modified as needed but
+        ;;       should have somewhat presentable source.
+        '(#P"comments.c"
+          #P"if-statement.c"
+          #P"indentation.c"
+          #P"loops.c"
+          #P"preproc.c"
+          #P"string.c")))
