@@ -5492,7 +5492,11 @@ indicates the number of groupings to drop from the stack."
   (:method (p s (ast1 string) (ast2 ast))
     (if (notevery #'whitespacep ast1)
         (whitespace-between/parent p s (make-keyword ast1) ast2)
-        "")))
+        ""))
+  (:method (p s (ast1 inner-whitespace) ast2)
+    "")
+  (:method (p s ast1 (ast2 inner-whitespace))
+    ""))
 
 (defgeneric whitespace-between (style ast1 ast2)
   (:method (s ast1 ast2) "")
@@ -5512,6 +5516,8 @@ indicates the number of groupings to drop from the stack."
     (if (some (op (string^= _ ast2)) ")]},") "" " "))
   (:method (s (ast1 ast) (ast2 null)) "")
   (:method (s (ast1 ast) (ast2 ast)) " ")
+  (:method (s (ast1 inner-whitespace) ast2) "")
+  (:method (s ast1 (ast2 inner-whitespace)) "")
   (:documentation "Return a string of whitespace that should occur between
 AST1 and AST2.
 
