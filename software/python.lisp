@@ -99,15 +99,15 @@ are created if they're present in PARSE-TREE."
 (defmethod initialize-instance :after ((self python-empty-parameters) &key)
   (setf (text self) "()"))
 
-(defmethod imports ((software python) (ast python-ast))
+(defmethod imports ((software python) (ast python-ast) &key)
   (imports (genome software) ast))
 
-(defmethod imports ((root python-module) (ast python-ast)
+(defmethod imports ((root python-module) (ast python-ast) &key
                     &aux (parent (get-parent-ast root ast)))
   (append (imports root parent)
           (mappend #'ast-imports (take-until {eq ast} (children parent)))))
 
-(defmethod imports ((root python-module) (ast python-module)) nil)
+(defmethod imports ((root python-module) (ast python-module) &key) nil)
 
 (defgeneric ast-imports (ast)
   (:documentation "Return a list of imports provided by AST.
