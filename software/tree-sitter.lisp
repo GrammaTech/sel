@@ -6112,8 +6112,9 @@ the indentation slots."
                   (previous-field
                    (setf (slot-value previous-field 'after-asts)
                          (reverse comment-error-and-whitespace-stack)))
-                  ((root-rule-ast-p instance)
-                   (push comment-error-and-whitespace-stack internal-asts-stack)))
+                  (t
+                   (push comment-error-and-whitespace-stack
+                         internal-asts-stack)))
                 (return
                   (values
                    (if children
@@ -6301,13 +6302,6 @@ correct class name for subclasses of SUPERCLASS."
       (convert-spec
        spec (get-language-from-superclass superclass) superclass)))
 
-;;; TODO: we're going to run into an issue with figuring out how much white
-;;;       space is between unnamed nodes. Some of it could be assumed, but
-;;;       there are cases--IMMEDIATE_TOKENS--where white spaces can not precede
-;;;       the token. This will likely require support in output-transformation.
-;;;       Paul D. brought up this potential problem at some point.
-;;;       Finding two unnamed nodes in a row probably isn't common across
-;;;       AST types.
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
                     &key superclass &allow-other-keys
                     &aux (prefix (get-language-from-superclass superclass))
@@ -6429,7 +6423,8 @@ correct class name for subclasses of SUPERCLASS."
                      (annotate-surrounding-text
                       child :parent-from from
                             :parent-to (get-end subtree-spec))))
-                   ((root-rule-ast-p (car subtree-spec))
+                   ((or (root-rule-ast-p (car subtree-spec))
+                        (not (equal (get-end child) (get-end subtree-spec))))
                     ;; This is an edge case where the after text won't be
                     ;; handled without an inner whitespace AST.
                     (list `(:inner-whitespace ,(list (get-end child)

@@ -431,6 +431,13 @@ the current state of the AST."
   (let* ((source (format nil "#if defined(A)~%int x() { }~%#endif~%")))
     (is (equal source (source-text (convert 'c-ast source))))))
 
+(deftest c-includes-maintain-trailing-newlines ()
+  "Preprocessor includes don't drop empty lines following them."
+  (let ((source "#include <stdio.h>
+
+
+int f () {}"))
+    (is (equal source (source-text (convert 'c-ast source))))))
 
 ;;;; SCOPES tests
 
