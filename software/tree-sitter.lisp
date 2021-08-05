@@ -2562,6 +2562,21 @@ it is true."
                  (:MEMBERS
                   ,(generate-internal-asts-slot)
                   ,subtree)))
+             (add-succeeding-internal-asts-field (subtree)
+               "Add a proceding internal-asts slot to SUBTREE and return
+                the result."
+               `((:TYPE . "SEQ")
+                 (:MEMBERS
+                  ,subtree
+                  ,(generate-internal-asts-slot))))
+             (add-surrounding-internal-asts-fields (subtree)
+               "Add a surrounding internal-asts slot to SUBTREE and return
+                the result."
+               `((:TYPE . "SEQ")
+                 (:MEMBERS
+                  ,(generate-internal-asts-slot)
+                  ,subtree
+                  ,(generate-internal-asts-slot))))
              (handle-choice
                  (rule paths &aux (ordered-paths (order-paths paths)))
                "Handle RULE as a 'CHOICE' rule."
@@ -2601,6 +2616,25 @@ it is true."
                (if (member nil paths)
                    (add-preceding-internal-asts-field rule)
                    rule))
+             (handle-string (rule paths)
+               "HANDLE RULE as a string."
+               ;; TODO: handle-string is a workaround for an upstream bug that
+               ;;       causes newline terminals to have a range which spans
+               ;;       multiple newlines. Remove this and have string be
+               ;;       considered a terminal once it is fixed. To check if it
+               ;;       has been fixed, try #'cl-tree-sitter:parse-string with a
+               ;;       c-preproc-include and check if the newline spans multiple
+               ;;       newlines.
+               (let ((newline-p (member '(newline) paths :test #'equal))
+                     (preceding-internal-asts-p (member nil paths)))
+                 (cond
+                   ((and newline-p preceding-internal-asts-p)
+                    (add-surrounding-internal-asts-fields rule))
+                   (newline-p
+                    (add-succeeding-internal-asts-field rule))
+                   (preceding-internal-asts-p
+                    (add-preceding-internal-asts-field rule))
+                   (rule))))
              (handle-terminal (rule paths)
                "Handle RULE as a terminal."
                (if (member nil paths)
@@ -2615,8 +2649,8 @@ it is true."
                  ("CHOICE" (handle-choice rule paths))
                  ("REPEAT" (handle-repeat rule paths))
                  ("SEQ" (handle-seq rule paths))
-                 (("PATTERN" "STRING" "TOKEN")
-                  (handle-terminal rule paths)))))
+                 (("PATTERN" "TOKEN") (handle-terminal rule paths))
+                 ("STRING" (handle-string rule paths)))))
       (let ((internal-asts-rule
               (if insert-paths
                   (handle-rule transformed-json-rule insert-paths)
@@ -2674,11 +2708,25 @@ matches as the root of the AST."
                  (handle-terminal path preceding-terminal?)))
              (handle-terminal (path &optional preceding-terminal?)
                "Handle RULE as a terminal."
-               ;; NOTE: when inside a the content of a FIELD,
-               ;;       a BLANK is the only thing that will still be
-               ;;       considered a terminal.
+               ;; NOTE: when inside the content of a FIELD, a BLANK is the only
+               ;;       thing that will still be considered a terminal.
                (when (and (not in-field-flag*) preceding-terminal?)
                  (push (reverse path) insert-paths))
+               (not in-field-flag*))
+             (handle-string (rule path &optional preceding-terminal?)
+               "Handle RULE as a string."
+               ;; TODO: handle-string is a workaround for an upstream bug that
+               ;;       causes newline terminals to have a range which spans
+               ;;       multiple newlines. Remove this and have string be
+               ;;       considered a terminal once it is fixed. To check if it
+               ;;       has been fixed, try #'cl-tree-sitter:parse-string with a
+               ;;       c-preproc-include and check if the newline spans multiple
+               ;;       newlines.
+               (when (not in-field-flag*)
+                 (cond-every
+                   (preceding-terminal? (push (reverse path) insert-paths))
+                   ((equal #.(fmt "~%") (aget :value rule))
+                    (push (reverse (cons 'newline path)) insert-paths))))
                (not in-field-flag*))
              (handle-field (rule path &optional preceding-terminal?
                             &aux (in-field-flag* t))
@@ -2702,10 +2750,11 @@ matches as the root of the AST."
                    ("CHOICE" (handle-choice rule path preceding-terminal?))
                    ("FIELD" (handle-field rule path preceding-terminal?))
                    ("IMMEDIATE_TOKEN" (not in-field-flag*))
-                   (("PATTERN" "STRING" "TOKEN")
+                   (("PATTERN" "TOKEN")
                     (handle-terminal path preceding-terminal?))
                    ("REPEAT" (handle-repeat rule path preceding-terminal?))
                    ("SEQ" (handle-seq rule path preceding-terminal?))
+                   ("STRING" (handle-string rule path preceding-terminal?))
                    ("SYMBOL")))))
       (handle-rule (car transformed-json-rule) nil)
       (list

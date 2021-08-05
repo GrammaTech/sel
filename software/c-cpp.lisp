@@ -234,5 +234,24 @@ determined by looking at PARENT.")
                                       ast2)
   #.(fmt "~%"))
 
+;;; TODO: this is a workaround for an upstream bug that causes
+;;;       newline terminals to have a range which spans multiple
+;;;       newlines. Remove this and have string be considered
+;;;       a terminal once it is fixed. To check if it has been
+;;;       fixed, try #'cl-tree-sitter:parse-string with a
+;;;       c-preproc-include and check if the newline spans
+;;;       multiple newlines.
+(defmethod whitespace-between/parent ((parent root-ast)
+                                      (style c-style-indentation)
+                                      (ast1 c/cpp-preproc-include)
+                                      ast2)
+  "")
+
+;;; TODO: remove this when whitespace is fixed in tree-sitter.
+(defmethod whitespace-between/parent ((parent root-ast)
+                                      (style c-style-indentation)
+                                      ast1
+                                      (ast2 c/cpp-preproc-include))
+  "")
 
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)
