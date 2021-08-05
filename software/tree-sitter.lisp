@@ -1944,7 +1944,7 @@ stored as a list of interleaved text. This should ideally only be used for leaf
     (:documentation "An AST that represents whitespace between two
 terminal tokens."))
 
-  (defclass inner-parent (tree-sitter-ast)
+  (define-node-class inner-parent (tree-sitter-ast)
     ((children
       :initform nil
       :initarg :children
@@ -4269,39 +4269,37 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                                  (if (aget :multiple (cdr _1))
                                      0
                                      1)))
-                            extra-fields))))
-                      (definer
-                        (if all-fields 'define-node-class 'defclass)))
-                 `(,definer
-                   ,class-name
-                   (,@(or (get-supertypes-for-type type)
-                          `(,ast-superclass)))
-                   (,@(create-slots class-name all-fields)
-                    (child-slots
-                     :initform
-                     ',(append '((before-asts . 0))
-                               child-slot-order
-                               '((children . 0))
-                               '((after-asts . 0)))
-                     :allocation :class))
-                   ;; NOTE: this is primarily for determing which rule this
-                   ;;       was generated for.
-                   (:documentation ,(format nil "Generated for ~a." type))
-                   ,@(when (eq definer 'define-node-class)
-                       `((:method-options :skip-children-definition))))))
+                            extra-fields)))))
+                 `(define-node-class
+                      ,class-name
+                      (,@(or (get-supertypes-for-type type)
+                             `(,ast-superclass)))
+                    (,@(create-slots class-name all-fields)
+                     (child-slots
+                      :initform
+                      ',(append '((before-asts . 0))
+                                child-slot-order
+                                '((children . 0))
+                                '((after-asts . 0)))
+                      :allocation :class))
+                    ;; NOTE: this is primarily for determing which rule this
+                    ;;       was generated for.
+                    (:documentation ,(format nil "Generated for ~a." type))
+                    (:method-options :skip-children-definition))))
              (create-terminal-symbol-class (type)
                "Create a new class that represents a terminal symbol.
                 In the case that there's a non-terminal with the same name,
                 append '-terminal' to the end of it."
-               `(defclass ,(if (gethash
-                                (format-symbol 'sel/sw/ts "~a-~a"
-                                               name-prefix
-                                               (convert-name type))
-                                class-name->class-definition)
-                               (make-class-name
-                                (format-symbol 'sel/sw/ts "~a-~a"
-                                               (string-upcase type) 'terminal))
-                               (make-class-name type))
+               `(define-node-class
+                    ,(if (gethash
+                          (format-symbol 'sel/sw/ts "~a-~a"
+                                         name-prefix
+                                         (convert-name type))
+                          class-name->class-definition)
+                         (make-class-name
+                          (format-symbol 'sel/sw/ts "~a-~a"
+                                         (string-upcase type) 'terminal))
+                         (make-class-name type))
                     (,ast-superclass terminal-symbol)
                   ()
                   (:documentation
@@ -4329,7 +4327,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                        class-definition)))
              (create-external-class (name)
                "Create a class for an external rule."
-               `(defclass ,(make-class-name name) (,ast-superclass) ()))
+               `(define-node-class ,(make-class-name name) (,ast-superclass) ()))
              (create-external-classes (grammar)
                "Create classes for the external rules for the grammar file."
                (mapcar (op (create-external-class (aget :name _)))
@@ -4384,7 +4382,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
              ;;       languages?
              ;; NOTE: the following are to handle results returned from
              ;;       cl-tree-sitter.
-             (defclass ,(make-class-name "comment")
+             (define-node-class ,(make-class-name "comment")
                  ,(remove-duplicates
                    `(,ast-superclass
                      ,@(get-supertypes-for-type "comment")
@@ -4393,7 +4391,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
                ()
                (:documentation "Generated for parsed comments."))
 
-             (defclass ,(make-class-name "error")
+             (define-node-class ,(make-class-name "error")
                  ,(remove-duplicates
                    `(,ast-superclass
                      ,@(get-supertypes-for-type "error")
@@ -4407,7 +4405,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
                              :allocation :class))
                (:documentation "Generated for parsing errors."))
 
-             (defclass ,(make-class-name "inner-whitespace")
+             (define-node-class ,(make-class-name "inner-whitespace")
                  ,(remove-duplicates
                    `(,ast-superclass
                      ,@(get-supertypes-for-type "inner-whitespace")
@@ -4416,7 +4414,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
                ()
                (:documentation "Generated for inner whitespace."))
 
-             (defclass ,(make-class-name "source-text-fragment")
+             (define-node-class ,(make-class-name "source-text-fragment")
                  ,(remove-duplicates
                    `(,ast-superclass
                      ,@(get-supertypes-for-type "source-text-fragment")
