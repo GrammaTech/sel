@@ -1,4 +1,5 @@
 import atexit
+import enum
 import json
 import multiprocessing
 import os
@@ -12,20 +13,25 @@ import pygments.lexers
 
 from typing import Any, ByteString, Dict, List, Optional, Tuple
 
-SUPPORTED_LANGUAGES = ["PYTHON", "C", "CPP", "JAVASCRIPT"]
+
+class ASTLanguage(enum.Enum):
+    Python = 0
+    C = 1
+    Cpp = 2
+    Javascript = 3
 
 
-def _guess_language(text: str) -> Optional[str]:
+def _guess_language(text: str) -> Optional[ASTLanguage]:
     """Use pygments to guess the source language of text, if possible."""
     lexer = pygments.lexers.guess_lexer(text)
     if isinstance(lexer, pygments.lexers.PythonLexer):
-        return "PYTHON"
+        return ASTLanguage.Python
     elif isinstance(lexer, pygments.lexers.JavascriptLexer):
-        return "JAVASCRIPT"
+        return ASTLanguage.Javascript
     elif isinstance(lexer, pygments.lexers.CLexer):
-        return "C"
+        return ASTLanguage.C
     elif isinstance(lexer, pygments.lexers.CppLexer):
-        return "CPP"
+        return ASTLanguage.Cpp
     else:
         raise ASTException(
             f"Supported source language could not be derived from:\n{text}"
@@ -36,7 +42,7 @@ class AST:
     def __init__(
         self,
         source: Optional[str] = "",
-        language: Optional[str] = None,
+        language: Optional["ASTLanguage"] = None,
         *,
         deepest: Optional[bool] = False,
         handle: Optional[int] = None,
@@ -48,9 +54,6 @@ class AST:
 
         if handle is None:
             language = _guess_language(source) if not language else language
-            if language and language.upper() not in SUPPORTED_LANGUAGES:
-                raise ASTException(f"{language} is not a supported language.")
-
             self.handle = _interface.dispatch(
                 AST.__init__.__name__,
                 language,
@@ -101,9 +104,10 @@ class AST:
         """Return the source ranges (line, col) for AST its recursive children"""
         return _interface.dispatch(AST.ast_source_ranges.__name__, self)
 
-    def ast_language(self) -> str:
+    def ast_language(self) -> "ASTLanguage":
         """Return the AST's language."""
-        return _interface.dispatch(AST.ast_language.__name__, self)
+        language = _interface.dispatch(AST.ast_language.__name__, self)
+        return ASTLanguage[language.capitalize()]
 
     def ast_type(self) -> str:
         """Return the AST's type."""
@@ -310,6 +314,8 @@ class _interface:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
                 return {"type": "ast", "handle": v.handle}
+            if isinstance(v, ASTLanguage):
+                return v.name.lower()
             elif isinstance(v, dict):
                 return {serialize(key): serialize(val) for key, val in v.items()}
             elif isinstance(v, list):

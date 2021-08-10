@@ -8,7 +8,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
     binop = None
 
     def setUp(self):
-        self.root = asts.AST("x + 88", language="python")
+        self.root = asts.AST("x + 88", asts.ASTLanguage.Python)
         self.binop = self.root.children()[0].children()[0]
         return
 
@@ -64,7 +64,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST language
     def test_ast_language(self):
-        self.assertEqual("PYTHON", self.root.ast_language())
+        self.assertEqual(asts.ASTLanguage.Python, self.root.ast_language())
 
     # Reference count
     def test_ast_refcount(self):
@@ -111,11 +111,11 @@ class FunctionTestDriver(unittest.TestCase):
     # Function body
 
     def test_no_functions(self):
-        ast = asts.AST("", language="python")
+        ast = asts.AST("", asts.ASTLanguage.Python)
         self.assertEqual([], ast.function_asts())
 
     def test_no_params(self):
-        ast = asts.AST("def foo(): return None", language="python")
+        ast = asts.AST("def foo(): return None", asts.ASTLanguage.Python)
         self.assertEqual(1, len(ast.function_asts()))
 
         function = ast.function_asts()[0]
@@ -124,7 +124,7 @@ class FunctionTestDriver(unittest.TestCase):
         self.assertEqual("return None", function.function_body().source_text())
 
     def test_multiple_parameters(self):
-        ast = asts.AST("def bar(a, b): return a*b", language="python")
+        ast = asts.AST("def bar(a, b): return a*b", asts.ASTLanguage.Python)
         self.assertEqual(1, len(ast.function_asts()))
 
         function = ast.function_asts()[0]
@@ -141,11 +141,11 @@ class CallsiteTestDriver(unittest.TestCase):
     # Callsite arguments
 
     def test_no_calls(self):
-        root = asts.AST("", language="python")
+        root = asts.AST("", asts.ASTLanguage.Python)
         self.assertEqual([], root.call_asts())
 
     def test_no_arguments(self):
-        root = asts.AST("foo()", language="python")
+        root = asts.AST("foo()", asts.ASTLanguage.Python)
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]
@@ -154,7 +154,7 @@ class CallsiteTestDriver(unittest.TestCase):
         self.assertEqual([], call.call_arguments())
 
     def test_multiple_arguments(self):
-        root = asts.AST("bar(a, b)", language="python")
+        root = asts.AST("bar(a, b)", asts.ASTLanguage.Python)
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]
@@ -164,7 +164,7 @@ class CallsiteTestDriver(unittest.TestCase):
         self.assertEqual(["a", "b"], args)
 
     def test_provided_by(self):
-        root = asts.AST("import os\nos.path.join(a, b)", language="python")
+        root = asts.AST("import os\nos.path.join(a, b)", asts.ASTLanguage.Python)
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]
@@ -179,11 +179,11 @@ class ErrorTestDriver(unittest.TestCase):
 
 class VarsInScopeTestDriver(unittest.TestCase):
     def test_no_vars_in_scope(self):
-        root = asts.AST("", language="python")
+        root = asts.AST("", asts.ASTLanguage.Python)
         self.assertEqual([], root.get_vars_in_scope(root))
 
     def test_vars_in_scope(self):
-        root = asts.AST("def bar(a, b): return a*b", language="python")
+        root = asts.AST("def bar(a, b): return a*b", asts.ASTLanguage.Python)
         ast = root.children()[-1].children()[-1].children()[-1]
         vars_in_scope = ast.get_vars_in_scope(root)
 
@@ -203,7 +203,7 @@ class VarsInScopeTestDriver(unittest.TestCase):
         self.assertEqual(decls[2], "PYTHON-FUNCTION-DEFINITION-2")
 
     def test_vars_in_scope_no_globals(self):
-        root = asts.AST("def bar(a, b): return a*b", language="python")
+        root = asts.AST("def bar(a, b): return a*b", asts.ASTLanguage.Python)
         ast = root.children()[-1].children()[-1].children()[-1]
         vars_in_scope = ast.get_vars_in_scope(root, keep_globals=False)
 
@@ -222,12 +222,12 @@ class VarsInScopeTestDriver(unittest.TestCase):
 
 class ImportsTestDriver(unittest.TestCase):
     def test_no_imports(self):
-        root = asts.AST("", language="python")
+        root = asts.AST("", asts.ASTLanguage.Python)
         self.assertEqual([], root.imports(root))
 
     def test_imports(self):
         code = "import os\nimport sys as s\nfrom json import dump\nprint('Hello')"
-        root = asts.AST(code, language="python")
+        root = asts.AST(code, asts.ASTLanguage.Python)
         ast = root.children()[-1]
         imports = ast.imports(root)
         self.assertEqual([["os"], ["sys", "s"], ["json", None, "dump"]], imports)
@@ -235,7 +235,7 @@ class ImportsTestDriver(unittest.TestCase):
 
 class UTF8TestDriver(unittest.TestCase):
     def test_utf8_multibyte_characters(self):
-        root = asts.AST('"反复请求多次"', language="python")
+        root = asts.AST('"反复请求多次"', asts.ASTLanguage.Python)
         rnge = root.ast_source_ranges()[0][1]
         self.assertEqual('"反复请求多次"', root.source_text())
         self.assertEqual([[1, 1], [1, 9]], rnge)

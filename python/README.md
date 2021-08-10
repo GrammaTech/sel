@@ -22,7 +22,7 @@ $ python3
 Python 3.8.5
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import asts
->>> it = asts.AST("python", "x + 88")
+>>> it = asts.AST("x + 88", language=asts.ASTLanguage.Python)
 >>> it.children()
 [<asts.asts.AST object at 0x7f8e91fb52b0>]
 >>> it.children()[0].children()
