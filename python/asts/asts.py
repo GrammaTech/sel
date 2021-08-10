@@ -217,6 +217,22 @@ class AST:
         for child in self.children():
             yield from child.traverse()
 
+    # AST mutation
+    @staticmethod
+    def cut(root: "AST", pt: "AST") -> "AST":
+        """Return a new root with pt removed."""
+        return _interface.dispatch(AST.cut.__name__, root, pt)
+
+    @staticmethod
+    def replace(root: "AST", pt: "AST", ast: "AST") -> "AST":
+        """Return a new root with pt replaced with ast."""
+        return _interface.dispatch(AST.replace.__name__, root, pt, ast)
+
+    @staticmethod
+    def insert(root: "AST", pt: "AST", ast: "AST") -> "AST":
+        """Return a new root with ast inserted at pt."""
+        return _interface.dispatch(AST.insert.__name__, root, pt, ast)
+
 
 class ASTException(Exception):
     """specialization for exceptions in the AST tree-sitter interface"""

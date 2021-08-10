@@ -97,6 +97,36 @@ class BinaryOperationTestDriver(unittest.TestCase):
         self.assertEqual(6, len(list(self.root)))
 
 
+class MutationTestDriver(unittest.TestCase):
+    root = None
+    statement = None
+
+    def setUp(self):
+        self.root = asts.AST("x = 88\n", asts.ASTLanguage.Python)
+        self.statement = self.root.children()[0]
+        return
+
+    def test_cut(self):
+        new_root = asts.AST.cut(self.root, self.statement)
+        self.assertNotEqual(new_root.oid(), self.root.oid())
+        self.assertEqual(0, len(new_root.children()))
+        self.assertEqual("", new_root.source_text())
+
+    def test_replace(self):
+        new_ast = asts.AST("y = 2\n", language=asts.ASTLanguage.Python, deepest=True)
+        new_root = asts.AST.replace(self.root, self.statement, new_ast)
+        self.assertNotEqual(new_root.oid(), self.root.oid())
+        self.assertEqual(1, len(new_root.children()))
+        self.assertEqual("y = 2\n", new_root.source_text())
+
+    def test_insert(self):
+        new_ast = asts.AST("y = 2\n", language=asts.ASTLanguage.Python, deepest=True)
+        new_root = asts.AST.insert(self.root, self.statement, new_ast)
+        self.assertNotEqual(new_root.oid(), self.root.oid())
+        self.assertEqual(2, len(new_root.children()))
+        self.assertEqual("y = 2\nx = 88\n", new_root.source_text())
+
+
 class SelfReferentialTestDriver(unittest.TestCase):
     source = None
     root = None

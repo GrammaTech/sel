@@ -274,3 +274,15 @@ function name from the API followed by the arguments."
                                    (column (begin range)))
                              (list (line (end range))
                                    (column (end range))))))))
+
+(-> int/cut (ast ast) ast)
+(defun int/cut (root pt)
+  (less root (ast-path root pt)))
+
+(-> int/insert (ast ast ast) ast)
+(defun int/insert (root pt ast)
+  (insert root (ast-path root pt) (tree-copy ast)))
+
+(-> int/replace (ast ast ast) ast)
+(defun int/replace (root pt ast)
+  (with root (ast-path root pt) (tree-copy ast)))
