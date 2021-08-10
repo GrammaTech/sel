@@ -5207,7 +5207,10 @@ which slots are expected to be used."
   ;;     I think FSet maps would be a good match for what you're doing here.
   ;;     Possibly in concert with box if you don't want to be bothered passing
   ;;     the map around.
-  (labels ((populate-slot->stack ()
+  (labels ((conflict-ast-substitution (conflict-ast)
+             "Retrieve a value from CONFLICT-AST which can be used to match on."
+             (some #'cadr (conflict-ast-child-alist conflict-ast)))
+           (populate-slot->stack ()
              "Create a hash table that maps a slot name to its
               corresponding stack."
              (alist-hash-table
@@ -5217,13 +5220,20 @@ which slots are expected to be used."
                         (value
                           (cond
                             ;; This is a hack to support conflict ASTs. If more
-                            ;; types need added here, it would make more sense to
+                            ;; types other than conflict ASTs are need added
+                            ;; here, it would make more sense to
                             ;; use a generic instead.
                             ((typep slot-value 'conflict-ast)
-                             (cadr
-                              (find-if
-                               #'cadr
-                              (conflict-ast-child-alist slot-value))))
+                             (conflict-ast-substitution slot-value))
+                            ((and (consp slot-value)
+                                  (find-if (of-type 'conflict-ast) slot-value))
+                             ;; Get substitutions for all conflicts in a list.
+                             (mapcar
+                              (lambda (ast)
+                                (if (typep ast 'conflict-ast)
+                                    (conflict-ast-substitution ast)
+                                    ast))
+                              slot-value))
                             (t slot-value))))
                    (cons slot (and value (ensure-cons value)))))
                  slots)))
@@ -5284,8 +5294,6 @@ which slots are expected to be used."
                       ;; Handles the case where it matched on an empty branch.
                       (when-let ((copy (and empty-match?
                                             (copy-hash-table slot->stack))))
-
-                        ;; TODO: add the choice onto the stack
                         (push-child-stack `(:choice ,empty-match?)
                                           copy)
                         copy))))))
