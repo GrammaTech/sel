@@ -18,6 +18,7 @@ class AST:
         self,
         language: Optional[str] = "",
         source: Optional[str] = "",
+        *,
         deepest: Optional[bool] = False,
         handle: Optional[int] = None,
     ) -> None:
