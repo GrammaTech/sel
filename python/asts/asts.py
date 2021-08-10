@@ -18,6 +18,7 @@ class AST:
         self,
         language: Optional[str] = "",
         source: Optional[str] = "",
+        deepest: Optional[bool] = False,
         handle: Optional[int] = None,
     ) -> None:
         """
@@ -29,7 +30,12 @@ class AST:
             raise ASTException(f"{language} is not a supported language.")
 
         if handle is None:
-            self.handle = _interface.dispatch(AST.__init__.__name__, language, source)
+            self.handle = _interface.dispatch(
+                AST.__init__.__name__,
+                language,
+                source,
+                deepest,
+            )
         else:
             self.handle = handle
 

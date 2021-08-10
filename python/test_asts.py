@@ -80,6 +80,12 @@ class BinaryOperationTestDriver(unittest.TestCase):
         root_copy = copy.deepcopy(self.root)
         self.assertEqual(2, asts.AST.ast_refcount(root_copy))
 
+    # AST constructor deepest parameter
+    def test_ast_constructor_deepest_parameter(self):
+        new = asts.AST(self.root.ast_language(), self.root.source_text(), deepest=True)
+        self.assertEqual(new.source_text(), self.root.source_text())
+        self.assertNotEqual(new.ast_type(), self.root.ast_type())
+
 
 class SelfReferentialTestDriver(unittest.TestCase):
     source = None
