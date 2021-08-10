@@ -5,6 +5,7 @@
         :trivial-backtrace
         :usocket
         :software-evolution-library
+        :software-evolution-library/software-evolution-library
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
@@ -13,6 +14,7 @@
         :software-evolution-library/software/python
         :software-evolution-library/software/javascript
         :software-evolution-library/utility/range)
+  (:import-from :software-evolution-library :oid)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
@@ -58,7 +60,7 @@ reported back to the client in JSON form over STREAM."
 (defgeneric refcount (ast)
   (:documentation "Return the reference count of the ast, or 0 if not found.")
   (:method ((ast ast))
-    (refcount (serial-number ast)))
+    (refcount (oid ast)))
   (:method ((handle integer))
     (or (cdr (gethash handle *external-asts*)) 0)))
 
@@ -67,7 +69,7 @@ reported back to the client in JSON form over STREAM."
   (:documentation "Allocate AST to the *external-asts* hashtable and
 increment the reference counter to allow for its use externally without
 garbage collection, returning the key used in the *external-asts* hashtable.")
-  (:method ((ast ast) &aux (handle (serial-number ast)))
+  (:method ((ast ast) &aux (handle (oid ast)))
     (when (not (gethash handle *external-asts*))
       (setf (gethash handle *external-asts*) (cons ast 0)))
     (incf (cdr (gethash handle *external-asts*)))
@@ -79,7 +81,7 @@ garbage collection, returning the key used in the *external-asts* hashtable.")
 if its reference counter reaches zero, returning non-nil if a deallocation
 was performed.")
   (:method ((ast ast))
-    (deallocate-ast (serial-number ast)))
+    (deallocate-ast (oid ast)))
   (:method ((handle integer))
     (when (gethash handle *external-asts*)
       (let ((ref-count (decf (cdr (gethash handle *external-asts*)))))
@@ -92,7 +94,7 @@ was performed.")
   (:method :before ((it ast))
     (allocate-ast it))
   (:method ((it ast))
-    `((:type . :ast) (:handle . ,(serial-number it))))
+    `((:type . :ast) (:handle . ,(oid it))))
   (:method ((it list)) (mapcar-improper-list #'serialize it))
   (:method ((it t)) it))
 

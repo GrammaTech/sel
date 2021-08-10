@@ -10,7 +10,8 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defparameter *slots-excluded*
-  '(sel/software/parseable:indent-children
+  '(sel::oid
+    sel/software/parseable:indent-children
     sel/software/parseable:indent-adjustment
     sel/software/parseable:stored-hash
     sel/software/tree-sitter::rule

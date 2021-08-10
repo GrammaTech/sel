@@ -80,8 +80,8 @@ class AST:
         """Traverse self in pre-order, yielding subtrees"""
         yield from self.traverse()
 
-    def serial_number(self) -> int:
-        """Return the fset serial number for this AST."""
+    def oid(self) -> int:
+        """Return the oid for this AST."""
         return self.handle
 
     def ast_refcount(self) -> int:

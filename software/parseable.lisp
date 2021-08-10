@@ -128,7 +128,7 @@ whether they inherit from the functional trees library."))
                 :documentation "A cached hash." :type (or null hash-type)))
   (:documentation "Mixin for stored-hash slot"))
 
-(defclass functional-tree-ast (node ast stored-hash)
+(defclass functional-tree-ast (node ast oid-object stored-hash)
   ((annotations :initarg :annotations :initform nil :reader ast-annotations
                 :documentation "A-list of annotations." :type list))
   (:documentation "Base class for SEL functional tree ASTs.
