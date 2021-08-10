@@ -76,6 +76,10 @@ class AST:
         """Return a deep copy of AST conforming to copy.deepcopy."""
         return self.__copy__()
 
+    def __iter__(self) -> Generator["AST", None, None]:
+        """Traverse self in pre-order, yielding subtrees"""
+        yield from self.traverse()
+
     def serial_number(self) -> int:
         """Return the fset serial number for this AST."""
         return self.handle
