@@ -33,6 +33,7 @@ setup(
     packages=find_packages(),
     package_data={"asts": ["lib*", "tree-sitter*"]},
     setup_requires=["wheel"],
+    install_requires=["pygments"],
     python_requires=">=3.6",
     project_urls={
         "Bug Reports": "https://github.com/grammatech/sel/issues",

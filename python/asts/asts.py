@@ -8,16 +8,35 @@ import socket
 import subprocess
 import time
 
+import pygments.lexers
+
 from typing import Any, ByteString, Dict, List, Optional, Tuple
 
 SUPPORTED_LANGUAGES = ["PYTHON", "C", "CPP", "JAVASCRIPT"]
 
 
+def _guess_language(text: str) -> Optional[str]:
+    """Use pygments to guess the source language of text, if possible."""
+    lexer = pygments.lexers.guess_lexer(text)
+    if isinstance(lexer, pygments.lexers.PythonLexer):
+        return "PYTHON"
+    elif isinstance(lexer, pygments.lexers.JavascriptLexer):
+        return "JAVASCRIPT"
+    elif isinstance(lexer, pygments.lexers.CLexer):
+        return "C"
+    elif isinstance(lexer, pygments.lexers.CppLexer):
+        return "CPP"
+    else:
+        raise ASTException(
+            f"Supported source language could not be derived from:\n{text}"
+        )
+
+
 class AST:
     def __init__(
         self,
-        language: Optional[str] = "",
         source: Optional[str] = "",
+        language: Optional[str] = None,
         *,
         deepest: Optional[bool] = False,
         handle: Optional[int] = None,
@@ -27,10 +46,11 @@ class AST:
         of the resulting AST.
         """
 
-        if language and language.upper() not in SUPPORTED_LANGUAGES:
-            raise ASTException(f"{language} is not a supported language.")
-
         if handle is None:
+            language = _guess_language(source) if not language else language
+            if language and language.upper() not in SUPPORTED_LANGUAGES:
+                raise ASTException(f"{language} is not a supported language.")
+
             self.handle = _interface.dispatch(
                 AST.__init__.__name__,
                 language,
