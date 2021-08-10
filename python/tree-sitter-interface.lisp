@@ -182,14 +182,6 @@ function name from the API followed by the arguments."
 (-> int/gc (list) null)
 (defun int/gc (handles) (mapcar #'deallocate-ast handles) nil)
 
-(-> int/ast-hash (ast) number)
-(defun int/ast-hash (ast)
-  (ast-hash ast))
-
-(-> int/ast-equal (ast ast) boolean)
-(defun int/ast-equal (ast1 ast2)
-  (equal? ast1 ast2))
-
 (-> int/parent (ast ast) ast)
 (defun int/parent (root ast) (get-parent-ast root ast))
 
