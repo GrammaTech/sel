@@ -88,6 +88,10 @@ class BinaryOperationTestDriver(unittest.TestCase):
         self.assertEqual(new.source_text(), self.root.source_text())
         self.assertNotEqual(new.ast_type(), self.root.ast_type())
 
+    # AST Traverse
+    def test_ast_traverse(self):
+        self.assertEqual(6, len(list(self.root.traverse())))
+
 
 class SelfReferentialTestDriver(unittest.TestCase):
     source = None

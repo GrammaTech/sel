@@ -11,7 +11,7 @@ import time
 
 import pygments.lexers
 
-from typing import Any, ByteString, Dict, List, Optional, Tuple
+from typing import Any, ByteString, Dict, Generator, List, Optional, Tuple
 
 
 class ASTLanguage(enum.Enum):
@@ -204,6 +204,13 @@ class AST:
         """Return AST's arguments.  AST must be of type call."""
         self.ensure_type("CALL-AST")
         return _interface.dispatch(AST.call_arguments.__name__, self) or []
+
+    # AST derived methods
+    def traverse(self) -> Generator["AST", None, None]:
+        """Traverse self in pre-order, yielding subtrees"""
+        yield self
+        for child in self.children():
+            yield from child.traverse()
 
 
 class ASTException(Exception):
