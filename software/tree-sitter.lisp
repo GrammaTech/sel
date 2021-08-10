@@ -6685,6 +6685,12 @@ the rebinding"
                                                     fun-replacements))))))
                       (child-slots ast)))))
 
+;;; TODO: the ast-hash specialization for AST only considers #'children.
+;;;       Does it make sense to create a specialization for structured-text
+;;;       which considers the output-transformation?
+(defmethod ast-hash ast-combine-hash-values ((ast computed-text))
+  (ast-hash (text ast)))
+
 
 ;;;; Whitespace styles
 (defclass c-style-indentation ()
