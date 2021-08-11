@@ -5,9 +5,8 @@ The ASTs package provides a Python API into GrammaTech's Software
 Evolution Library ([SEL][]) for source code manipulation.  SEL
 generalizes over GitHub's [tree-sitter][] parsing libraries providing
 a uniform interface over multiple programming languages (primarily
-Python, JavaScript/TypeScript, C, C++, and Java; with lesser support
-for Bash, CSS, Go HTML, and Rust), and providing additional
-functionality for software inspection and modification.
+Python, JavaScript, and C/C++), and providing additional functionality
+for software inspection and modification.
 
 [tree-sitter]: https://tree-sitter.github.io/tree-sitter/
 [SEL]: https://grammatech.github.io/sel/index.html#Software-Evolution-Library
