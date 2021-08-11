@@ -80,6 +80,17 @@ class AST:
         """Traverse self in pre-order, yielding subtrees"""
         yield from self.traverse()
 
+    def __hash__(self) -> int:
+        """Return the hashcode for the AST."""
+        return self.oid()
+
+    def __eq__(self, other: Any) -> bool:
+        """Return true if AST has the same oid as other."""
+        if isinstance(other, AST):
+            return self.oid() == other.oid()
+        else:
+            return False
+
     def oid(self) -> int:
         """Return the oid for this AST."""
         return self.handle
