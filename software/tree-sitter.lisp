@@ -491,6 +491,7 @@
            :variable-use-p
            :patch-whitespace
            :prettify-software
+           :output-transformation
            ;; Cross-language Generics
            :direct-children
            :body
