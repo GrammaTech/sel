@@ -5209,33 +5209,20 @@ which slots are expected to be used."
   ;;     the map around.
   (labels ((conflict-ast-substitution (conflict-ast)
              "Retrieve a value from CONFLICT-AST which can be used to match on."
-             (some #'cadr (conflict-ast-child-alist conflict-ast)))
+              (some #'cadr (conflict-ast-child-alist conflict-ast)))
+           (get-matchable-value (value)
+             "Get a value that can be matched on by the tree-sitter rules."
+             (if (typep value 'conflict-ast)
+                 (conflict-ast-substitution value)
+                 value))
            (populate-slot->stack ()
              "Create a hash table that maps a slot name to its
               corresponding stack."
              (alist-hash-table
               (mapcar
                (lambda (slot)
-                 (let* ((slot-value (slot-value ast slot))
-                        (value
-                          (cond
-                            ;; This is a hack to support conflict ASTs. If more
-                            ;; types other than conflict ASTs are need added
-                            ;; here, it would make more sense to
-                            ;; use a generic instead.
-                            ((typep slot-value 'conflict-ast)
-                             (conflict-ast-substitution slot-value))
-                            ((and (consp slot-value)
-                                  (find-if (of-type 'conflict-ast) slot-value))
-                             ;; Get substitutions for all conflicts in a list.
-                             (mapcar
-                              (lambda (ast)
-                                (if (typep ast 'conflict-ast)
-                                    (conflict-ast-substitution ast)
-                                    ast))
-                              slot-value))
-                            (t slot-value))))
-                   (cons slot (and value (ensure-cons value)))))
+                 (let* ((slot-value (slot-value ast slot)))
+                   (cons slot (and slot-value (ensure-cons slot-value)))))
                  slots)))
            (identical-slot-stacks-p (slot->stack1 slot->stack2)
              "Return T if the slot stacks in slot->stack are identical
@@ -5256,12 +5243,14 @@ which slots are expected to be used."
                  (setf slot-hash (cdr slot-hash))
                  copy)))
            (handle-child (rule slot->stack)
-             (when (typep (car (gethash 'children slot->stack))
+             (when (typep (get-matchable-value
+                           (car (gethash 'children slot->stack)))
                           ;; Treat source-text-fragment as a wild card.
                           (append '(or source-text-fragment) (cdr rule)))
                (trim-slot-stack 'children slot->stack)))
            (handle-field (rule slot->stack &aux (slot (cadr rule)))
-             (when (typep (car (gethash slot slot->stack))
+             (when (typep (get-matchable-value
+                           (car (gethash slot slot->stack)))
                           (append '(or source-text-fragment) (cddr rule)))
                (trim-slot-stack slot slot->stack)))
            (handle-slot (rule slot->stack &aux (slot (cadr rule)))

@@ -363,6 +363,14 @@
                  ;; The before-text is not set for temp.
                  "a = a +temp"))))
 
+(deftest javascript-conflict-ast-is-in-children ()
+  "Conflict ASTs are in the return value of #'children."
+  (with-fixture javascript-ast-w-conflict
+    (let ((conflict (find-if {typep _ 'conflict-ast} *soft*)))
+      (is (find-if
+           (of-type 'conflict-ast)
+           (children (get-parent-ast *soft* conflict)))))))
+
 ;;; Test case for BI failure
 ;;;(deftest javascript-insert-test ()
 (deftest js-insert-test ()
