@@ -1,5 +1,4 @@
-Generic Tree-Sitter AST API
-===========================
+# Generic Tree-Sitter AST API
 
 The ASTs package provides a Python API into GrammaTech's Software
 Evolution Library ([SEL][]) for source code manipulation.  SEL
@@ -8,15 +7,14 @@ a uniform interface over multiple programming languages (primarily
 Python, JavaScript, and C/C++), and providing additional functionality
 for software inspection and modification.
 
-[tree-sitter]: https://tree-sitter.github.io/tree-sitter/
-[SEL]: https://grammatech.github.io/sel/index.html#Software-Evolution-Library
-
 <!-- TODO: Setup automatic documentation building. -->
 See the methods provided by asts.py for more information.
 
-Example usage:
+# Quick Intro
 
-```
+Here's how to create and query an AST:
+
+```python3
 $ python3
 Python 3.8.5
 Type "help", "copyright", "credits" or "license" for more information.
@@ -43,3 +41,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> list(map(lambda x:x.ast_type(), it.children()[0].children()[0].children()))
 ['PYTHON-IDENTIFIER', 'PYTHON-+', 'PYTHON-INTEGER']
 ```
+
+[tree-sitter]: https://tree-sitter.github.io/tree-sitter/
+[SEL]: https://grammatech.github.io/sel/index.html#Software-Evolution-Library
