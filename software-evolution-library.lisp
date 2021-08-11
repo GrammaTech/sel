@@ -159,7 +159,7 @@
     (atomic-incf (car oid-counter))))
 
 (defclass oid-object (standard-object)
-  ((oid :initarg :oid :reader oid :initform (generate-oid)))
+  ((oid :reader oid :initform (generate-oid)))
   (:documentation
    "Attaches a unique oid (object identifier) to each instance."))
 
