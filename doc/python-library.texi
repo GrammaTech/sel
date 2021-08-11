@@ -37,13 +37,12 @@ make bin/tree-sitter-interface
 export PATH=$(pwd)/bin:$PATH
 @end example
 
-Now that we have built the LISP interface, we can build the python library.
-First, enter the @code{python/} directory of this repository.  From there,
-build and install the library as follows:
+Now that we have built the LISP interface, we need to add the python library
+to our @code{$PYTHONPATH}.  From the base of the SEL repository, the following
+is sufficient to accomplish this:
 
 @example
-python3 setup.py bdist_wheel
-pip3 install dist/*
+export PYTHONPATH=$(pwd)/python:$PYTHONPATH
 @end example
 
 @node Running the SEL Python Library, Troubleshooting the SEL Python Library, Building the SEL Python Library, Python Library
