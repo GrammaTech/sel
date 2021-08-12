@@ -35,7 +35,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> it.children()[0].children()[0].source_text()
 'x + 88'
 >>> it.children()[0].children()[0].child_slots()
-[['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1], ['PYTHON-RIGHT', 1], ['CHILDREN', 0]]
+[['BEFORE-ASTS', 0], ['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1], ['PYTHON-RIGHT', 1], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
 >>> list(map(lambda x:x.source_text(), it.children()[0].children()[0].children()))
 ['x', '+', '88']
 >>> list(map(lambda x:x.ast_type(), it.children()[0].children()[0].children()))
