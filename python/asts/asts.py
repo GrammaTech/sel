@@ -179,7 +179,7 @@ class AST:
     # AST slot accessors
     def ensure_type(self, desired_type: str) -> None:
         if desired_type not in self.ast_types():
-            raise TypeError("AST is not of required type")
+            raise TypeError(f"AST is not of required type ({desired_type})")
 
     def function_name(self) -> str:
         """Return AST's name.  AST must be of type function."""
