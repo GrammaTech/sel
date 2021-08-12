@@ -229,14 +229,6 @@ function name from the API followed by the arguments."
 (defun int/imports (root ast)
   (imports root ast))
 
-(-> int/function-asts (ast) list)
-(defun int/function-asts (ast)
-  (remove-if-not {typep _ 'function-ast} (convert 'list ast)))
-
-(-> int/call-asts (ast) list)
-(defun int/call-asts (ast)
-  (remove-if-not {typep _ 'call-ast} (convert 'list ast)))
-
 (-> int/function-name (ast) string)
 (defun int/function-name (ast) (function-name ast))
 

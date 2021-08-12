@@ -160,11 +160,11 @@ class AST:
 
     def function_asts(self) -> List["AST"]:
         """Return any function ASTs under AST."""
-        return _interface.dispatch(AST.function_asts.__name__, self) or []
+        return [c for c in self if "FUNCTION-AST" in c.ast_types()]
 
     def call_asts(self) -> List["AST"]:
         """Return any call ASTs under AST."""
-        return _interface.dispatch(AST.call_asts.__name__, self) or []
+        return [c for c in self if "CALL-AST" in c.ast_types()]
 
     def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> Dict:
         """Return all variables in enclosing scopes, optionally including globals."""
