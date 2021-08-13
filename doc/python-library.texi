@@ -49,8 +49,8 @@ export PYTHONPATH=$(pwd)/python:$PYTHONPATH
 @section Running the SEL Python Library
 @cindex running the sel python library
 
-To test you have successfully installed the python library, you may run
-the following code snippet:
+To test that you have successfully installed the python library, you
+may run the following code snippet:
 
 @example
 $ python3
@@ -62,8 +62,8 @@ Type "help", "copyright", "credits" or "license" for more information.
 [<asts.asts.AST object at 0x7f8e91fb52b0>]
 @end example
 
-If no errors are thrown, the library is succefully installed.  For more example
-usages, consult the documentation at @url{https://pypi.org/project/asts/},
+If no errors are thrown, the library is successfully installed.  For more
+examples, consult the documentation at @url{https://pypi.org/project/asts/},
 or to view the implementation code, see @code{python/asts/asts.py}.
 
 @node Troubleshooting the SEL Python Library, , Running the SEL Python Library, Python Library

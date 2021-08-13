@@ -258,12 +258,12 @@ class _interface:
 
     @staticmethod
     def is_process_running() -> bool:
-        """Return TRUE if the LISP subprocess is running."""
+        """Return TRUE if the Lisp subprocess is running."""
         return _interface._proc is not None and _interface._proc.poll() is None
 
     @staticmethod
     def _check_for_process_crash() -> None:
-        """Check if the LISP subprocess has crashed and, if so, throw an error."""
+        """Check if the Lisp subprocess has crashed and, if so, throw an error."""
         if not _interface.is_process_running():
             stderr = _interface._proc.stderr.read().decode().strip()
             if stderr:
@@ -274,7 +274,7 @@ class _interface:
 
     @staticmethod
     def start() -> None:
-        """Start the tree-sitter-interface LISP process."""
+        """Start the tree-sitter-interface Lisp process."""
         with _interface._lock:
             if not _interface.is_process_running():
                 # Find the interface binary, either on the $PATH or in an
@@ -323,7 +323,7 @@ class _interface:
 
     @staticmethod
     def stop() -> None:
-        """Stop the tree-sitter-interface LISP process."""
+        """Stop the tree-sitter-interface Lisp process."""
         if _interface.is_process_running():
             _interface._communicate(b"QUIT\n")
 
@@ -364,10 +364,10 @@ class _interface:
 
         # Special case: When garbage collection is occuring, place the
         # AST handle to be garbage collected on a queue to later be
-        # flushed to the LISP subprocess.  This protects us against
+        # flushed to the Lisp subprocess.  This protects us against
         # potential deadlocks in the locked section below if garbage
         # collection is initiated while we are in it and is more efficient
-        # than pushing each handle to the LISP subprocess individually.
+        # than pushing each handle to the Lisp subprocess individually.
         if fn == "__del__" and args[0] is not None:
             _interface._gc_handles.append(args[0])
             return
@@ -383,12 +383,12 @@ class _interface:
         # Send the request to the tree-sitter-interface and receive the response.
         response = _interface._communicate(request)
 
-        # Load the response from the LISP subprocess.
+        # Load the response from the Lisp subprocess.
         return deserialize(handle_errors(json.loads(response.decode())))
 
     @staticmethod
     def _gc() -> None:
-        """Flush the queue of garbage collected AST handles to the LISP subprocess."""
+        """Flush the queue of garbage collected AST handles to the Lisp subprocess."""
         if not _interface.is_process_running():
             _interface._gc_handles = []
         elif len(_interface._gc_handles) > _interface._DEFAULT_GC_THRESHOLD:
@@ -404,7 +404,7 @@ class _interface:
 
     @staticmethod
     def _communicate(request: ByteString) -> ByteString:
-        """Communicate request to the LISP subprocess and receive response."""
+        """Communicate request to the Lisp subprocess and receive response."""
 
         def recvline(socket: socket.socket) -> ByteString:
             """Read a single line from the socket."""
@@ -418,12 +418,12 @@ class _interface:
             response = "".join(chunks)
             return response
 
-        # Send the request to the LISP subprocess, either over a socket or
+        # Send the request to the Lisp subprocess, either over a socket or
         # on standard input, and wait for a response.  This section is locked
         # to prevent issues with multiple threads writing at the same time.
         with _interface._lock:
             # Preliminaries:
-            #  (1) Send list of handles to garbage collect to the LISP
+            #  (1) Send list of handles to garbage collect to the Lisp
             #      subprocess, if applicable.  See comment above re: deadlocks.
             #  (2) Check the process hasn't crashed before communicating with it.
             _interface._gc()

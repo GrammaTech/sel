@@ -29,7 +29,7 @@ for software inspection and modification.
 
 # Quick Intro
 
-Here's how to create and perform some common operations an AST:
+Here's how to create and perform some common operations on an AST:
 
 ```python3
 $ python3
@@ -126,18 +126,18 @@ type, source text, parent AST, and child ASTs.  All of these operations
 are supported by the python API.  To begin, let's examine retrieving AST
 type.
 
-There are two ways to retrieve AST type using the python API - `ast_type`
-and `ast_types`.  `ast_type` returns a string representation of the
-most specialized subclass the object is an instance of; `ast_types`
-returns a list of strings representing the entire class hierarchy the
-object is embedded within on the Common LISP side of the interface.
-This class hierarchy is rich and contains generic mixins for common
-AST types across languages; for instance, `"IF-STATEMENT-AST"`,
-`"STATEMENT-AST"`, `"IDENTIFIER-AST"`, etc.  For cross-language
-applications, it is useful to utilize these language-agnostic types.
-An example of the `ast_type` and `ast_types` methods is shown below;
-please note that `CALL-AST` is a generic, cross-language mixin type
-for all function callsite ASTs.
+There are two ways to retrieve the AST type using the python API -
+`ast_type` and `ast_types`.  `ast_type` returns a string representation
+of the most specialized subclass the object is an instance of;
+`ast_types` returns a list of strings representing the entire class
+hierarchy the object is embedded within on the Common Lisp side of the
+interface.  This class hierarchy is rich and contains generic mixins
+for common AST types across languages; for instance,
+`"IF-STATEMENT-AST"`, `"STATEMENT-AST"`, `"IDENTIFIER-AST"`, etc.  For
+cross-language applications, it is useful to utilize these
+language-agnostic types.  An example of the `ast_type` and `ast_types`
+methods is shown below; please note that `CALL-AST` is a generic,
+cross-language mixin type for all function callsite ASTs.
 
 ```python
 >>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
@@ -199,8 +199,8 @@ lines and columns are 1-indexed.
 ### Functions
 
 Function ASTs have special consideration in the python API, and clients
-may retrieve various function attributes such as name, parameters, and
-body using the respective AST methods, `function_name`,
+may retrieve various function attributes, such as name, parameters, and
+body, using the respective AST methods, `function_name`,
 `function_parameters`, and `function_body`, as shown below:
 
 ```python
@@ -238,8 +238,8 @@ below:
 ## AST Traversal
 
 ASTs may be explictly traversed in pre-order using the `traverse` method
-as shown below.  The traverse method creates a generator which may be
-used anywhere a python `iterable` is required.
+which creates a generator that may be used anywhere a python `iterable`
+is required.  An example usage is shown below:
 
 ```python
 >>> root = asts.AST("x + 88", language=asts.ASTLanguage.Python)
@@ -319,16 +319,16 @@ REPLACE:
 
 # Architecture
 
-The python library is a thin wrapper around a Common LISP program named
+The python library is a thin wrapper around a Common Lisp program named
 `tree-sitter-interface` which calls the required pieces of the
 Software Evolution Library ([SEL][]).  Most API calls are delegated to
 this interface which we communicate with using JSON formatted input/
 output over stdio/stdout or a socket.
 
 The python AST objects contain a handle attribute representing an
-object id (oid) on the Common LISP side of the interface; in essence,
-the python ASTs are pointers to Common LISP memory locations.  When
-calling a python AST method, the oid is serialized to the Common LISP
+object id (oid) on the Common Lisp side of the interface; in essence,
+the python ASTs are pointers to Common Lisp memory locations.  When
+calling a python AST method, the oid is serialized to the Common Lisp
 side of the interface where the underlying AST object is found
 (dereferenced) and the operation performed.  You may get the object id
 using the `get_oid` method on python ASTs; to test for python AST
@@ -337,16 +337,16 @@ the oids.
 
 To allow for garbage collection, the ASTs are manually reference
 counted.  Whenever a python AST (pointer) is created, the reference
-count for the associated Common LISP AST is incremented.  Similarly,
+count for the associated Common Lisp AST is incremented.  Similarly,
 as python ASTs are garbage collected the reference counter is
-decremented.  When the reference counter reaches zero, the Common LISP
+decremented.  When the reference counter reaches zero, the Common Lisp
 AST is released and may be garbage collected at the appropriate time.
 To get the reference count for a particular python AST, you may use
 the `ast_ref_count` method.
 
-The underlying Common LISP ASTs are themselves immutable.  Therefore,
-when performing mutation operations (e.g. cut, replace, insert), new
-ASTs are created in the process.
+The underlying Common Lisp ASTs are themselves treated as immutable.
+Therefore, when performing mutation operations (e.g. cut, replace,
+insert), new ASTs are created in the process.
 
 # License
 
