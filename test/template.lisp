@@ -21,9 +21,10 @@
               (python "return x"))))
 
 (deftest test-leading-newline ()
-  (is (equal? (python "
+  "Newlines are conserved when creating an AST via the template interface."
+  (is (not (equal? (python "
 def x(): x")
-              (python "def x(): x"))))
+                   (python "def x(): x")))))
 
 (deftest test-substitute-names ()
   (is (equal* "foo = bar"
@@ -198,7 +199,7 @@ def $READ_NAME():
   (is (equal? (python "lambda x, y, z: fn(x, y, z)")
               (python "lambda @PARAMS: fn(@ITEMS)"
                       :params '("x" "y" "z")
-                      :items '("z" "y" "x"))))
+                      :items '("x" "y" "z"))))
 
   (is (equal* (source-text (javascript "[x, y, z]"))
               (source-text (javascript "[@ITEMS]" :items (list "x" "y" "z")))
