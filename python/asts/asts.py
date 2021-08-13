@@ -13,6 +13,8 @@ import pygments.lexers
 
 from typing import Any, ByteString, Dict, Generator, List, Optional, Tuple, Union
 
+LiteralOrAST = Union[int, float, str, "AST"]
+
 
 class ASTLanguage(enum.Enum):
     Python = 0
@@ -62,6 +64,54 @@ class AST:
             )
         else:
             self.handle = handle
+
+    # AST construction using templates
+    @staticmethod
+    def ast_template(
+        template: str,
+        language: "ASTLanguage",
+        *args: Tuple[LiteralOrAST],
+        **kwargs: Dict[str, LiteralOrAST],
+    ) -> "AST":
+        """
+        Build a single AST using an AST template syntax.
+
+        For instance, `AST.ast_template("$ID = 1", ASTLanguage.Python, id="x")`
+        returns `AST("x = 1", ASTLanguage.Python, deepest=True)`.
+
+        See https://grammatech.github.io/sel/Templates.html or the python
+        README for more information.
+        """
+        return _interface.dispatch(
+            AST.ast_template.__name__,
+            template,
+            language,
+            *args,
+            **kwargs,
+        )
+
+    @staticmethod
+    def asts_from_template(
+        template: str,
+        language: "ASTLanguage",
+        *args: Tuple[LiteralOrAST],
+    ) -> List["AST"]:
+        """
+        Build and destructure component ASTs using template syntax.
+
+        For instance, `AST.asts_from_template("$1 = $2", ASTLanguage.Python, "x", 1)`
+        returns the component ASTs, `AST("x", ASTLanguage.Python, deepest=True)`
+        and `AST("1", ASTLanguage.Python, deepest=True)`.
+
+        See https://grammatech.github.io/sel/Templates.html or the python
+        README for more information.
+        """
+        return _interface.dispatch(
+            AST.asts_from_template.__name__,
+            template,
+            language,
+            *args,
+        )
 
     # Python method overrides
     def __del__(self) -> None:
@@ -340,7 +390,7 @@ class _interface:
             _interface._communicate(_interface._DEFAULT_QUIT_SENTINEL)
 
     @staticmethod
-    def dispatch(fn: str, *args: Tuple[Any]) -> Any:
+    def dispatch(fn: str, *args: Tuple[Any], **kwargs: Dict[str, Any]) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
         def handle_errors(data: Any) -> Any:
@@ -360,6 +410,8 @@ class _interface:
                 return {serialize(key): serialize(val) for key, val in v.items()}
             elif isinstance(v, list):
                 return [serialize(i) for i in v]
+            elif isinstance(v, tuple):
+                return tuple(serialize(i) for i in v)
             else:
                 return v
 
@@ -371,6 +423,8 @@ class _interface:
                 return {deserialize(key): deserialize(val) for key, val in v.items()}
             elif isinstance(v, list):
                 return [deserialize(i) for i in v]
+            elif isinstance(v, tuple):
+                return tuple(deserialize(i) for i in v)
             else:
                 return v
 
@@ -385,7 +439,7 @@ class _interface:
             return
 
         # Build the request JSON to send to the subprocess.
-        request = [fn] + [serialize(arg) for arg in args]
+        request = [fn] + serialize(list(args)) + serialize(list(kwargs.items()))
         request = f"{json.dumps(request)}\n".encode()
 
         # Send the request to the tree-sitter-interface and receive the response.

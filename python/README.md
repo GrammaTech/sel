@@ -5,6 +5,7 @@
 - [Extended Tutorial](#extended-tutorial)
   - [AST Creation](#ast-creation)
     - [Constructor](#constructor)
+    - [AST Templates](#ast-templates)
   - [AST Methods](#ast-methods)
     - [Common Operations](#common-operations)
     - [Source Locations](#source-locations)
@@ -119,6 +120,69 @@ may use the `deepest` keyword, as shown below:
 >>> root.ast_type()
 'PYTHON-BINARY-OPERATOR'
 ```
+
+### AST Templates
+
+#### Templates for building ASTs
+
+ASTs may also be created using the AST template mechanism.  For
+instance, the following snippet creates an AST equivalent to
+`asts.AST("x = 2", language=asts.ASTLanguage.Python, deepest=True)`:
+
+```python
+>>> root = asts.AST.ast_template("$ID = 2", asts.ASTLanguage.Python, id="x")
+>>> root.source_text()
+'x = 2'
+```
+
+Metavariable names (e.g. `$ID` above) may contain uppercase characters,
+digits, or underscores.  Metavariables may be scalars (e.g. `$`) or
+lists (e.g. `@`), as shown below:
+
+```python
+>>> root = asts.AST.ast_template("fn(@ARGS)", asts.ASTLanguage.Python, args=[1,2,3])
+>>> root.source_text()
+'fn(1, 2, 3)'
+```
+
+Metavariables may also be positional arguments (e.g. `$1`, `$2`), as
+shown below:
+
+```python
+>>> root = asts.AST.ast_template("$1 = 2", asts.ASTLanguage.Python, "x")
+>>> root.source_text()
+'x = 2'
+```
+
+However, you may not combine positional (e.g. `$1`) and keyword
+(e.g. `$ID`) metavariables in a single template.  The corresponding
+metavariable values passed in as arguments to `ast_template` may be
+ASTs, literals, or lists.
+
+#### Templates for building and destructuring ASTs
+
+ASTs may also be directly created for the metavariables in an AST
+template.  For instance, in the template `"$1 = $2"`, we may create
+ASTs for `$1` and `$2` using `asts_from_template`, as shown below:
+
+```python
+>>> asts = asts.AST.asts_from_template("$1 = $2", asts.ASTLanguage.Python, "x", 1)
+>>> len(asts)
+2
+>>> asts[0].source_text()
+'x'
+>>> asts[1].source_text()
+'1'
+```
+
+For now, only the position syntax (e.g. `$1`, `$2`) is supported by
+`asts_from_template`.  One AST is returned per metavariable, in
+numeric order.
+
+#### More information
+
+More information on AST templates may be found in the SEL
+[template documentation][].
 
 ## AST Methods
 
@@ -357,3 +421,4 @@ GPLv3+
 
 [tree-sitter]: https://tree-sitter.github.io/tree-sitter/
 [SEL]: https://grammatech.github.io/sel/index.html#Software-Evolution-Library
+[template documentation]: https://grammatech.github.io/sel/Templates.html#Templates

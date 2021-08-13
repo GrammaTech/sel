@@ -98,6 +98,50 @@ class BinaryOperationTestDriver(unittest.TestCase):
         self.assertEqual(6, len(list(self.root)))
 
 
+class ASTTemplatesTestDriver(unittest.TestCase):
+    def test_ast_template(self):
+        a = AST.ast_template("$ID = 1", ASTLanguage.Python, id="x")
+        self.assertEqual(a.source_text(), "x = 1")
+        self.assertEqual(a.ast_type(), "PYTHON-ASSIGNMENT-0")
+
+        a = AST.ast_template("fn(@ARGS)", ASTLanguage.Python, args=[1, 2, 3])
+        self.assertEqual(a.source_text(), "fn(1, 2, 3)")
+        self.assertEqual(a.ast_type(), "PYTHON-CALL")
+
+        a = AST.ast_template("$1 = $2", ASTLanguage.Python, "x", 1)
+        self.assertEqual(a.source_text(), "x = 1")
+        self.assertEqual(a.ast_type(), "PYTHON-ASSIGNMENT-0")
+
+        a = AST.ast_template("fn(@1)", ASTLanguage.Python, [1, 2, 3])
+        self.assertEqual(a.source_text(), "fn(1, 2, 3)")
+        self.assertEqual(a.ast_type(), "PYTHON-CALL")
+
+        lhs = AST("x", ASTLanguage.Python, deepest=True)
+        a = AST.ast_template("$1 = value", ASTLanguage.Python, lhs)
+        self.assertEqual(a.source_text(), "x = value")
+        self.assertEqual(a.ast_type(), "PYTHON-ASSIGNMENT-0")
+
+        template = "$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE"
+        a = AST.ast_template(
+            template, ASTLanguage.Python, left_hand_side="x", right_hand_side=1
+        )
+        self.assertEqual(a.source_text(), "x = 1")
+        self.assertEqual(a.ast_type(), "PYTHON-ASSIGNMENT-0")
+
+    def test_asts_from_template(self):
+        asts = AST.asts_from_template("$1;", ASTLanguage.C, '"Foo: %d"')
+        self.assertEqual(len(asts), 1)
+        self.assertEqual(asts[0].source_text(), '"Foo: %d"')
+        self.assertEqual(asts[0].ast_type(), "C-STRING-LITERAL")
+
+        asts = AST.asts_from_template("$1 + $2", ASTLanguage.Python, "x", 1)
+        self.assertEqual(len(asts), 2)
+        self.assertEqual(asts[0].source_text(), "x")
+        self.assertEqual(asts[0].ast_type(), "PYTHON-IDENTIFIER")
+        self.assertEqual(asts[1].source_text(), "1")
+        self.assertEqual(asts[1].ast_type(), "PYTHON-INTEGER")
+
+
 class MutationTestDriver(unittest.TestCase):
     root = None
     statement = None

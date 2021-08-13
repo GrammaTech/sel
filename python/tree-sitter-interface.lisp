@@ -7,6 +7,7 @@
         :software-evolution-library
         :software-evolution-library/software-evolution-library
         :software-evolution-library/command-line
+        :software-evolution-library/software/template
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/c
@@ -182,7 +183,7 @@ function name from the API followed by the arguments."
 (-> int/--init-- (string string boolean) fixnum)
 (defun int/--init-- (source-text language deepest)
   (nest (allocate-ast)
-        (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
+        (convert (language-to-ast-symbol language)
                  source-text
                  :deepest deepest)))
 
@@ -293,3 +294,41 @@ function name from the API followed by the arguments."
 (-> int/replace (ast ast ast) ast)
 (defun int/replace (root pt ast)
   (with root (ast-path root pt) (tree-copy ast)))
+
+(-> int/ast-template (string string list) ast)
+(defun int/ast-template (template language &rest args)
+  (apply #'ast-template
+         template
+         (language-to-ast-symbol language)
+         (if (keyword-arguments-p args)
+             (mappend #'handle-keyword-argument args)
+             args)))
+
+(-> int/asts-from-template (string string list) list)
+(defun int/asts-from-template (template language &rest args)
+  (handler-bind ((trivia.level2.impl::wildcard
+                   (lambda (c)
+                     (declare (ignorable c))
+                     (invoke-restart 'continue))))
+    (let ((class (language-to-ast-symbol language))
+          (temps (make-gensym-list (length args))))
+      (eval `(ematch (ast-template ,template ',class ,@args)
+               ((ast-template ,template ,class ,@temps)
+                (list ,@temps)))))))
+
+;;;; API Helpers:
+(-> language-to-ast-symbol (string) symbol)
+(defun language-to-ast-symbol (language)
+  "Convert the given language string to the associated AST type symbol."
+  (safe-intern (concatenate 'string (string-upcase language) "-AST")))
+
+(-> keyword-arguments-p (list) boolean)
+(defun keyword-arguments-p (args)
+  "Returns true if ARGS represents a list of keyword arguments (kwargs)."
+  (every «and #'alist-pair-p [#'stringp #'first]» args))
+
+(-> handle-keyword-argument (cons) cons)
+(defun handle-keyword-argument (arg)
+  "Translate the python keyword argument (ARG) to a Lisp keyword argument."
+  (cons (make-keyword (string-upcase (replace-all (car arg) "_" "-")))
+        (cdr arg)))
