@@ -7,7 +7,9 @@
         :software-evolution-library
         :software-evolution-library/components/file
         :software-evolution-library/utility/range)
-  (:import-from :functional-trees :path-later-p)
+  (:import-from :functional-trees
+   :path-later-p :slot-specifier-slot :slot-specifier-class
+   :slot-specifier)
   (:export ;; ASTs
            :ast
            :functional-tree-ast
@@ -520,6 +522,11 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
   (or (slot-value ast 'stored-hash)
       (setf (slot-value ast 'stored-hash)
             (call-next-method))))
+
+(defmethod ast-hash ast-combine-hash-values ((slot-specifier slot-specifier))
+  (ast-hash (list 'slot-specifier
+                  (slot-specifier-class slot-specifier)
+                  (slot-specifier-slot slot-specifier))))
 
 
 ;;; Generic functions on ASTs
