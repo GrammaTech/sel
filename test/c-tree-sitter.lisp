@@ -558,6 +558,15 @@ int main () {
     (is (eq (aget :scope i-alist) genome))))
 
 
+;;;; Equality tests
+(deftest c-equal?-surrounding-text ()
+  "equal? considers surrounding text when checking for equality."
+  (let ((ast (make-instance 'c-ast)))
+    (is (not (equal? ast (copy ast :before-text " "))))
+    (is (not (equal? ast (copy ast :after-text " "))))
+    (is (not (equal? ast (copy ast :before-text " " :after-text " "))))))
+
+
 ;;;; With Property tests
 (defun test-the-with-property (ast node)
   "Given NODE in the genome of AST, test that the tree remains equal

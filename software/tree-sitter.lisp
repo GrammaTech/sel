@@ -6689,6 +6689,14 @@ the rebinding"
 (defmethod ast-hash ast-combine-hash-values ((ast computed-text))
   (ast-hash (text ast)))
 
+(defmethod equal? ((ast-a computed-text) (ast-b computed-text))
+  (equal (source-text ast-a) (source-text ast-b)))
+
+(defmethod equal? :around ((ast-a structured-text) (ast-b structured-text))
+  (and (call-next-method)
+       (equal (before-text ast-a) (before-text ast-b))
+       (equal (after-text ast-a) (after-text ast-b))))
+
 
 ;;;; Whitespace styles
 (defclass c-style-indentation ()
