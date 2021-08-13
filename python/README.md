@@ -1,3 +1,23 @@
+<!--TOC-->
+
+- [Generic Tree-Sitter AST API](#generic-tree-sitter-ast-api)
+- [Quick Intro](#quick-intro)
+- [Extended Tutorial](#extended-tutorial)
+  - [AST Creation](#ast-creation)
+    - [Constructor](#constructor)
+  - [AST Methods](#ast-methods)
+    - [Common Operations](#common-operations)
+    - [Source Locations](#source-locations)
+    - [Functions](#functions)
+    - [Function Callsites](#function-callsites)
+  - [AST Traversal](#ast-traversal)
+  - [AST Manipulation](#ast-manipulation)
+    - [Mutation Primitives](#mutation-primitives)
+- [Architecture](#architecture)
+- [License](#license)
+
+<!--TOC-->
+
 # Generic Tree-Sitter AST API
 
 The ASTs package provides a Python API into GrammaTech's Software

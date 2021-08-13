@@ -25,4 +25,10 @@ repos:
         args:
           - --check
           - --diff
+  - repo: https://github.com/frnmst/md-toc
+    rev: 8.0.0
+    hooks:
+      - id: md-toc
+        args: [-p, "github"]
+
 files: ^python/

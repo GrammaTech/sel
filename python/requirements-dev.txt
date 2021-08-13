@@ -1,5 +1,6 @@
 black
 flake8
+md_toc
 pre-commit
 pygments
 pytest
