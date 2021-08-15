@@ -56,8 +56,8 @@ class AST:
             language = _guess_language(source) if not language else language
             self.handle = _interface.dispatch(
                 AST.__init__.__name__,
-                language,
                 source,
+                language,
                 deepest,
             )
         else:

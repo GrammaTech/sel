@@ -162,7 +162,7 @@ function name from the API followed by the arguments."
 
 ;;;; API:
 (-> int/ast (string string boolean) (or ast null))
-(defun int/ast (language source-text deepest)
+(defun int/ast (source-text language deepest)
   (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
            source-text
            :deepest deepest))
