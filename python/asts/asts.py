@@ -328,7 +328,7 @@ class _interface:
             _interface._communicate(b"QUIT\n")
 
     @staticmethod
-    def dispatch(fn: str, *args: Any) -> Any:
+    def dispatch(fn: str, *args: Tuple[Any]) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
         def handle_errors(data: Any) -> Any:
