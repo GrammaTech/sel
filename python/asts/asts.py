@@ -221,17 +221,25 @@ class AST:
     @staticmethod
     def cut(root: "AST", pt: "AST") -> "AST":
         """Return a new root with pt removed."""
+        AST._root_mutation_check(root, pt)
         return _interface.dispatch(AST.cut.__name__, root, pt)
 
     @staticmethod
     def replace(root: "AST", pt: "AST", ast: "AST") -> "AST":
         """Return a new root with pt replaced with ast."""
+        AST._root_mutation_check(root, pt)
         return _interface.dispatch(AST.replace.__name__, root, pt, ast)
 
     @staticmethod
     def insert(root: "AST", pt: "AST", ast: "AST") -> "AST":
         """Return a new root with ast inserted at pt."""
+        AST._root_mutation_check(root, pt)
         return _interface.dispatch(AST.insert.__name__, root, pt, ast)
+
+    @staticmethod
+    def _root_mutation_check(root: "AST", pt: "AST") -> None:
+        """Sanity check to ensure we are not mutating the root node directly."""
+        assert root != pt, "Cannot mutate the root node of an AST."
 
 
 class ASTException(Exception):
