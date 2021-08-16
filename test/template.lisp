@@ -6,6 +6,7 @@
         :software-evolution-library/software/python
         :software-evolution-library/software/javascript
         :software-evolution-library/software/c
+        :software-evolution-library/software/cpp
         :software-evolution-library/test/util
         :stefil+)
   (:export))
