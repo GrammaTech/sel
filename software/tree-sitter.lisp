@@ -5666,21 +5666,41 @@ STYLE."))
   (unless (finger node) (populate-fingers root))
   (call-next-method))
 
-(defmethod with :around ((ast tree-sitter-ast) (value1 tree-sitter-ast) &optional value2)
-  (if-let ((predecessor (predecessor ast value1)))
-    (nest (call-next-method ast value1)
-          (copy value2 :before-text)
-          (whitespace-between/parent (parent ast value1)
-                                     nil predecessor value1))
-    (call-next-method)))
+(defun copy-with-surrounding-text (copy-node reference-node)
+  "Copy COPY-NODE with the surrounding text of REFERENCE-NODE. This is done
+on a per slot basis, and the copy of text only happens if the relevant slot
+doesn't already have a non-empty value and the value in REFERENCE-NODE isn't
+also empty. This will prevent unnecessary copying."
+  (let* ((before-copy (before-text copy-node))
+         (after-copy (after-text copy-node))
+         (before-reference (before-text reference-node))
+         (after-reference (after-text reference-node))
+         (empty-before-copy (emptyp before-copy))
+         (empty-after-copy (emptyp after-copy))
+         (not-empty-before-reference (not (emptyp before-reference)))
+         (not-empty-after-reference (not (emptyp after-reference))))
+    (cond
+      ((and empty-before-copy empty-after-copy
+            not-empty-before-reference not-empty-after-reference)
+       (copy copy-node :before-text before-reference
+                       :after-text after-reference))
+      ((and empty-before-copy not-empty-before-reference)
+       (copy copy-node :before-text before-reference))
+      ((and empty-after-copy not-empty-after-reference)
+       (copy copy-node :after-text after-reference))
+      (t copy-node))))
 
-(defmethod with :around ((ast tree-sitter-ast) (value1 list) &optional value2)
-  (if-let* ((old (@ ast value1))
-            (predecessor (predecessor ast old)))
-    (nest (call-next-method ast value1)
-          (copy value2 :before-text)
-          (whitespace-between/parent (parent ast old)
-                                     nil predecessor old))
+(defmethod with :around ((ast structured-text) (value1 structured-text)
+                         &optional value2)
+  (if  (typep value2 'structured-text)
+       (call-next-method ast value1 (copy-with-surrounding-text value2 value1))
+       (call-next-method)))
+
+(defmethod with :around ((ast structured-text) (value1 list) &optional value2)
+  (if-let* ((structuredp (typep value2 'structured-text))
+            (old (@ ast value1))
+            (structuredp (typep old 'structured-text)))
+    (call-next-method ast value1 (copy-with-surrounding-text value2 old))
     (call-next-method)))
 
 (defgeneric patch-whitespace (ast &key)
