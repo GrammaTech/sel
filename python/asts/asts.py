@@ -259,6 +259,7 @@ class _interface:
     _DEFAULT_STARTUP_WAIT: int = 3
     _DEFAULT_SOCKET_TIMEOUT: int = 300
     _DEFAULT_GC_THRESHOLD: int = 128
+    _DEFAULT_QUIT_SENTINEL: ByteString = b"QUIT\n"
 
     _proc: Optional[subprocess.Popen] = None
     _lock: multiprocessing.RLock = multiprocessing.RLock()
@@ -333,7 +334,7 @@ class _interface:
     def stop() -> None:
         """Stop the tree-sitter-interface Lisp process."""
         if _interface.is_process_running():
-            _interface._communicate(b"QUIT\n")
+            _interface._communicate(_interface._DEFAULT_QUIT_SENTINEL)
 
     @staticmethod
     def dispatch(fn: str, *args: Tuple[Any]) -> Any:
@@ -448,6 +449,11 @@ class _interface:
                 _interface._proc.stdin.write(request)
                 _interface._proc.stdin.flush()
                 response = _interface._proc.stdout.readline().strip()
+
+            # Post:
+            #  (1) Check the process hasn't crashed after communicating with it.
+            if request != _interface._DEFAULT_QUIT_SENTINEL:
+                _interface._check_for_process_crash()
 
         return response
 
