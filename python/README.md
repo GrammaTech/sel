@@ -42,7 +42,9 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> root.children()[0].children()
 [<asts.asts.AST object at 0x7f8e918b7100>]
 >>> root.children()[0].children()[0].children()
-[<asts.asts.AST object at 0x7f8e918b7490>, <asts.asts.AST object at 0x7f8e918b73a0>, <asts.asts.AST object at 0x7f8e918b73d0>]
+[<asts.asts.AST object at 0x7f8e918b7490>,
+ <asts.asts.AST object at 0x7f8e918b73a0>,
+ <asts.asts.AST object at 0x7f8e918b73d0>]
 >>> root.children()[0].children()[0].children()[0].source_text()
 'x'
 >>> root.children()[0].children()[0].children()[1].source_text()
@@ -52,7 +54,8 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> root.children()[0].children()[0].source_text()
 'x + 88'
 >>> root.children()[0].children()[0].child_slots()
-[['BEFORE-ASTS', 0], ['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1], ['PYTHON-RIGHT', 1], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
+[['BEFORE-ASTS', 0], ['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1],
+ ['PYTHON-RIGHT', 1], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
 >>> list(map(lambda x:x.source_text(), root.children()[0].children()[0].children()))
 ['x', '+', '88']
 >>> list(map(lambda x:x.ast_type(), root.children()[0].children()[0].children()))
