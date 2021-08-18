@@ -63,6 +63,7 @@ class AST:
         else:
             self.handle = handle
 
+    # Python method overrides
     def __del__(self) -> None:
         if hasattr(self, "handle") and self.handle is not None:
             _interface.dispatch(AST.__del__.__name__, self.handle)
@@ -91,6 +92,7 @@ class AST:
         else:
             return False
 
+    # LISP data accessors
     def oid(self) -> int:
         """Return the oid for this AST."""
         return self.handle
@@ -99,6 +101,7 @@ class AST:
         """Return the AST's reference count."""
         return _interface.dispatch(AST.ast_refcount.__name__, self)
 
+    # Common AST operations
     def ast_at_point(self, line: int, column: int) -> "AST":
         """Return the most specific AST covering LINE and COLUMN."""
         return _interface.dispatch(AST.ast_at_point.__name__, self, line, column)
