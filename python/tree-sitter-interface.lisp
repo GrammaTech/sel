@@ -171,15 +171,12 @@ function name from the API followed by the arguments."
             (handle-request request *standard-output*))))
 
 ;;;; API:
-(-> int/ast (string string boolean) (or ast null))
-(defun int/ast (source-text language deepest)
-  (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
-           source-text
-           :deepest deepest))
-
-(-> int/init (list) (or fixnum null))
-(defun int/init (&rest args)
-  (allocate-ast (apply #'int/ast args)))
+(-> int/init (string string boolean) fixnum)
+(defun int/init (source-text language deepest)
+  (nest (allocate-ast)
+        (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
+                 source-text
+                 :deepest deepest)))
 
 (-> int/copy (ast) fixnum)
 (defun int/copy (ast)
