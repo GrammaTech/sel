@@ -56,6 +56,11 @@ reported back to the client in JSON form over STREAM."
 (declaim (inline safe-intern))
 (defun safe-intern (string) (intern (string-upcase string) :sel/py/ts-int))
 
+(-> alist-pair-p (t) boolean)
+(defun alist-pair-p (pair)
+  "Return T if PAIR represents a potential pair in an alist."
+  (and (consp pair) (atom (car pair)) (not (null (cdr pair)))))
+
 ;; (-> refcount (or ast integer) integer)
 (defgeneric refcount (ast)
   (:documentation "Return the reference count of the ast, or 0 if not found.")
@@ -102,9 +107,14 @@ was performed.")
 (defgeneric deserialize (it)
   (:documentation "Deserialize IT from a form used with the JSON text interface.")
   (:method ((it list))
-    (if (and (every #'consp it) (aget :handle it))
-        (car (gethash (aget :handle it) *external-asts*))
-        (mapcar-improper-list #'deserialize it)))
+    (match it
+      ((alist (:handle . oid) (:type . "ast"))
+       (car (gethash oid *external-asts*)))
+      ((guard it (every #'alist-pair-p it))
+       (mapcar (lambda (pair)
+                 (cons (deserialize (car pair)) (deserialize (cdr pair))))
+               it))
+      ((list* _) (mapcar #'deserialize it))))
   (:method ((it t)) it))
 
 (-> handle-interface (list) t)
