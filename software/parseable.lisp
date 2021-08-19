@@ -865,10 +865,14 @@ the `genome' of the software object."
  substitute)
 
 (write-tree-manipulation-function-parseable-methods
- less
  with
  insert
  splice)
+
+(defmethod less ((obj parseable) value1 &optional value2)
+  (declare (ignorable value2))
+  (setf (genome obj) (less (genome obj) value1))
+  obj)
 
 (defmethod mapc (function (obj parseable) &rest more)
   (declare (ignorable more))
