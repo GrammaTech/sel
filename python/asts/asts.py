@@ -385,10 +385,6 @@ class _interface:
             return
 
         # Build the request JSON to send to the subprocess.
-        # We translate name of the function to call by
-        # removing leading/trailing double underscores
-        # and replacing underscores with hyphens.
-        fn = fn.replace("__", "").replace("_", "-")
         request = [fn] + [serialize(arg) for arg in args]
         request = f"{json.dumps(request)}\n".encode()
 

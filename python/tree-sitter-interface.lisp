@@ -61,6 +61,14 @@ reported back to the client in JSON form over STREAM."
   "Return T if PAIR represents a potential pair in an alist."
   (and (consp pair) (atom (car pair)) (not (null (cdr pair)))))
 
+(-> function-string-to-symbol (string) symbol)
+(defun function-string-to-symbol (function-str)
+  "Convert the python FUNCTION-STR to a symbol for the associated CL function."
+  (nest (safe-intern)
+        (concatenate 'string "INT/")
+        (string-upcase)
+        (replace-all function-str "_" "-")))
+
 ;; (-> refcount (or ast integer) integer)
 (defgeneric refcount (ast)
   (:documentation "Return the reference count of the ast, or 0 if not found.")
@@ -124,7 +132,7 @@ function name from the API followed by the arguments."
   (destructuring-bind (function-str . arguments) json
     (serialize
      (with-suppressed-output
-      (apply (safe-intern (concatenate 'string "INT/" (string-upcase function-str)))
+      (apply (function-string-to-symbol function-str)
              (mapcar #'deserialize arguments))))))
 
 (defgeneric read-request (input)
@@ -171,19 +179,19 @@ function name from the API followed by the arguments."
             (handle-request request *standard-output*))))
 
 ;;;; API:
-(-> int/init (string string boolean) fixnum)
-(defun int/init (source-text language deepest)
+(-> int/--init-- (string string boolean) fixnum)
+(defun int/--init-- (source-text language deepest)
   (nest (allocate-ast)
         (convert (safe-intern (concatenate 'string (string-upcase language) "-AST"))
                  source-text
                  :deepest deepest)))
 
-(-> int/copy (ast) fixnum)
-(defun int/copy (ast)
+(-> int/--copy-- (ast) fixnum)
+(defun int/--copy-- (ast)
   (allocate-ast ast))
 
-(-> int/del (ast) boolean)
-(defun int/del (ast)
+(-> int/--del-- (ast) boolean)
+(defun int/--del-- (ast)
   (deallocate-ast ast))
 
 (-> int/gc (list) null)
