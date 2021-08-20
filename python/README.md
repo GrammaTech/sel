@@ -6,6 +6,7 @@
   - [AST Creation](#ast-creation)
     - [Constructor](#constructor)
     - [AST Templates](#ast-templates)
+    - [AST Copy](#ast-copy)
   - [AST Methods](#ast-methods)
     - [Common Operations](#common-operations)
     - [Source Locations](#source-locations)
@@ -184,6 +185,53 @@ numeric order.
 More information on AST templates may be found in the SEL
 [template documentation][].
 
+### AST Copy
+
+Copies of an AST may created using `AST.copy` or the python `copy`
+module, as shown below:
+
+```python
+>>> root = asts.AST("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> copy = asts.AST.copy(root)
+>>> copy.source_text()
+'x + 1'
+```
+
+In addition, clients may set child slots in the copy by passing in new
+ASTs for each slot as keyword arguments, as shown below:
+
+```python
+>>> root = asts.AST("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> y = asts.AST("y", asts.ASTLanguage.Python, deepest=True)
+>>> copy = asts.AST.copy(root, python_left=y)
+>>> copy.source_text()
+'y + 1'
+```
+
+In addition to ASTs, clients may also pass in literals (e.g. strings,
+code snippets, numbers) as keyword values, as shown below.  These are
+automatically parsed into an AST to be inserted.
+
+```python
+>>> root = asts.AST("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> copy = asts.AST.copy(root, python_left=1)
+>>> copy.source_text()
+'1 + 1'
+>>> copy = asts.AST.copy(root, python_left="y")
+>>> copy.source_text()
+'y + 1'
+```
+
+To view the names of an AST's child slots, you may use the
+`child_slots` method, as shown below:
+
+```python
+>>> root = asts.AST("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> root.child_slots()
+[['BEFORE-ASTS', 0], ['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1],
+ ['PYTHON-RIGHT', 1], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
+```
+
 ## AST Methods
 
 ### Common Operations
@@ -243,6 +291,24 @@ method requires the root of the subtree as a parameter.
 >>> identifier.parent(root).source_text()
 '(x)'
 ```
+
+An AST is composed of various child slots which are concatenated together
+when using the `children` method.  To view the child slots for a particular
+AST you may use the `child_slots` method, which returns a list of slot-name,
+arity pairs.  An arity of one indicates the slot is a single AST, while
+an arity of zero indicates the slot is composed of zero or more ASTs.
+The AST(s) comprising a given slot may be accessed using the `child_slot`
+method.  An example is shown below:
+
+```python
+>>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
+>>> root.child_slots()
+[['BEFORE-ASTS', 0], ['PYTHON-FUNCTION', 1], ['PYTHON-ARGUMENTS', 1],
+ ['CHILDREN', 0], ['AFTER-ASTS', 0]]
+>>> root.child_slot("PYTHON-FUNCTION").source_text()
+'print'
+```
+
 
 ### Source Locations
 

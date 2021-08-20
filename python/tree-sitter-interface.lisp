@@ -187,13 +187,19 @@ function name from the API followed by the arguments."
                  source-text
                  :deepest deepest)))
 
-(-> int/--copy-- (ast) fixnum)
-(defun int/--copy-- (ast)
-  (allocate-ast ast))
-
 (-> int/--del-- (ast) boolean)
 (defun int/--del-- (ast)
   (deallocate-ast ast))
+
+(-> int/--copy-- (ast) fixnum)
+(defun int/--copy-- (ast)
+  "Shallow copy AST in a manner conforming to python's `copy.copy`."
+  (allocate-ast ast))
+
+(-> int/copy (ast list) ast)
+(defun int/copy (ast &rest args)
+  "Copy AST with optional keyword ARGS mapping child slots to new values."
+  (apply #'copy ast (mappend #'handle-keyword-argument args)))
 
 (-> int/gc (list) null)
 (defun int/gc (handles) (mapcar #'deallocate-ast handles) nil)

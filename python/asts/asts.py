@@ -113,6 +113,25 @@ class AST:
             *args,
         )
 
+    # AST construction by creating a copy
+    @staticmethod
+    def copy(ast: "AST", **kwargs: Dict[str, LiteralOrAST]) -> "AST":
+        """
+        Create a copy of AST, optionally passing keyword arguments mapping
+        child slots to new ASTs.
+
+        Consider `a = AST.copy("x + 1", ASTLanguage.Python, deepest=True)`.
+        To create a copy of this AST, you would use `AST.copy(a)`.
+        To create a copy with the left-hand side replaced, you would use
+        `AST.copy("x + 1", python_left=AST("y", ASTLanguage.Python, deepest=True))`.
+
+        See the python README for more information.
+        """
+        for key, value in kwargs.items():
+            if not isinstance(value, AST):
+                kwargs[key] = AST(str(value), ast.ast_language(), deepest=True)
+        return _interface.dispatch(AST.copy.__name__, ast, **kwargs)
+
     # Python method overrides
     def __del__(self) -> None:
         if hasattr(self, "handle") and self.handle is not None:
@@ -120,12 +139,12 @@ class AST:
             self.handle = None
 
     def __copy__(self) -> "AST":
-        """Return a copy of AST conforming to copy.copy."""
+        """Return a shallow copy of AST conforming to copy.copy."""
         return AST(handle=_interface.dispatch(AST.__copy__.__name__, self))
 
     def __deepcopy__(self, memo) -> "AST":
         """Return a deep copy of AST conforming to copy.deepcopy."""
-        return self.__copy__()
+        return AST.copy(self)
 
     def __iter__(self) -> Generator["AST", None, None]:
         """Traverse self in pre-order, yielding subtrees"""

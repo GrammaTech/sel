@@ -79,7 +79,10 @@ class BinaryOperationTestDriver(unittest.TestCase):
     # AST deep copy
     def test_ast_deep_copy(self):
         root_copy = copy.deepcopy(self.root)
-        self.assertEqual(2, AST.ast_refcount(root_copy))
+        self.assertEqual(1, AST.ast_refcount(self.root))
+        self.assertEqual(1, AST.ast_refcount(root_copy))
+        self.assertEqual(root_copy.source_text(), self.root.source_text())
+        self.assertNotEqual(root_copy.oid(), self.root.oid())
 
     # AST constructor deepest parameter
     def test_ast_constructor_deepest_parameter(self):
@@ -140,6 +143,43 @@ class ASTTemplatesTestDriver(unittest.TestCase):
         self.assertEqual(asts[0].ast_type(), "PYTHON-IDENTIFIER")
         self.assertEqual(asts[1].source_text(), "1")
         self.assertEqual(asts[1].ast_type(), "PYTHON-INTEGER")
+
+
+class CopyTestDriver(unittest.TestCase):
+    root = None
+
+    def setUp(self):
+        self.root = AST("x + 1", ASTLanguage.Python, deepest=True)
+
+    def test_copy_no_kwargs(self):
+        copy = AST.copy(self.root)
+        self.assertEqual(1, AST.ast_refcount(self.root))
+        self.assertEqual(1, AST.ast_refcount(copy))
+        self.assertEqual(copy.source_text(), self.root.source_text())
+        self.assertNotEqual(copy.oid(), self.root.oid())
+
+    def test_copy_with_kwargs(self):
+        copy = AST.copy(
+            self.root, python_left=AST("y", ASTLanguage.Python, deepest=True)
+        )
+        self.assertEqual(copy.source_text(), "y + 1")
+        self.assertNotEqual(copy.oid(), self.root.oid())
+
+        copy = AST.copy(self.root, python_left=0.5)
+        self.assertEqual(copy.source_text(), "0.5 + 1")
+        self.assertNotEqual(copy.oid(), self.root.oid())
+
+        copy = AST.copy(self.root, python_left=2)
+        self.assertEqual(copy.source_text(), "2 + 1")
+        self.assertNotEqual(copy.oid(), self.root.oid())
+
+        copy = AST.copy(self.root, python_left='"hi"')
+        self.assertEqual(copy.source_text(), '"hi" + 1')
+        self.assertNotEqual(copy.oid(), self.root.oid())
+
+        copy = AST.copy(self.root, python_left="y")
+        self.assertEqual(copy.source_text(), "y + 1")
+        self.assertNotEqual(copy.oid(), self.root.oid())
 
 
 class MutationTestDriver(unittest.TestCase):
