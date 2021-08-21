@@ -11,7 +11,7 @@ import time
 
 import pygments.lexers
 
-from typing import Any, ByteString, Dict, Generator, List, Optional, Tuple
+from typing import Any, ByteString, Dict, Generator, List, Optional, Tuple, Union
 
 
 class ASTLanguage(enum.Enum):
@@ -145,7 +145,7 @@ class AST:
         else:
             return None
 
-    def child_slot(self, slot: str) -> Any:
+    def child_slot(self, slot: str) -> Union["AST", List["AST"]]:
         """Return the contents of the AST's child slot value."""
         arity = self.child_slot_arity(slot)
         if arity is None:
