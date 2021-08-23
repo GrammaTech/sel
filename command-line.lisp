@@ -156,6 +156,7 @@
          "cxx" cpp
          "go" golang
          "golang" golang
+         "hpp" cpp
          "html" html
          "java" java
          "javascript" javascript
