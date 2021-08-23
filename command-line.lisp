@@ -11,7 +11,7 @@
 ;;; list of the available options.
 ;;;
 ;;; @texi{command-line}
-(defpackage :software-evolution-library/command-line
+(uiop:define-package :software-evolution-library/command-line
   (:nicknames :sel/command-line)
   (:documentation
    "Generally useful functionality for SEL-based command-line tools.")
@@ -36,6 +36,7 @@
         :software-evolution-library/software/c-project
         :software-evolution-library/software/cpp-project
         :software-evolution-library/software/clang-project
+        :software-evolution-library/software/java-project
         :software-evolution-library/software/javascript-project
         :software-evolution-library/software/python-project
         :software-evolution-library/software/lisp-project
@@ -47,6 +48,23 @@
   (:shadowing-import-from :asdf-encodings
                           :detect-file-encoding
                           :encoding-external-format)
+  ;; The idea here is to be able to use tree-sitter symbols as
+  ;; language names without having to actually load every language.
+  ;; With `define-package', `:import-from' interns symbols in the
+  ;; source package if not already present.
+  (:import-from :software-evolution-library/software/tree-sitter
+                :css
+                :c-sharp
+                :go
+                :html
+                :java
+                :json
+                :julia
+                :php
+                :ruby
+                :rust
+                :scala
+                :typescript)
   (:export :define-command
            :interrupt-signal
            :*lisp-interaction*
@@ -114,7 +132,65 @@
 
 (defclass clang-git-project (clang-project git-project) ())
 (defclass javascript-git-project (javascript-project git-project) ())
+(defclass java-git-project (javascript-project git-project) ())
 (defclass lisp-git-project (lisp-project git-project) ())
+
+
+;;;; Language-related tables.
+
+(def +language-alias-table+
+  (dictq equalp
+         "c plus plus" cpp
+         "c" c
+         "cc" c
+         "c#" c-sharp
+         "c++" cpp
+         "c-plus-plus" cpp
+         "c-sharp" c-sharp
+         "cl" lisp
+         "common lisp" lisp
+         "cp" cpp
+         "cpp" cpp
+         "cs" c-sharp
+         "css" css
+         "cxx" cpp
+         "go" golang
+         "golang" golang
+         "html" html
+         "java" java
+         "javascript" javascript
+         "jl" julia
+         "js" javascript
+         "json" json
+         "julia" julia
+         "lisp" lisp
+         ;; Javascript module file.
+         "mjs" javascript
+         "php" php
+         "py" python
+         "python" python
+         "rb" ruby
+         "rs" rust
+         "ruby" ruby
+         "rust" rust
+         "scala" scala
+         "text" simple
+         "ts" typescript
+         "typescript" typescript)
+  "Case-insensitive hash table from aliases (names, extensions) to languages.")
+
+;;; Assert that every language names itself.
+(iter (for (nil v) in-hashtable +language-alias-table+)
+      (unless (eql v 'simple)
+        (assert (eql v (gethash (string v) +language-alias-table+))
+                () "Missing self-alias: ~a" v)))
+
+(-> alias-language (string-designator) symbol)
+(defun alias-language (alias)
+  (case-let (language (gethash (string alias) +language-alias-table+))
+    (c (find-c))
+    (cpp (find-cpp))
+    (t language)))
 
 
 ;;;; Functions to handle command line options and arguments.
@@ -279,18 +355,11 @@ input is not positive."
           "Must supply the positive number of tests to run.")
   num-tests)
 
+(-> resolve-language-from-language-and-source
+    (string &optional (or null string pathname))
+    symbol)
 (defun resolve-language-from-language-and-source (language &optional source)
-  (let ((class (nest
-                (second)
-                (find-if [{find-if {equalp (string-upcase language)}} #'car])
-                `((("JAVASCRIPT") javascript)
-                  (("JSON") json)
-                  (("C") ,(find-c))
-                  (("GO" "GOLANG") golang)
-                  (("PY" "PYTHON") python)
-                  (("CPP" "C++" "C-PLUS-PLUS" "C PLUS PLUS") ,(find-cpp))
-                  (("LISP" "CL" "COMMON LISP") lisp)
-                  (("TEXT") simple)))))
+  (let ((class (alias-language language)))
     (cond
       ((and source (git-url-p source))
        (intern (concatenate 'string (symbol-name class) "-GIT-PROJECT")
@@ -358,6 +427,7 @@ with a language.")
               '(:sel/sw/tree-sitter :sel/sw/clang))))
     (or sym (error "No available representation for C++ ASTs."))))
 
+(-> guess-language (&rest (or string pathname)) symbol)
 (defun guess-language (&rest sources)
   "Guess the SEL software object class that best matches SOURCES.
 SOURCES should be a collection of paths.  The result is determined
@@ -365,34 +435,17 @@ based on heuristics based on whether SOURCES points to files or
 directories and if files based on their extensions."
   (labels
       ((best-guess (guesses)
-         (let ((ht (make-hash-table)))
-           (iter (for guess in guesses)
-                 (setf (gethash guess ht)
-                       (1+ (or (gethash guess ht) 0)))
-                 (finally (return (car (first (sort (hash-table-alist ht) #'>
-                                                    :key #'cdr))))))))
+         (car (extremum (hash-table-alist (frequencies guesses))
+                        #'> :key #'cdr)))
        (guess-helper (sources project-p)
          (let ((guesses
                 (mapcar (lambda (source)
-                          (nest
                            (if (directory-p source)
                                (when-let ((guess (guess-helper
                                                   (list-directory source)
                                                   t)))
-                                 (language-to-project guess)))
-                           (second)
-                           (find-if
-                            (lambda (pair)
-                              (member (pathname-type source) (car pair)
-                                      :test #'equalp)))
-                           ;; List of extensions and associated sel/sw class.
-                           `((("lisp") lisp)
-                             (("py") python)
-                             (("js") javascript)
-                             (("json") json)
-                             (("go") golang)
-                             (("c" "cc") ,(find-c))
-                             (("cpp" "cxx" "cp") ,(find-cpp)))))
+                                 (language-to-project guess))
+                               (alias-language (pathname-type source))))
                         sources)))
            (cond
              (project-p
@@ -401,7 +454,8 @@ directories and if files based on their extensions."
               ;;
               ;; NOTE: We will have to add to this list of incidental
               ;; software types that don't determine the project type.
-              (best-guess (remove-if {member _ '(nil json simple)} guesses)))
+              (best-guess
+               (remove-if {member _ '(nil json simple bash)} guesses)))
              ((= 1 (length sources))
               ;; For a single file either return the guess, or return
               ;; SIMPLE if no language matched.
