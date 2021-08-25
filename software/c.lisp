@@ -113,6 +113,32 @@ field."
         :pointer
         (make-keyword (string-upcase (source-text (c-type decl)))))))
 
+(defun fix-nil-internal-asts-slots (ast)
+  "Fix missing line endings in c preprocessor #if statements.
+ If any slots named INTERNAL-ASTS-<nn> are null, set their values to a
+ newline ast. This function is destructive.
+ TODO: remove this hack when the problem is fixed."
+  (labels ((fixup-internal-asts (ast)
+             (when (typep ast 'sel/sw/ts::c-preproc-if)
+               (do* ((count 0 (+ count 1))
+                     (sym #1=(intern (format nil "C-INTERNAL-ASTS-~D" count)
+                                     (find-package :sel/sw/ts)) #1#))
+                    ((not (slot-exists-p ast sym)) ast)
+                 (if (null (slot-value ast sym))
+                     (setf (slot-value ast sym)
+                           (list (make-instance 'sel/sw/ts::c-inner-whitespace
+                                                :text (string #\newline)))))))))
+    (mapcar #'fixup-internal-asts ast)
+    ast))
+
+(defmethod to-file ((c c) file)
+  (with-open-file (out file :direction :output :if-exists :supersede)
+    (let ((copy (copy c)))
+      (setf (genome copy)
+            (fix-nil-internal-asts-slots (patch-whitespace (genome copy))))
+      (setf c copy)
+      (call-next-method))))
+
 (defmethod enclosing-definition ((sw c) (ast t))
   (find-enclosing '(or definition-ast c-primitive-type)
                   sw ast))
