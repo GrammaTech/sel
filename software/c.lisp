@@ -118,24 +118,30 @@ field."
  If any slots named INTERNAL-ASTS-<nn> are null, set their values to a
  newline ast. This function is destructive.
  TODO: remove this hack when the problem is fixed."
-  (labels ((fixup-internal-asts (ast)
-             (when (typep ast 'sel/sw/ts::c-preproc-if)
+  (labels ((find-in-rule (sym rule)
+             (if (atom rule)
+                 (eq sym rule)
+                 (or (find-in-rule sym (first rule))
+                     (find-in-rule sym (rest rule)))))
+           (fixup-internal-asts (ast)
+             (when (typep ast 'c-preproc-if)
                (do* ((count 0 (+ count 1))
-                     (sym #1=(intern (format nil "C-INTERNAL-ASTS-~D" count)
-                                     (find-package :sel/sw/ts)) #1#))
+                     (sym #1=(intern (format nil "C-INTERNAL-ASTS-~D" count))
+                          #1#))
                     ((not (slot-exists-p ast sym)) ast)
-                 (if (null (slot-value ast sym))
+                 (if (and (null (slot-value ast sym))
+                          (find-in-rule sym (pruned-rule ast)))
                      (setf (slot-value ast sym)
-                           (list (make-instance 'sel/sw/ts::c-inner-whitespace
+                           (list (make-instance 'c-inner-whitespace
                                                 :text (string #\newline)))))))))
-    (mapcar #'fixup-internal-asts ast)
+    (mapc #'fixup-internal-asts ast)
     ast))
 
 (defmethod to-file ((c c) file)
   (with-open-file (out file :direction :output :if-exists :supersede)
-    (let ((copy (copy c)))
-      (setf (genome copy)
-            (fix-nil-internal-asts-slots (patch-whitespace (genome copy))))
+    (let ((copy (copy c :genome (tree-copy (genome c)))))
+      (patch-whitespace (genome copy) :recursive t)
+      (fix-nil-internal-asts-slots (genome copy))
       (setf c copy)
       (call-next-method))))
 
