@@ -6721,6 +6721,12 @@ the rebinding"
 (defmethod ast-hash ast-combine-hash-values ((ast computed-text))
   (ast-hash (text ast)))
 
+(defmethod ast-hash ast-combine-hash-values ((ast structured-text))
+  ;; TODO: need to add support for internal ASTs too.
+  (ast-hash (flatten
+             (list (before-text ast) (after-text ast)
+                   (before-asts ast) (after-asts ast)))))
+
 (defmethod equal? ((ast-a computed-text) (ast-b computed-text))
   (equal (source-text ast-a) (source-text ast-b)))
 
