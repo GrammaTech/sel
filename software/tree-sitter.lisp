@@ -6542,6 +6542,12 @@ of the parent."
           :initial-value (or (and parent (indent-adjustment parent))
                              0)))
 
+(defgeneric surrounding-text-transform (text)
+  (:documentation "Transform VALUE into a string representation. This is useful
+for ASTs which need to appear in the surrounding text slots.")
+  (:method (text) text)
+  (:method ((ast conflict-ast)) (source-text ast)))
+
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.
 (defmethod source-text ((ast indentation)
@@ -6658,19 +6664,22 @@ of the parent."
                   (make-indentation-string (indentation-length ast parents))
                   stream))))
            (handle-text (text ast indentablep parents
-                         &key ancestor-check)
+                         &key ancestor-check surrounding-text)
              "Handle writing TEXT to stream, updating any indentation
             variables that need updated."
              ;; Suppress indentation if TEXT begins with a newline.
-             (handle-leading-newline text)
-             (handle-indentation text ast indentablep parents
-                                 :ancestor-check ancestor-check)
-             ;; Set indentation flag  when TEXT ends with a newline.
-             (handle-trailing-newline text ast indentablep)
-             (unless trim
-               (write-string
-                (patch-inner-indentation text ast parents)
-                stream)))
+             (let ((text (if surrounding-text
+                             (surrounding-text-transform text)
+                             text)))
+               (handle-leading-newline text)
+               (handle-indentation text ast indentablep parents
+                                   :ancestor-check ancestor-check)
+               ;; Set indentation flag  when TEXT ends with a newline.
+               (handle-trailing-newline text ast indentablep)
+               (unless trim
+                 (write-string
+                  (patch-inner-indentation text ast parents)
+                  stream))))
            (handle-ast (output &key (ast-parents (cons ast parents)))
              "Handle the source text of AST."
              (source-text output
@@ -6682,7 +6691,7 @@ of the parent."
                           :root root)))
     (let ((indentablep (indentablep ast)))
       ;; before and after text is always considered indentable.
-      (handle-text (before-text ast) ast t parents)
+      (handle-text (before-text ast) ast t parents :surrounding-text t)
       (mapc (lambda (output &aux trim)
               (declare (special trim))
               (if (stringp output)
@@ -6690,7 +6699,7 @@ of the parent."
                                :ancestor-check t)
                   (handle-ast output)))
             (cdr (butlast (output-transformation ast))))
-      (handle-text (after-text ast) ast t parents))))
+      (handle-text (after-text ast) ast t parents :surrounding-text t))))
 
 (defmethod rebind-vars ((ast tree-sitter-ast)
                         var-replacements fun-replacements)
