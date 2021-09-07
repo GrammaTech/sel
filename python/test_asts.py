@@ -197,19 +197,25 @@ class MutationTestDriver(unittest.TestCase):
         self.assertEqual(0, len(new_root.children()))
         self.assertEqual("", new_root.source_text())
 
-    def test_replace(self):
+    def test_replace_ast(self):
         new_ast = AST("y = 2\n", language=ASTLanguage.Python, deepest=True)
         new_root = AST.replace(self.root, self.statement, new_ast)
         self.assertNotEqual(new_root.oid(), self.root.oid())
         self.assertEqual(1, len(new_root.children()))
         self.assertEqual("y = 2\n", new_root.source_text())
 
-    def test_insert(self):
+    def test_insert_ast(self):
         new_ast = AST("y = 2\n", language=ASTLanguage.Python, deepest=True)
         new_root = AST.insert(self.root, self.statement, new_ast)
         self.assertNotEqual(new_root.oid(), self.root.oid())
         self.assertEqual(2, len(new_root.children()))
         self.assertEqual("y = 2\nx = 88\n", new_root.source_text())
+
+    def test_replace_literal(self):
+        lhs = self.statement.children()[0].children()[0]
+        new_root = AST.replace(self.root, lhs, "y")
+        self.assertNotEqual(new_root.oid(), self.root.oid())
+        self.assertEqual("y = 88\n", new_root.source_text())
 
 
 class SelfReferentialTestDriver(unittest.TestCase):

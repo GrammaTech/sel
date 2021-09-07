@@ -450,6 +450,17 @@ REPLACE:
 "x = 3\n"
 ```
 
+As a useful shortcut, for small mutations, literals may be passed as the
+values for insertion and replacement, as shown below:
+
+```python
+>>> root = asts.AST("x = 2\n", language=asts.ASTLanguage.Python)
+>>> literal = root.children()[0].children()[0].children()[-1]
+>>> root = asts.AST.replace(root, literal, 3)
+>>> root.source_text()
+"x = 3\n"
+```
+
 # Architecture
 
 The python library is a thin wrapper around a Common Lisp program named

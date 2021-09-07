@@ -128,8 +128,7 @@ class AST:
         See the python README for more information.
         """
         for key, value in kwargs.items():
-            if not isinstance(value, AST):
-                kwargs[key] = AST(str(value), ast.ast_language(), deepest=True)
+            kwargs[key] = AST._ensure_ast(value, ast.ast_language())
         return _interface.dispatch(AST.copy.__name__, ast, **kwargs)
 
     # Python method overrides
@@ -297,21 +296,43 @@ class AST:
         return _interface.dispatch(AST.cut.__name__, root, pt)
 
     @staticmethod
-    def replace(root: "AST", pt: "AST", ast: "AST") -> "AST":
-        """Return a new root with pt replaced with ast."""
+    def replace(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
+        """Return a new root with pt replaced with value."""
+        value = AST._ensure_ast(value, root.ast_language())
+
         AST._root_mutation_check(root, pt)
-        return _interface.dispatch(AST.replace.__name__, root, pt, ast)
+        AST._mutation_value_check(value)
+        return _interface.dispatch(AST.replace.__name__, root, pt, value)
 
     @staticmethod
-    def insert(root: "AST", pt: "AST", ast: "AST") -> "AST":
-        """Return a new root with ast inserted at pt."""
+    def insert(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
+        """Return a new root with value inserted at pt."""
+        value = AST._ensure_ast(value, root.ast_language())
+
         AST._root_mutation_check(root, pt)
-        return _interface.dispatch(AST.insert.__name__, root, pt, ast)
+        AST._mutation_value_check(value)
+        return _interface.dispatch(AST.insert.__name__, root, pt, value)
+
+    # AST mutation helpers/sanity checks
+    @staticmethod
+    def _ensure_ast(value: LiteralOrAST, language: "ASTLanguage") -> "AST":
+        """Return the given value as an AST."""
+        if isinstance(value, AST):
+            return value
+        else:
+            return AST(str(value), language=language, deepest=True)
 
     @staticmethod
     def _root_mutation_check(root: "AST", pt: "AST") -> None:
         """Sanity check to ensure we are not mutating the root node directly."""
         assert root != pt, "Cannot mutate the root node of an AST."
+
+    @staticmethod
+    def _mutation_value_check(ast: "AST") -> None:
+        """Sanity check to ensure we are not inserting a root node into another AST."""
+        assert (
+            "ROOT-AST" not in ast.ast_types()
+        ), "Cannot use a root node as a mutation value."
 
 
 class ASTException(Exception):
