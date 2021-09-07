@@ -964,6 +964,7 @@ for the language.")
        (:statement-ast java-statement)
        (:return-ast java-return-statement))
       (:javascript
+       (:root-ast javascript-program)
        (:comment-ast javascript-comment)
        (:ecma-comment javascript-comment)
        (:ecma-error javascript-error)
@@ -1001,6 +1002,7 @@ for the language.")
        (:return-ast javascript-return-statement)
        (:catch-ast javascript-catch-clause))
       (:python
+       (:root-ast python-module)
        (:comment-ast python-comment)
        (:class-ast python-class-definition)
        (:control-flow-ast
@@ -1965,6 +1967,9 @@ The name string is obtained by by DEFINITION-NAME"))
     (:documentation "Mix-in for AST classes that are comments.
 
 Superclass of every generated LANGUAGE-comment class."))
+
+  (defclass root-ast (ast) ()
+    (:documentation "Mix-in for AST classes which are roots."))
 
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
