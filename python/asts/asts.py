@@ -132,6 +132,10 @@ class AST:
         return _interface.dispatch(AST.copy.__name__, ast, **kwargs)
 
     # Python method overrides
+    def __repr__(self) -> str:
+        """Return a string representation of the AST."""
+        return f"<{self.ast_type()} {hex(self.oid())}>"
+
     def __del__(self) -> None:
         if hasattr(self, "handle") and self.handle is not None:
             _interface.dispatch(AST.__del__.__name__, self.handle)

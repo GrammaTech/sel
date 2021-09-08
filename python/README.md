@@ -40,13 +40,11 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import asts
 >>> root = asts.AST("x + 88", language=asts.ASTLanguage.Python)
 >>> root.children()
-[<asts.asts.AST object at 0x7f8e91fb52b0>]
+[<PYTHON-EXPRESSION-STATEMENT-0 0x3b2>]
 >>> root.children()[0].children()
-[<asts.asts.AST object at 0x7f8e918b7100>]
+[<PYTHON-BINARY-OPERATOR 0x3b3>]
 >>> root.children()[0].children()[0].children()
-[<asts.asts.AST object at 0x7f8e918b7490>,
- <asts.asts.AST object at 0x7f8e918b73a0>,
- <asts.asts.AST object at 0x7f8e918b73d0>]
+[<PYTHON-IDENTIFIER 0x3b4>, <PYTHON-+ 0x3b5>, <PYTHON-INTEGER 0x3b6>]
 >>> root.children()[0].children()[0].children()[0].source_text()
 'x'
 >>> root.children()[0].children()[0].children()[1].source_text()
@@ -282,7 +280,7 @@ method requires the root of the subtree as a parameter.
 ```python
 >>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
 >>> root.children()
-[<asts.asts.AST object at 0x7fe1c31f9310>, <asts.asts.AST object at 0x7fe1c31f9370>]
+[<PYTHON-IDENTIFIER 0x3b4>, <PYTHON-ARGUMENT-LIST-1 0x3b5>]
 >>> root.children()[0].source_text()
 'print'
 >>> identifier = root.children()[1].children()[0]
@@ -321,10 +319,10 @@ lines and columns are 1-indexed.
 ```python
 >>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
 >>> root.ast_source_ranges()
-[[<asts.asts.AST object at 0x7fe1c31f5f10>, [[1, 1], [1, 9]]],
- [<asts.asts.AST object at 0x7fe1c31f5d90>, [[1, 1], [1, 6]]],
- [<asts.asts.AST object at 0x7fe1c31f5df0>, [[1, 6], [1, 9]]],
- [<asts.asts.AST object at 0x7fe1c31f5bb0>, [[1, 7], [1, 8]]]]
+[[<PYTHON-CALL 0x3b3>, [[1, 1], [1, 9]]],
+ [<PYTHON-IDENTIFIER 0x3b4>, [[1, 1], [1, 6]]],
+ [<PYTHON-ARGUMENT-LIST-1 0x3b5>, [[1, 6], [1, 9]]],
+ [<PYTHON-IDENTIFIER 0x3b6>, [[1, 7], [1, 8]]]]
 >>> root.ast_at_point(1, 7).source_text()
 'x'
 ```

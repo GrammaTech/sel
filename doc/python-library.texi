@@ -59,7 +59,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import asts
 >>> it = asts.AST("x + 88", language=asts.ASTLanguage.Python)
 >>> it.children()
-[<asts.asts.AST object at 0x7f8e91fb52b0>]
+[<PYTHON-EXPRESSION-STATEMENT-0 0x3b2>]
 @end example
 
 If no errors are thrown, the library is successfully installed.  For more
