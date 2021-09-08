@@ -115,7 +115,10 @@ class AST:
 
     # AST construction by creating a copy
     @staticmethod
-    def copy(ast: "AST", **kwargs: Dict[str, LiteralOrAST]) -> "AST":
+    def copy(
+        ast: "AST",
+        **kwargs: Dict[str, Union[LiteralOrAST, List[LiteralOrAST]]],
+    ) -> "AST":
         """
         Create a copy of AST, optionally passing keyword arguments mapping
         child slots to new ASTs.
@@ -127,8 +130,13 @@ class AST:
 
         See the python README for more information.
         """
+        language = ast.ast_language()
         for key, value in kwargs.items():
-            kwargs[key] = AST._ensure_ast(value, ast.ast_language())
+            if isinstance(value, list):
+                kwargs[key] = [AST._ensure_ast(a, language=language) for a in value]
+            else:
+                kwargs[key] = AST._ensure_ast(value, language=language)
+
         return _interface.dispatch(AST.copy.__name__, ast, **kwargs)
 
     # Python method overrides
