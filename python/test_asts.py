@@ -91,11 +91,50 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST Traverse
     def test_ast_traverse(self):
-        self.assertEqual(6, len(list(self.root.traverse())))
+        asts = list(self.root.traverse())
+        self.assertEqual(6, len(asts))
+        self.assertEqual(
+            [
+                "PYTHON-MODULE",
+                "PYTHON-EXPRESSION-STATEMENT-0",
+                "PYTHON-BINARY-OPERATOR",
+                "PYTHON-IDENTIFIER",
+                "PYTHON-+",
+                "PYTHON-INTEGER",
+            ],
+            [ast.ast_type() for ast in asts],
+        )
+
+    def test_ast_post_traverse(self):
+        asts = list(self.root.post_traverse())
+        self.assertEqual(6, len(asts))
+        self.assertEqual(
+            [
+                "PYTHON-IDENTIFIER",
+                "PYTHON-+",
+                "PYTHON-INTEGER",
+                "PYTHON-BINARY-OPERATOR",
+                "PYTHON-EXPRESSION-STATEMENT-0",
+                "PYTHON-MODULE",
+            ],
+            [ast.ast_type() for ast in asts],
+        )
 
     # AST __iter__
     def test_ast_iter(self):
-        self.assertEqual(6, len(list(self.root)))
+        asts = list(self.root)
+        self.assertEqual(6, len(asts))
+        self.assertEqual(
+            [
+                "PYTHON-MODULE",
+                "PYTHON-EXPRESSION-STATEMENT-0",
+                "PYTHON-BINARY-OPERATOR",
+                "PYTHON-IDENTIFIER",
+                "PYTHON-+",
+                "PYTHON-INTEGER",
+            ],
+            [ast.ast_type() for ast in asts],
+        )
 
 
 class ASTTemplatesTestDriver(unittest.TestCase):

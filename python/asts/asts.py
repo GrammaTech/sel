@@ -287,10 +287,24 @@ class AST:
 
     # AST derived methods
     def traverse(self) -> Generator["AST", None, None]:
-        """Traverse self in pre-order, yielding subtrees"""
-        yield self
+        """Traverse self in pre-order, yielding subtrees."""
+        yield from self._perform_traverse(post_order=False)
+
+    def post_traverse(self) -> Generator["AST", None, None]:
+        """Traverse self in post-order, yielding subtrees."""
+        yield from self._perform_traverse(post_order=True)
+
+    def _perform_traverse(
+        self,
+        post_order: bool = False,
+    ) -> Generator["AST", None, None]:
+        """Perform an AST traversal in pre- or post-order, yielding subtrees."""
+        if not post_order:
+            yield self
         for child in self.children():
-            yield from child.traverse()
+            yield from child._perform_traverse(post_order=post_order)
+        if post_order:
+            yield self
 
     # AST mutation
     @staticmethod
