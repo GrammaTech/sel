@@ -1,7 +1,17 @@
 import unittest
 import copy
 
-from asts import AST, ASTException, ASTLanguage
+from asts import AST, ASTException, ASTLanguage, LiteralOrAST
+from pathlib import Path
+from typing import Optional, Text
+
+DATA_DIR = Path(__file__).parent / "data"
+
+
+def slurp(path: Path) -> Text:
+    """Return the text in the file at the given path."""
+    with open(path, "r") as f:
+        return f.read()
 
 
 class BinaryOperationTestDriver(unittest.TestCase):
@@ -255,6 +265,58 @@ class MutationTestDriver(unittest.TestCase):
         new_root = AST.replace(self.root, lhs, "y")
         self.assertNotEqual(new_root.oid(), self.root.oid())
         self.assertEqual("y = 88\n", new_root.source_text())
+
+
+class TransformTestDriver(unittest.TestCase):
+    def setUp(self):
+        text = slurp(DATA_DIR / "transform" / "original.py")
+        self.root = AST(text, ASTLanguage.Python)
+
+    def test_transform_x_to_y(self):
+        def x_to_y(ast: AST) -> Optional[LiteralOrAST]:
+            """Convert 'x' identifier ASTs to 'y'."""
+            if "IDENTIFIER-AST" in ast.ast_types() and "x" == ast.source_text():
+                return "y"
+
+        transformed = AST.transform(self.root, x_to_y)
+        expected = slurp(DATA_DIR / "transform" / "transform_x_to_y.py")
+        self.assertEqual(transformed.source_text(), expected)
+
+    def test_transform_x_to_z_gt(self):
+        def x_to_z_gt(ast: AST) -> Optional[LiteralOrAST]:
+            """Convert 'x' identifiers in greater than operations to 'z'."""
+            if "PYTHON-COMPARISON-OPERATOR" in ast.ast_types():
+                lhs, *rest = ast.child_slot("CHILDREN")
+                operator, *_ = ast.child_slot("PYTHON-OPERATORS")
+                if lhs.source_text() == "x" and operator.ast_type() == "PYTHON->":
+                    return AST.copy(ast, children=["z", *rest])
+
+        transformed = AST.transform(self.root, x_to_z_gt)
+        expected = slurp(DATA_DIR / "transform" / "transform_x_to_z_gt.py")
+        self.assertEqual(transformed.source_text(), expected)
+
+    def test_delete_print_statements(self):
+        def is_print_statement(ast: AST) -> bool:
+            """Return TRUE if AST is an statement calling the print function."""
+            if "EXPRESSION-STATEMENT-AST" in ast.ast_types():
+                fn_calls = [c.call_function().source_text() for c in ast.call_asts()]
+                return "print" in fn_calls
+            return False
+
+        def delete_print_statements(ast: AST) -> Optional[LiteralOrAST]:
+            """Delete all print statements from the children of AST."""
+            if "ROOT-AST" in ast.ast_types() or "COMPOUND-AST" in ast.ast_types():
+                # Build a list of new children under the AST, eliding print statements.
+                new_children = [c for c in ast.children() if not is_print_statement(c)]
+
+                # Special case; if no children remain, add a "pass" statement nop to
+                # avoid syntax errors.
+                new_children = new_children if new_children else ["pass\n"]
+                return AST.copy(ast, children=new_children)
+
+        transformed = AST.transform(self.root, delete_print_statements)
+        expected = slurp(DATA_DIR / "transform" / "delete_print_statements.py")
+        self.assertEqual(transformed.source_text(), expected)
 
 
 class FunctionTestDriver(unittest.TestCase):

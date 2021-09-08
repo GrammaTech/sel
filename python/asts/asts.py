@@ -11,7 +11,17 @@ import time
 
 import pygments.lexers
 
-from typing import Any, ByteString, Dict, Generator, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    ByteString,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 LiteralOrAST = Union[int, float, str, "AST"]
 
@@ -353,6 +363,62 @@ class AST:
         AST._root_mutation_check(root, pt)
         AST._mutation_value_check(value)
         return _interface.dispatch(AST.insert.__name__, root, pt, value)
+
+    @staticmethod
+    def transform(
+        self,
+        transformer: Callable[["AST"], Optional[LiteralOrAST]],
+    ) -> "AST":
+        """
+        Walk the AST tree in post-order, calling the transformer function
+        on each AST in turn.  When the transformer function returns a new
+        AST, the current node in the tree is replaced.
+
+        For instance, to replace all "y" identifiers with "x", you would
+        first define a transformer function as shown below:
+
+        ```
+        from asts import AST, LiteralOrAST
+        def y_to_x(ast: AST) -> Optional[LiteralOrAST]:
+            if "IDENTIFIER-AST" in ast.ast_types() and "y" == ast.source_text():
+                return AST("x", ast.ast_language())
+        ```
+
+        You would then use the transformer function to create a new AST
+        with "y" replaced with "x", as shown below:
+
+        ```
+        new_ast = ast.transform(y_to_x)
+        ```
+
+        See the python README for more information.
+        """
+
+        def transform_helper(
+            transformer: Callable[["AST"], Optional[LiteralOrAST]],
+            root: "AST",
+            ast: "AST",
+        ) -> "AST":
+            """Recursive helper function implementing the transform method."""
+
+            # Get the result of calling the TRANSFORMER on AST.
+            transformed = transformer(ast) or ast
+            transformed = AST._ensure_ast(transformed, language=root.ast_language())
+
+            # Replace the current AST if there is a new TRANSFORMER result.
+            if root == ast:
+                root = transformed  # special case for root node
+            elif transformed != ast:
+                root = AST.replace(root, ast, transformed)
+
+            # Transform the children of the transformed AST node.
+            for child in transformed.children():
+                root = transform_helper(transformer, root, child)
+
+            return root
+
+        root = AST.copy(self)
+        return transform_helper(transformer, root, root)
 
     # AST mutation helpers/sanity checks
     @staticmethod

@@ -15,6 +15,7 @@
   - [AST Traversal](#ast-traversal)
   - [AST Manipulation](#ast-manipulation)
     - [Mutation Primitives](#mutation-primitives)
+    - [Transformers](#transformers)
 - [Architecture](#architecture)
 - [License](#license)
 
@@ -457,6 +458,148 @@ values for insertion and replacement, as shown below:
 >>> root = asts.AST.replace(root, literal, 3)
 >>> root.source_text()
 "x = 3\n"
+```
+
+### Transformers
+
+In addition to simple mutation primitives, the API also supports walking
+the AST tree and performing transformations on the nodes within.  This
+mode of mutation requires the client to define a *transformer* function
+which takes an AST node parameter as input and (optionally) returns an
+AST or literal which should replace that node in the new tree.  If no
+new node is provided by the transformer function, the node is not
+replaced in the newly created tree.
+
+For instance, consider a scenario where you wish to rewrite an AST,
+replacing all `x` identifiers with `y`.  To begin, you would define
+an `x_to_y` transformer function, as shown below:
+
+```python
+>>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
+...     """Convert 'x' identifier ASTs to 'y'."""
+...     if "IDENTIFIER-AST" in ast.ast_types() and "x" == ast.source_text():
+...         return asts.AST("y", language=ast.ast_language(), deepest=True)
+...
+```
+
+As you can see, this function returns a `y` identifier when it encounters
+an `x` identifier.  To use the transformer to replace nodes in an AST tree,
+you would use the `AST.transform` function, as shown below:
+
+```python
+>>> text = """
+... x = 1
+... print(x)
+... """
+>>> root = asts.AST(text, asts.ASTLanguage.Python)
+>>> print(root.source_text().strip())
+x = 1
+print(x)
+>>> transformed = asts.AST.transform(root, x_to_y)
+>>> print(transformed.source_text().strip())
+y = 1
+print(y)
+```
+
+In the example above, the `x_to_y` transformer returned an AST.  The
+transformer function may also return a literal value, which will be
+parsed as an AST.  For instance, the below `x_to_y` transformer is
+functionally equivalent to the example above:
+
+```python
+>>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
+...     """Convert 'x' identifier ASTs to 'y'."""
+...     if "IDENTIFIER-AST" in ast.ast_types() and "x" == ast.source_text():
+...         return "y"
+...
+```
+
+Transformers may implement more complicated logic than the simple
+`x_to_y` transform above.  For instance, one may wish to convert
+`x` identifiers to `y`, but only for the left-hand side of assignment
+statements, as shown below:
+
+```python
+>>> def x_to_y_assignment_lhs(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
+...     """Convert 'x' identifier ASTs to 'y' on the lhs of assignments."""
+...     if (
+...         "PYTHON-ASSIGNMENT" in ast.ast_types()
+...         and "x" == ast.child_slot("python-left").source_text()
+...     ):
+...         return asts.AST.copy(ast, python_left="y")
+...
+>>> text = """
+... x = 1
+... print(y)
+... """
+>>> root = asts.AST(text, asts.ASTLanguage.Python)
+>>> transformed = asts.AST.transform(root, x_to_y_assignment_lhs)
+>>> print(transformed.source_text().strip())
+y = 1
+print(y)
+```
+
+For these more complicated transforms, you may need to mutate the parent
+of the node you are interested in.  For instance, above we create a
+new python assignment node with the left-hand side modified to the
+value we want.
+
+Tying everything together, consider the case where wish to delete
+all `print` statements from an AST.  This may be accomplished by
+first defining a predicate for print statements, as shown below:
+
+```python
+>>> def is_print_statement(ast: asts.AST) -> bool:
+...     """Return TRUE if AST is an statement calling the print function."""
+...     if "EXPRESSION-STATEMENT-AST" in ast.ast_types():
+...         fn_calls = [c.call_function().source_text() for c in ast.call_asts()]
+...         return "print" in fn_calls
+...     return False
+...
+```
+
+Once this predicate is in place, we may use it to define a transformer which
+returns a node with the `print` statements immediately below it elided:
+
+```python
+>>> def delete_print_statements(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
+...     """Delete all print statements from the children of AST."""
+...     if "ROOT-AST" in ast.ast_types() or "COMPOUND-AST" in ast.ast_types():
+...         # Build a list of new children under the AST, eliding print statements.
+...         new_children = [c for c in ast.children() if not is_print_statement(c)]
+...
+...         # Special case; if no children remain, add a "pass" statement nop to
+...         # avoid syntax errors.
+...         new_children = new_children if new_children else ["pass\n"]
+...
+...         # Create the new node with print statements removed from the children.
+...         return asts.AST.copy(ast, children=new_children)
+...
+```
+
+Finally, as before, we may use the `delete_print_statements` transformer
+to mutate an AST, as shown below:
+
+```
+>>> text = """
+... x = 1
+... y = 2
+... if x > 1:
+...     x = x ** y
+...     print("Test One: %d" % x)
+... else:
+...     print("Test Two: %d" % x)
+... print("y = %d", y)
+... """
+>>> root = asts.AST(text, asts.ASTLanguage.Python)
+>>> transformed = asts.AST.transform(root, delete_print_statements)
+>>> print(transformed.source_text().strip())
+x = 1
+y = 2
+if x > 1:
+    x = x ** y
+else:
+    pass
 ```
 
 # Architecture
