@@ -218,21 +218,6 @@ class MutationTestDriver(unittest.TestCase):
         self.assertEqual("y = 88\n", new_root.source_text())
 
 
-class SelfReferentialTestDriver(unittest.TestCase):
-    source = None
-    root = None
-
-    def setUp(self):
-        with open(__file__, "r") as f:
-            self.source = f.read()
-            self.root = AST(self.source)
-
-    # AST creation
-    # AST source text
-    def test_ast_creation_from_source(self):
-        self.assertEqual(self.source, self.root.source_text())
-
-
 class FunctionTestDriver(unittest.TestCase):
     # Function asts
     # Function name
