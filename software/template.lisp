@@ -380,11 +380,10 @@ If SUBTREE is a list do the same for each element."
                      (insert-subtree ast path subtree)))
                  (pairlis paths subtree-copies)
                  :initial-value ast))))))
-   (populate-fingers
-    (reduce (lambda (ast name)
-              (insert-name-subtrees ast name))
-            names
-            :initial-value ast))))
+   (reduce (lambda (ast name)
+             (insert-name-subtrees ast name))
+           names
+           :initial-value ast)))
 
 (defpattern ast-template (template class &rest args)
   "Match TEMPLATE as a pattern using CLASS and ARGS.

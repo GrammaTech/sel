@@ -582,7 +582,6 @@ if property holds, false if not."
 If any fails, return that node.  Otherwise, return NIL.")
   (:method ((ast functional-trees:node) &key)
     (block done
-      (populate-fingers ast)
       (let ((count 0))
         (declare (ignorable count))
         (mapc (lambda (n)

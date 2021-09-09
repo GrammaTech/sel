@@ -4269,10 +4269,7 @@ on various ast classes"))
   (ast-path (genome obj) ast))
 
 (defmethod ast-path ((root clang-ast) (ast functional-tree-ast))
-  (ast-path root (finger ast)))
-
-(defmethod ast-path ((root clang-ast) (finger finger))
-  (path finger))
+  (path-of-node root))
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method specialization will no longer be required.
@@ -6204,8 +6201,9 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
                                           (update-paths-helper c (cons i path))
                                           c))))
                  ;; conflict AST or AST stub w/o children
-                 (setf (slot-value ast 'finger)
-                       (make-instance 'finger :node ast :path (reverse path))))
+                 ;; (setf (slot-value ast 'finger)
+                 ;;      (make-instance 'finger :node ast :path (reverse path)))
+                 )
              ast))
     (update-paths-helper ast)))
 
