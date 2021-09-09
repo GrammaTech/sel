@@ -5,9 +5,6 @@ from asts import AST, ASTException, ASTLanguage
 
 
 class BinaryOperationTestDriver(unittest.TestCase):
-    root = None
-    binop = None
-
     def setUp(self):
         self.root = AST("x + 88", ASTLanguage.Python)
         self.binop = self.root.children()[0].children()[0]
@@ -146,8 +143,6 @@ class ASTTemplatesTestDriver(unittest.TestCase):
 
 
 class CopyTestDriver(unittest.TestCase):
-    root = None
-
     def setUp(self):
         self.root = AST("x + 1", ASTLanguage.Python, deepest=True)
 
@@ -183,9 +178,6 @@ class CopyTestDriver(unittest.TestCase):
 
 
 class MutationTestDriver(unittest.TestCase):
-    root = None
-    statement = None
-
     def setUp(self):
         self.root = AST("x = 88\n", ASTLanguage.Python)
         self.statement = self.root.children()[0]
