@@ -192,20 +192,12 @@ Provided to make it easier to debug problems with AST printing.")
 
 (defgeneric ast-path (obj ast)
   (:documentation "Return the PATH to AST in OBJ.")
-  (:method :before ((root functional-tree-ast) (ast functional-tree-ast))
-    ;; lazily populate fingers when paths are requested
-    (unless (finger ast)
-      (populate-fingers root)
-      (unless (finger ast)
-        (error 'no-ast-path
-               :root root
-               :ast ast))))
-  (:method ((obj parseable) (ast functional-tree-ast))
+  (:method ((obj parseable) (ast t))
     (ast-path (genome obj) ast))
   (:method ((root functional-tree-ast) (ast functional-tree-ast))
-    (ast-path root (finger ast)))
-  (:method ((root functional-tree-ast) (finger finger))
-    (path (functional-trees::transform-finger finger root))))
+    (path-of-node root ast))
+  (:method ((root functional-tree-ast) (serial-number integer))
+    (path-of-node root serial-number)))
 
 (defmethod path-later-p ((obj parseable) path-a path-b)
   (path-later-p (genome obj) path-a path-b))

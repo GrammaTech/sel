@@ -23,11 +23,10 @@
     ;; The next two are specific to CCL.
     fset::next-serial-number
     fset::next-serial-number-lock
-    functional-trees:transform
+    functional-trees:descendant-map
     fset:size
     functional-trees:child-slots
-    functional-trees:child-slot-specifiers
-    functional-trees:finger)
+    functional-trees:child-slot-specifiers)
   "List of slots to exclude when converting an AST to a list expression.")
 
 (defparameter *match-refinement-functions* nil)

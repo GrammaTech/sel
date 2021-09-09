@@ -263,7 +263,7 @@ same file as the match form its being used in."
                                             (mapcar #'convert node)
                                             (list (m/space ")")))))))
                  (t (m/other node))))))
-    (populate-fingers (convert sequence))))
+    (convert sequence)))
 
 ;;; Trivial Eclector client used to customize parsing for SEL.
 (define-matchable-class client (parse-result-client) ())

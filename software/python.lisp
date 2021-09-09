@@ -83,12 +83,14 @@ are created if they're present in PARSE-TREE."
   ;; moved or the tree has just been modified then it is possible that
   ;; PLAUSIBLE-ROOT and thus PARENT won't be correct.  However, in
   ;; most cases this should work well.
+  #+nil
   (let ((plausible-root (node (finger ast1))))
     (typecase (parent plausible-root ast1)
       ((or python-subscript python-call)
        ;; Spaces for all but first arguments in a python subscript and call expressions.
        (if (predecessor plausible-root ast1) " " ""))
-      (t " "))))
+      (t " ")))
+  " ")
 
 
 ;;; Methods common to all software objects

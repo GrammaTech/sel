@@ -387,7 +387,6 @@
     (let* ((genome (genome *soft*))
            (stmt-ast (car (children (convert 'javascript-ast "j = 0"))))
            (new-genome (insert genome '((children . 1)) stmt-ast)))
-      (is (not (eql (ft::transform genome) genome)))
       (is (eql (length (javascript-children genome)) 2)
           "Body had two children before insert")
       (is (= (length (javascript-children new-genome)) 3)
