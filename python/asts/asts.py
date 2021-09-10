@@ -314,6 +314,21 @@ class AST:
         if post_order:
             yield self
 
+    def parents(self, root: "AST") -> List["AST"]:
+        """Return AST's parents to the ROOT."""
+        results = []
+        c = self
+
+        while True:
+            p = c.parent(root)
+            if not p:
+                break
+            else:
+                results.append(p)
+                c = p
+
+        return results
+
     # AST mutation
     @staticmethod
     def cut(root: "AST", pt: "AST") -> "AST":
