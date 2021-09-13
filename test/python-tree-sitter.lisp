@@ -854,6 +854,15 @@ x"
                     '(python-parameters (children . 0))
                     (make 'python-identifier :text "y"))))))
 
+(deftest python-with-does-not-mutate ()
+  (let* ((assignment-ast (convert 'python-ast "i = 0" :deepest t))
+         (software (make 'python :genome assignment-ast))
+         (literal-ast (convert 'python-ast "1" :deepest t)))
+    (is (not (equal (source-text (genome software))
+                    (source-text (genome (with software
+                                               (python-right assignment-ast)
+                                               literal-ast))))))))
+
 (deftest python-can-parse-chained-is-not ()
   "Chained 'is not' operators can be parsed and reproduced correctly."
   (let ((source "x is not y is not z"))

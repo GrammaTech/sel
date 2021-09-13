@@ -454,6 +454,41 @@ the macro is defined within."
                         (let ((desugared (type-desugared obj)))
                           (when desugared (list ":DESUGARED" desugared))))))))
 
+
+
+;;; FSet overrides
+;;; NOTE: these are here to maintain previous functionality for methods that
+;;;       have changed in parseable.
+;;; FSet tree manipulations pass through to genome.
+(eval-always
+  (defun tree-manipulation-passthrough-for (name)
+    "Return a defmethod form to define a passthrough method for NAME.
+When NAME is called on a software object it will then be invoked on
+the `genome' of the software object."
+    (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
+      `(defmethod ,name ((obj clang) ,@(cdr lambda-list))
+         (setf (genome obj)
+               (,name (genome obj)
+                      ,(second lambda-list)
+                      ,@(nest (mapcar (lambda (param) `(tree-copy ,param)))
+                              (remove '&optional)
+                              (cddr lambda-list))))
+         obj))))
+
+(defmacro write-tree-manipulation-function-parseable-methods (&rest names)
+  "Write tree-manipulation passthrough methods for NAMES using `tree-manipulation-passthrough-for'."
+  `(progn ,@(mapcar #'tree-manipulation-passthrough-for names)))
+
+(write-tree-manipulation-function-parseable-methods
+ with
+ insert
+ splice)
+
+(defmethod less ((obj clang) value1 &optional value2)
+  (declare (ignorable value2))
+  (setf (genome obj) (less (genome obj) value1))
+  obj)
+
 
 ;;; Object creation, serialization, and copying.
 (defmethod to-alist ((ast clang-ast))

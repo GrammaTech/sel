@@ -834,13 +834,13 @@ When NAME is called on a software object it will then be invoked on
 the `genome' of the software object."
     (let ((lambda-list (generic-function-lambda-list (ensure-function name))))
       `(defmethod ,name ((obj parseable) ,@(cdr lambda-list))
-         (setf (genome obj)
+         (copy obj
+               :genome
                (,name (genome obj)
                       ,(second lambda-list)
                       ,@(nest (mapcar (lambda (param) `(tree-copy ,param)))
                               (remove '&optional)
-                              (cddr lambda-list))))
-         obj))))
+                              (cddr lambda-list))))))))
 
 (defmacro write-tree-manipulation-function-parseable-methods (&rest names)
   "Write tree-manipulation passthrough methods for NAMES using `tree-manipulation-passthrough-for'."
@@ -871,8 +871,7 @@ the `genome' of the software object."
 
 (defmethod less ((obj parseable) value1 &optional value2)
   (declare (ignorable value2))
-  (setf (genome obj) (less (genome obj) value1))
-  obj)
+  (copy obj :genome (less (genome obj) value1)))
 
 (defmethod mapc (function (obj parseable) &rest more)
   (declare (ignorable more))

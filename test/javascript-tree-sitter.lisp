@@ -336,32 +336,31 @@
                                           2 0 javascript-right)))))
     ;; Set AST with (with ...).
     (let ((path '(0 javascript-body
-                  1 javascript-body
-                  2 0 javascript-left)))
-      (with *soft* path
-            (make-instance 'javascript-identifier
-                           :text (list "RIGHT")))
-      (is (typep (@ *soft* path) 'javascript-identifier))
-      (is (equalp "RIGHT" (source-text (@ *soft* path))))
-      (with *soft* path
-            (make-instance 'javascript-identifier
-                           :text (list "LEFT")))
-      (is (typep (@ *soft* path) 'javascript-identifier))
-      (is (equalp "LEFT" (source-text (@ *soft* path)))))))
+                   1 javascript-body
+                   2 0 javascript-left)))
+      (let ((*soft* (with *soft* path
+                          (make-instance 'javascript-identifier
+                                         :text (list "RIGHT")))))
+        (is (typep (@ *soft* path) 'javascript-identifier))
+        (is (equalp "RIGHT" (source-text (@ *soft* path)))))
+      (let ((*soft* (with *soft* path
+                          (make-instance 'javascript-identifier
+                                         :text (list "LEFT")))))
+        (is (typep (@ *soft* path) 'javascript-identifier))
+        (is (equalp "LEFT" (source-text (@ *soft* path))))))))
 
 (deftest javascript-and-conflict-replace-ast ()
   (with-fixture javascript-ast-w-conflict
-    (let ((cnf (find-if {typep _ 'conflict-ast} *soft*)))
-      (with *soft*
-            cnf
-            (car (aget :my (conflict-ast-child-alist cnf)))))
-
-    (is (equal (size *soft*) (count-if {ast-path *soft*} (genome *soft*))))
-    (is (string= (source-text (@ *soft* '(0 javascript-body
-                                          1 javascript-body
-                                          1 0 )))
-                 ;; The before-text is not set for temp.
-                 "a = a +temp"))))
+    (let* ((cnf (find-if {typep _ 'conflict-ast} *soft*))
+           (*soft* (with *soft*
+                         cnf
+                         (car (aget :my (conflict-ast-child-alist cnf))))))
+      (is (equal (size *soft*) (count-if {ast-path *soft*} (genome *soft*))))
+      (is (string= (source-text (@ *soft* '(0 javascript-body
+                                            1 javascript-body
+                                            1 0 )))
+                   ;; The before-text is not set for temp.
+                   "a = a +temp")))))
 
 (deftest javascript-conflict-ast-is-in-children ()
   "Conflict ASTs are in the return value of #'children."
