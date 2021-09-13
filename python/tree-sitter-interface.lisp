@@ -5,7 +5,6 @@
         :trivial-backtrace
         :usocket
         :software-evolution-library
-        :software-evolution-library/software-evolution-library
         :software-evolution-library/command-line
         :software-evolution-library/software/template
         :software-evolution-library/software/parseable
