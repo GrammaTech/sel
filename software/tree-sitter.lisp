@@ -435,6 +435,7 @@
            :before-asts
            :after-asts
            :computed-text
+           :structured-text
            ;; Python
            :find-if-in-scopes
            :get-asts-in-namespace

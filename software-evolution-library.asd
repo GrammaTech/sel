@@ -57,6 +57,16 @@ techniques."
   :build-pathname "bin/tree-sitter-interface"
   :entry-point "software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface")
 
+(defsystem "software-evolution-library/run-tree-sitter-class-dump"
+  :author "Eric Schulte and GrammaTech"
+  :licence "GPL V3"
+  :description "Command-line interface to dump SEL's tree-sitter AST classes in JSON format."
+  :version "0.0.0"
+  :depends-on (software-evolution-library/python/tree-sitter-class-dump)
+  :build-operation "asdf:program-op"
+  :build-pathname "bin/tree-sitter-class-dump"
+  :entry-point "software-evolution-library/python/tree-sitter-class-dump:run-tree-sitter-class-dump")
+
 (defsystem "software-evolution-library/deploy-tree-sitter-interface"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
