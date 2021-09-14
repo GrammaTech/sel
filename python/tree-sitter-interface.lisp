@@ -179,12 +179,11 @@ function name from the API followed by the arguments."
             (handle-request request *standard-output*))))
 
 ;;;; API:
-(-> int/--init-- (string string boolean) fixnum)
-(defun int/--init-- (source-text language deepest)
-  (nest (allocate-ast)
-        (convert (language-to-ast-symbol language)
-                 source-text
-                 :deepest deepest)))
+(-> int/from-string (string string boolean) fixnum)
+(defun int/from-string (source-text language deepest)
+  (convert (language-to-ast-symbol language)
+           source-text
+           :deepest deepest))
 
 (-> int/--del-- (ast) boolean)
 (defun int/--del-- (ast)

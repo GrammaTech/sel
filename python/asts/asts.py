@@ -53,29 +53,35 @@ def _guess_language(text: str) -> Optional[ASTLanguage]:
 
 
 class AST:
-    def __init__(
-        self,
-        source: Optional[str] = "",
+    def __init__(self, handle: int) -> None:
+        """
+        Internal constructor creating an AST with the given handle (oid)
+        pointing to an object on the Common Lisp side of the interface.
+
+        Clients should not invoke this method and instead use the static
+        factory methods below for AST creation.
+        """
+        assert isinstance(handle, int), "AST handle must be an integer."
+        assert handle >= 0, "AST handle must be a non-negative integer."
+
+        self.handle = handle
+
+    # AST contruction from source code text
+    @staticmethod
+    def from_string(
+        text: str,
         language: Optional[ASTLanguage] = None,
         *,
         deepest: Optional[bool] = False,
-        handle: Optional[int] = None,
-    ) -> None:
+    ) -> "AST":
         """
         Parse source-code string source of language and return the root
-        of the resulting AST.
+        of the resulting AST.  When passing the deepest keyword argument,
+        the deepest subnode in the tree still encompassing all of the
+        given source text will be returned.
         """
-
-        if handle is None:
-            language = _guess_language(source) if not language else language
-            self.handle = _interface.dispatch(
-                AST.__init__.__name__,
-                source,
-                language,
-                deepest,
-            )
-        else:
-            self.handle = handle
+        language = _guess_language(text) if not language else language
+        return _interface.dispatch(AST.from_string.__name__, text, language, deepest)
 
     # AST construction using templates
     @staticmethod
@@ -89,7 +95,7 @@ class AST:
         Build a single AST using an AST template syntax.
 
         For instance, `AST.ast_template("$ID = 1", ASTLanguage.Python, id="x")`
-        returns `AST("x = 1", ASTLanguage.Python, deepest=True)`.
+        returns `AST.from_string("x = 1", ASTLanguage.Python, deepest=True)`.
 
         See https://grammatech.github.io/sel/Templates.html or the python
         README for more information.
@@ -112,8 +118,9 @@ class AST:
         Build and destructure component ASTs using template syntax.
 
         For instance, `AST.asts_from_template("$1 = $2", ASTLanguage.Python, "x", 1)`
-        returns the component ASTs, `AST("x", ASTLanguage.Python, deepest=True)`
-        and `AST("1", ASTLanguage.Python, deepest=True)`.
+        returns the component ASTs,
+        `AST.from_string("x", ASTLanguage.Python, deepest=True)` and
+        `AST.from_string("1", ASTLanguage.Python, deepest=True)`.
 
         See https://grammatech.github.io/sel/Templates.html or the python
         README for more information.
@@ -138,7 +145,10 @@ class AST:
         Consider `a = AST.copy("x + 1", ASTLanguage.Python, deepest=True)`.
         To create a copy of this AST, you would use `AST.copy(a)`.
         To create a copy with the left-hand side replaced, you would use
-        `AST.copy("x + 1", python_left=AST("y", ASTLanguage.Python, deepest=True))`.
+        `AST.copy(
+            "x + 1",
+            python_left=AST.from_string("y", ASTLanguage.Python, deepest=True)
+        )`.
 
         See the python README for more information.
         """
@@ -429,7 +439,7 @@ class AST:
         if isinstance(value, AST):
             return value
         else:
-            return AST(str(value), language=language, deepest=True)
+            return AST.from_string(str(value), language=language, deepest=True)
 
     @staticmethod
     def _root_mutation_check(root: "AST", pt: "AST") -> None:

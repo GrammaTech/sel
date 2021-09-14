@@ -5,6 +5,7 @@
 - [Extended Tutorial](#extended-tutorial)
   - [AST Creation](#ast-creation)
     - [Constructor](#constructor)
+    - [From String](#from-string)
     - [AST Templates](#ast-templates)
     - [AST Copy](#ast-copy)
   - [AST Methods](#ast-methods)
@@ -39,7 +40,7 @@ $ python3
 Python 3.8.5
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import asts
->>> root = asts.AST("x + 88", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
 >>> root.children()
 [<PYTHON-EXPRESSION-STATEMENT-0 0x3b2>]
 >>> root.children()[0].children()
@@ -75,12 +76,18 @@ information.
 
 ### Constructor
 
-Creating an AST using the Python API requires source text and
-(optionally) a language enumeration indicating the source text
-language.  The example below shows the creation of a simple AST:
+The default `AST` constructor should not be invoked directly by clients.
+Instead, the static factory methods described below should be utilized.
+
+### From String
+
+ASTs may be created from source text using the `AST.from_string`
+factory method in the Python API.  Using this method requires source
+text and (optionally) a language enumeration indicating the source
+text language.  The example below shows the creation of a simple AST:
 
 ```python
->>> root = asts.AST("x + 88", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
 ```
 
 Language enumerations exist for `Python`, `C`, `Cpp`, and
@@ -105,8 +112,8 @@ parameter may optionally be elided.  For instance:
 ...
 ... if __name__ == '__main__':
 ...     main()
-"""
->>> root = asts.AST(text)
+... """
+>>> root = asts.AST.from_string(text)
 ```
 
 Finally, by default, the AST returned is the top-level, module node of
@@ -116,7 +123,11 @@ us to create statement AST nodes, for instance.  To do so, clients
 may use the `deepest` keyword, as shown below:
 
 ```python
->>> root = asts.AST("x + 88", language=asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string(
+...     "x + 88",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root.ast_type()
 'PYTHON-BINARY-OPERATOR'
 ```
@@ -127,7 +138,7 @@ may use the `deepest` keyword, as shown below:
 
 ASTs may also be created using the AST template mechanism.  For
 instance, the following snippet creates an AST equivalent to
-`asts.AST("x = 2", language=asts.ASTLanguage.Python, deepest=True)`:
+`asts.AST.from_string("x = 2", language=asts.ASTLanguage.Python, deepest=True)`:
 
 ```python
 >>> root = asts.AST.ast_template("$ID = 2", asts.ASTLanguage.Python, id="x")
@@ -190,7 +201,7 @@ Copies of an AST may created using `AST.copy` or the python `copy`
 module, as shown below:
 
 ```python
->>> root = asts.AST("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
 >>> copy = asts.AST.copy(root)
 >>> copy.source_text()
 'x + 1'
@@ -200,8 +211,8 @@ In addition, clients may set child slots in the copy by passing in new
 ASTs for each slot as keyword arguments, as shown below:
 
 ```python
->>> root = asts.AST("x + 1", asts.ASTLanguage.Python, deepest=True)
->>> y = asts.AST("y", asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> y = asts.AST.from_string("y", asts.ASTLanguage.Python, deepest=True)
 >>> copy = asts.AST.copy(root, python_left=y)
 >>> copy.source_text()
 'y + 1'
@@ -212,7 +223,7 @@ code snippets, numbers) as keyword values, as shown below.  These are
 automatically parsed into an AST to be inserted.
 
 ```python
->>> root = asts.AST("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
 >>> copy = asts.AST.copy(root, python_left=1)
 >>> copy.source_text()
 '1 + 1'
@@ -225,7 +236,7 @@ To view the names of an AST's child slots, you may use the
 `child_slots` method, as shown below:
 
 ```python
->>> root = asts.AST("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
 >>> root.child_slots()
 [['BEFORE-ASTS', 0], ['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1],
  ['PYTHON-RIGHT', 1], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
@@ -254,7 +265,11 @@ methods is shown below; please note that `CALL-AST` is a generic,
 cross-language mixin type for all function callsite ASTs.
 
 ```python
->>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string(
+...     "print(x)",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root.ast_type()
 'PYTHON-CALL'
 >>> root.ast_types()
@@ -269,7 +284,11 @@ operation.  This may be accomplished using the `source_text` method,
 as shown below:
 
 ```python
->>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string(
+...     "print(x)",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root.source_text()
 'print(x)'
 ```
@@ -279,7 +298,11 @@ and `parent` methods, as shown below.  Please note that the parent
 method requires the root of the subtree as a parameter.
 
 ```python
->>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string(
+...     "print(x)",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root.children()
 [<PYTHON-IDENTIFIER 0x3b4>, <PYTHON-ARGUMENT-LIST-1 0x3b5>]
 >>> root.children()[0].source_text()
@@ -300,7 +323,11 @@ The AST(s) comprising a given slot may be accessed using the `child_slot`
 method.  An example is shown below:
 
 ```python
->>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string(
+...     "print(x)",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root.child_slots()
 [['BEFORE-ASTS', 0], ['PYTHON-FUNCTION', 1], ['PYTHON-ARGUMENTS', 1],
  ['CHILDREN', 0], ['AFTER-ASTS', 0]]
@@ -318,7 +345,11 @@ respectively, as shown below.  Please note that for each method the
 lines and columns are 1-indexed.
 
 ```python
->>> root = asts.AST("print(x)", language=asts.ASTLanguage.Python, deepest=True)
+>>> root = asts.AST.from_string(
+...     "print(x)",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root.ast_source_ranges()
 [[<PYTHON-CALL 0x3b3>, [[1, 1], [1, 9]]],
  [<PYTHON-IDENTIFIER 0x3b4>, [[1, 1], [1, 6]]],
@@ -336,9 +367,11 @@ body, using the respective AST methods, `function_name`,
 `function_parameters`, and `function_body`, as shown below:
 
 ```python
->>> root = asts.AST("def foo(bar: int) -> int:\n    return bar / 2",
-...                 language=asts.ASTLanguage.Python,
-...                 deepest=True)
+>>> root = asts.AST.from_string(
+...     "def foo(bar: int) -> int:\n    return bar / 2",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root.function_name()
 'foo'
 >>> [param.source_text() for param in root.function_parameters()]
@@ -357,7 +390,10 @@ portion of the callsite (`call_function`), and the callargs
 below:
 
 ```python
->>> root = asts.AST("import json\njson.dumps({})", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string(
+...     "import json\njson.dumps({})",
+...     language=asts.ASTLanguage.Python
+... )
 >>> callsite = root.children()[-1].children()[-1]
 >>> callsite.provided_by(root)
 'json'
@@ -374,7 +410,7 @@ which creates a generator that may be used anywhere a python `iterable`
 is required.  An example usage is shown below:
 
 ```python
->>> root = asts.AST("x + 88", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
 >>> for a in root.traverse():
 ...     print(a.ast_type())
 PYTHON-MODULE
@@ -389,7 +425,7 @@ Additionally, AST objects are themselves iterators and may be used
 anywhere a python `iterable` is required, as shown below:
 
 ```python
->>> root = asts.AST("x + 88", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
 >>> for a in root:
 ...     print(a.ast_type())
 PYTHON-MODULE
@@ -403,7 +439,7 @@ PYTHON-INTEGER
 As expected, ASTs may be also be used in list comprehensions as shown:
 
 ```python
->>> root = asts.AST("x + 88", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
 >>> ids = [a for a in root if a.ast_type() == 'PYTHON-IDENTIFIER']
 >>> len(ids)
 1
@@ -422,7 +458,7 @@ Currently, clients may cut, insert, or replace AST subtrees, as shown:
 
 CUT:
 ```python
->>> root = asts.AST("x = 2\n", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string("x = 2\n", language=asts.ASTLanguage.Python)
 >>> stmt = root.children()[0]
 >>> root = asts.AST.cut(root, stmt)
 >>> root.source_text()
@@ -431,9 +467,16 @@ CUT:
 
 INSERT:
 ```python
->>> root = asts.AST("y = 3\n", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string(
+...     "y = 3\n",
+...     language=asts.ASTLanguage.Python
+... )
 >>> stmt = root.children()[0]
->>> new_stmt = asts.AST("x = 2\n", language=asts.ASTLanguage.Python, deepest=True)
+>>> new_stmt = asts.AST.from_string(
+...     "x = 2\n",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root = asts.AST.insert(root, stmt, new_stmt)
 >>> root.source_text()
 'x = 2\ny = 3\n'
@@ -441,9 +484,16 @@ INSERT:
 
 REPLACE:
 ```python
->>> root = asts.AST("x = 2\n", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string(
+...     "x = 2\n",
+...     language=asts.ASTLanguage.Python
+... )
 >>> literal = root.children()[0].children()[0].children()[-1]
->>> new_literal = asts.AST("3", language=asts.ASTLanguage.Python, deepest=True)
+>>> new_literal = asts.AST.from_string(
+...     "3",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
 >>> root = asts.AST.replace(root, literal, new_literal)
 >>> root.source_text()
 "x = 3\n"
@@ -453,7 +503,10 @@ As a useful shortcut, for small mutations, literals may be passed as the
 values for insertion and replacement, as shown below:
 
 ```python
->>> root = asts.AST("x = 2\n", language=asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string(
+...     "x = 2\n",
+...     language=asts.ASTLanguage.Python
+... )
 >>> literal = root.children()[0].children()[0].children()[-1]
 >>> root = asts.AST.replace(root, literal, 3)
 >>> root.source_text()
@@ -478,7 +531,7 @@ an `x_to_y` transformer function, as shown below:
 >>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Convert 'x' identifier ASTs to 'y'."""
 ...     if "IDENTIFIER-AST" in ast.ast_types() and "x" == ast.source_text():
-...         return asts.AST("y", language=ast.ast_language(), deepest=True)
+...         return asts.AST.from_string("y", ast.ast_language(), deepest=True)
 ...
 ```
 
@@ -491,7 +544,7 @@ you would use the `AST.transform` function, as shown below:
 ... x = 1
 ... print(x)
 ... """
->>> root = asts.AST(text, asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string(text, asts.ASTLanguage.Python)
 >>> print(root.source_text().strip())
 x = 1
 print(x)
@@ -532,7 +585,7 @@ statements, as shown below:
 ... x = 1
 ... print(y)
 ... """
->>> root = asts.AST(text, asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string(text, asts.ASTLanguage.Python)
 >>> transformed = asts.AST.transform(root, x_to_y_assignment_lhs)
 >>> print(transformed.source_text().strip())
 y = 1
@@ -591,7 +644,7 @@ to mutate an AST, as shown below:
 ...     print("Test Two: %d" % x)
 ... print("y = %d", y)
 ... """
->>> root = asts.AST(text, asts.ASTLanguage.Python)
+>>> root = asts.AST.from_string(text, asts.ASTLanguage.Python)
 >>> transformed = asts.AST.transform(root, delete_print_statements)
 >>> print(transformed.source_text().strip())
 x = 1

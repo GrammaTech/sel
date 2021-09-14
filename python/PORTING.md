@@ -26,3 +26,23 @@ ast = asts.AST("python", "x + 88")
 # v0.2.0
 ast = asts.AST("x + 88", asts.ASTLanguage.Python)
 ```
+
+## v0.2.2 -> v0.3.0
+
+Changes were made to the AST constructor; clients should
+now use the `AST.from_string` factory method in the Python
+API to create ASTs instead of invoking the constructor
+directly.  The parameters to `AST.from_string` match the
+prior constructor, making porting relatively painless.
+
+Examples of the old versus new approach are shown below:
+
+```python
+# v0.2.2
+ast = asts.AST("x + 88", asts.ASTLanguage.Python)
+```
+
+```python
+# v0.3.0
+ast = asts.AST.from_string("x + 88", asts.ASTLanguage.Python)
+```
