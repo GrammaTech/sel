@@ -351,7 +351,7 @@ class AST:
     @staticmethod
     def replace(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
         """Return a new root with pt replaced with value."""
-        value = AST._ensure_ast(value, root.ast_language())
+        value = AST._ensure_ast(value, language=root.ast_language())
 
         AST._root_mutation_check(root, pt)
         AST._mutation_value_check(value)
@@ -360,7 +360,7 @@ class AST:
     @staticmethod
     def insert(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
         """Return a new root with value inserted at pt."""
-        value = AST._ensure_ast(value, root.ast_language())
+        value = AST._ensure_ast(value, language=root.ast_language())
 
         AST._root_mutation_check(root, pt)
         AST._mutation_value_check(value)
