@@ -476,11 +476,12 @@ class _interface:
     def _check_for_process_crash() -> None:
         """Check if the Lisp subprocess has crashed and, if so, throw an error."""
         if not _interface.is_process_running():
+            stdout = _interface._proc.stdout.read().decode().strip()
             stderr = _interface._proc.stderr.read().decode().strip()
-            if stderr:
-                msg = f"{_interface._DEFAULT_CMD_NAME} crashed with:\n\n{stderr}"
-            else:
-                msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
+
+            msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
+            if stdout or stderr:
+                msg = msg + f"\n\nstdout: {stdout}\n\nstderr: {stderr}"
             raise RuntimeError(msg)
 
     @staticmethod
