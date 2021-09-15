@@ -150,6 +150,11 @@ corresponding to that key (default if the key is not present), and splice
 that list of children in place of the conflict node in its parent's children
 list."))
 
+(defmethod slot-unbound ((class t) (node conflict-ast) (slot (eql 'ft:descendant-map)))
+  (let ((sn (ft:serial-number node)))
+    (setf (slot-value node 'ft:descendant-map)
+          (convert 'ft/it:itree (list (list (cons sn sn) nil))))))
+
 (defparameter *ast-print-cutoff* 20
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
