@@ -532,6 +532,9 @@ class _interface:
                         _interface._check_for_process_crash()
                         time.sleep(1.0)
 
+                # Check if tree-sitter interface crashed on startup.
+                _interface._check_for_process_crash()
+
     @staticmethod
     def stop() -> None:
         """Stop the tree-sitter-interface Lisp process."""
