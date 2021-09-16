@@ -88,7 +88,7 @@ LISP_DEPS =				\
 	$(wildcard *.lisp) 		\
 	$(wildcard components/*.lisp)	\
 	$(wildcard software/*.lisp)	\
-	$(wildcard python/*.lisp)
+	$(wildcard python/lisp/*.lisp)
 
 TEST_ARTIFACTS = \
 	test/etc/gcd/gcd \

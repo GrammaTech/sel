@@ -52,20 +52,20 @@ techniques."
   :licence "GPL V3"
   :description "Command-line interface to SEL's tree-sitter ASTs."
   :version "0.0.0"
-  :depends-on (software-evolution-library/python/tree-sitter-interface)
+  :depends-on (software-evolution-library/python/lisp/tree-sitter-interface)
   :build-operation "asdf:program-op"
   :build-pathname "bin/tree-sitter-interface"
-  :entry-point "software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface")
+  :entry-point "software-evolution-library/python/lisp/tree-sitter-interface:run-tree-sitter-interface")
 
 (defsystem "software-evolution-library/run-tree-sitter-class-dump"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
   :description "Command-line interface to dump SEL's tree-sitter AST classes in JSON format."
   :version "0.0.0"
-  :depends-on (software-evolution-library/python/tree-sitter-class-dump)
+  :depends-on (software-evolution-library/python/lisp/tree-sitter-class-dump)
   :build-operation "asdf:program-op"
   :build-pathname "bin/tree-sitter-class-dump"
-  :entry-point "software-evolution-library/python/tree-sitter-class-dump:run-tree-sitter-class-dump")
+  :entry-point "software-evolution-library/python/lisp/tree-sitter-class-dump:run-tree-sitter-class-dump")
 
 (defsystem "software-evolution-library/deploy-tree-sitter-interface"
   :author "Eric Schulte and GrammaTech"
@@ -75,10 +75,10 @@ Deployed as a stand-alone bundle with all libraries required by the
 executable including the including all tree-sitter libraries."
   :version "0.0.0"
   :defsystem-depends-on (:deploy)
-  :depends-on (software-evolution-library/python/tree-sitter-interface)
+  :depends-on (software-evolution-library/python/lisp/tree-sitter-interface)
   :build-operation "deploy-op"
   :build-pathname "../python/asts/tree-sitter-interface"
-  :entry-point "software-evolution-library/python/tree-sitter-interface:run-tree-sitter-interface")
+  :entry-point "software-evolution-library/python/lisp/tree-sitter-interface:run-tree-sitter-interface")
 
 (defsystem "software-evolution-library/run-test-parse"
   :author "Eric Schulte and GrammaTech"

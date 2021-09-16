@@ -1,5 +1,5 @@
-(defpackage :software-evolution-library/python/tree-sitter-class-dump
-  (:nicknames :sel/py/ts-class-dump)
+(defpackage :software-evolution-library/python/lisp/tree-sitter-class-dump
+  (:nicknames :sel/py/lisp/ts-class-dump)
   (:use :gt/full
         :cl-json
         :software-evolution-library
@@ -7,7 +7,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter)
   (:export :run-tree-sitter-class-dump))
-(in-package :software-evolution-library/python/tree-sitter-class-dump)
+(in-package :software-evolution-library/python/lisp/tree-sitter-class-dump)
 (in-readtable :curry-compose-reader-macros)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)

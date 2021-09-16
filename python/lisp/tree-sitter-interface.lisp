@@ -1,5 +1,5 @@
-(defpackage :software-evolution-library/python/tree-sitter-interface
-  (:nicknames :sel/py/ts-int)
+(defpackage :software-evolution-library/python/lisp/tree-sitter-interface
+  (:nicknames :sel/py/lisp/ts-int)
   (:use :gt/full
         :cl-json
         :trivial-backtrace
@@ -16,7 +16,7 @@
         :software-evolution-library/utility/range)
   (:import-from :software-evolution-library :oid)
   (:export :run-tree-sitter-interface))
-(in-package :software-evolution-library/python/tree-sitter-interface)
+(in-package :software-evolution-library/python/lisp/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
 
 ;;;; Command line interface:
@@ -54,7 +54,7 @@ reported back to the client in JSON form over STREAM."
                                    (print-condition c s)))))))))
 
 (declaim (inline safe-intern))
-(defun safe-intern (string) (intern (string-upcase string) :sel/py/ts-int))
+(defun safe-intern (string) (intern (string-upcase string) :sel/py/lisp/ts-int))
 
 (-> alist-pair-p (t) boolean)
 (defun alist-pair-p (pair)
