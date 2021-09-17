@@ -132,7 +132,7 @@ Some EXTRA-KEYS that may be useful are:
       (plist-drop :error extra-keys)
 
       (when *shell-debug*
-        (format t "  cmd: ~{~a ~}~%" real-cmd))
+        (format t "~&  cmd: ~{~a ~}~%" real-cmd))
 
       #-windows
       (apply #'uiop:launch-program real-cmd
@@ -218,7 +218,7 @@ is still running, send a SIGKILL signal."
                      (read-and-close (process-info-error-output test-process))))
            (exit-code (wait-process test-process)))
       (when *shell-debug*
-        (format t "~&stdout:~a~%stderr:~a~%errno:~a" stdout stderr exit-code))
+        (format t "~&stdout:~a~%stderr:~a~%errno:~a~%" stdout stderr exit-code))
       (values stdout stderr exit-code))))
 
 (defmethod run-test (phenome (test-case test-case) &rest extra-keys
