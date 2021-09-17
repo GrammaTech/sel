@@ -5679,6 +5679,11 @@ STYLE."))
   (unless (finger node) (populate-fingers root))
   (call-next-method))
 
+(defun empty-sequence-p (x)
+  "Return T if X is an empty sequence."
+  (and (sequencep x)
+       (emptyp x)))
+
 (defun copy-with-surrounding-text (copy-node reference-node)
   "Copy COPY-NODE with the surrounding text of REFERENCE-NODE. This is done
 on a per slot basis, and the copy of text only happens if the relevant slot
@@ -5688,10 +5693,12 @@ also empty. This will prevent unnecessary copying."
          (after-copy (after-text copy-node))
          (before-reference (before-text reference-node))
          (after-reference (after-text reference-node))
-         (empty-before-copy (emptyp before-copy))
-         (empty-after-copy (emptyp after-copy))
-         (not-empty-before-reference (not (emptyp before-reference)))
-         (not-empty-after-reference (not (emptyp after-reference))))
+         (empty-before-copy (empty-sequence-p before-copy))
+         (empty-after-copy (empty-sequence-p after-copy))
+         (not-empty-before-reference
+          (not (empty-sequence-p before-reference)))
+         (not-empty-after-reference
+          (not (empty-sequence-p after-reference))))
     (cond
       ((and empty-before-copy empty-after-copy
             not-empty-before-reference not-empty-after-reference)
