@@ -1,4 +1,4 @@
-;;; utility.lisp - Utility functions shared by the python API cl applications
+;;; utility.lisp - Utility functions shared by the python API cl applications.
 (defpackage :software-evolution-library/python/lisp/utility
   (:nicknames :sel/py/lisp/utility)
   (:use :gt/full)
@@ -26,11 +26,11 @@ python type identifier.")
       (nest (apply #'concatenate 'string)
             (mapcar [#'pep8-camelcase #'c/cpp-to-cxx])
             (split-sequence #\-)
-            (terminal-replace typename)))))
+            (python-identifier-chars typename)))))
 
 (defmacro symname-find-replace$ (symname pairs)
-  "Build cond clauses from PAIRS specifying find/replace for trailing
-characters of the symbol string SYMNAME."
+  "Build cond clauses from PAIRS specifying find/replace strings for
+the trailing characters of the symbol string SYMNAME."
   `(cond ,@(mapcar
              (lambda (pair)
                (let ((regex (format nil "(.*[A-Za-z0-9]-)(?i)(~a)$"
@@ -44,9 +44,9 @@ characters of the symbol string SYMNAME."
              (stable-sort pairs #'> :key [#'length #'car]))
          (t ,symname)))
 
-(-> terminal-replace (string) string)
-(defun terminal-replace (typename)
-  "Replace chars in terminal AST TYPENAMEs not valid in python identifiers."
+(-> python-identifier-chars (string) string)
+(defun python-identifier-chars (typename)
+  "Replace special chars in AST TYPENAMEs not valid in python identifiers."
   (symname-find-replace$ typename
                          (;; Logical operators
                           ("||" . "logical-or")
