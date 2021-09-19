@@ -56,7 +56,7 @@ class AST:
     def __init__(
         self,
         source: Optional[str] = "",
-        language: Optional["ASTLanguage"] = None,
+        language: Optional[ASTLanguage] = None,
         *,
         deepest: Optional[bool] = False,
         handle: Optional[int] = None,
@@ -81,7 +81,7 @@ class AST:
     @staticmethod
     def ast_template(
         template: str,
-        language: "ASTLanguage",
+        language: ASTLanguage,
         *args: Tuple[LiteralOrAST],
         **kwargs: Dict[str, LiteralOrAST],
     ) -> "AST":
@@ -105,7 +105,7 @@ class AST:
     @staticmethod
     def asts_from_template(
         template: str,
-        language: "ASTLanguage",
+        language: ASTLanguage,
         *args: Tuple[LiteralOrAST],
     ) -> List["AST"]:
         """
@@ -204,7 +204,7 @@ class AST:
         """Return the source ranges (line, col) for AST its recursive children"""
         return _interface.dispatch(AST.ast_source_ranges.__name__, self)
 
-    def ast_language(self) -> "ASTLanguage":
+    def ast_language(self) -> ASTLanguage:
         """Return the AST's language."""
         language = _interface.dispatch(AST.ast_language.__name__, self)
         return ASTLanguage[language.capitalize()]
@@ -424,7 +424,7 @@ class AST:
 
     # AST mutation helpers/sanity checks
     @staticmethod
-    def _ensure_ast(value: LiteralOrAST, language: "ASTLanguage") -> "AST":
+    def _ensure_ast(value: LiteralOrAST, language: ASTLanguage) -> "AST":
         """Return the given value as an AST."""
         if isinstance(value, AST):
             return value
