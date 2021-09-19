@@ -28,17 +28,19 @@ troubleshooting local builds of this Python Library.
 There are two pieces to the SEL Python Library; the LISP interface thru which
 the python library interacts with SEL and the python library itself.
 
-To begin, we will start with the LISP interface.  From the base of the SEL
-repository, the following is sufficient to build the interface and place
-it on your @code{$PATH}:
+To begin, we will start with the LISP interface and tree-sitter python class
+generator.  From the base of the SEL repository, the following is sufficient
+to build the interface and tree-sitter python class generator and place
+both on your @code{$PATH}:
 
 @example
-make bin/tree-sitter-interface
+make bin/tree-sitter-interface bin/tree-sitter-py-generator
 export PATH=$(pwd)/bin:$PATH
 @end example
 
-Now that we have built the LISP interface, we need to add the python library
-to our @code{$PYTHONPATH}.  From the base of the SEL repository, the following
+Now that we have built the LISP interface and tree-sitter python class
+generator, we need to add the python library to our
+@code{$PYTHONPATH}.  From the base of the SEL repository, the following
 is sufficient to accomplish this:
 
 @example
@@ -74,6 +76,11 @@ or to view the implementation code, see @code{python/asts/asts.py}.
 @item
 If you see the error @code{"tree-sitter-interface binary must be on your $PATH."},
 then the @code{tree-sitter-interface} binary has not been built and placed on your
+@code{$PATH} environment variable as described in @ref{Building the SEL Python Library}.
+
+@item
+If you see the error @code{"tree-sitter-py-generator binary must be on your $PATH."},
+then the @code{tree-sitter-py-generator} binary has not been built and placed on your
 @code{$PATH} environment variable as described in @ref{Building the SEL Python Library}.
 
 @end enumerate

@@ -114,5 +114,5 @@ test/etc/gcd/gcd: test/etc/gcd/gcd.c
 test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	$(CC) $< -S -masm=intel -o $@
 
-python-check: bin/tree-sitter-interface
+python-check: bin/tree-sitter-interface bin/tree-sitter-py-generator
 	PATH=$(ROOT_DIR)/bin:$$PATH pytest python

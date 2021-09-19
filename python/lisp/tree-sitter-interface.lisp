@@ -13,7 +13,8 @@
         :software-evolution-library/software/cpp
         :software-evolution-library/software/python
         :software-evolution-library/software/javascript
-        :software-evolution-library/utility/range)
+        :software-evolution-library/utility/range
+        :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library :oid)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/lisp/tree-sitter-interface)
@@ -107,7 +108,8 @@ was performed.")
   (:method :before ((it ast))
     (allocate-ast it))
   (:method ((it ast))
-    `((:type . :ast) (:handle . ,(oid it))))
+    `((:type . ,(common-lisp-to-python-type (type-of it)))
+      (:handle . ,(oid it))))
   (:method ((it list)) (mapcar-improper-list #'serialize it))
   (:method ((it t)) it))
 

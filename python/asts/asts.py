@@ -24,6 +24,7 @@ from typing import (
     Tuple,
     Union,
 )
+from .utility import generate_types_file
 
 LiteralOrAST = Union[int, float, str, "AST"]
 
@@ -580,8 +581,8 @@ class _interface:
 
         def deserialize(v: Any) -> Any:
             """Deserialize V from the form used with the JSON text interface."""
-            if isinstance(v, dict) and v.get("type", None) == "ast":
-                return AST(handle=v["handle"])
+            if isinstance(v, dict) and v.get("handle", None):
+                return globals()[v["type"]](handle=v["handle"])
             elif isinstance(v, dict):
                 return {deserialize(key): deserialize(val) for key, val in v.items()}
             elif isinstance(v, list):
@@ -676,3 +677,6 @@ class _interface:
 
 _interface.start()
 atexit.register(_interface.stop)
+
+generate_types_file()
+from .types import *  # noqa: E402, F401, F403

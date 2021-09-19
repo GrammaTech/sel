@@ -3,3 +3,4 @@ dist/
 asts.egg-info/
 asts/tree-sitter-interface
 asts/*.so*
+asts/types.py

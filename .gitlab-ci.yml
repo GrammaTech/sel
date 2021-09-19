@@ -65,11 +65,16 @@ deploy-python-package:
   image: $DOCKER_REGISTRY/$CI_PROJECT_PATH/python
   script:
     - sbcl --load "/root/quicklisp/setup.lisp"
+           --eval '(ql:quickload :software-evolution-library/run-tree-sitter-py-generator)'
+           --eval '(asdf:make :software-evolution-library/run-tree-sitter-py-generator)'
+           --eval '(quit)'
+    - sbcl --load "/root/quicklisp/setup.lisp"
            --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)'
            --eval '(asdf:make :software-evolution-library/deploy-tree-sitter-interface)'
            --eval '(quit)'
     - cd python/
     - pip3.8 install -r requirements-dev.txt
+    - ../bin/tree-sitter-py-generator > asts/types.py
     - python3.8 setup.py bdist_wheel --dist-dir=$CI_PROJECT_DIR/python/dist
     - python3.8 -m twine upload --verbose $CI_PROJECT_DIR/python/dist/*.whl -u __token__ -p $PYPI_API_KEY
   rules:
