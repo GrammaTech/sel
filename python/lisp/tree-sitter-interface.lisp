@@ -226,19 +226,6 @@ function name from the API followed by the arguments."
                                             (make-instance 'source-location
                                               :line line :column column))))
 
-(-> int/ast-type (ast) string)
-(defun int/ast-type (ast) (symbol-name (type-of ast)))
-
-(-> int/ast-types (ast) list)
-(defun int/ast-types (ast)
-  (labels ((int/ast-types-helper (clazz)
-             (unless (eq (class-name clazz) t)
-               (cons (symbol-name (class-name clazz))
-                     (mappend #'int/ast-types-helper
-                              (class-direct-superclasses clazz))))))
-    (remove-duplicates (int/ast-types-helper (find-class (type-of ast)))
-                       :test #'equal)))
-
 (-> int/ast-language (ast) string)
 (defun int/ast-language (ast)
   (etypecase ast

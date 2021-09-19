@@ -1,7 +1,8 @@
 import unittest
 import copy
 
-from asts import AST, ASTException, ASTLanguage, LiteralOrAST
+from asts.asts import AST, ASTException, ASTLanguage, LiteralOrAST
+from asts.types import *  # noqa: F403
 from pathlib import Path
 from typing import Optional, Text
 
@@ -48,8 +49,8 @@ class BinaryOperationTestDriver(unittest.TestCase):
     def test_parents(self):
         self.assertEqual([], self.root.parents(self.root))
         self.assertEqual(
-            ["PYTHON-EXPRESSION-STATEMENT-0", "PYTHON-MODULE"],
-            [p.ast_type() for p in self.binop.parents(self.root)],
+            [PythonExpressionStatement0, PythonModule],
+            [type(p) for p in self.binop.parents(self.root)],
         )
 
     # AST children-slots
@@ -76,7 +77,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
     # AST type
     def test_ast_type(self):
         integer = self.binop.child_slot("PYTHON-RIGHT")
-        self.assertEqual("PYTHON-INTEGER", integer.ast_type())
+        self.assertIsInstance(integer, PythonInteger)
 
     # AST language
     def test_ast_language(self):
@@ -105,7 +106,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
             self.root.source_text(), language=self.root.ast_language(), deepest=True
         )
         self.assertEqual(new.source_text(), self.root.source_text())
-        self.assertNotEqual(new.ast_type(), self.root.ast_type())
+        self.assertNotEqual(type(new), type(self.root))
 
     # AST Traverse
     def test_ast_traverse(self):
@@ -113,14 +114,14 @@ class BinaryOperationTestDriver(unittest.TestCase):
         self.assertEqual(6, len(asts))
         self.assertEqual(
             [
-                "PYTHON-MODULE",
-                "PYTHON-EXPRESSION-STATEMENT-0",
-                "PYTHON-BINARY-OPERATOR",
-                "PYTHON-IDENTIFIER",
-                "PYTHON-+",
-                "PYTHON-INTEGER",
+                PythonModule,
+                PythonExpressionStatement0,
+                PythonBinaryOperator,
+                PythonIdentifier,
+                PythonAdd,
+                PythonInteger,
             ],
-            [ast.ast_type() for ast in asts],
+            [type(ast) for ast in asts],
         )
 
     def test_ast_post_traverse(self):
@@ -128,14 +129,14 @@ class BinaryOperationTestDriver(unittest.TestCase):
         self.assertEqual(6, len(asts))
         self.assertEqual(
             [
-                "PYTHON-IDENTIFIER",
-                "PYTHON-+",
-                "PYTHON-INTEGER",
-                "PYTHON-BINARY-OPERATOR",
-                "PYTHON-EXPRESSION-STATEMENT-0",
-                "PYTHON-MODULE",
+                PythonIdentifier,
+                PythonAdd,
+                PythonInteger,
+                PythonBinaryOperator,
+                PythonExpressionStatement0,
+                PythonModule,
             ],
-            [ast.ast_type() for ast in asts],
+            [type(ast) for ast in asts],
         )
 
     # AST __iter__
@@ -144,14 +145,14 @@ class BinaryOperationTestDriver(unittest.TestCase):
         self.assertEqual(6, len(asts))
         self.assertEqual(
             [
-                "PYTHON-MODULE",
-                "PYTHON-EXPRESSION-STATEMENT-0",
-                "PYTHON-BINARY-OPERATOR",
-                "PYTHON-IDENTIFIER",
-                "PYTHON-+",
-                "PYTHON-INTEGER",
+                PythonModule,
+                PythonExpressionStatement0,
+                PythonBinaryOperator,
+                PythonIdentifier,
+                PythonAdd,
+                PythonInteger,
             ],
-            [ast.ast_type() for ast in asts],
+            [type(ast) for ast in asts],
         )
 
 
@@ -159,44 +160,44 @@ class ASTTemplatesTestDriver(unittest.TestCase):
     def test_ast_template(self):
         a = AST.ast_template("$ID = 1", ASTLanguage.Python, id="x")
         self.assertEqual(a.source_text(), "x = 1")
-        self.assertEqual(a.ast_type(), "PYTHON-ASSIGNMENT-0")
+        self.assertIsInstance(a, PythonAssignment0)
 
         a = AST.ast_template("fn(@ARGS)", ASTLanguage.Python, args=[1, 2, 3])
         self.assertEqual(a.source_text(), "fn(1, 2, 3)")
-        self.assertEqual(a.ast_type(), "PYTHON-CALL")
+        self.assertIsInstance(a, PythonCall)
 
         a = AST.ast_template("$1 = $2", ASTLanguage.Python, "x", 1)
         self.assertEqual(a.source_text(), "x = 1")
-        self.assertEqual(a.ast_type(), "PYTHON-ASSIGNMENT-0")
+        self.assertIsInstance(a, PythonAssignment0)
 
         a = AST.ast_template("fn(@1)", ASTLanguage.Python, [1, 2, 3])
         self.assertEqual(a.source_text(), "fn(1, 2, 3)")
-        self.assertEqual(a.ast_type(), "PYTHON-CALL")
+        self.assertIsInstance(a, PythonCall)
 
         lhs = AST.from_string("x", ASTLanguage.Python, deepest=True)
         a = AST.ast_template("$1 = value", ASTLanguage.Python, lhs)
         self.assertEqual(a.source_text(), "x = value")
-        self.assertEqual(a.ast_type(), "PYTHON-ASSIGNMENT-0")
+        self.assertIsInstance(a, PythonAssignment0)
 
         template = "$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE"
         a = AST.ast_template(
             template, ASTLanguage.Python, left_hand_side="x", right_hand_side=1
         )
         self.assertEqual(a.source_text(), "x = 1")
-        self.assertEqual(a.ast_type(), "PYTHON-ASSIGNMENT-0")
+        self.assertIsInstance(a, PythonAssignment0)
 
     def test_asts_from_template(self):
         asts = AST.asts_from_template("$1;", ASTLanguage.C, '"Foo: %d"')
         self.assertEqual(len(asts), 1)
         self.assertEqual(asts[0].source_text(), '"Foo: %d"')
-        self.assertEqual(asts[0].ast_type(), "C-STRING-LITERAL")
+        self.assertIsInstance(asts[0], CStringLiteral)
 
         asts = AST.asts_from_template("$1 + $2", ASTLanguage.Python, "x", 1)
         self.assertEqual(len(asts), 2)
         self.assertEqual(asts[0].source_text(), "x")
-        self.assertEqual(asts[0].ast_type(), "PYTHON-IDENTIFIER")
+        self.assertIsInstance(asts[0], PythonIdentifier)
         self.assertEqual(asts[1].source_text(), "1")
-        self.assertEqual(asts[1].ast_type(), "PYTHON-INTEGER")
+        self.assertIsInstance(asts[1], PythonInteger)
 
 
 class CopyTestDriver(unittest.TestCase):
@@ -276,7 +277,7 @@ class TransformTestDriver(unittest.TestCase):
     def test_transform_x_to_y(self):
         def x_to_y(ast: AST) -> Optional[LiteralOrAST]:
             """Convert 'x' identifier ASTs to 'y'."""
-            if "IDENTIFIER-AST" in ast.ast_types() and "x" == ast.source_text():
+            if isinstance(ast, IdentifierAST) and "x" == ast.source_text():
                 return "y"
 
         transformed = AST.transform(self.root, x_to_y)
@@ -286,10 +287,10 @@ class TransformTestDriver(unittest.TestCase):
     def test_transform_x_to_z_gt(self):
         def x_to_z_gt(ast: AST) -> Optional[LiteralOrAST]:
             """Convert 'x' identifiers in greater than operations to 'z'."""
-            if "PYTHON-COMPARISON-OPERATOR" in ast.ast_types():
+            if isinstance(ast, PythonComparisonOperator):
                 lhs, *rest = ast.child_slot("CHILDREN")
                 operator, *_ = ast.child_slot("PYTHON-OPERATORS")
-                if lhs.source_text() == "x" and operator.ast_type() == "PYTHON->":
+                if isinstance(operator, PythonGreaterThan) and lhs.source_text() == "x":
                     return AST.copy(ast, children=["z", *rest])
 
         transformed = AST.transform(self.root, x_to_z_gt)
@@ -299,14 +300,14 @@ class TransformTestDriver(unittest.TestCase):
     def test_delete_print_statements(self):
         def is_print_statement(ast: AST) -> bool:
             """Return TRUE if AST is an statement calling the print function."""
-            if "EXPRESSION-STATEMENT-AST" in ast.ast_types():
+            if isinstance(ast, ExpressionStatementAST):
                 fn_calls = [c.call_function().source_text() for c in ast.call_asts()]
                 return "print" in fn_calls
             return False
 
         def delete_print_statements(ast: AST) -> Optional[LiteralOrAST]:
             """Delete all print statements from the children of AST."""
-            if "ROOT-AST" in ast.ast_types() or "COMPOUND-AST" in ast.ast_types():
+            if isinstance(ast, RootAST) or isinstance(ast, CompoundAST):
                 # Build a list of new children under the AST, eliding print statements.
                 new_children = [c for c in ast.children() if not is_print_statement(c)]
 
@@ -408,15 +409,15 @@ class VarsInScopeTestDriver(unittest.TestCase):
         self.assertEqual(names[1], "b")
         self.assertEqual(names[2], "bar")
 
-        scopes = [var["scope"].ast_type() for var in vars_in_scope]
-        self.assertEqual(scopes[0], "PYTHON-FUNCTION-DEFINITION-2")
-        self.assertEqual(scopes[1], "PYTHON-FUNCTION-DEFINITION-2")
-        self.assertEqual(scopes[2], "PYTHON-MODULE")
+        scopes = [var["scope"] for var in vars_in_scope]
+        self.assertIsInstance(scopes[0], PythonFunctionDefinition2)
+        self.assertIsInstance(scopes[1], PythonFunctionDefinition2)
+        self.assertIsInstance(scopes[2], PythonModule)
 
-        decls = [var["decl"].ast_type() for var in vars_in_scope]
-        self.assertEqual(decls[0], "PYTHON-IDENTIFIER")
-        self.assertEqual(decls[1], "PYTHON-IDENTIFIER")
-        self.assertEqual(decls[2], "PYTHON-FUNCTION-DEFINITION-2")
+        decls = [var["decl"] for var in vars_in_scope]
+        self.assertIsInstance(decls[0], PythonIdentifier)
+        self.assertIsInstance(decls[1], PythonIdentifier)
+        self.assertIsInstance(decls[2], PythonFunctionDefinition2)
 
     def test_vars_in_scope_no_globals(self):
         root = AST.from_string("def bar(a, b): return a*b", ASTLanguage.Python)
@@ -427,13 +428,13 @@ class VarsInScopeTestDriver(unittest.TestCase):
         self.assertEqual(names[0], "a")
         self.assertEqual(names[1], "b")
 
-        scopes = [var["scope"].ast_type() for var in vars_in_scope]
-        self.assertEqual(scopes[0], "PYTHON-FUNCTION-DEFINITION-2")
-        self.assertEqual(scopes[1], "PYTHON-FUNCTION-DEFINITION-2")
+        scopes = [var["scope"] for var in vars_in_scope]
+        self.assertIsInstance(scopes[0], PythonFunctionDefinition2)
+        self.assertIsInstance(scopes[1], PythonFunctionDefinition2)
 
-        decls = [var["decl"].ast_type() for var in vars_in_scope]
-        self.assertEqual(decls[0], "PYTHON-IDENTIFIER")
-        self.assertEqual(decls[1], "PYTHON-IDENTIFIER")
+        decls = [var["decl"] for var in vars_in_scope]
+        self.assertIsInstance(decls[0], PythonIdentifier)
+        self.assertIsInstance(decls[1], PythonIdentifier)
 
 
 class ImportsTestDriver(unittest.TestCase):

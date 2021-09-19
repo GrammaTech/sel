@@ -1,6 +1,7 @@
 from pathlib import Path
 from shutil import which
 from subprocess import PIPE, Popen
+from typing import Any, Callable, Type
 
 
 def generate_types_file() -> None:
@@ -23,3 +24,15 @@ def generate_types_file() -> None:
         else:
             with open(types_file, "wb") as f:
                 f.write(stdout)
+
+
+def add_method(clazz: Type[Any]):
+    """
+    Decorator to add a method to a given python class.
+    """
+
+    def decorator(func: Callable):
+        setattr(clazz, func.__name__, func)
+        return func
+
+    return decorator

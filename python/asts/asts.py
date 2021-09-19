@@ -24,7 +24,7 @@ from typing import (
     Tuple,
     Union,
 )
-from .utility import generate_types_file
+from .utility import add_method, generate_types_file
 
 LiteralOrAST = Union[int, float, str, "AST"]
 
@@ -173,7 +173,10 @@ class AST:
     # Python method overrides
     def __repr__(self) -> str:
         """Return a string representation of the AST."""
-        return f"<{self.ast_type()} {hex(self.oid())}>"
+        type_ = type(self)
+        module = type_.__module__
+        qualname = type_.__qualname__
+        return f"<{module}.{qualname} {hex(self.oid())}>"
 
     def __del__(self) -> None:
         if hasattr(self, "handle") and self.handle is not None:
@@ -228,14 +231,6 @@ class AST:
         language = _interface.dispatch(AST.ast_language.__name__, self)
         return ASTLanguage[language.capitalize()]
 
-    def ast_type(self) -> str:
-        """Return the AST's type."""
-        return _interface.dispatch(AST.ast_type.__name__, self)
-
-    def ast_types(self) -> List[str]:
-        """Return the AST's type hierarchy."""
-        return _interface.dispatch(AST.ast_types.__name__, self)
-
     def source_text(self) -> str:
         """Return a string of the AST's source text."""
         return _interface.dispatch(AST.source_text.__name__, self)
@@ -272,13 +267,17 @@ class AST:
         """Return a list of imports available at AST."""
         return _interface.dispatch(AST.imports.__name__, root, self) or []
 
+    def provided_by(self, root: "AST") -> Optional[str]:
+        """Return library providing AST's identifier."""
+        return _interface.dispatch(AST.provided_by.__name__, root, self)
+
     def function_asts(self) -> List["AST"]:
         """Return any function ASTs under AST."""
-        return [c for c in self if "FUNCTION-AST" in c.ast_types()]
+        return [c for c in self if isinstance(c, FunctionAST)]
 
     def call_asts(self) -> List["AST"]:
         """Return any call ASTs under AST."""
-        return [c for c in self if "CALL-AST" in c.ast_types()]
+        return [c for c in self if isinstance(c, CallAST)]
 
     def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> Dict:
         """Return all variables in enclosing scopes, optionally including globals."""
@@ -289,40 +288,6 @@ class AST:
             keep_globals,
         )
         return vars_in_scope or []
-
-    # AST slot accessors
-    def ensure_type(self, desired_type: str) -> None:
-        if desired_type not in self.ast_types():
-            raise TypeError(f"AST is not of required type ({desired_type})")
-
-    def function_name(self) -> str:
-        """Return AST's name.  AST must be of type function."""
-        self.ensure_type("FUNCTION-AST")
-        return _interface.dispatch(AST.function_name.__name__, self)
-
-    def function_parameters(self) -> List["AST"]:
-        """Return AST's parameters.  AST must be of type function."""
-        self.ensure_type("FUNCTION-AST")
-        return _interface.dispatch(AST.function_parameters.__name__, self) or []
-
-    def function_body(self) -> "AST":
-        """Return AST's body.  AST must be of type function."""
-        self.ensure_type("FUNCTION-AST")
-        return _interface.dispatch(AST.function_body.__name__, self)
-
-    def provided_by(self, root: "AST") -> Optional[str]:
-        """Return library providing AST's identifier."""
-        return _interface.dispatch(AST.provided_by.__name__, root, self)
-
-    def call_function(self) -> "AST":
-        """Return AST's function.  AST must be of type call."""
-        self.ensure_type("CALL-AST")
-        return _interface.dispatch(AST.call_function.__name__, self)
-
-    def call_arguments(self) -> List["AST"]:
-        """Return AST's arguments.  AST must be of type call."""
-        self.ensure_type("CALL-AST")
-        return _interface.dispatch(AST.call_arguments.__name__, self) or []
 
     # AST derived methods
     def traverse(self) -> Generator["AST", None, None]:
@@ -399,9 +364,9 @@ class AST:
         first define a transformer function as shown below:
 
         ```
-        from asts import AST, LiteralOrAST
+        from asts import AST, LiteralOrAST, IdentifierAST
         def y_to_x(ast: AST) -> Optional[LiteralOrAST]:
-            if "IDENTIFIER-AST" in ast.ast_types() and "y" == ast.source_text():
+            if isinstance(ast, IdentifierAST) and "y" == ast.source_text():
                 return AST("x", ast.ast_language())
         ```
 
@@ -458,8 +423,8 @@ class AST:
     @staticmethod
     def _mutation_value_check(ast: "AST") -> None:
         """Sanity check to ensure we are not inserting a root node into another AST."""
-        assert (
-            "ROOT-AST" not in ast.ast_types()
+        assert not isinstance(
+            ast, RootAST
         ), "Cannot use a root node as a mutation value."
 
 
@@ -681,6 +646,36 @@ class _interface:
 _interface.start()
 atexit.register(_interface.stop)
 
-# Generated tree-sitter AST types
+# Generated tree-sitter AST types and user-defined method specializations
 generate_types_file()
 from .types import *  # noqa: E402, F401, F403
+
+
+@add_method(FunctionAST)
+def function_name(self: FunctionAST) -> str:
+    """Return AST's name.  AST must be of type function."""
+    return _interface.dispatch(FunctionAST.function_name.__name__, self)
+
+
+@add_method(FunctionAST)
+def function_parameters(self: FunctionAST) -> List[AST]:
+    """Return AST's parameters.  AST must be of type function."""
+    return _interface.dispatch(FunctionAST.function_parameters.__name__, self) or []
+
+
+@add_method(FunctionAST)
+def function_body(self: FunctionAST) -> AST:
+    """Return AST's body.  AST must be of type function."""
+    return _interface.dispatch(FunctionAST.function_body.__name__, self)
+
+
+@add_method(CallAST)
+def call_function(self: CallAST) -> AST:
+    """Return AST's function.  AST must be of type call."""
+    return _interface.dispatch(CallAST.call_function.__name__, self)
+
+
+@add_method(CallAST)
+def call_arguments(self: CallAST) -> List[AST]:
+    """Return AST's arguments.  AST must be of type call."""
+    return _interface.dispatch(CallAST.call_arguments.__name__, self) or []

@@ -61,7 +61,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import asts
 >>> it = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
 >>> it.children()
-[<PYTHON-EXPRESSION-STATEMENT-0 0x3b2>]
+[<asts.types.PythonExpressionStatement0 0x2>]
 @end example
 
 If no errors are thrown, the library is successfully installed.  For more
