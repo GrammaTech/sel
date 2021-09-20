@@ -2,7 +2,6 @@ import atexit
 import enum
 import json
 import multiprocessing
-import os
 import pkg_resources
 import shutil
 import socket
@@ -11,6 +10,7 @@ import time
 
 import pygments.lexers
 
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -495,7 +495,7 @@ class _interface:
                     cmd = pkg_resources.resource_filename(
                         __name__, _interface._DEFAULT_CMD_NAME
                     )
-                    if not os.path.exists(cmd):
+                    if not Path(cmd).exists():
                         raise RuntimeError(
                             f"{_interface._DEFAULT_CMD_NAME} binary must be on your $PATH."
                         )
