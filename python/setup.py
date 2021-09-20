@@ -30,7 +30,7 @@ setup(
         "Programming Language :: Python :: 3.9",
     ],
     keywords="software-engineering, source, program-synthesis",
-    packages=find_packages(),
+    packages=find_packages(exclude=["test"]),
     package_data={"asts": ["lib*", "tree-sitter*"]},
     setup_requires=["wheel"],
     install_requires=["pygments"],
