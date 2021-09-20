@@ -8,7 +8,7 @@ the newer version.
 
 ## v0.1.10.dev3 -> v0.2.0
 
-Several changes were made to the AST contructor.  The source text
+Several changes were made to the AST constructor.  The source text
 parameter and language parameters were reversed; now the source text
 parameter is position one while the language parameter is position
 two (previously the converse was true).  Additionally, the language
@@ -17,12 +17,12 @@ elided if the language can be inferred from the source text.
 
 Examples of the old versus new approach are show below:
 
-```
+```python
 # v0.1.10.dev3
 ast = asts.AST("python", "x + 88")
 ```
 
-```
+```python
 # v0.2.0
 ast = asts.AST("x + 88", asts.ASTLanguage.Python)
 ```
