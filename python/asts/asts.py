@@ -14,8 +14,10 @@ import pygments.lexers
 from typing import (
     Any,
     Callable,
+    ClassVar,
     ByteString,
     Dict,
+    Final,
     Generator,
     List,
     Optional,
@@ -453,17 +455,17 @@ class _interface:
     interface between python and the sel process
     """
 
-    _DEFAULT_CMD_NAME: str = "tree-sitter-interface"
-    _DEFAULT_HOST: str = "localhost"
-    _DEFAULT_PORT: Optional[int] = None
-    _DEFAULT_STARTUP_WAIT: int = 3
-    _DEFAULT_SOCKET_TIMEOUT: int = 300
-    _DEFAULT_GC_THRESHOLD: int = 128
-    _DEFAULT_QUIT_SENTINEL: ByteString = b"QUIT\n"
+    _DEFAULT_CMD_NAME: Final[str] = "tree-sitter-interface"
+    _DEFAULT_HOST: Final[str] = "localhost"
+    _DEFAULT_PORT: Final[Optional[int]] = None
+    _DEFAULT_STARTUP_WAIT: Final[int] = 3
+    _DEFAULT_SOCKET_TIMEOUT: Final[int] = 300
+    _DEFAULT_GC_THRESHOLD: Final[int] = 128
+    _DEFAULT_QUIT_SENTINEL: Final[ByteString] = b"QUIT\n"
 
-    _proc: Optional[subprocess.Popen] = None
-    _lock: multiprocessing.RLock = multiprocessing.RLock()
-    _gc_handles: List[int] = []
+    _proc: ClassVar[Optional[subprocess.Popen]] = None
+    _lock: ClassVar[multiprocessing.RLock] = multiprocessing.RLock()
+    _gc_handles: ClassVar[List[int]] = []
 
     @staticmethod
     def is_process_running() -> bool:
