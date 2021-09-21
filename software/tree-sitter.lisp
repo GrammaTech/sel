@@ -720,6 +720,9 @@ for the language.")
        (cpp-if-statement
         (cpp-consequence :initarg :consequence :reader consequence)
         (cpp-alternative :initarg :alternative :reader alternative)))
+      (:javascript
+       (javascript-switch-case
+        (javascript-body :reader body)))
       (:python
        (python-call
         (python-function :reader call-function)
