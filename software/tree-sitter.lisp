@@ -1961,7 +1961,7 @@ terminal tokens."))
       :initarg :children
       :accessor children)
      (child-slots
-      :initform '(children)
+      :initform '((children . 0))
       :reader child-slots
       :allocation :class))
     (:documentation "A container class that holds multiple children which occur
