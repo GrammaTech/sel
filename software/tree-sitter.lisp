@@ -4739,6 +4739,18 @@ is hand-written.")
    (of-type 'inner-whitespace)
    (remove-if-not (of-type 'ast) (output-transformation ast))))
 
+(defmethod child-slots ((ast structured-text))
+  (append (when (typep (text ast) 'ast)
+            '((text . 1)))
+          (call-next-method)))
+
+(defmethod child-slot-specifiers ((ast structured-text))
+  (append (when (typep (text ast) 'ast)
+            (load-time-value
+             (list
+              (make 'ft::slot-specifier :class t :slot 'text :arity 1))))
+          (call-next-method)))
+
 
 ;;; tree-sitter parsing
 (defun position-after-leading-newline (str &aux (pos 0))
