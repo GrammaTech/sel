@@ -6581,7 +6581,9 @@ of the parent."
   (:documentation "Transform VALUE into a string representation. This is useful
 for ASTs which need to appear in the surrounding text slots.")
   (:method (text) text)
-  (:method ((ast conflict-ast)) (source-text ast)))
+  (:method ((ast null)) "")
+  (:method ((ast conflict-ast)) (source-text ast))
+  (:method ((ast source-text-fragment)) (text ast)))
 
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.
