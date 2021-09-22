@@ -46,3 +46,20 @@ ast = asts.AST("x + 88", asts.ASTLanguage.Python)
 # v0.3.0
 ast = asts.AST.from_string("x + 88", asts.ASTLanguage.Python)
 ```
+
+# Tree-sitter revisions
+
+This section contains the tree-sitter and tree-sitter language
+module revisions associated with major and minor releases of
+the ASTs pypi package.  This aids in reproducibility/tracing
+of issues in older releases.
+
+## v0.3.0
+
+| Repository             | Revision |
+|------------------------|----------|
+| tree-sitter            | 59cd1c39 |
+| tree-sitter-c          | 008008e3 |
+| tree-sitter-cpp        | c6121241 |
+| tree-sitter-javascript | 2c5b138e |
+| tree-sitter-python     | d6210cea |

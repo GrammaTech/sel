@@ -7,6 +7,7 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/python/lisp/utility)
+  (:import-from :software-evolution-library/command-line :alias-language)
   (:export :run-tree-sitter-py-generator))
 (in-package :software-evolution-library/python/lisp/tree-sitter-py-generator)
 (in-readtable :curry-compose-reader-macros)
@@ -26,30 +27,23 @@
   "Transform the input comma-delimited source languages into a list of
 language-specific AST types."
   (nest (mapcar (lambda (language)
-          (intern (format nil "~a-AST" (string-upcase (symbol-name language)))
-                  :sel/sw/tree-sitter)))
-        (mapcar #'sel/command-line::alias-language)
+                  (intern (format nil "~a-AST"
+                                  (string-upcase (symbol-name language)))
+                          :sel/sw/tree-sitter)))
+        (mapcar #'alias-language)
         (split-sequence #\, languages)))
 
-(-> ast-symbol-p (symbol &optional list) boolean)
+(-> ast-symbol-p (symbol &optional list) list)
 (defun ast-symbol-p (sym &optional (languages (list 'ast)))
-  "Return T if SYM is an AST, optionally, of one of the given LANGUAGES."
-  (not (null (member sym languages :test #'subtypep))))
+  "Return non-NIL if SYM is an AST, optionally, of one of the given LANGUAGES."
+  (member sym languages :test #'subtypep))
 
-(-> class-superclasses (class) list)
-(defun class-superclasses (clazz)
-  "Return the superclasses of CLAZZ, recursive."
-  (labels ((class-superclasses-helper (clazz)
-             (cons clazz
-                   (mappend #'class-superclasses-helper
-                            (class-direct-superclasses clazz)))))
-    (cdr (remove-duplicates (class-superclasses-helper clazz) :from-end t))))
-
-(-> remove-duplicates-from-end (list) t)
+(-> remove-duplicates-from-end (list) list)
 (defun remove-duplicates-from-end (l)
   "Remove duplicates from l, from right to left."
   (remove-duplicates l :from-end t))
 
+(-> tree-sitter-symbols () list)
 (defun tree-sitter-symbols ()
   "Return the symbols in the tree-sitter package sorted lexicographically."
   (let ((pkg (find-package :sel/sw/tree-sitter)))
@@ -59,45 +53,45 @@ language-specific AST types."
           :key #'symbol-name)))
 
 ;; (-> tree-sitter-class-p ((or class symbol)) boolean)
-(defgeneric tree-sitter-class-p (clazz)
-  (:documentation "Return T if CLAZZ is a class in the tree-sitter package.")
-  (:method ((clazz class))
-    (tree-sitter-class-p (class-name clazz)))
-  (:method ((sym symbol))
-    (eq (package-name-keyword (symbol-package sym))
+(defgeneric tree-sitter-class-p (class)
+  (:documentation "Return T if CLASS is in the tree-sitter package.")
+  (:method ((class class))
+    (tree-sitter-class-p (class-name class)))
+  (:method ((symbol symbol))
+    (eq (package-name-keyword (symbol-package symbol))
         :software-evolution-library/software/tree-sitter)))
 
 ;; (-> ignore-class-p ((or class symbol)) boolean)
-(defgeneric ignore-class-p (clazz)
-  (:documentation "Return T if CLAZZ should be ignored when generating python
-classes.")
-  (:method ((clazz class))
-    (ignore-class-p (class-name clazz)))
-  (:method ((sym symbol))
-    (not (null (member sym '(tree-sitter-ast structured-text computed-text))))))
+(defgeneric ignore-class-p (class)
+  (:documentation "Return non-NIL if CLASS should be ignored when generating
+python classes.")
+  (:method ((class class))
+    (ignore-class-p (class-name class)))
+  (:method ((symbol symbol))
+    (member symbol '(tree-sitter-ast structured-text computed-text))))
 
 ;; (-> class-and-python-dependencies ((or class symbol)) list)
-(defgeneric class-and-python-dependencies (clazz)
-  (:documentation "Return CLAZZ and the python-relevant dependencies of CLAZZ
+(defgeneric class-and-python-dependencies (class)
+  (:documentation "Return CLASS and the python-relevant dependencies of CLASS
 in top-down order.")
-  (:method ((clazz class))
+  (:method ((class class))
     (append (nest (reverse)
                   (remove-if #'ignore-class-p)
                   (remove-if-not #'tree-sitter-class-p)
-                  (class-superclasses clazz))
-            (list clazz)))
-  (:method ((sym symbol))
-    (class-and-python-dependencies (find-class sym))))
+                  (compute-class-precedence-list class))
+            (list class)))
+  (:method ((symbol symbol))
+    (class-and-python-dependencies (find-class symbol))))
 
 (-> python-class-str (class) string)
-(defun python-class-str (clazz)
-  "Return a python class declaration string for the given common lisp CLAZZ."
+(defun python-class-str (class)
+  "Return a python class declaration string for the given common lisp CLASS."
   (format nil "class ~a(~{~a~^, ~}):~%    pass~%~%"
-          (common-lisp-to-python-type clazz)
+          (common-lisp-to-python-type class)
           (append (nest (mapcar #'common-lisp-to-python-type)
                         (remove-if #'ignore-class-p)
                         (remove-if-not #'tree-sitter-class-p)
-                        (class-direct-superclasses clazz))
+                        (class-direct-superclasses class))
                   (list "AST"))))
 
 (define-command tree-sitter-py-generator (&spec +command-line-options+)

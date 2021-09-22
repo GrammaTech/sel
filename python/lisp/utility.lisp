@@ -6,25 +6,22 @@
 (in-package :software-evolution-library/python/lisp/utility)
 (in-readtable :curry-compose-reader-macros)
 
-;; (-> common-lisp-to-python-type ((or clazz symbol string)) string)
+;; (-> common-lisp-to-python-type ((or class symbol string)) string)
 (defgeneric common-lisp-to-python-type (type)
   (:documentation "Convert the given common lisp TYPE to the corresponding
 python type identifier.")
-  (:method ((clazz class))
-    (common-lisp-to-python-type (class-name clazz)))
-  (:method ((sym symbol))
-    (common-lisp-to-python-type (symbol-name sym)))
+  (:method ((class class))
+    (common-lisp-to-python-type (class-name class)))
+  (:method ((symbol symbol))
+    (common-lisp-to-python-type (symbol-name symbol)))
   (:method ((typename string))
-    (labels ((c/cpp-to-cxx (term)
-               "Replace C/CPP TERMs with CXX, a valid python identifier."
-               (if (string= term "C/CPP") "CXX" term))
-             (pep8-camelcase (term)
+    (labels ((pep8-camelcase (term)
                "Camelcase TERM in accordance to PEP-8 conventions."
                ;; Keep abbreviations uppercase, otherwise camelcase per PEP-8.
                (cond ((member term '("AST" "CPP" "CXX") :test #'string=) term)
                      (t (string-capitalize term)))))
       (nest (apply #'concatenate 'string)
-            (mapcar [#'pep8-camelcase #'c/cpp-to-cxx])
+            (mapcar #'pep8-camelcase)
             (split-sequence #\-)
             (python-identifier-chars typename)))))
 
@@ -47,7 +44,7 @@ the trailing characters of the symbol string SYMNAME."
 (-> python-identifier-chars (string) string)
 (defun python-identifier-chars (typename)
   "Replace special chars in AST TYPENAMEs not valid in python identifiers."
-  (symname-find-replace$ typename
+  (symname-find-replace$ (regex-replace "^C/CPP" typename "CXX")
                          (;; Logical operators
                           ("||" . "logical-or")
                           ("&&" . "logical-and")
@@ -73,7 +70,7 @@ the trailing characters of the symbol string SYMNAME."
                           ("&=" . "bitwise-and-assign")
                           ("|=" . "bitwise-or-assign")
                           ("^=" . "bitwise-xor-assign")
-                          ;; Arithmatic operators
+                          ;; Arithmetic operators
                           ("+" . "add")
                           ("-" . "subtract")
                           ("*" . "multiply")
