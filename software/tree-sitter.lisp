@@ -1884,6 +1884,16 @@ stored on the AST or external rules.")
        (list* 'ast-template template ',ast-class args))))
 
 (eval-always
+ (defgeneric before-text (ast)
+   (:method :around (ast)
+     (let ((result (call-next-method)))
+       (if (null result) "" result))))
+
+ (defgeneric after-text (ast)
+   (:method :around (ast)
+     (let ((result (call-next-method)))
+       (if (null result) "" result))))
+
   ;; TODO: let over a basic string for empty strings?
   (defclass structured-text ()
     ((before-text
