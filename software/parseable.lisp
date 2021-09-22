@@ -836,9 +836,7 @@ the `genome' of the software object."
                :genome
                (,name (genome obj)
                       ,(second lambda-list)
-                      ,@(nest (mapcar (lambda (param) `(tree-copy ,param)))
-                              (remove '&optional)
-                              (cddr lambda-list))))))))
+                      ,@(remove '&optional (cddr lambda-list))))))))
 
 (defmacro write-tree-manipulation-function-parseable-methods (&rest names)
   "Write tree-manipulation passthrough methods for NAMES using `tree-manipulation-passthrough-for'."
