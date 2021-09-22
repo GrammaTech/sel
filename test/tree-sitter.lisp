@@ -12,7 +12,10 @@
    :software-evolution-library/components/formatting)
   (:export :test-tree-sitter)
   (:import-from :software-evolution-library/software/tree-sitter
-                :position-after-leading-newline))
+                :structured-text
+                :position-after-leading-newline
+                :inner-parent
+                :surrounding-text-transform))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -66,3 +69,41 @@
   (is (equalp (position-after-leading-newline " / ")
               nil)
       "position-after-leading-newline slash not at EOL not a comment"))
+
+(deftest test-null-before-text ()
+  (is (equal "" (before-text (make 'structured-text :before-text nil)))))
+
+(deftest test-null-after-text ()
+  (is (equal "" (after-text (make 'structured-text :after-text nil)))))
+
+(deftest test-inner-parent-children ()
+  (is (null (children (make 'inner-parent :children '())))))
+
+(defclass simple-parent-ast (structured-text functional-tree-ast)
+  ((children
+    :initform nil
+    :initarg :children
+    :accessor children)))
+
+(deftest test-can-copy-with-surrounding-asts ()
+  (let ((node (make 'simple-parent-ast
+                    :before-text (make 'conflict-ast)
+                    :after-text (make 'conflict-ast)
+                    :children nil)))
+    (finishes (with (make 'simple-parent-ast :children nil)
+                    '()
+                    node))))
+
+(deftest test-asts-are-always-traversed ()
+  (is (length= 3
+               (collect-if (of-type 'conflict-ast)
+                           (make 'simple-parent-ast
+                                 :before-text (make 'conflict-ast)
+                                 :after-text (make 'conflict-ast)
+                                 :text (make 'conflict-ast)
+                                 :children nil)))))
+
+(deftest test-fragment-surrounding-text-transform ()
+  (let ((fragment (allocate-instance (find-class 'source-text-fragment))))
+    (setf (text fragment) "")
+    (is (equal "" (surrounding-text-transform fragment)))))
