@@ -4740,16 +4740,28 @@ is hand-written.")
    (remove-if-not (of-type 'ast) (output-transformation ast))))
 
 (defmethod child-slots ((ast structured-text))
-  (append (when (typep (text ast) 'ast)
-            '((text . 1)))
-          (call-next-method)))
+  (macrolet ((wrap-slot (slot)
+               `(when (typep (slot-value ast ',slot) 'ast)
+                  '((,slot . 1)))))
+    (append
+     (wrap-slot before-text)
+     (wrap-slot text)
+     (wrap-slot after-text)
+     (call-next-method))))
 
 (defmethod child-slot-specifiers ((ast structured-text))
-  (append (when (typep (text ast) 'ast)
-            (load-time-value
-             (list
-              (make 'ft::slot-specifier :class t :slot 'text :arity 1))))
-          (call-next-method)))
+  (macrolet ((wrap-slot (slot)
+               `(when (typep (slot-value ast ',slot) 'ast)
+                  (load-time-value
+                   (list
+                    (make 'ft::slot-specifier
+                          :class t
+                          :slot ',slot
+                          :arity 1))))))
+    (append (wrap-slot before-text)
+            (wrap-slot text)
+            (wrap-slot after-text)
+            (call-next-method))))
 
 
 ;;; tree-sitter parsing
