@@ -29,11 +29,18 @@ from .utility import generate_types_file
 LiteralOrAST = Union[int, float, str, "AST"]
 
 
+# Auxillary classes
 class ASTLanguage(enum.Enum):
     Python = 0
     C = 1
     Cpp = 2
     Javascript = 3
+
+
+class ASTException(Exception):
+    """specialization for exceptions in the AST tree-sitter interface"""
+
+    pass
 
 
 def _guess_language(text: str) -> Optional[ASTLanguage]:
@@ -53,6 +60,7 @@ def _guess_language(text: str) -> Optional[ASTLanguage]:
         )
 
 
+# Base AST class
 class AST:
     def __init__(self, handle: int) -> None:
         """
@@ -455,12 +463,7 @@ class AST:
         ), "Cannot use a root node as a mutation value."
 
 
-class ASTException(Exception):
-    """specialization for exceptions in the AST tree-sitter interface"""
-
-    pass
-
-
+# Tree-sitter interface process management
 class _interface:
     """
     interface between python and the sel process
@@ -678,5 +681,6 @@ class _interface:
 _interface.start()
 atexit.register(_interface.stop)
 
+# Generated tree-sitter AST types
 generate_types_file()
 from .types import *  # noqa: E402, F401, F403
