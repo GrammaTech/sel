@@ -179,9 +179,8 @@ class AST:
         return f"<{module}.{qualname} {hex(self.oid())}>"
 
     def __del__(self) -> None:
-        if hasattr(self, "_oid") and self._oid is not None:
-            _interface.dispatch(AST.__del__.__name__, self._oid)
-            self._oid = None
+        _interface.dispatch(AST.__del__.__name__, self.oid())
+        self._oid = None
 
     def __copy__(self) -> "AST":
         """Return a shallow copy of AST conforming to copy.copy."""
