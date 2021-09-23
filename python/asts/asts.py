@@ -62,18 +62,18 @@ def _guess_language(text: str) -> Optional[ASTLanguage]:
 
 # Base AST class
 class AST:
-    def __init__(self, handle: int) -> None:
+    def __init__(self, oid: int) -> None:
         """
-        Internal constructor creating an AST with the given handle (oid)
+        Internal constructor creating an AST with the given object id (oid)
         pointing to an object on the Common Lisp side of the interface.
 
         Clients should not invoke this method and instead use the static
         factory methods below for AST creation.
         """
-        assert isinstance(handle, int), "AST handle must be an integer."
-        assert handle >= 0, "AST handle must be a non-negative integer."
+        assert isinstance(oid, int), "AST object id (oid) must be an integer."
+        assert oid >= 0, "AST object id (oid) must be a non-negative integer."
 
-        self.handle = handle
+        self._oid = oid
 
     # AST contruction from source code text
     @staticmethod
@@ -179,13 +179,13 @@ class AST:
         return f"<{module}.{qualname} {hex(self.oid())}>"
 
     def __del__(self) -> None:
-        if hasattr(self, "handle") and self.handle is not None:
-            _interface.dispatch(AST.__del__.__name__, self.handle)
-            self.handle = None
+        if hasattr(self, "_oid") and self._oid is not None:
+            _interface.dispatch(AST.__del__.__name__, self._oid)
+            self._oid = None
 
     def __copy__(self) -> "AST":
         """Return a shallow copy of AST conforming to copy.copy."""
-        return AST(handle=_interface.dispatch(AST.__copy__.__name__, self))
+        return AST(oid=_interface.dispatch(AST.__copy__.__name__, self))
 
     def __deepcopy__(self, memo) -> "AST":
         """Return a deep copy of AST conforming to copy.deepcopy."""
@@ -209,7 +209,7 @@ class AST:
     # LISP data accessors
     def oid(self) -> int:
         """Return the oid for this AST."""
-        return self.handle
+        return self._oid
 
     def ast_refcount(self) -> int:
         """Return the AST's reference count."""
@@ -444,7 +444,7 @@ class _interface:
 
     _proc: ClassVar[Optional[subprocess.Popen]] = None
     _lock: ClassVar[multiprocessing.RLock] = multiprocessing.RLock()
-    _gc_handles: ClassVar[List[int]] = []
+    _gc_oids: ClassVar[List[int]] = []
 
     @staticmethod
     def is_process_running() -> bool:
@@ -535,7 +535,7 @@ class _interface:
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
-                return {"type": "ast", "handle": v.handle}
+                return {"type": "ast", "oid": v.oid()}
             if isinstance(v, ASTLanguage):
                 return v.name.lower()
             elif isinstance(v, dict):
@@ -549,8 +549,8 @@ class _interface:
 
         def deserialize(v: Any) -> Any:
             """Deserialize V from the form used with the JSON text interface."""
-            if isinstance(v, dict) and v.get("handle", None):
-                return globals()[v["type"]](handle=v["handle"])
+            if isinstance(v, dict) and v.get("oid", None):
+                return globals()[v["type"]](oid=v["oid"])
             elif isinstance(v, dict):
                 return {deserialize(key): deserialize(val) for key, val in v.items()}
             elif isinstance(v, list):
@@ -561,13 +561,13 @@ class _interface:
                 return v
 
         # Special case: When garbage collection is occuring, place the
-        # AST handle to be garbage collected on a queue to later be
-        # flushed to the Lisp subprocess.  This protects us against
+        # AST object id (oid) to be garbage collected on a queue to later
+        # be flushed to the Lisp subprocess.  This protects us against
         # potential deadlocks in the locked section below if garbage
         # collection is initiated while we are in it and is more efficient
-        # than pushing each handle to the Lisp subprocess individually.
+        # than pushing each oid to the Lisp subprocess individually.
         if fn == "__del__" and args[0] is not None:
-            _interface._gc_handles.append(args[0])
+            _interface._gc_oids.append(args[0])
             return
 
         # Build the request JSON to send to the subprocess.
@@ -582,16 +582,16 @@ class _interface:
 
     @staticmethod
     def _gc() -> None:
-        """Flush the queue of garbage collected AST handles to the Lisp subprocess."""
+        """
+        Flush the queue of garbage collected AST object ids (oids)
+        to the Lisp subprocess.
+        """
         if not _interface.is_process_running():
-            _interface._gc_handles = []
-        elif len(_interface._gc_handles) > _interface._DEFAULT_GC_THRESHOLD:
+            _interface._gc_oids = []
+        elif len(_interface._gc_oids) > _interface._DEFAULT_GC_THRESHOLD:
             request = [
                 "gc",
-                [
-                    _interface._gc_handles.pop()
-                    for _ in range(len(_interface._gc_handles))
-                ],
+                [_interface._gc_oids.pop() for _ in range(len(_interface._gc_oids))],
             ]
             request = f"{json.dumps(request)}\n".encode()
             _interface._communicate(request)
@@ -617,7 +617,7 @@ class _interface:
         # to prevent issues with multiple threads writing at the same time.
         with _interface._lock:
             # Preliminaries:
-            #  (1) Send list of handles to garbage collect to the Lisp
+            #  (1) Send list of object ids (oids) to garbage collect to the Lisp
             #      subprocess, if applicable.  See comment above re: deadlocks.
             #  (2) Check the process hasn't crashed before communicating with it.
             _interface._gc()

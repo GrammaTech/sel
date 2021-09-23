@@ -660,7 +660,7 @@ Software Evolution Library ([SEL][]).  Most API calls are delegated to
 this interface which we communicate with using JSON formatted input/
 output over stdio/stdout or a socket.
 
-The python AST objects contain a handle attribute representing an
+The python AST objects contain a oid attribute representing an
 object id (oid) on the Common Lisp side of the interface; in essence,
 the python ASTs are pointers to Common Lisp memory locations.  When
 calling a python AST method, the oid is serialized to the Common Lisp
