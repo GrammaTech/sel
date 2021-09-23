@@ -4753,17 +4753,21 @@ is hand-written.")
    (of-type 'inner-whitespace)
    (remove-if-not (of-type 'ast) (output-transformation ast))))
 
-(defmethod child-slots ((ast structured-text))
+(defmethod child-slots :around ((ast structured-text))
+  "When there are ASTs in before-text, after-text, or text, expose them as
+children. (This can happen when they store conflict ASTs)."
   (macrolet ((wrap-slot (slot)
                `(when (typep (slot-value ast ',slot) 'ast)
                   '((,slot . 1)))))
     (append
      (wrap-slot before-text)
      (wrap-slot text)
-     (wrap-slot after-text)
-     (call-next-method))))
+     (call-next-method)
+     (wrap-slot after-text))))
 
-(defmethod child-slot-specifiers ((ast structured-text))
+(defmethod child-slot-specifiers :around ((ast structured-text))
+  "If there are ASTs in before-text, after-text, or text, expose them as
+children. (This can happen when they store conflict ASTs)."
   (macrolet ((wrap-slot (slot)
                `(when (typep (slot-value ast ',slot) 'ast)
                   (load-time-value
@@ -4774,8 +4778,8 @@ is hand-written.")
                           :arity 1))))))
     (append (wrap-slot before-text)
             (wrap-slot text)
-            (wrap-slot after-text)
-            (call-next-method))))
+            (call-next-method)
+            (wrap-slot after-text))))
 
 
 ;;; tree-sitter parsing
