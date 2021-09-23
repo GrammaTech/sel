@@ -10,6 +10,7 @@ import time
 
 import pygments.lexers
 
+from functools import cached_property
 from pathlib import Path
 from typing import (
     Any,
@@ -161,7 +162,7 @@ class AST:
 
         See the python README for more information.
         """
-        language = ast.language()
+        language = ast.language
         for key, value in kwargs.items():
             if isinstance(value, list):
                 kwargs[key] = [AST._ensure_ast(a, language=language) for a in value]
@@ -205,17 +206,38 @@ class AST:
         else:
             return False
 
-    # LISP data accessors
+    # AST properties for immutable attributes
     @property
     def oid(self) -> int:
         """Return the oid for this AST."""
         return self._oid
 
+    @cached_property
+    def language(self) -> ASTLanguage:
+        """Return the AST's language."""
+        language = _interface.dispatch(AST.language.func.__name__, self)
+        return ASTLanguage[language.capitalize()]
+
+    @cached_property
+    def source_text(self) -> str:
+        """Return a string of the AST's source text."""
+        return _interface.dispatch(AST.source_text.func.__name__, self)
+
+    @cached_property
+    def children(self) -> List["AST"]:
+        """Return a list of the AST's children."""
+        return _interface.dispatch(AST.children.func.__name__, self) or []
+
+    @cached_property
+    def child_slots(self) -> List[Tuple[str, int]]:
+        """Return a list of the AST's child slots."""
+        return _interface.dispatch(AST.child_slots.func.__name__, self) or []
+
+    # AST methods for common, simple operations
     def refcount(self) -> int:
         """Return the AST's reference count."""
         return _interface.dispatch(AST.refcount.__name__, self)
 
-    # Common AST operations
     def ast_at_point(self, line: int, column: int) -> "AST":
         """Return the most specific AST covering LINE and COLUMN."""
         return _interface.dispatch(AST.ast_at_point.__name__, self, line, column)
@@ -226,26 +248,9 @@ class AST:
         """Return the source ranges (line, col) for AST its recursive children"""
         return _interface.dispatch(AST.ast_source_ranges.__name__, self)
 
-    def language(self) -> ASTLanguage:
-        """Return the AST's language."""
-        language = _interface.dispatch(AST.language.__name__, self)
-        return ASTLanguage[language.capitalize()]
-
-    def source_text(self) -> str:
-        """Return a string of the AST's source text."""
-        return _interface.dispatch(AST.source_text.__name__, self)
-
-    def children(self) -> List["AST"]:
-        """Return a list of the AST's children."""
-        return _interface.dispatch(AST.children.__name__, self) or []
-
-    def child_slots(self) -> List[Tuple[str, int]]:
-        """Return a list of the AST's child slots."""
-        return _interface.dispatch(AST.child_slots.__name__, self) or []
-
     def child_slot_arity(self, slot: str) -> Optional[int]:
         """Return the arity of the AST's child slot."""
-        pairs = [pair for pair in self.child_slots() if pair[0].lower() == slot.lower()]
+        pairs = [pair for pair in self.child_slots if pair[0].lower() == slot.lower()]
         if pairs:
             return pairs[0][1]
         else:
@@ -310,7 +315,7 @@ class AST:
         """Perform an AST traversal in pre- or post-order, yielding subtrees."""
         if not post_order:
             yield self
-        for child in self.children():
+        for child in self.children:
             yield from child._perform_traverse(post_order=post_order)
         if post_order:
             yield self
@@ -325,7 +330,7 @@ class AST:
     @staticmethod
     def replace(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
         """Return a new root with pt replaced with value."""
-        value = AST._ensure_ast(value, language=root.language())
+        value = AST._ensure_ast(value, language=root.language)
 
         AST._root_mutation_check(root, pt)
         AST._mutation_value_check(value)
@@ -334,7 +339,7 @@ class AST:
     @staticmethod
     def insert(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
         """Return a new root with value inserted at pt."""
-        value = AST._ensure_ast(value, language=root.language())
+        value = AST._ensure_ast(value, language=root.language)
 
         AST._root_mutation_check(root, pt)
         AST._mutation_value_check(value)
@@ -357,7 +362,7 @@ class AST:
         from asts import AST, LiteralOrAST, IdentifierAST
         def y_to_x(ast: AST) -> Optional[LiteralOrAST]:
             if isinstance(ast, IdentifierAST) and "y" == ast.source_text():
-                return AST("x", ast.language())
+                return AST("x", language=ast.language)
         ```
 
         You would then use the transformer function to create a new AST
@@ -379,7 +384,7 @@ class AST:
 
             # Get the result of calling the TRANSFORMER on AST.
             transformed = transformer(ast) or ast
-            transformed = AST._ensure_ast(transformed, language=root.language())
+            transformed = AST._ensure_ast(transformed, language=root.language)
 
             # Replace the current AST if there is a new TRANSFORMER result.
             if root == ast:
@@ -388,7 +393,7 @@ class AST:
                 root = AST.replace(root, ast, transformed)
 
             # Transform the children of the transformed AST node.
-            for child in transformed.children():
+            for child in transformed.children:
                 root = transform_helper(transformer, root, child)
 
             return root

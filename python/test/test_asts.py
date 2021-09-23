@@ -18,12 +18,12 @@ def slurp(path: Path) -> Text:
 class BinaryOperationTestDriver(unittest.TestCase):
     def setUp(self):
         self.root = AST.from_string("x + 88", ASTLanguage.Python)
-        self.binop = self.root.children()[0].children()[0]
+        self.binop = self.root.children[0].children[0]
         return
 
     # AST at point
     def test_ast_at_point(self):
-        self.assertEqual("88", self.root.ast_at_point(1, 5).source_text())
+        self.assertEqual("88", self.root.ast_at_point(1, 5).source_text)
 
     # AST source ranges
     def test_ast_source_ranges(self):
@@ -37,12 +37,11 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST children
     def test_children(self):
-        self.assertEqual(3, len(self.binop.children()))
+        self.assertEqual(3, len(self.binop.children))
 
     # AST parent
     def test_parent(self):
-        children = self.binop.children()
-        for child in children:
+        for child in self.binop.children:
             self.assertEqual(self.binop, child.parent(self.root))
 
     # AST parents
@@ -55,7 +54,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST children-slots
     def test_child_slots(self):
-        child_slots = self.binop.child_slots()
+        child_slots = self.binop.child_slots
         # NOTE: Currently ((BEFORE-COMMENTS . 0)
         #                  (PYTHON-LEFT . 1)
         #                  (PYTHON-OPERATOR . 1)
@@ -72,7 +71,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST child-slot
     def test_child_slot_accessor(self):
-        self.assertEqual("88", self.binop.child_slot("PYTHON-RIGHT").source_text())
+        self.assertEqual("88", self.binop.child_slot("PYTHON-RIGHT").source_text)
 
     # AST type
     def test_ast_type(self):
@@ -81,7 +80,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST language
     def test_ast_language(self):
-        self.assertEqual(ASTLanguage.Python, self.root.language())
+        self.assertEqual(ASTLanguage.Python, self.root.language)
 
     # Reference count
     def test_ast_refcount(self):
@@ -97,17 +96,17 @@ class BinaryOperationTestDriver(unittest.TestCase):
         root_copy = copy.deepcopy(self.root)
         self.assertEqual(1, self.root.refcount())
         self.assertEqual(1, root_copy.refcount())
-        self.assertEqual(root_copy.source_text(), self.root.source_text())
+        self.assertEqual(root_copy.source_text, self.root.source_text)
         self.assertNotEqual(root_copy.oid, self.root.oid)
 
     # AST constructor deepest parameter
     def test_ast_constructor_deepest_parameter(self):
         new = AST.from_string(
-            self.root.source_text(),
-            language=self.root.language(),
+            self.root.source_text,
+            language=self.root.language,
             deepest=True,
         )
-        self.assertEqual(new.source_text(), self.root.source_text())
+        self.assertEqual(new.source_text, self.root.source_text)
         self.assertNotEqual(type(new), type(self.root))
 
     # AST Traverse
@@ -161,44 +160,44 @@ class BinaryOperationTestDriver(unittest.TestCase):
 class ASTTemplatesTestDriver(unittest.TestCase):
     def test_ast_template(self):
         a = AST.ast_template("$ID = 1", ASTLanguage.Python, id="x")
-        self.assertEqual(a.source_text(), "x = 1")
+        self.assertEqual(a.source_text, "x = 1")
         self.assertIsInstance(a, PythonAssignment0)
 
         a = AST.ast_template("fn(@ARGS)", ASTLanguage.Python, args=[1, 2, 3])
-        self.assertEqual(a.source_text(), "fn(1, 2, 3)")
+        self.assertEqual(a.source_text, "fn(1, 2, 3)")
         self.assertIsInstance(a, PythonCall)
 
         a = AST.ast_template("$1 = $2", ASTLanguage.Python, "x", 1)
-        self.assertEqual(a.source_text(), "x = 1")
+        self.assertEqual(a.source_text, "x = 1")
         self.assertIsInstance(a, PythonAssignment0)
 
         a = AST.ast_template("fn(@1)", ASTLanguage.Python, [1, 2, 3])
-        self.assertEqual(a.source_text(), "fn(1, 2, 3)")
+        self.assertEqual(a.source_text, "fn(1, 2, 3)")
         self.assertIsInstance(a, PythonCall)
 
         lhs = AST.from_string("x", ASTLanguage.Python, deepest=True)
         a = AST.ast_template("$1 = value", ASTLanguage.Python, lhs)
-        self.assertEqual(a.source_text(), "x = value")
+        self.assertEqual(a.source_text, "x = value")
         self.assertIsInstance(a, PythonAssignment0)
 
         template = "$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE"
         a = AST.ast_template(
             template, ASTLanguage.Python, left_hand_side="x", right_hand_side=1
         )
-        self.assertEqual(a.source_text(), "x = 1")
+        self.assertEqual(a.source_text, "x = 1")
         self.assertIsInstance(a, PythonAssignment0)
 
     def test_asts_from_template(self):
         asts = AST.asts_from_template("$1;", ASTLanguage.C, '"Foo: %d"')
         self.assertEqual(len(asts), 1)
-        self.assertEqual(asts[0].source_text(), '"Foo: %d"')
+        self.assertEqual(asts[0].source_text, '"Foo: %d"')
         self.assertIsInstance(asts[0], CStringLiteral)
 
         asts = AST.asts_from_template("$1 + $2", ASTLanguage.Python, "x", 1)
         self.assertEqual(len(asts), 2)
-        self.assertEqual(asts[0].source_text(), "x")
+        self.assertEqual(asts[0].source_text, "x")
         self.assertIsInstance(asts[0], PythonIdentifier)
-        self.assertEqual(asts[1].source_text(), "1")
+        self.assertEqual(asts[1].source_text, "1")
         self.assertIsInstance(asts[1], PythonInteger)
 
 
@@ -210,7 +209,7 @@ class CopyTestDriver(unittest.TestCase):
         copy = AST.copy(self.root)
         self.assertEqual(1, self.root.refcount())
         self.assertEqual(1, copy.refcount())
-        self.assertEqual(copy.source_text(), self.root.source_text())
+        self.assertEqual(copy.source_text, self.root.source_text)
         self.assertNotEqual(copy.oid, self.root.oid)
 
     def test_copy_with_kwargs(self):
@@ -218,57 +217,57 @@ class CopyTestDriver(unittest.TestCase):
             self.root,
             python_left=AST.from_string("y", ASTLanguage.Python, deepest=True),
         )
-        self.assertEqual(copy.source_text(), "y + 1")
+        self.assertEqual(copy.source_text, "y + 1")
         self.assertNotEqual(copy.oid, self.root.oid)
 
         copy = AST.copy(self.root, python_left=0.5)
-        self.assertEqual(copy.source_text(), "0.5 + 1")
+        self.assertEqual(copy.source_text, "0.5 + 1")
         self.assertNotEqual(copy.oid, self.root.oid)
 
         copy = AST.copy(self.root, python_left=2)
-        self.assertEqual(copy.source_text(), "2 + 1")
+        self.assertEqual(copy.source_text, "2 + 1")
         self.assertNotEqual(copy.oid, self.root.oid)
 
         copy = AST.copy(self.root, python_left='"hi"')
-        self.assertEqual(copy.source_text(), '"hi" + 1')
+        self.assertEqual(copy.source_text, '"hi" + 1')
         self.assertNotEqual(copy.oid, self.root.oid)
 
         copy = AST.copy(self.root, python_left="y")
-        self.assertEqual(copy.source_text(), "y + 1")
+        self.assertEqual(copy.source_text, "y + 1")
         self.assertNotEqual(copy.oid, self.root.oid)
 
 
 class MutationTestDriver(unittest.TestCase):
     def setUp(self):
         self.root = AST.from_string("x = 88\n", ASTLanguage.Python)
-        self.statement = self.root.children()[0]
+        self.statement = self.root.children[0]
         return
 
     def test_cut(self):
         new_root = AST.cut(self.root, self.statement)
         self.assertNotEqual(new_root.oid, self.root.oid)
-        self.assertEqual(0, len(new_root.children()))
-        self.assertEqual("", new_root.source_text())
+        self.assertEqual(0, len(new_root.children))
+        self.assertEqual("", new_root.source_text)
 
     def test_replace_ast(self):
         new_ast = AST.from_string("y = 2\n", language=ASTLanguage.Python, deepest=True)
         new_root = AST.replace(self.root, self.statement, new_ast)
         self.assertNotEqual(new_root.oid, self.root.oid)
-        self.assertEqual(1, len(new_root.children()))
-        self.assertEqual("y = 2\n", new_root.source_text())
+        self.assertEqual(1, len(new_root.children))
+        self.assertEqual("y = 2\n", new_root.source_text)
 
     def test_insert_ast(self):
         new_ast = AST.from_string("y = 2\n", language=ASTLanguage.Python, deepest=True)
         new_root = AST.insert(self.root, self.statement, new_ast)
         self.assertNotEqual(new_root.oid, self.root.oid)
-        self.assertEqual(2, len(new_root.children()))
-        self.assertEqual("y = 2\nx = 88\n", new_root.source_text())
+        self.assertEqual(2, len(new_root.children))
+        self.assertEqual("y = 2\nx = 88\n", new_root.source_text)
 
     def test_replace_literal(self):
-        lhs = self.statement.children()[0].children()[0]
+        lhs = self.statement.children[0].children[0]
         new_root = AST.replace(self.root, lhs, "y")
         self.assertNotEqual(new_root.oid, self.root.oid)
-        self.assertEqual("y = 88\n", new_root.source_text())
+        self.assertEqual("y = 88\n", new_root.source_text)
 
 
 class TransformTestDriver(unittest.TestCase):
@@ -279,12 +278,12 @@ class TransformTestDriver(unittest.TestCase):
     def test_transform_x_to_y(self):
         def x_to_y(ast: AST) -> Optional[LiteralOrAST]:
             """Convert 'x' identifier ASTs to 'y'."""
-            if isinstance(ast, IdentifierAST) and "x" == ast.source_text():
+            if isinstance(ast, IdentifierAST) and "x" == ast.source_text:
                 return "y"
 
         transformed = AST.transform(self.root, x_to_y)
         expected = slurp(DATA_DIR / "transform" / "transform_x_to_y.py")
-        self.assertEqual(transformed.source_text(), expected)
+        self.assertEqual(transformed.source_text, expected)
 
     def test_transform_x_to_z_gt(self):
         def x_to_z_gt(ast: AST) -> Optional[LiteralOrAST]:
@@ -292,18 +291,18 @@ class TransformTestDriver(unittest.TestCase):
             if isinstance(ast, PythonComparisonOperator):
                 lhs, *rest = ast.child_slot("CHILDREN")
                 operator, *_ = ast.child_slot("PYTHON-OPERATORS")
-                if isinstance(operator, PythonGreaterThan) and lhs.source_text() == "x":
+                if isinstance(operator, PythonGreaterThan) and lhs.source_text == "x":
                     return AST.copy(ast, children=["z", *rest])
 
         transformed = AST.transform(self.root, x_to_z_gt)
         expected = slurp(DATA_DIR / "transform" / "transform_x_to_z_gt.py")
-        self.assertEqual(transformed.source_text(), expected)
+        self.assertEqual(transformed.source_text, expected)
 
     def test_delete_print_statements(self):
         def is_print_statement(ast: AST) -> bool:
             """Return TRUE if AST is an statement calling the print function."""
             if isinstance(ast, ExpressionStatementAST):
-                fn_calls = [c.call_function().source_text() for c in ast.call_asts()]
+                fn_calls = [c.call_function().source_text for c in ast.call_asts()]
                 return "print" in fn_calls
             return False
 
@@ -311,7 +310,7 @@ class TransformTestDriver(unittest.TestCase):
             """Delete all print statements from the children of AST."""
             if isinstance(ast, RootAST) or isinstance(ast, CompoundAST):
                 # Build a list of new children under the AST, eliding print statements.
-                new_children = [c for c in ast.children() if not is_print_statement(c)]
+                new_children = [c for c in ast.children if not is_print_statement(c)]
 
                 # Special case; if no children remain, add a "pass" statement nop to
                 # avoid syntax errors.
@@ -320,7 +319,7 @@ class TransformTestDriver(unittest.TestCase):
 
         transformed = AST.transform(self.root, delete_print_statements)
         expected = slurp(DATA_DIR / "transform" / "delete_print_statements.py")
-        self.assertEqual(transformed.source_text(), expected)
+        self.assertEqual(transformed.source_text, expected)
 
 
 class FunctionTestDriver(unittest.TestCase):
@@ -340,17 +339,17 @@ class FunctionTestDriver(unittest.TestCase):
         function = ast.function_asts()[0]
         self.assertEqual("foo", function.function_name())
         self.assertEqual([], function.function_parameters())
-        self.assertEqual("return None", function.function_body().source_text())
+        self.assertEqual("return None", function.function_body().source_text)
 
     def test_multiple_parameters(self):
         ast = AST.from_string("def bar(a, b): return a*b", ASTLanguage.Python)
         self.assertEqual(1, len(ast.function_asts()))
 
         function = ast.function_asts()[0]
-        params = [p.source_text() for p in function.function_parameters()]
+        params = [p.source_text for p in function.function_parameters()]
         self.assertEqual("bar", function.function_name())
         self.assertEqual(["a", "b"], params)
-        self.assertEqual("return a*b", function.function_body().source_text())
+        self.assertEqual("return a*b", function.function_body().source_text)
 
 
 class CallsiteTestDriver(unittest.TestCase):
@@ -369,7 +368,7 @@ class CallsiteTestDriver(unittest.TestCase):
 
         call = root.call_asts()[0]
         self.assertEqual(None, call.provided_by(root))
-        self.assertEqual("foo", call.call_function().source_text())
+        self.assertEqual("foo", call.call_function().source_text)
         self.assertEqual([], call.call_arguments())
 
     def test_multiple_arguments(self):
@@ -377,9 +376,9 @@ class CallsiteTestDriver(unittest.TestCase):
         self.assertEqual(1, len(root.call_asts()))
 
         call = root.call_asts()[0]
-        args = [a.source_text() for a in call.call_arguments()]
+        args = [a.source_text for a in call.call_arguments()]
         self.assertEqual(None, call.provided_by(root))
-        self.assertEqual("bar", call.call_function().source_text())
+        self.assertEqual("bar", call.call_function().source_text)
         self.assertEqual(["a", "b"], args)
 
     def test_provided_by(self):
@@ -403,7 +402,7 @@ class VarsInScopeTestDriver(unittest.TestCase):
 
     def test_vars_in_scope(self):
         root = AST.from_string("def bar(a, b): return a*b", ASTLanguage.Python)
-        ast = root.children()[-1].children()[-1].children()[-1]
+        ast = root.children[-1].children[-1].children[-1]
         vars_in_scope = ast.get_vars_in_scope(root)
 
         names = [var["name"] for var in vars_in_scope]
@@ -423,7 +422,7 @@ class VarsInScopeTestDriver(unittest.TestCase):
 
     def test_vars_in_scope_no_globals(self):
         root = AST.from_string("def bar(a, b): return a*b", ASTLanguage.Python)
-        ast = root.children()[-1].children()[-1].children()[-1]
+        ast = root.children[-1].children[-1].children[-1]
         vars_in_scope = ast.get_vars_in_scope(root, keep_globals=False)
 
         names = [var["name"] for var in vars_in_scope]
@@ -447,7 +446,7 @@ class ImportsTestDriver(unittest.TestCase):
     def test_imports(self):
         code = "import os\nimport sys as s\nfrom json import dump\nprint('Hello')"
         root = AST.from_string(code, ASTLanguage.Python)
-        ast = root.children()[-1]
+        ast = root.children[-1]
         imports = ast.imports(root)
         self.assertEqual([["os"], ["sys", "s"], ["json", None, "dump"]], imports)
 
@@ -456,5 +455,5 @@ class UTF8TestDriver(unittest.TestCase):
     def test_utf8_multibyte_characters(self):
         root = AST.from_string('"反复请求多次"', ASTLanguage.Python)
         rnge = root.ast_source_ranges()[0][1]
-        self.assertEqual('"反复请求多次"', root.source_text())
+        self.assertEqual('"反复请求多次"', root.source_text)
         self.assertEqual([[1, 1], [1, 9]], rnge)
