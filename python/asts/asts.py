@@ -211,9 +211,9 @@ class AST:
         """Return the oid for this AST."""
         return self._oid
 
-    def ast_refcount(self) -> int:
+    def refcount(self) -> int:
         """Return the AST's reference count."""
-        return _interface.dispatch(AST.ast_refcount.__name__, self)
+        return _interface.dispatch(AST.refcount.__name__, self)
 
     # Common AST operations
     def ast_at_point(self, line: int, column: int) -> "AST":

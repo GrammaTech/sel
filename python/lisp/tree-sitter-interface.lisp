@@ -256,8 +256,8 @@ function name from the API followed by the arguments."
 (-> int/call-arguments (ast) list)
 (defun int/call-arguments (ast) (call-arguments ast))
 
-(-> int/ast-refcount (ast) fixnum)
-(defun int/ast-refcount (ast)
+(-> int/refcount (ast) fixnum)
+(defun int/refcount (ast)
   (refcount ast))
 
 (-> int/get-vars-in-scope (ast ast boolean) list)

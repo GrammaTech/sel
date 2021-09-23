@@ -85,18 +85,18 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # Reference count
     def test_ast_refcount(self):
-        self.assertEqual(1, AST.ast_refcount(self.root))
+        self.assertEqual(1, self.root.refcount())
 
     # AST copy
     def test_ast_copy(self):
         root_copy = copy.copy(self.root)
-        self.assertEqual(2, AST.ast_refcount(root_copy))
+        self.assertEqual(2, root_copy.refcount())
 
     # AST deep copy
     def test_ast_deep_copy(self):
         root_copy = copy.deepcopy(self.root)
-        self.assertEqual(1, AST.ast_refcount(self.root))
-        self.assertEqual(1, AST.ast_refcount(root_copy))
+        self.assertEqual(1, self.root.refcount())
+        self.assertEqual(1, root_copy.refcount())
         self.assertEqual(root_copy.source_text(), self.root.source_text())
         self.assertNotEqual(root_copy.oid, self.root.oid)
 
@@ -208,8 +208,8 @@ class CopyTestDriver(unittest.TestCase):
 
     def test_copy_no_kwargs(self):
         copy = AST.copy(self.root)
-        self.assertEqual(1, AST.ast_refcount(self.root))
-        self.assertEqual(1, AST.ast_refcount(copy))
+        self.assertEqual(1, self.root.refcount())
+        self.assertEqual(1, copy.refcount())
         self.assertEqual(copy.source_text(), self.root.source_text())
         self.assertNotEqual(copy.oid, self.root.oid)
 
