@@ -176,10 +176,10 @@ class AST:
         type_ = type(self)
         module = type_.__module__
         qualname = type_.__qualname__
-        return f"<{module}.{qualname} {hex(self.oid())}>"
+        return f"<{module}.{qualname} {hex(self.oid)}>"
 
     def __del__(self) -> None:
-        _interface.dispatch(AST.__del__.__name__, self.oid())
+        _interface.dispatch(AST.__del__.__name__, self.oid)
         self._oid = None
 
     def __copy__(self) -> "AST":
@@ -196,16 +196,17 @@ class AST:
 
     def __hash__(self) -> int:
         """Return the hashcode for the AST."""
-        return self.oid()
+        return self.oid
 
     def __eq__(self, other: Any) -> bool:
         """Return true if AST has the same oid as other."""
         if isinstance(other, AST):
-            return self.oid() == other.oid()
+            return self.oid == other.oid
         else:
             return False
 
     # LISP data accessors
+    @property
     def oid(self) -> int:
         """Return the oid for this AST."""
         return self._oid
@@ -534,7 +535,7 @@ class _interface:
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
-                return {"type": "ast", "oid": v.oid()}
+                return {"type": "ast", "oid": v.oid}
             if isinstance(v, ASTLanguage):
                 return v.name.lower()
             elif isinstance(v, dict):

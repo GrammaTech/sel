@@ -666,7 +666,7 @@ the python ASTs are pointers to Common Lisp memory locations.  When
 calling a python AST method, the oid is serialized to the Common Lisp
 side of the interface where the underlying AST object is found
 (dereferenced) and the operation performed.  You may get the object id
-using the `get_oid` method on python ASTs; to test for python AST
+using the `oid` property on python ASTs; to test for python AST
 equality, we check to see if the ASTs point to the same object using
 the oids.
 

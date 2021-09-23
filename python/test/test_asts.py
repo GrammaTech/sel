@@ -98,7 +98,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
         self.assertEqual(1, AST.ast_refcount(self.root))
         self.assertEqual(1, AST.ast_refcount(root_copy))
         self.assertEqual(root_copy.source_text(), self.root.source_text())
-        self.assertNotEqual(root_copy.oid(), self.root.oid())
+        self.assertNotEqual(root_copy.oid, self.root.oid)
 
     # AST constructor deepest parameter
     def test_ast_constructor_deepest_parameter(self):
@@ -209,7 +209,7 @@ class CopyTestDriver(unittest.TestCase):
         self.assertEqual(1, AST.ast_refcount(self.root))
         self.assertEqual(1, AST.ast_refcount(copy))
         self.assertEqual(copy.source_text(), self.root.source_text())
-        self.assertNotEqual(copy.oid(), self.root.oid())
+        self.assertNotEqual(copy.oid, self.root.oid)
 
     def test_copy_with_kwargs(self):
         copy = AST.copy(
@@ -217,23 +217,23 @@ class CopyTestDriver(unittest.TestCase):
             python_left=AST.from_string("y", ASTLanguage.Python, deepest=True),
         )
         self.assertEqual(copy.source_text(), "y + 1")
-        self.assertNotEqual(copy.oid(), self.root.oid())
+        self.assertNotEqual(copy.oid, self.root.oid)
 
         copy = AST.copy(self.root, python_left=0.5)
         self.assertEqual(copy.source_text(), "0.5 + 1")
-        self.assertNotEqual(copy.oid(), self.root.oid())
+        self.assertNotEqual(copy.oid, self.root.oid)
 
         copy = AST.copy(self.root, python_left=2)
         self.assertEqual(copy.source_text(), "2 + 1")
-        self.assertNotEqual(copy.oid(), self.root.oid())
+        self.assertNotEqual(copy.oid, self.root.oid)
 
         copy = AST.copy(self.root, python_left='"hi"')
         self.assertEqual(copy.source_text(), '"hi" + 1')
-        self.assertNotEqual(copy.oid(), self.root.oid())
+        self.assertNotEqual(copy.oid, self.root.oid)
 
         copy = AST.copy(self.root, python_left="y")
         self.assertEqual(copy.source_text(), "y + 1")
-        self.assertNotEqual(copy.oid(), self.root.oid())
+        self.assertNotEqual(copy.oid, self.root.oid)
 
 
 class MutationTestDriver(unittest.TestCase):
@@ -244,28 +244,28 @@ class MutationTestDriver(unittest.TestCase):
 
     def test_cut(self):
         new_root = AST.cut(self.root, self.statement)
-        self.assertNotEqual(new_root.oid(), self.root.oid())
+        self.assertNotEqual(new_root.oid, self.root.oid)
         self.assertEqual(0, len(new_root.children()))
         self.assertEqual("", new_root.source_text())
 
     def test_replace_ast(self):
         new_ast = AST.from_string("y = 2\n", language=ASTLanguage.Python, deepest=True)
         new_root = AST.replace(self.root, self.statement, new_ast)
-        self.assertNotEqual(new_root.oid(), self.root.oid())
+        self.assertNotEqual(new_root.oid, self.root.oid)
         self.assertEqual(1, len(new_root.children()))
         self.assertEqual("y = 2\n", new_root.source_text())
 
     def test_insert_ast(self):
         new_ast = AST.from_string("y = 2\n", language=ASTLanguage.Python, deepest=True)
         new_root = AST.insert(self.root, self.statement, new_ast)
-        self.assertNotEqual(new_root.oid(), self.root.oid())
+        self.assertNotEqual(new_root.oid, self.root.oid)
         self.assertEqual(2, len(new_root.children()))
         self.assertEqual("y = 2\nx = 88\n", new_root.source_text())
 
     def test_replace_literal(self):
         lhs = self.statement.children()[0].children()[0]
         new_root = AST.replace(self.root, lhs, "y")
-        self.assertNotEqual(new_root.oid(), self.root.oid())
+        self.assertNotEqual(new_root.oid, self.root.oid)
         self.assertEqual("y = 88\n", new_root.source_text())
 
 
