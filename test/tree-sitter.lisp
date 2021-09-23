@@ -10,6 +10,7 @@
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
+  (:shadow :simple-ast)
   (:export :test-tree-sitter)
   (:import-from :software-evolution-library/software/tree-sitter
                 :structured-text
@@ -79,25 +80,33 @@
 (deftest test-inner-parent-children ()
   (is (null (children (make 'inner-parent :children '())))))
 
-(defclass simple-parent-ast (structured-text functional-tree-ast)
+(defclass simple-ast (structured-text functional-tree-ast)
   ((children
     :initform nil
     :initarg :children
-    :accessor children)))
+    :accessor children)
+   (child-slots
+    :reader child-slots
+    :initform '((children . 0)))))
 
 (deftest test-can-copy-with-surrounding-asts ()
-  (let ((node (make 'simple-parent-ast
-                    :before-text (make 'conflict-ast)
-                    :after-text (make 'conflict-ast)
-                    :children nil)))
-    (finishes (with (make 'simple-parent-ast :children nil)
-                    '()
-                    node))))
+  (let* ((node (make 'simple-ast
+                     :before-text (make 'conflict-ast)
+                     :after-text (make 'conflict-ast)
+                     :children nil))
+         (parent
+          (make 'simple-ast :children
+                (list (make 'simple-ast))))
+         (tree
+          (with parent '(0) node)))
+    (is (equal? (list node) (children tree)))
+    (is (= 2 (count-if (of-type 'conflict-ast)
+                       (output-transformation node))))))
 
 (deftest test-asts-are-always-traversed ()
   (is (length= 3
                (collect-if (of-type 'conflict-ast)
-                           (make 'simple-parent-ast
+                           (make 'simple-ast
                                  :before-text (make 'conflict-ast)
                                  :after-text (make 'conflict-ast)
                                  :text (make 'conflict-ast)
