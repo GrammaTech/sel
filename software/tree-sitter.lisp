@@ -1888,9 +1888,9 @@ stored on the AST or external rules.")
        (list* 'ast-template template ',ast-class args))))
 
 (eval-always
- ;; The methods on null for before-text and after-text are insurance
- ;; against tree-manipulation methods that might affect the slots if
- ;; they contain ASTs.
+ ;; TODO The methods on null for before-text and after-text are insurance
+ ;; against tree-manipulation methods that might affect the slots if they
+ ;; contain conflict ASTs.
 
  (defgeneric before-text (ast)
    (:method :around (ast)
@@ -4623,12 +4623,14 @@ are ordered for reproduction as source text.")
                 (lambda (output)
                   (cond
                     ((typep output 'structured-text)
-                     (append (and (typep (before-text output) 'ast)
+                     ;; TODO Currently before-text and after-text can contain
+                     ;; conflict ASTs.
+                     (append (and (typep (before-text output) 'conflict-ast)
                                   (list (before-text output)))
                              (before-asts output)
                              (list output)
                              (after-asts output)
-                             (and (typep (after-text output) 'ast)
+                             (and (typep (after-text output) 'conflict-ast)
                                   (list (after-text output)))))
                     (t (list output))))
                 output-transformation)))
@@ -4761,11 +4763,12 @@ is hand-written.")
    (of-type 'inner-whitespace)
    (remove-if-not (of-type 'ast) (output-transformation ast))))
 
+;;; TODO This handles conflict ASTs in {before-,after-,}text slots.
 (defmethod child-slots :around ((ast structured-text))
   "When there are ASTs in before-text, after-text, or text, expose them as
 children. (This can happen when they store conflict ASTs)."
   (macrolet ((wrap-slot (slot)
-               `(when (typep (slot-value ast ',slot) 'ast)
+               `(when (typep (slot-value ast ',slot) 'conflict-ast)
                   '((,slot . 1)))))
     (append
      (wrap-slot before-text)
@@ -4773,11 +4776,12 @@ children. (This can happen when they store conflict ASTs)."
      (call-next-method)
      (wrap-slot after-text))))
 
+;;; TODO This also handles conflict ASTs in {before-,after-,}text slots.
 (defmethod child-slot-specifiers :around ((ast structured-text))
   "If there are ASTs in before-text, after-text, or text, expose them as
 children. (This can happen when they store conflict ASTs)."
   (macrolet ((wrap-slot (slot)
-               `(when (typep (slot-value ast ',slot) 'ast)
+               `(when (typep (slot-value ast ',slot) 'conflict-ast)
                   (load-time-value
                    (list
                     (make 'ft::slot-specifier
