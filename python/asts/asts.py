@@ -251,7 +251,7 @@ class AST:
         else:
             return None
 
-    def child_slot(self, slot: str) -> Union["AST", List["AST"]]:
+    def child_slot(self, slot: str) -> Optional[Union["AST", List["AST"]]]:
         """Return the contents of the AST's child slot value."""
         arity = self.child_slot_arity(slot)
         if arity is None:
