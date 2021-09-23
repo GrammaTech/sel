@@ -263,14 +263,18 @@
 ;;;
 ;;; - before-text :: stores text that directly precedes the AST but is not part
 ;;;                  of the rule associated with the AST. This is generally
-;;;                  whitespace. This slot is preferred over the after-text
-;;;                  slot when creating ASTs from a string with @code{#'convert}.
+;;;                  whitespace. This slot is preferred over the after-text slot
+;;;                  when creating ASTs from a string with @code{#'convert}. It
+;;;                  is possible for this to be an instance of `conflict-ast'
+;;;                  instead of a string.
 ;;;
 ;;; - after-text :: stores text that directly procedes the AST but is not part
 ;;;                 of the rule associated with the AST. This is generally
 ;;;                 whitespace. This slot is preferred when a terminal token
 ;;;                 directly follows the AST which does not have a before-text
-;;;                 slot due to being implicit source text.
+;;;                 slot due to being implicit source text. It is also possible
+;;;                 for this to be an instance of `conflict-ast' instead of a
+;;;                 string.
 ;;;
 ;;; - before-asts :: stores comment and error ASTs that occur before the AST
 ;;;                  and before the contents of the before-text slot. The
@@ -1884,6 +1888,10 @@ stored on the AST or external rules.")
        (list* 'ast-template template ',ast-class args))))
 
 (eval-always
+ ;; The methods on null for before-text and after-text are insurance
+ ;; against tree-manipulation methods that might affect the slots if
+ ;; they contain ASTs.
+
  (defgeneric before-text (ast)
    (:method :around (ast)
      (let ((result (call-next-method)))
