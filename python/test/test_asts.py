@@ -81,7 +81,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST language
     def test_ast_language(self):
-        self.assertEqual(ASTLanguage.Python, self.root.ast_language())
+        self.assertEqual(ASTLanguage.Python, self.root.language())
 
     # Reference count
     def test_ast_refcount(self):
@@ -104,7 +104,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
     def test_ast_constructor_deepest_parameter(self):
         new = AST.from_string(
             self.root.source_text(),
-            language=self.root.ast_language(),
+            language=self.root.language(),
             deepest=True,
         )
         self.assertEqual(new.source_text(), self.root.source_text())

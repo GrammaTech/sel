@@ -161,7 +161,7 @@ class AST:
 
         See the python README for more information.
         """
-        language = ast.ast_language()
+        language = ast.language()
         for key, value in kwargs.items():
             if isinstance(value, list):
                 kwargs[key] = [AST._ensure_ast(a, language=language) for a in value]
@@ -226,9 +226,9 @@ class AST:
         """Return the source ranges (line, col) for AST its recursive children"""
         return _interface.dispatch(AST.ast_source_ranges.__name__, self)
 
-    def ast_language(self) -> ASTLanguage:
+    def language(self) -> ASTLanguage:
         """Return the AST's language."""
-        language = _interface.dispatch(AST.ast_language.__name__, self)
+        language = _interface.dispatch(AST.language.__name__, self)
         return ASTLanguage[language.capitalize()]
 
     def source_text(self) -> str:
@@ -335,7 +335,7 @@ class AST:
     @staticmethod
     def replace(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
         """Return a new root with pt replaced with value."""
-        value = AST._ensure_ast(value, language=root.ast_language())
+        value = AST._ensure_ast(value, language=root.language())
 
         AST._root_mutation_check(root, pt)
         AST._mutation_value_check(value)
@@ -344,7 +344,7 @@ class AST:
     @staticmethod
     def insert(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
         """Return a new root with value inserted at pt."""
-        value = AST._ensure_ast(value, language=root.ast_language())
+        value = AST._ensure_ast(value, language=root.language())
 
         AST._root_mutation_check(root, pt)
         AST._mutation_value_check(value)
@@ -367,7 +367,7 @@ class AST:
         from asts import AST, LiteralOrAST, IdentifierAST
         def y_to_x(ast: AST) -> Optional[LiteralOrAST]:
             if isinstance(ast, IdentifierAST) and "y" == ast.source_text():
-                return AST("x", ast.ast_language())
+                return AST("x", ast.language())
         ```
 
         You would then use the transformer function to create a new AST
@@ -389,7 +389,7 @@ class AST:
 
             # Get the result of calling the TRANSFORMER on AST.
             transformed = transformer(ast) or ast
-            transformed = AST._ensure_ast(transformed, language=root.ast_language())
+            transformed = AST._ensure_ast(transformed, language=root.language())
 
             # Replace the current AST if there is a new TRANSFORMER result.
             if root == ast:

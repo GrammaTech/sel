@@ -226,8 +226,8 @@ function name from the API followed by the arguments."
                                             (make-instance 'source-location
                                               :line line :column column))))
 
-(-> int/ast-language (ast) string)
-(defun int/ast-language (ast)
+(-> int/language (ast) string)
+(defun int/language (ast)
   (etypecase ast
     (sel/sw/ts::python-ast "PYTHON")
     (sel/sw/ts::javascript-ast "JAVASCRIPT")
@@ -262,7 +262,7 @@ function name from the API followed by the arguments."
 
 (-> int/get-vars-in-scope (ast ast boolean) list)
 (defun int/get-vars-in-scope (root ast keep-globals)
-  (get-vars-in-scope (make-instance (safe-intern (int/ast-language ast))
+  (get-vars-in-scope (make-instance (safe-intern (int/language ast))
                                     :genome root)
                      ast
                      keep-globals))
