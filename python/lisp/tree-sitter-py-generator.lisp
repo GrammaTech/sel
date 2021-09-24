@@ -86,13 +86,71 @@ in top-down order.")
 (-> python-class-str (class) string)
 (defun python-class-str (class)
   "Return a python class declaration string for the given common lisp CLASS."
-  (format nil "class ~a(~{~a~^, ~}):~%    pass~%~%"
-          (cl-to-python-type class)
-          (append (nest (mapcar #'cl-to-python-type)
-                        (remove-if #'ignore-class-p)
-                        (remove-if-not #'tree-sitter-class-p)
-                        (class-direct-superclasses class))
-                  (list "AST"))))
+  (labels ((python-superclasses (class)
+             "Return the superclasses of CLASS to be included in the
+              python class definition."
+             (append (nest (mapcar #'cl-to-python-type)
+                           (remove-if #'ignore-class-p)
+                           (remove-if-not #'tree-sitter-class-p)
+                           (class-direct-superclasses class))
+                     (list "AST")))
+           (join-with-newlines (lines)
+             "Join the given list of LINES into a single string separated
+              by newlines."
+             (string-join lines #\Newline))
+           (indent (str &optional (indentation 4))
+             "Add INDENTATION spaces to the prefix of every line in STR."
+             (nest (join-with-newlines)
+                   (mapcar (lambda (line)
+                             (concatenate 'string
+                                          (repeat-sequence " " indentation)
+                                          line))
+                           (split-sequence #\Newline str))))
+           (child-slots-definition (class)
+             "Return the slot definition for the \"child-slots\" slot on CLASS."
+             (find-if [{eq 'child-slots} #'slot-definition-name]
+                      (compute-slots class)))
+           (child-slot-ignorable-p (slot &aux (symbol (car slot)))
+             "Return non-NIL if the given child slot should not be included
+              in the python class definition's properties."
+             (or (member symbol '(children before-asts after-asts))
+                 (string-contains-p "internal-ast" (symbol-name symbol))))))
+           (python-property-name (symbol)
+             "Convert the given child slot SYMBOL to a python property name."
+             (string-replace-all "-"
+                                 (string-downcase (symbol-name symbol))
+                                 "_"))
+           (python-child-slots (class)
+             "Return the child slots of CLASS relevant for creating python
+              property definitions."
+             (when-let ((slot-definition (child-slots-definition class))
+                        (_ (null (class-direct-subclasses class))))
+               (and (eq (slot-definition-allocation slot-definition) :class)
+                    (slot-definition-initform slot-definition)
+                    (apply #'remove-if #'child-slot-ignorable-p
+                           (cdr (slot-definition-initform slot-definition))))))
+           (python-property (slot)
+             "Return a string defining a python property for the given SLOT."
+             (destructuring-bind (symbol . arity) slot
+               (nest (indent)
+                     (join-with-newlines)
+                     (list "@cached_property"
+                           (format nil "def ~a(self) -> ~a:"
+                                   (python-property-name symbol)
+                                   (if (zerop arity) "List[AST]" "AST"))
+                           (format nil "    return self.child_slot(\"~a\")"
+                                   (symbol-name symbol))))))
+           (python-properties (class)
+             "Return a list defining python properties for the given CLASS."
+             (nest (mapcar #'indent)
+                   (or (mapcar #'python-property (python-child-slots class))
+                       '("pass")))))
+
+    (ensure-finalized class)
+    (format nil "class ~a(~{~a~^, ~}):~%~{~a~^~%~%~}~%~%~%"
+            (cl-to-python-type class)
+            (python-superclasses class)
+            (python-properties class))))
 
 (define-command tree-sitter-py-generator (&spec +command-line-options+)
   "Command line interface for tree-sitter python class generator."
@@ -102,6 +160,8 @@ in top-down order.")
             (lisp-implementation-type) (lisp-implementation-version))
   (when help (show-help-for-tree-sitter-py-generator) (quit 0))
 
+  (format *standard-output* "from functools import cached_property~%")
+  (format *standard-output* "from typing import List~%")
   (format *standard-output* "from .asts import AST~%~%")
   (nest (mapcar [{format *standard-output* "~a"} #'python-class-str])
         (remove-duplicates-from-end)
