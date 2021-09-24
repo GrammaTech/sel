@@ -4415,6 +4415,10 @@ Unlike the `children` methods which collects all children of an AST from any slo
 (eval-always
  (define-and-export-all-mixin-classes))
 
+(defun pruned-rule-p (ast)
+  "Return t iff the ast has a PRUNED-RULE slot."
+  (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast)))
+
 (defgeneric parse-order (ast &key &allow-other-keys)
   (:documentation "Return a list of children intermixed with keywords
 that specify which CHOICE branches are taken and how many times a REPEAT rule
@@ -4427,6 +4431,33 @@ repeats.")
                          (slot-usage ast))))
       (children-parser ast rule slots)
       (call-next-method))))
+
+(defun matches-rule (ast &optional pruned-rule)
+  "Given a tree-sitter ast, returns true iff the pruned rule is valid.
+ This is useful when synthesizing new asts, at each step you can validate
+ that the rule has not been broken."
+  (if-let ((rule (or pruned-rule
+                     (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast))))
+           (slots (and (slot-exists-p ast 'slot-usage)
+                       (slot-usage ast))))
+    (handler-case
+        (children-parser ast rule slots)
+      (rule-matching-error () nil))))
+
+(defun check-ast-replacement (root ast new-ast)
+  "Given a root, an ast (a member of the root tree), and new-ast,
+ an ast which is not a member, see if the new-ast is a valid replacement
+ for ast. If so, returns the mutated root, otherwise returns NIL."
+  ;; optimization: See if the new ast can be parsed by the previous ast's
+  ;; pruned-rule. If not we assume it will error during mutation attempt.
+  (if (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast))
+      (unless (and (slot-exists-p new-ast 'pruned-rule) (pruned-rule new-ast))
+        (matches-rule new-ast (pruned-rule ast))
+        (return-from check-ast-replacement nil)))
+  (handler-case
+      ;; go ahead and try the mutation
+      (with root ast new-ast)
+    (rule-matching-error () nil)))
 
 (defun change-to-subclass (ast subclasses)
 "Dynamically change the class until a subclass matches on a rule.
