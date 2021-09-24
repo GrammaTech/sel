@@ -103,7 +103,9 @@ class BinaryOperationTestDriver(unittest.TestCase):
     # AST constructor deepest parameter
     def test_ast_constructor_deepest_parameter(self):
         new = AST.from_string(
-            self.root.source_text(), language=self.root.ast_language(), deepest=True
+            self.root.source_text(),
+            language=self.root.ast_language(),
+            deepest=True,
         )
         self.assertEqual(new.source_text(), self.root.source_text())
         self.assertNotEqual(type(new), type(self.root))
