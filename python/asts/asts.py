@@ -263,6 +263,11 @@ class AST:
         """Return AST's parent under ROOT."""
         return _interface.dispatch(AST.parent.__name__, root, self)
 
+    def parents(self, root: "AST") -> List["AST"]:
+        """Return AST's parents to the ROOT."""
+        p = self.parent(root)
+        return [p] + p.parents(root) if p else []
+
     def imports(self, root: "AST") -> List[List[str]]:
         """Return a list of imports available at AST."""
         return _interface.dispatch(AST.imports.__name__, root, self) or []
@@ -289,7 +294,7 @@ class AST:
         )
         return vars_in_scope or []
 
-    # AST derived methods
+    # AST traversal
     def traverse(self) -> Generator["AST", None, None]:
         """Traverse self in pre-order, yielding subtrees."""
         yield from self._perform_traverse(post_order=False)
@@ -309,21 +314,6 @@ class AST:
             yield from child._perform_traverse(post_order=post_order)
         if post_order:
             yield self
-
-    def parents(self, root: "AST") -> List["AST"]:
-        """Return AST's parents to the ROOT."""
-        results = []
-        c = self
-
-        while True:
-            p = c.parent(root)
-            if not p:
-                break
-            else:
-                results.append(p)
-                c = p
-
-        return results
 
     # AST mutation
     @staticmethod
