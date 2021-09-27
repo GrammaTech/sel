@@ -25,9 +25,7 @@ int main () {
   int z;
   y();
 }")))
-         (scopes (software-evolution-library/software/parseable:scopes
-                  c
-                  (find-if (of-type 'call-ast) c)))
+         (scopes (scopes c (find-if (of-type 'call-ast) c)))
          (bindings (apply #'append scopes))
          (x-binding (find "x" bindings
                           :test #'equal
@@ -144,3 +142,16 @@ int main () {
   "The field-expression substitution parses and reproduces source text."
   (let ((source "int a = (x->y < u && z >= w);"))
     (is (equal source (source-text (convert 'c-ast source))))))
+
+(deftest cpp--constructor-specifiers-substitution ()
+  "The substitution for -constructor-specifiers parses and
+reproduces source text."
+  (let ((source "
+class MyF
+    : public MapF<x::TestMapF, int32,
+                      int32, X::Y::Z,
+                      X::Y::Z> {
+ public:
+  constexpr MyF()
+      : MyF::MapF(X::Y{}) {}};"))
+    (is (equal source (source-text (convert 'cpp-ast source))))))

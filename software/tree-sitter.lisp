@@ -1455,7 +1455,20 @@ definitions.")
            (:TYPE . "CHOICE")
            (:MEMBERS
             ((:TYPE . "SYMBOL") (:NAME . "_abstract_declarator"))
-            ((:TYPE . "BLANK"))))))))
+            ((:TYPE . "BLANK")))))))
+       (:-CONSTRUCTOR-SPECIFIERS (:TYPE . "REPEAT1")
+        (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
+         (:CONTENT
+          (:TYPE . "FIELD")
+          (:NAME . "pre_specifiers")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
