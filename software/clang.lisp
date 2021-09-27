@@ -6234,11 +6234,7 @@ ASTs in the existing SYMBOL-TABLE and AST-ROOT tree."
                              (for i upfrom 0)
                              (collect (if (typep c 'ast)
                                           (update-paths-helper c (cons i path))
-                                          c))))
-                 ;; conflict AST or AST stub w/o children
-                 ;; (setf (slot-value ast 'finger)
-                 ;;      (make-instance 'finger :node ast :path (reverse path)))
-                 )
+                                          c)))))
              ast))
     (update-paths-helper ast)))
 
