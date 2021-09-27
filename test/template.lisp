@@ -228,10 +228,6 @@ def $READ_NAME():
     (is (equal (source-text ast) "1 + 2;"))))
 
 (deftest test-template-predecessor-whitespace ()
-  "Test for two bugs: (1) the wrong whitespace because predecessor
-returns the previous AST and (2) there not being a finger in the
-predecessor AST."
-  ;; This would invalidate the test.
   (is (not (stringp (template-subtree 'python-ast
                                       (make 'python-identifier :text "x")))))
   (is (equal "x.y"
