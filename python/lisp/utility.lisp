@@ -3,7 +3,9 @@
   (:nicknames :sel/py/lisp/utility)
   (:use :gt/full)
   (:export :cl-to-python-type
-           :internal-child-slot-p))
+           :internal-child-slot-p
+           :cl-to-python-slot-name
+           :python-to-cl-slot-name))
 (in-package :software-evolution-library/python/lisp/utility)
 (in-readtable :curry-compose-reader-macros)
 
@@ -156,3 +158,30 @@ the trailing characters of the symbol string SYMNAME."
 not be exposed by the python API."
   (member (symbol-name (car slot)) '("internal-ast" "before-asts" "after-asts")
           :test (flip #'string-contains-p)))
+
+;; (-> cl-to-python-slot-name ((or symbol string)) string)
+(defgeneric cl-to-python-slot-name (slot-name)
+  (:documentation "Convert SLOT-NAME to its form for the python API with
+any language prefix stripped.")
+  (:method ((slot-name symbol))
+    (cl-to-python-slot-name (symbol-name slot-name)))
+  (:method ((slot-name string))
+    (cond ((passthrough-slot-name-p slot-name) slot-name)
+          (t (string-join (cdr (split-sequence #\- slot-name)) #\-)))))
+
+;; (-> python-to-cl-slot-name (string (or symbol string)) string)
+(defgeneric python-to-cl-slot-name (language slot-name)
+  (:documentation "Convert SLOT-NAME to its form for the common lisp API
+with a language prefix prepended.")
+  (:method ((language string) (slot-name symbol))
+    (python-to-cl-slot-name language (symbol-name slot-name)))
+  (:method ((language string) (slot-name string))
+    (cond ((passthrough-slot-name-p slot-name) slot-name)
+          (t (concatenate 'string (string-upcase language) "-" slot-name)))))
+
+(-> passthrough-slot-name-p (string) list)
+(defun passthrough-slot-name-p (slot-name)
+  "Return non-NIL if SLOT-NAME is a slot which should be passed thru
+any cl-to-python or python-to-cl unchanged."
+  (member slot-name '("children" "async")
+          :test (flip #'string-suffix-p)))

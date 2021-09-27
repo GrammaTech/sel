@@ -55,29 +55,29 @@ class BinaryOperationTestDriver(unittest.TestCase):
     # AST children-slots
     def test_child_slots(self):
         child_slots = self.binop.child_slots
-        # NOTE: Currently ((PYTHON-LEFT . 1)
-        #                  (PYTHON-OPERATOR . 1)
-        #                  (PYTHON-RIGHT . 1)
+        # NOTE: Currently ((LEFT . 1)
+        #                  (OPERATOR . 1)
+        #                  (RIGHT . 1)
         #                  (CHILDREN . 0))
         #       Consider removing CHILDREN.
         self.assertEqual(4, len(child_slots))
-        self.assertTrue("PYTHON-OPERATOR" in (list(map(lambda x: x[0], child_slots))))
+        self.assertTrue("OPERATOR" in (list(map(lambda x: x[0], child_slots))))
 
     # AST child-slot-arity
     def test_child_slot_arity(self):
-        self.assertEqual(1, self.binop.child_slot_arity("PYTHON-RIGHT"))
+        self.assertEqual(1, self.binop.child_slot_arity("RIGHT"))
 
     # AST child-slot accessor
     def test_child_slot_accessor(self):
-        self.assertEqual("88", self.binop.child_slot("PYTHON-RIGHT").source_text)
+        self.assertEqual("88", self.binop.child_slot("RIGHT").source_text)
 
     # AST child-slot property
     def test_child_slot_property(self):
-        self.assertEqual("88", self.binop.python_right.source_text)
+        self.assertEqual("88", self.binop.right.source_text)
 
     # AST type
     def test_ast_type(self):
-        integer = self.binop.child_slot("PYTHON-RIGHT")
+        integer = self.binop.right
         self.assertIsInstance(integer, PythonInteger)
 
     # AST language
@@ -217,24 +217,24 @@ class CopyTestDriver(unittest.TestCase):
     def test_copy_with_kwargs(self):
         copy = AST.copy(
             self.root,
-            python_left=AST.from_string("y", ASTLanguage.Python, deepest=True),
+            left=AST.from_string("y", ASTLanguage.Python, deepest=True),
         )
         self.assertEqual(copy.source_text, "y + 1")
         self.assertNotEqual(copy.oid, self.root.oid)
 
-        copy = AST.copy(self.root, python_left=0.5)
+        copy = AST.copy(self.root, left=0.5)
         self.assertEqual(copy.source_text, "0.5 + 1")
         self.assertNotEqual(copy.oid, self.root.oid)
 
-        copy = AST.copy(self.root, python_left=2)
+        copy = AST.copy(self.root, left=2)
         self.assertEqual(copy.source_text, "2 + 1")
         self.assertNotEqual(copy.oid, self.root.oid)
 
-        copy = AST.copy(self.root, python_left='"hi"')
+        copy = AST.copy(self.root, left='"hi"')
         self.assertEqual(copy.source_text, '"hi" + 1')
         self.assertNotEqual(copy.oid, self.root.oid)
 
-        copy = AST.copy(self.root, python_left="y")
+        copy = AST.copy(self.root, left="y")
         self.assertEqual(copy.source_text, "y + 1")
         self.assertNotEqual(copy.oid, self.root.oid)
 
@@ -292,7 +292,7 @@ class TransformTestDriver(unittest.TestCase):
             """Convert 'x' identifiers in greater than operations to 'z'."""
             if isinstance(ast, PythonComparisonOperator):
                 lhs, *rest = ast.child_slot("CHILDREN")
-                operator, *_ = ast.child_slot("PYTHON-OPERATORS")
+                operator, *_ = ast.child_slot("OPERATORS")
                 if isinstance(operator, PythonGreaterThan) and lhs.source_text == "x":
                     return AST.copy(ast, children=["z", *rest])
 

@@ -197,9 +197,17 @@ function name from the API followed by the arguments."
   (allocate-ast ast))
 
 (-> int/copy (ast list) ast)
-(defun int/copy (ast &rest args)
+(defun int/copy (ast &rest args &aux (language (int/language ast)))
   "Copy AST with optional keyword ARGS mapping child slots to new values."
-  (apply #'copy ast (mappend #'handle-keyword-argument args)))
+  (labels ((handle-slot-name-argument (arg)
+             "Translate the python slot-name argument (ARG) to a
+              common lisp slot-name."
+             (cons (python-to-cl-slot-name language (car arg)) (cdr arg)))
+           (handle-args (args)
+             "Translate copy args from python to common lisp."
+             (mappend [#'handle-keyword-argument #'handle-slot-name-argument]
+                      args)))
+    (apply #'copy ast (handle-args args))))
 
 (-> int/gc (list) null)
 (defun int/gc (oids) (mapcar #'deallocate-ast oids) nil)
@@ -215,11 +223,12 @@ function name from the API followed by the arguments."
 
 (-> int/child-slots (ast) list)
 (defun int/child-slots (ast)
-  (mapcar «list [#'symbol-name #'car] #'cdr»
+  (mapcar «list [#'cl-to-python-slot-name #'car] #'cdr»
           (remove-if #'internal-child-slot-p (child-slots ast))))
 
 (-> int/child-slot (ast string) (or list ast))
-(defun int/child-slot (ast slot-name) (slot-value ast (safe-intern slot-name)))
+(defun int/child-slot (ast slot-name &aux (language (int/language ast)))
+  (slot-value ast (safe-intern (python-to-cl-slot-name language slot-name))))
 
 (-> int/ast-at-point (ast integer integer) ast)
 (defun int/ast-at-point (ast line column)

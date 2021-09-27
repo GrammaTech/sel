@@ -114,10 +114,10 @@ in top-down order.")
              "Return non-NIL if the given child slot should not be included
               in the python class definition's properties."
              (or (eq (car slot) 'children) (internal-child-slot-p slot)))
-           (python-property-name (symbol)
-             "Convert the given child slot SYMBOL to a python property name."
+           (python-property-name (slot)
+             "Convert the given child SLOT name to a python property name."
              (string-replace-all "-"
-                                 (string-downcase (symbol-name symbol))
+                                 (string-downcase (cl-to-python-slot-name slot))
                                  "_"))
            (python-child-slots (class)
              "Return the child slots of CLASS relevant for creating python
@@ -138,7 +138,7 @@ in top-down order.")
                                    (python-property-name symbol)
                                    (if (zerop arity) "List[AST]" "AST"))
                            (format nil "    return self.child_slot(\"~a\")"
-                                   (symbol-name symbol))))))
+                                   (cl-to-python-slot-name symbol))))))
            (python-properties (class)
              "Return a list defining python properties for the given CLASS."
              (nest (mapcar #'indent)
