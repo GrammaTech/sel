@@ -2,18 +2,18 @@
 (defpackage :software-evolution-library/python/lisp/utility
   (:nicknames :sel/py/lisp/utility)
   (:use :gt/full)
-  (:export :common-lisp-to-python-type))
+  (:export :cl-to-python-type))
 (in-package :software-evolution-library/python/lisp/utility)
 (in-readtable :curry-compose-reader-macros)
 
-;; (-> common-lisp-to-python-type ((or class symbol string)) string)
-(defgeneric common-lisp-to-python-type (type)
+;; (-> cl-to-python-type ((or class symbol string)) string)
+(defgeneric cl-to-python-type (type)
   (:documentation "Convert the given common lisp TYPE to the corresponding
 python type identifier.")
   (:method ((class class))
-    (common-lisp-to-python-type (class-name class)))
+    (cl-to-python-type (class-name class)))
   (:method ((symbol symbol))
-    (common-lisp-to-python-type (symbol-name symbol)))
+    (cl-to-python-type (symbol-name symbol)))
   (:method ((typename string))
     (labels ((pep8-camelcase (term)
                "Camelcase TERM in accordance to PEP-8 conventions."

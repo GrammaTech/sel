@@ -87,8 +87,8 @@ in top-down order.")
 (defun python-class-str (class)
   "Return a python class declaration string for the given common lisp CLASS."
   (format nil "class ~a(~{~a~^, ~}):~%    pass~%~%"
-          (common-lisp-to-python-type class)
-          (append (nest (mapcar #'common-lisp-to-python-type)
+          (cl-to-python-type class)
+          (append (nest (mapcar #'cl-to-python-type)
                         (remove-if #'ignore-class-p)
                         (remove-if-not #'tree-sitter-class-p)
                         (class-direct-superclasses class))
