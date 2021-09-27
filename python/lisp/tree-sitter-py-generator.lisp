@@ -110,11 +110,10 @@ in top-down order.")
              "Return the slot definition for the \"child-slots\" slot on CLASS."
              (find-if [{eq 'child-slots} #'slot-definition-name]
                       (compute-slots class)))
-           (child-slot-ignorable-p (slot &aux (symbol (car slot)))
+           (child-slot-ignorable-p (slot)
              "Return non-NIL if the given child slot should not be included
               in the python class definition's properties."
-             (or (member symbol '(children before-asts after-asts))
-                 (string-contains-p "internal-ast" (symbol-name symbol))))))
+             (or (eq (car slot) 'children) (internal-child-slot-p slot)))
            (python-property-name (symbol)
              "Convert the given child slot SYMBOL to a python property name."
              (string-replace-all "-"

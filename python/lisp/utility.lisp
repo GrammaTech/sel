@@ -2,10 +2,12 @@
 (defpackage :software-evolution-library/python/lisp/utility
   (:nicknames :sel/py/lisp/utility)
   (:use :gt/full)
-  (:export :cl-to-python-type))
+  (:export :cl-to-python-type
+           :internal-child-slot-p))
 (in-package :software-evolution-library/python/lisp/utility)
 (in-readtable :curry-compose-reader-macros)
 
+;;;; AST types
 ;; (-> cl-to-python-type ((or class symbol string)) string)
 (defgeneric cl-to-python-type (type)
   (:documentation "Convert the given common lisp TYPE to the corresponding
@@ -146,3 +148,11 @@ the trailing characters of the symbol string SYMNAME."
                           ("#else" . "macro-else")
                           ("#endif" . "macro-end-if")
                           ("#end" . "macro-end"))))
+
+;;;; AST slots
+(-> internal-child-slot-p (list) list)
+(defun internal-child-slot-p (slot)
+  "Return non-NIL if the given child slot contains internal ASTs that should
+not be exposed by the python API."
+  (member (symbol-name (car slot)) '("internal-ast" "before-asts" "after-asts")
+          :test (flip #'string-contains-p)))

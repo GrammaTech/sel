@@ -215,7 +215,8 @@ function name from the API followed by the arguments."
 
 (-> int/child-slots (ast) list)
 (defun int/child-slots (ast)
-  (mapcar «list [#'symbol-name #'car] #'cdr» (child-slots ast)))
+  (mapcar «list [#'symbol-name #'car] #'cdr»
+          (remove-if #'internal-child-slot-p (child-slots ast))))
 
 (-> int/child-slot (ast string) (or list ast))
 (defun int/child-slot (ast slot-name) (slot-value ast (safe-intern slot-name)))
