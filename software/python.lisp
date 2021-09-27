@@ -79,17 +79,9 @@ are created if they're present in PARSE-TREE."
   t)
 
 (defmethod whitespace-between ((style t) (ast1 python-identifier) (ast2 python-identifier))
-  ;; If the finger of AST1 is out of date because AST1 has just been
-  ;; moved or the tree has just been modified then it is possible that
-  ;; PLAUSIBLE-ROOT and thus PARENT won't be correct.  However, in
-  ;; most cases this should work well.
-  #+nil
-  (let ((plausible-root (node (finger ast1))))
-    (typecase (parent plausible-root ast1)
-      ((or python-subscript python-call)
-       ;; Spaces for all but first arguments in a python subscript and call expressions.
-       (if (predecessor plausible-root ast1) " " ""))
-      (t " ")))
+  ;; TODO -- this previously computed a plausible parent, but that no
+  ;; longer works.  Replace with a call to a function that includes a root
+  ;; so the parent can be computed.
   " ")
 
 
