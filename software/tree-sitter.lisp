@@ -5721,6 +5721,11 @@ STYLE."))
     (indent-adjustment ast))
   (:documentation "Return a value to set the indent-adjustment slot of AST."))
 
+(defun empty-sequence-p (x)
+  "Return T if X is an empty sequence."
+  (and (sequencep x)
+       (emptyp x)))
+
 (defun copy-with-surrounding-text (copy-node reference-node)
   "Copy COPY-NODE with the surrounding text of REFERENCE-NODE. This is done
 on a per slot basis, and the copy of text only happens if the relevant slot
