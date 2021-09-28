@@ -87,7 +87,8 @@
     :accessor children)
    (child-slots
     :reader child-slots
-    :initform '((children . 0)))))
+    :initform '((children . 0))
+    :allocation :class)))
 
 (deftest test-can-copy-with-surrounding-asts ()
   (let* ((node (make 'simple-ast

@@ -1967,7 +1967,10 @@ stored as a list of interleaved text. This should ideally only be used for leaf
     ((text
       :accessor text
       :initarg :text
-      :initform nil))
+      :initform nil)
+     (child-slot-specifiers
+      :initform nil
+      :allocation :class))
     (:documentation "A wrapper class for text fragments in computed text ASTs."))
 
   (defclass source-text-fragment (computed-text)

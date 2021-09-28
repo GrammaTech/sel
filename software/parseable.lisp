@@ -140,6 +140,9 @@ An applicative tree structure is used to hold the ASTs."))
   ((child-alist :initarg :child-alist :initform nil
                 :reader conflict-ast-child-alist
                 :documentation "Child-Alist of the AST." :type list)
+   (child-slot-specifiers
+    :initform nil
+    :allocation :class)
    (default-children :initarg :default-children :initform nil
                      :reader conflict-ast-default-children
                      :documentation "Default-Children of the AST." :type list))
