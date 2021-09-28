@@ -84,9 +84,9 @@ reported back to the client in JSON form over STREAM."
 increment the reference counter to allow for its use externally without
 garbage collection, returning the key used in the *external-asts* hashtable.")
   (:method ((ast ast) &aux (oid (oid ast)))
-    (when (not (gethash oid *external-asts*))
-      (setf (gethash oid *external-asts*) (cons ast 0)))
-    (incf (cdr (gethash oid *external-asts*)))
+    (symbol-macrolet ((ast-refcount-pair (gethash oid *external-asts*)))
+      (when (not ast-refcount-pair) (setf ast-refcount-pair (cons ast 0)))
+      (incf (cdr ast-refcount-pair)))
     oid))
 
 ;; (-> deallocate-ast (or ast integer) boolean)
