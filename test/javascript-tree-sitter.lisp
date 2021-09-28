@@ -392,6 +392,8 @@
       (is (= (length (javascript-children new-genome)) 3)
           "Body has three children after insert"))))
 
+
+;;;; Parsing tests
 (deftest (test-javascript-source-ranges :long-running t) ()
   (let ((js-files (expand-wildcard #p"javascript/*/*.js")))
     (test-ast-source-ranges-for-files
@@ -451,3 +453,15 @@
 (deftest parse-a-regex-clause ()
   (is (occurs-if {equalp '(PPCRE "foo bar baz")}
                  (convert 'match "i = \"=~/foo bar baz/\";" :language 'javascript))))
+
+(defun regression-parse-test (source)
+  "Test that SOURCE can successfully be converted to a javascript-ast and
+back to SOURCE."
+  (is (equal (source-text (convert 'javascript-ast source)) source)))
+
+(deftest javascript-export-statement-substitution ()
+  "The substitution for export statement export statement parses and
+reproduces source text."
+  (regression-parse-test "export default function myfun() {
+  return true;
+}"))

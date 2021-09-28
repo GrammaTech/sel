@@ -684,7 +684,8 @@ searched to populate `*tree-sitter-language-files*'.")
       (:javascript
        (javascript-lexical-declaration (:declaration-kind))
        (javascript-function-declaration (:async))
-       (javascript-for-in-statement (:declaration-type) (:iteration-type))))
+       (javascript-for-in-statement (:declaration-type) (:iteration-type))
+       (javascript-export-statement (:default))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
 for the language.")
@@ -1654,19 +1655,25 @@ definitions.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "export"))
            ((:TYPE . "CHOICE")
             (:MEMBERS
+             ;; NOTE: the order here has been changed from the tree-sitter rule.
              ((:TYPE . "SEQ")
               (:MEMBERS
                ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
                ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "namespace_import"))
+               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
                ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
              ((:TYPE . "SEQ")
               (:MEMBERS
                ((:TYPE . "STRING") (:VALUE . "*"))
                ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
-               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
-             ((:TYPE . "SEQ")
-              (:MEMBERS
-               ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
                ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))
          ((:TYPE . "SEQ")
           (:MEMBERS
@@ -1677,16 +1684,23 @@ definitions.")
            ((:TYPE . "STRING") (:VALUE . "export"))
            ((:TYPE . "CHOICE")
             (:MEMBERS
-             ((:TYPE . "FIELD")
-              (:NAME . "declaration")
-              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration")))
              ((:TYPE . "SEQ")
               (:MEMBERS
-               ((:TYPE . "STRING") (:VALUE . "default"))
                ((:TYPE . "FIELD")
-                (:NAME . "value")
-                (:CONTENT (:TYPE . "SYMBOL") (:NAME . "expression")))
-               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))))))
+                (:NAME . "default")
+                (:CONTENT (:TYPE . "STRING") (:VALUE . "default")))
+               ((:TYPE . "CHOICE")
+                (:MEMBERS
+                 ((:TYPE . "FIELD") (:NAME . "declaration")
+                                    (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration")))
+                 ((:TYPE . "SEQ")
+                  (:MEMBERS
+                   ((:TYPE . "FIELD") (:NAME . "value")
+                                      (:CONTENT (:TYPE . "SYMBOL") (:NAME . "expression")))
+                   ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))
+             ((:TYPE . "FIELD")
+              (:NAME . "declaration")
+              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration")))))))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.")
 

@@ -65,6 +65,21 @@
          (t child-tree)))
      (lastcar parse-tree)))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':javascript))
+     (class (eql 'javascript-export-statement))
+     parse-tree &key)
+  (append
+   (butlast parse-tree)
+   (list
+    (mapcar
+     (lambda (child-tree &aux (child-car (car child-tree)))
+       (cond
+         ((eql child-car :default)
+          (cons (list :default child-car) (cdr child-tree)))
+         (t child-tree)))
+     (lastcar parse-tree)))))
+
 
 ;;; Methods common to all software objects
 
