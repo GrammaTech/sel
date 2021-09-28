@@ -47,6 +47,57 @@ ast = asts.AST("x + 88", asts.ASTLanguage.Python)
 ast = asts.AST.from_string("x + 88", asts.ASTLanguage.Python)
 ```
 
+## v0.3.0 -> v0.4.0
+
+Several python methods were renamed and/or transformed into
+properties.  These include:
+
+- `oid` becoming a property
+- `ast_language` renamed to `language` and becoming a property
+- `source_text` becoming a property
+- `children` becoming a property
+- `child_slots` becoming a property
+- `ast_refcount` renamed to `refcount`
+
+Additionally, the before/after-asts child slots were removed
+from the external python API.
+
+Examples of the old versus new API are shown below:
+
+```
+# v0.3.0
+>>> ast = asts.AST("x + 88", asts.ASTLanguage.Python)
+>>> ast.oid()
+1
+>>> ast.ast_language()
+<ASTLanguage.Python: 0>
+>>> ast.source_text()
+'x + 88'
+>>> ast.children()
+[<asts.types.PythonExpressionStatement0 0x2>]
+>>> ast.child_slots()
+[['BEFORE-ASTS', 0], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
+>>> ast.ast_refcount()
+1
+```
+
+```
+# v0.4.0
+>>> ast = asts.AST("x + 88", asts.ASTLanguage.Python)
+>>> ast.oid
+1
+>>> ast.language
+<ASTLanguage.Python: 0>
+>>> ast.source_text()
+'x + 88'
+>>> ast.children
+[<asts.types.PythonExpressionStatement0 0x2>]
+>>> ast.child_slots
+[['CHILDREN', 0]]
+>>> ast.refcount()
+1
+```
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
@@ -55,6 +106,16 @@ the ASTs pypi package.  This aids in reproducibility/tracing
 of issues in older releases.
 
 ## v0.3.0
+
+| Repository             | Revision |
+|------------------------|----------|
+| tree-sitter            | 59cd1c39 |
+| tree-sitter-c          | 008008e3 |
+| tree-sitter-cpp        | c6121241 |
+| tree-sitter-javascript | 2c5b138e |
+| tree-sitter-python     | d6210cea |
+
+## v0.4.0
 
 | Repository             | Revision |
 |------------------------|----------|

@@ -60,7 +60,7 @@ Python 3.8.5
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import asts
 >>> it = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
->>> it.children()
+>>> it.children
 [<asts.types.PythonExpressionStatement0 0x2>]
 @end example
 

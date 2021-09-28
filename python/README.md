@@ -41,26 +41,25 @@ Python 3.8.5
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import asts
 >>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
->>> root.children()
+>>> root.children
 [<asts.types.PythonExpressionStatement0 0x2>]
->>> root.children()[0].children()
+>>> root.children[0].children
 [<asts.types.PythonBinaryOperator 0x3>]
->>> root.children()[0].children()[0].children()
+>>> root.children[0].children[0].children
 [<asts.types.PythonIdentifier 0x4>,
  <asts.types.PythonAdd 0x5>,
  <asts.types.PythonInteger 0x6>]
->>> root.children()[0].children()[0].children()[0].source_text()
+>>> root.children[0].children[0].children[0].source_text
 'x'
->>> root.children()[0].children()[0].children()[1].source_text()
+>>> root.children[0].children[0].children[1].source_text
 '+'
->>> root.children()[0].children()[0].children()[2].source_text()
+>>> root.children[0].children[0].children[2].source_text
 '88'
->>> root.children()[0].children()[0].source_text()
+>>> root.children[0].children[0].source_text
 'x + 88'
->>> root.children()[0].children()[0].child_slots()
-[['BEFORE-ASTS', 0], ['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1],
- ['PYTHON-RIGHT', 1], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
->>> list(map(lambda x:x.source_text(), root.children()[0].children()[0].children()))
+>>> root.children[0].children[0].child_slots
+[['LEFT', 1], ['OPERATOR', 1], ['RIGHT', 1], ['CHILDREN', 0]]
+>>> list(map(lambda x:x.source_text, root.children[0].children[0].children))
 ['x', '+', '88']
 ```
 
@@ -142,7 +141,7 @@ instance, the following snippet creates an AST equivalent to
 
 ```python
 >>> root = asts.AST.ast_template("$ID = 2", asts.ASTLanguage.Python, id="x")
->>> root.source_text()
+>>> root.source_text
 'x = 2'
 ```
 
@@ -152,7 +151,7 @@ lists (e.g. `@`), as shown below:
 
 ```python
 >>> root = asts.AST.ast_template("fn(@ARGS)", asts.ASTLanguage.Python, args=[1,2,3])
->>> root.source_text()
+>>> root.source_text
 'fn(1, 2, 3)'
 ```
 
@@ -161,7 +160,7 @@ shown below:
 
 ```python
 >>> root = asts.AST.ast_template("$1 = 2", asts.ASTLanguage.Python, "x")
->>> root.source_text()
+>>> root.source_text
 'x = 2'
 ```
 
@@ -180,9 +179,9 @@ ASTs for `$1` and `$2` using `asts_from_template`, as shown below:
 >>> asts = asts.AST.asts_from_template("$1 = $2", asts.ASTLanguage.Python, "x", 1)
 >>> len(asts)
 2
->>> asts[0].source_text()
+>>> asts[0].source_text
 'x'
->>> asts[1].source_text()
+>>> asts[1].source_text
 '1'
 ```
 
@@ -203,7 +202,7 @@ module, as shown below:
 ```python
 >>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
 >>> copy = asts.AST.copy(root)
->>> copy.source_text()
+>>> copy.source_text
 'x + 1'
 ```
 
@@ -213,8 +212,8 @@ ASTs for each slot as keyword arguments, as shown below:
 ```python
 >>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
 >>> y = asts.AST.from_string("y", asts.ASTLanguage.Python, deepest=True)
->>> copy = asts.AST.copy(root, python_left=y)
->>> copy.source_text()
+>>> copy = asts.AST.copy(root, left=y)
+>>> copy.source_text
 'y + 1'
 ```
 
@@ -224,11 +223,11 @@ automatically parsed into an AST to be inserted.
 
 ```python
 >>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
->>> copy = asts.AST.copy(root, python_left=1)
->>> copy.source_text()
+>>> copy = asts.AST.copy(root, left=1)
+>>> copy.source_text
 '1 + 1'
->>> copy = asts.AST.copy(root, python_left="y")
->>> copy.source_text()
+>>> copy = asts.AST.copy(root, left="y")
+>>> copy.source_text
 'y + 1'
 ```
 
@@ -237,9 +236,18 @@ To view the names of an AST's child slots, you may use the
 
 ```python
 >>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
->>> root.child_slots()
-[['BEFORE-ASTS', 0], ['PYTHON-LEFT', 1], ['PYTHON-OPERATOR', 1],
- ['PYTHON-RIGHT', 1], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
+>>> root.child_slots
+[['LEFT', 1], ['OPERATOR', 1],['RIGHT', 1], ['CHILDREN', 0]]
+```
+
+Alternatively, you may use the `dir` built-in to inspect an AST object
+and find its child slots as python properties, as shown below:
+
+```python
+>>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
+>>> dir(root)
+['__class__', ..., 'after_asts', ..., 'before_asts', ...,
+ 'left', ..., 'operator', ..., 'right', ..., 'traverse']
 ```
 
 ## AST Methods
@@ -276,8 +284,22 @@ True
 False
 ```
 
-Beyond AST types, retrieving the source text is another common
-operation.  This may be accomplished using the `source_text` method,
+Beyond AST types, accessing the source text of an AST is
+another common operation.  This may be accomplished using
+the `source_text` property on ASTs, as shown below:
+
+```python
+>>> root = asts.AST.from_string(
+...     "print(x)",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
+>>> root.source_text
+'print(x)'
+```
+
+Additionally, to view a list of the immediate children
+of a particular AST, the `children` property may be used,
 as shown below:
 
 ```python
@@ -286,38 +308,23 @@ as shown below:
 ...     language=asts.ASTLanguage.Python,
 ...     deepest=True
 ... )
->>> root.source_text()
-'print(x)'
-```
-
-Finally, subtrees and parent trees may be accessed using the `children`
-and `parent` methods, as shown below.  Please note that the parent
-method requires the root of the subtree as a parameter.
-
-```python
->>> root = asts.AST.from_string(
-...     "print(x)",
-...     language=asts.ASTLanguage.Python,
-...     deepest=True
-... )
->>> root.children()
+>>> root.children
 [<asts.types.PythonIdentifier 0x4>, <asts.types.PythonArgumentList1 0x5>]
->>> root.children()[0].source_text()
+>>> root.children[0].source_text
 'print'
->>> identifier = root.children()[1].children()[0]
->>> identifier.source_text()
+>>> identifier = root.children[1].children[0]
+>>> identifier.source_text
 'x'
->>> identifier.parent(root).source_text()
-'(x)'
 ```
 
 An AST is composed of various child slots which are concatenated together
-when using the `children` method.  To view the child slots for a particular
-AST you may use the `child_slots` method, which returns a list of slot-name,
-arity pairs.  An arity of one indicates the slot is a single AST, while
-an arity of zero indicates the slot is composed of zero or more ASTs.
-The AST(s) comprising a given slot may be accessed using the `child_slot`
-method.  An example is shown below:
+when accessed via the `children` property.  To view the child slots for
+a particular AST you may use the `child_slots` property, which returns
+a list of slot-name, arity pairs.  An arity of one indicates the slot
+is a single AST, while an arity of zero indicates the slot is composed
+of zero or more ASTs.  The AST(s) comprising a given slot may be
+accessed using the slot name as a python property accessor or by using
+`child_slot` method, as shown below:
 
 ```python
 >>> root = asts.AST.from_string(
@@ -325,13 +332,74 @@ method.  An example is shown below:
 ...     language=asts.ASTLanguage.Python,
 ...     deepest=True
 ... )
->>> root.child_slots()
-[['BEFORE-ASTS', 0], ['PYTHON-FUNCTION', 1], ['PYTHON-ARGUMENTS', 1],
- ['CHILDREN', 0], ['AFTER-ASTS', 0]]
->>> root.child_slot("PYTHON-FUNCTION").source_text()
+>>> root.child_slots
+[['FUNCTION', 1], ['ARGUMENTS', 1], ['CHILDREN', 0]]
+>>> root.function.source_text
+'print'
+>>> root.child_slot("FUNCTION").source_text
 'print'
 ```
 
+Finally, parent trees may be accessed using the `parent` and `parents`
+methods, as shown below.  Please note that these methods require the
+root of the subtree as a parameter.
+
+```python
+>>> root = asts.AST.from_string(
+...     "print(x)",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
+>>> root.children
+[<asts.types.PythonIdentifier 0x4>, <asts.types.PythonArgumentList1 0x5>]
+>>> root.children[0].source_text
+'print'
+>>> identifier = root.children[1].children[0]
+>>> identifier.source_text
+'x'
+>>> identifier.parent(root).source_text
+'(x)'
+>>> [p.source_text for p in identifier.parents(root)]
+['(x)', 'print(x)']
+```
+
+#### Pattern Matching
+
+In Python 3.10+, AST types and properties may be used in
+[pattern matching][] for conditional logic and to destructure
+an AST into its components parts.  For instance, to match
+against assignments where the left-hand side of the assignment
+is the variable "x", the following match clause may be used:
+
+```python
+>>> root = asts.AST.from_string(
+...     "x = 1",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
+>>> match root:
+...     case asts.PythonAssignment(left=asts.IdentifierAST(source_text="x")):
+...         print("Match found")
+...
+Match found
+```
+
+As another example, to destructure the left-hand and right-hand sides
+of an assignment into separate variables, the following match
+clause may be used:
+
+```python
+>>> root = asts.AST.from_string(
+...     "x = 1",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
+>>> match root:
+...     case asts.PythonAssignment(left=lhs, right=rhs):
+...         [lhs, rhs]
+...
+[<asts.types.PythonIdentifier 0x4>, <asts.types.PythonInteger 0x5>]
+```
 
 ### Source Locations
 
@@ -352,7 +420,7 @@ lines and columns are 1-indexed.
  [<asts.types.PythonIdentifier 0x4>, [[1, 1], [1, 6]]],
  [<asts.types.PythonArgumentList1 0x5>, [[1, 6], [1, 9]]],
  [<asts.types.PythonIdentifier 0x6>, [[1, 7], [1, 8]]]]
->>> root.ast_at_point(1, 7).source_text()
+>>> root.ast_at_point(1, 7).source_text
 'x'
 ```
 
@@ -371,9 +439,9 @@ body, using the respective AST methods, `function_name`,
 ... )
 >>> root.function_name()
 'foo'
->>> [param.source_text() for param in root.function_parameters()]
+>>> [param.source_text for param in root.function_parameters()]
 ['bar: int']
->>> root.function_body().source_text()
+>>> root.function_body().source_text
 '    return bar / 2'
 ```
 
@@ -391,12 +459,12 @@ below:
 ...     "import json\njson.dumps({})",
 ...     language=asts.ASTLanguage.Python
 ... )
->>> callsite = root.children()[-1].children()[-1]
+>>> callsite = root.children[-1].children[-1]
 >>> callsite.provided_by(root)
 'json'
->>> callsite.call_function().source_text()
+>>> callsite.call_function().source_text
 'json.dumps'
->>> [callarg.source_text() for callarg in callsite.call_arguments()]
+>>> [callarg.source_text for callarg in callsite.call_arguments()]
 ['{}']
 ```
 
@@ -456,9 +524,9 @@ Currently, clients may cut, insert, or replace AST subtrees, as shown:
 CUT:
 ```python
 >>> root = asts.AST.from_string("x = 2\n", language=asts.ASTLanguage.Python)
->>> stmt = root.children()[0]
+>>> stmt = root.children[0]
 >>> root = asts.AST.cut(root, stmt)
->>> root.source_text()
+>>> root.source_text
 ''
 ```
 
@@ -468,14 +536,14 @@ INSERT:
 ...     "y = 3\n",
 ...     language=asts.ASTLanguage.Python
 ... )
->>> stmt = root.children()[0]
+>>> stmt = root.children[0]
 >>> new_stmt = asts.AST.from_string(
 ...     "x = 2\n",
 ...     language=asts.ASTLanguage.Python,
 ...     deepest=True
 ... )
 >>> root = asts.AST.insert(root, stmt, new_stmt)
->>> root.source_text()
+>>> root.source_text
 'x = 2\ny = 3\n'
 ```
 
@@ -485,14 +553,14 @@ REPLACE:
 ...     "x = 2\n",
 ...     language=asts.ASTLanguage.Python
 ... )
->>> literal = root.children()[0].children()[0].children()[-1]
+>>> literal = root.children[0].children[0].children[-1]
 >>> new_literal = asts.AST.from_string(
 ...     "3",
 ...     language=asts.ASTLanguage.Python,
 ...     deepest=True
 ... )
 >>> root = asts.AST.replace(root, literal, new_literal)
->>> root.source_text()
+>>> root.source_text
 "x = 3\n"
 ```
 
@@ -504,9 +572,9 @@ values for insertion and replacement, as shown below:
 ...     "x = 2\n",
 ...     language=asts.ASTLanguage.Python
 ... )
->>> literal = root.children()[0].children()[0].children()[-1]
+>>> literal = root.children[0].children[0].children[-1]
 >>> root = asts.AST.replace(root, literal, 3)
->>> root.source_text()
+>>> root.source_text
 "x = 3\n"
 ```
 
@@ -527,8 +595,8 @@ an `x_to_y` transformer function, as shown below:
 ```python
 >>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Convert 'x' identifier ASTs to 'y'."""
-...     if isinstance(ast, asts.IdentifierAST) and "x" == ast.source_text():
-...         return asts.AST.from_string("y", ast.ast_language(), deepest=True)
+...     if isinstance(ast, asts.IdentifierAST) and "x" == ast.source_text:
+...         return asts.AST.from_string("y", ast.language, deepest=True)
 ...
 ```
 
@@ -542,11 +610,11 @@ you would use the `AST.transform` function, as shown below:
 ... print(x)
 ... """
 >>> root = asts.AST.from_string(text, asts.ASTLanguage.Python)
->>> print(root.source_text().strip())
+>>> print(root.source_text.strip())
 x = 1
 print(x)
 >>> transformed = asts.AST.transform(root, x_to_y)
->>> print(transformed.source_text().strip())
+>>> print(transformed.source_text.strip())
 y = 1
 print(y)
 ```
@@ -559,8 +627,21 @@ functionally equivalent to the example above:
 ```python
 >>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Convert 'x' identifier ASTs to 'y'."""
-...     if isinstance(ast, asts.IdentifierAST) and "x" == ast.source_text():
+...     if isinstance(ast, asts.IdentifierAST) and "x" == ast.source_text:
 ...         return "y"
+...
+```
+
+Additionally, when using Python 3.10+, you may use [pattern matching][]
+to further simplify the implementation of the `x_to_y` transformer,
+as shown below:
+
+```python
+>>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
+...     """Convert 'x' identifier ASTs to 'y'."""
+...     match ast:
+...         case asts.IdentifierAST(source_text="x"):
+...             return "y"
 ...
 ```
 
@@ -574,9 +655,9 @@ statements, as shown below:
 ...     """Convert 'x' identifier ASTs to 'y' on the lhs of assignments."""
 ...     if (
 ...         isinstance(ast, asts.PythonAssignment)
-...         and "x" == ast.child_slot("python-left").source_text()
+...         and "x" == ast.left.source_text
 ...     ):
-...         return asts.AST.copy(ast, python_left="y")
+...         return asts.AST.copy(ast, left="y")
 ...
 >>> text = """
 ... x = 1
@@ -584,9 +665,21 @@ statements, as shown below:
 ... """
 >>> root = asts.AST.from_string(text, asts.ASTLanguage.Python)
 >>> transformed = asts.AST.transform(root, x_to_y_assignment_lhs)
->>> print(transformed.source_text().strip())
+>>> print(transformed.source_text.strip())
 y = 1
 print(y)
+```
+
+As before, the `x_to_y_assignment_lhs` transformer may be simplified
+using [pattern matching][] in Python 3.10+, as shown below:
+
+```python
+>>> def x_to_y_assignment_lhs(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
+...     """Convert 'x' identifier ASTs to 'y' on the lhs of assignments."""
+...     match ast:
+...         case asts.PythonAssignment(left=asts.IdentifierAST(source_text="x")):
+...             return asts.AST.copy(ast, left="y")
+...
 ```
 
 For these more complicated transforms, you may need to mutate the parent
@@ -602,7 +695,7 @@ first defining a predicate for print statements, as shown below:
 >>> def is_print_statement(ast: asts.AST) -> bool:
 ...     """Return TRUE if AST is an statement calling the print function."""
 ...     if isinstance(ast, asts.ExpressionStatementAST):
-...         fn_calls = [c.call_function().source_text() for c in ast.call_asts()]
+...         fn_calls = [c.call_function().source_text for c in ast.call_asts()]
 ...         return "print" in fn_calls
 ...     return False
 ...
@@ -616,7 +709,7 @@ returns a node with the `print` statements immediately below it elided:
 ...     """Delete all print statements from the children of AST."""
 ...     if isinstance(ast, (asts.RootAST, asts.CompoundAST)):
 ...         # Build a list of new children under the AST, eliding print statements.
-...         new_children = [c for c in ast.children() if not is_print_statement(c)]
+...         new_children = [c for c in ast.children if not is_print_statement(c)]
 ...
 ...         # Special case; if no children remain, add a "pass" statement nop to
 ...         # avoid syntax errors.
@@ -643,7 +736,7 @@ to mutate an AST, as shown below:
 ... """
 >>> root = asts.AST.from_string(text, asts.ASTLanguage.Python)
 >>> transformed = asts.AST.transform(root, delete_print_statements)
->>> print(transformed.source_text().strip())
+>>> print(transformed.source_text.strip())
 x = 1
 y = 2
 if x > 1:
@@ -690,3 +783,4 @@ GPLv3+
 [tree-sitter]: https://tree-sitter.github.io/tree-sitter/
 [SEL]: https://grammatech.github.io/sel/index.html#Software-Evolution-Library
 [template documentation]: https://grammatech.github.io/sel/Templates.html#Templates
+[pattern matching]: https://www.python.org/dev/peps/pep-0636/
