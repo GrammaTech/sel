@@ -4303,9 +4303,6 @@ on various ast classes"))
 (defmethod ast-path ((obj clang) (ast functional-tree-ast))
   (ast-path (genome obj) ast))
 
-(defmethod ast-path ((root clang-ast) (ast functional-tree-ast))
-  (path-of-node root))
-
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; this method specialization will no longer be required.
 (defmethod ast-hash ast-combine-hash-values ((ast clang-ast))
