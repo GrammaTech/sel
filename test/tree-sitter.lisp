@@ -117,3 +117,7 @@
   (let ((fragment (allocate-instance (find-class 'source-text-fragment))))
     (setf (text fragment) "")
     (is (equal "" (surrounding-text-transform fragment)))))
+
+(deftest test-inherited-child-slot-overrides ()
+  (finishes (copy (make 'conflict-ast)))
+  (finishes (copy (make 'text-fragment))))
