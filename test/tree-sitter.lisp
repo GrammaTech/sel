@@ -119,5 +119,9 @@
     (is (equal "" (surrounding-text-transform fragment)))))
 
 (deftest test-inherited-child-slot-overrides ()
+  "Regression test for a bug where `conflict-ast` and `text-fragment`
+could not be copied because they inherited a value for
+`ft:child-slot-specifiers' containing the `children' slot, which they
+do not have."
   (finishes (copy (make 'conflict-ast)))
   (finishes (copy (make 'text-fragment))))
