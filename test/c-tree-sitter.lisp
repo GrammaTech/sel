@@ -798,6 +798,13 @@ when its surrounding text is removed."
           #P"preproc.c"
           #P"string.c")))
 
+(deftest do-not-duplicate-keys-on-copy ()
+  (let* ((it (c "if(x){ return 0; }else{ return 1; }"))
+         (annotations (slot-value (copy (copy (copy it))) 'sel/sw/ts::annotations)))
+    ;; All keys are unique.
+    (is (= (length (mapcar #'car annotations))
+           (length (remove-duplicates (mapcar #'car annotations)))))))
+
 
 ;;;; Rule Substitution tests
 (deftest c-labeled-statement-rule-substitution ()

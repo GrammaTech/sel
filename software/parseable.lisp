@@ -249,8 +249,7 @@ tree ASTs."
                         (class-slots (class-of ast)))))
     (iter (for (key . value) in (plist-alist args))
           (unless (member key initargs)
-            (setf (slot-value ast 'annotations)
-                  (cons (cons key value) (slot-value ast 'annotations)))))))
+            (setf (aget key (slot-value ast 'annotations)) value)))))
 
 (defmethod copy :around ((ast functional-tree-ast) &rest keys)
   "Wrapper around COPY to transform all keyword arguments which are
