@@ -555,7 +555,14 @@
            :template-placeholder
            :template-metavariable
            :template-subtree
-           :ast-from-template))
+           :ast-from-template
+           :*tree-sitter-mutation-types*
+           :tree-sitter-replace
+           :tree-sitter-swap
+           :tree-sitter-insert
+           :tree-sitter-move
+           :tree-sitter-cut
+           :tree-sitter-nop))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -4459,6 +4466,24 @@ repeats.")
       (with root ast new-ast)
     (rule-matching-error () nil)))
 
+(defun check-ast-insertable (root ast new-ast)
+  "Given a root, an ast (a member of the root tree), and new-ast,
+ an ast which is not a member, see if the new-ast can be inserted
+ at ast. If so, returns the mutated root, otherwise returns NIL."
+  (handler-case
+      ;; go ahead and try the mutation
+      (insert root ast new-ast)
+    (rule-matching-error () nil)))
+
+(defun check-ast-cut (root ast)
+  "Given a root, an ast (a member of the root tree), see if the selected
+ ast can be cut, without a rule error. If so, returns the mutated root,
+ otherwise returns NIL."
+  (handler-case
+      ;; go ahead and try the mutation
+      (less root ast)
+    (rule-matching-error () nil)))
+
 (defun change-to-subclass (ast subclasses)
 "Dynamically change the class until a subclass matches on a rule.
 This is only used when a superclass instance is manually created.
@@ -5532,6 +5557,179 @@ indicates the number of groupings to drop from the stack."
          ;; Avoid matching a rule if parse tree tokens still exist.
          (unless parse-stack
            (values success? (reverse inner-asts-order))))))))
+
+;;;
+;;; Primitive mutation types
+;;;
+(defclass tree-sitter-mutation (mutation)
+  ()
+  (:documentation "Specialization of the mutation interface for tree-sitter ast
+ software objects."))
+
+;;; Mutations
+(defparameter *tree-sitter-mutation-types*
+  (cumulative-distribution
+   (normalize-probabilities
+    '((tree-sitter-insert . 1)
+      (tree-sitter-swap . 1)
+      (tree-sitter-move . 1)
+      (tree-sitter-replace . 1)
+      (tree-sitter-cut . 1)
+      (tree-sitter-nop . 1))))
+  "Cumulative distribution of normalized probabilities of weighted mutations.")
+
+(defparameter *max-targeter-old-tries* 1000
+  "Max number of attempts to find a compatible ast.")
+
+(defparameter *max-targeter-new-tries* 100
+  "Max number of attempts to find a compatible ast for reuse.")
+
+(defparameter *max-targeter-swappable-tries* 100
+  "Max number of attempts to find a compatible swappable target ast pair.")
+
+(defparameter *max-targeter-moveable-tries* 100
+  "Max number of attempts to find a compatible moveable target ast pair.")
+
+(defun pick-2-replaceable (software)
+  (let* ((asts (remove-if (lambda (ast) (typep ast 'inner-whitespace))
+                          (asts software))))
+    (do* ((old (random-elt asts) (random-elt asts))
+          (new (random-elt asts))
+          (old-tries 0 (+ old-tries 1))
+          (new-tries 0)
+          (valid (check-ast-replacement (genome software) old new)
+                 (check-ast-replacement (genome software) old new)))
+         ((or valid (> new-tries *max-targeter-new-tries*))
+          (if valid (list old new)))
+      (if (> old-tries *max-targeter-old-tries*)
+          (setf new (random-elt asts)
+                new-tries (+ new-tries 1)
+                old-tries 0)))))
+
+(defun pick-2-insertable (software)
+  (let* ((asts (remove-if (lambda (ast) (typep ast 'inner-whitespace))
+                          (asts software))))
+    (do* ((old (random-elt asts) (random-elt asts))
+          (new (random-elt asts))
+          (old-tries 0 (+ old-tries 1))
+          (new-tries 0)
+          (valid (check-ast-insertable (genome software) old new)
+                 (check-ast-insertable (genome software) old new)))
+         ((or valid (> new-tries *max-targeter-new-tries*))
+          (if valid (list old new)))
+      (if (> old-tries *max-targeter-old-tries*)
+          (setf new (random-elt asts)
+                new-tries (+ new-tries 1)
+                old-tries 0)))))
+
+(defun pick-2-swappable (software)
+  (iter (for i from 1 to *max-targeter-swappable-tries*)
+    (let* ((pick (pick-2-replaceable software)))
+      ;; make sure the old can also replace the new
+      (if (check-ast-replacement (genome software) (second pick) (first pick))
+          (leave pick)))))
+
+(defun pick-2-moveable (software)
+  (iter (for i from 1 to *max-targeter-moveable-tries*)
+    (let* ((pick (pick-2-replaceable software)))
+      ;; make sure the old can be cut
+      (if (check-ast-cut (genome software) (first pick))
+          (leave pick)))))
+
+(defun pick-1-cuttable (software)
+  (let* ((asts (remove-if (lambda (ast) (typep ast 'inner-whitespace))
+                          (asts software))))
+    (do* ((old (random-elt asts) (random-elt asts))
+          (old-tries 0 (+ old-tries 1))
+          (valid (check-ast-cut (genome software) old)
+                 (check-ast-cut (genome software) old)))
+         ((or valid (> old-tries *max-targeter-old-tries*))
+          (if valid (list old))))))
+
+(define-mutation tree-sitter-replace (tree-sitter-mutation)
+  ((targeter :initform #'pick-2-replaceable))
+  (:documentation
+   "Replace a randomly selected ast with a compatible ast from the same tree."))
+
+(define-mutation tree-sitter-swap (tree-sitter-mutation)
+  ((targeter :initform #'pick-2-swappable))
+  (:documentation
+   "Replace a randomly selected ast with a compatible ast from the same tree."))
+
+(define-mutation tree-sitter-cut (tree-sitter-mutation)
+  ((targeter :initform #'pick-1-cuttable))
+  (:documentation
+   "Replace a randomly selected ast with a compatible ast from the same tree."))
+
+(define-mutation tree-sitter-insert (tree-sitter-mutation)
+  ((targeter :initform #'pick-2-insertable))
+  (:documentation
+   "Replace a randomly selected ast with a compatible ast from the same tree."))
+
+(define-mutation tree-sitter-move (tree-sitter-mutation)
+  ((targeter :initform #'pick-2-moveable))
+  (:documentation
+   "Replace a randomly selected ast with a compatible ast from the same tree."))
+
+(define-mutation tree-sitter-nop (tree-sitter-mutation) ())
+
+(defmethod apply-mutation ((software tree-sitter)
+                           (mutation tree-sitter-replace))
+  (let ((target (targets mutation)))
+    ;; need deep copy (tree-copy) to get new serial numbers on new ast
+    (setf (genome software)
+          (with (genome software)
+                (first target)
+                (tree-copy (second target))))
+    software))
+
+(defmethod apply-mutation ((software tree-sitter)
+                           (mutation tree-sitter-insert))
+  (let ((target (targets mutation)))
+    ;; need deep copy (tree-copy) inserted ast to get new serial numbers
+    (setf (genome software)
+          (insert (genome software)
+                (first target)
+                (tree-copy (second target))))
+    software))
+
+(defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-swap))
+  (let ((target (targets mutation)))
+    ;; since we are doing a swap we don't need a deep copy of either mutation
+    (setf (genome software)
+          (with
+           (with (genome software)
+                (first target)
+                (second target))
+           (second target)
+           (first target)))
+    software))
+
+(defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-move))
+  (let ((target (targets mutation)))
+    ;; since we are doing a swap we don't need a deep copy of either mutation
+    (setf (genome software)
+          (less
+           (with (genome software)
+                (first target)
+                (second target))
+           (first target)))
+    software))
+
+(defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-cut))
+  (let ((target (targets mutation)))
+    (setf (genome software)
+          (less (genome software)
+                (first target)))
+    software))
+
+(defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-nop))
+  (declare (ignorable software mutation))
+  software)
+
+(defmethod pick-mutation-type ((obj tree-sitter))
+  "Select type of mutation to apply to OBJ."
+  (random-pick *tree-sitter-mutation-types*))
 
 (defgeneric whitespace-between/parent (parent style ast1 ast2)
   (:method ((parent t) style ast1 ast2)
