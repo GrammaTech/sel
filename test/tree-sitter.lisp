@@ -125,3 +125,147 @@ could not be copied because they inherited a value for
 do not have."
   (finishes (copy (make 'conflict-ast)))
   (finishes (copy (make 'text-fragment))))
+
+#+ignore
+
+((tree-sitter-replace . 1)
+      (tree-sitter-cut . 1)
+      (tree-sitter-nop . 1))
+
+(deftest test-tree-sitter-insert-1 ()
+  "Insert a tree-sitter-ast into a tree-sitter software object."
+  (if-let* ((c (is (from-string (make-instance 'c)
+                                "int foo() { int a = 10; return 0; }")
+                   "Create c software failed"))
+            (ast (is (first (children (convert 'c-ast "int x = 20;")))
+                     "Failed to create insertion ast"))
+            (compound-ast (is (find-if
+                               (lambda (x) (typep x 'compound-ast)) c)
+                              "compound-ast not found"))
+            (insert-before (is (@ compound-ast 0) "Could not find target ast"))
+            (mut (is (make-instance
+                      'tree-sitter-insert
+                      :object c
+                      :targets
+                      (list
+                       insert-before
+                       ast))
+                     "Mutation could not be created"))
+            (v (is (ignore-errors (apply-mutation c mut))
+                   "Apply-mutation failed"))
+            (result (is
+                        (find-if
+                         (lambda (x)
+                           (and (typep x 'number-ast) (equal (text x) "20")))
+                         v)
+                        "Resulting object does not contain inserted item")))
+    t))
+
+(deftest test-tree-sitter-swap-1 ()
+  "Swap 2 asts in a tree-sitter software object."
+  (if-let* ((c (is (from-string
+                    (make-instance 'c)
+                    "int foo() { int a = 10; int b = 20; return 0; }")
+                   "Create c software failed"))
+            (compound-ast (is (find-if (lambda (x) (typep x 'compound-ast)) c)
+                              "compound-ast not found"))
+            (ast1 (@ compound-ast 0))
+            (ast2 (@ compound-ast 1))
+            (mut (is (make-instance
+                      'tree-sitter-swap
+                      :object c
+                      :targets
+                      (list
+                       ast1
+                       ast2))
+                     "Mutation could not be created"))
+            (v (is (ignore-errors (apply-mutation c mut))
+                   "Apply-mutation failed"))
+            (source (is (source-text (genome c)) "Source-text failed"))
+            (ast2pos (is (search "int b = 20" source)
+                         "ast2 missing from result"))
+            (ast1pos (is (search "int a = 10" source)
+                         "ast1 missing from result"))
+            (result (is (and ast2pos ast1pos (> ast1pos ast2pos))
+                        "Swap mutation failed")))
+    t))
+
+(deftest test-tree-sitter-move-1 ()
+  "Move ast in a tree-sitter software object."
+  (if-let* ((c (is (from-string
+                    (make-instance 'c)
+                    "int foo() { int a = 1; int b = 2; int c = 3; return 0; }")
+                   "Create c software failed"))
+            (compound-ast (is (find-if (lambda (x) (typep x 'compound-ast)) c)
+                              "compound-ast not found"))
+            (ast1 (@ compound-ast 0))
+            (ast2 (@ compound-ast 2))
+            (mut (is (make-instance
+                      'tree-sitter-move
+                      :object c
+                      :targets
+                      (list
+                       ast1
+                       ast2))
+                     "Mutation could not be created"))
+            (v (is (ignore-errors (apply-mutation c mut))
+                   "Apply-mutation failed"))
+            (source (is (source-text (genome c)) "Source-text failed"))
+            (ast2pos (is (search "int b = 2" source)
+                         "ast2 missing from result"))
+            (ast1pos (is (search "int c = 3" source)
+                         "ast1 missing from result"))
+            (result (is (and ast2pos ast1pos (< ast1pos ast2pos))
+                        "Move mutation failed")))
+    t))
+
+(deftest test-tree-sitter-replace-1 ()
+  "Replace a tree-sitter-ast in a tree-sitter software object."
+  (if-let* ((c (is (from-string (make-instance 'c)
+                                "int foo() { int a = 10; return 0; }")
+                   "Create c software failed"))
+            (new-ast (is (first (children (convert 'c-ast "int x = 20;")))
+                     "Failed to create replacement ast"))
+            (compound-ast (is (find-if
+                               (lambda (x) (typep x 'compound-ast)) c)
+                              "compound-ast not found"))
+            (old-ast (is (@ compound-ast 0) "Could not find target ast"))
+            (mut (is (make-instance
+                      'tree-sitter-replace
+                      :object c
+                      :targets
+                      (list
+                       old-ast
+                       new-ast))
+                     "Mutation could not be created"))
+            (v (is (ignore-errors (apply-mutation c mut))
+                   "Apply-mutation failed"))
+            (result (is
+                        (find-if
+                         (lambda (x)
+                           (and (typep x 'number-ast) (equal (text x) "20")))
+                         v)
+                        "Resulting object does not contain replaced item")))
+    t))
+
+(deftest test-tree-sitter-cut-1 ()
+  "Cut (delete) ast from a tree-sitter software object."
+  (if-let* ((c (is (from-string
+                    (make-instance 'c)
+                    "int foo() { int a = 1; int b = 2; int c = 3; return 0; }")
+                   "Create c software failed"))
+            (compound-ast (is (find-if (lambda (x) (typep x 'compound-ast)) c)
+                              "compound-ast not found"))
+            (old-ast (@ compound-ast 1))
+            (mut (is (make-instance
+                      'tree-sitter-cut
+                      :object c
+                      :targets
+                      (list old-ast))
+                     "Mutation could not be created"))
+            (v (is (ignore-errors (apply-mutation c mut))
+                   "Apply-mutation failed"))
+            (source (is (source-text (genome c)) "Source-text failed"))
+            (result (is (null (search "int b = 2" source))
+                              "old-ast not removed from result")))
+    t))

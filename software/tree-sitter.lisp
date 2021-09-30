@@ -5594,7 +5594,7 @@ indicates the number of groupings to drop from the stack."
   (let* ((asts (remove-if (lambda (ast) (typep ast 'inner-whitespace))
                           (asts software))))
     (do* ((old (random-elt asts) (random-elt asts))
-          (new (random-elt asts))
+          (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
           (new-tries 0)
           (valid (check-ast-replacement (genome software) old new)
@@ -5610,7 +5610,7 @@ indicates the number of groupings to drop from the stack."
   (let* ((asts (remove-if (lambda (ast) (typep ast 'inner-whitespace))
                           (asts software))))
     (do* ((old (random-elt asts) (random-elt asts))
-          (new (random-elt asts))
+          (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
           (new-tries 0)
           (valid (check-ast-insertable (genome software) old new)
@@ -5626,7 +5626,8 @@ indicates the number of groupings to drop from the stack."
   (iter (for i from 1 to *max-targeter-swappable-tries*)
     (let* ((pick (pick-2-replaceable software)))
       ;; make sure the old can also replace the new
-      (if (check-ast-replacement (genome software) (second pick) (first pick))
+      (if (check-ast-replacement (genome software) (second pick)
+                                 (tree-copy (first pick)))
           (leave pick)))))
 
 (defun pick-2-moveable (software)
@@ -5700,9 +5701,9 @@ indicates the number of groupings to drop from the stack."
           (with
            (with (genome software)
                 (first target)
-                (second target))
+                (tree-copy (second target)))
            (second target)
-           (first target)))
+           (tree-copy (first target))))
     software))
 
 (defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-move))
@@ -5712,8 +5713,8 @@ indicates the number of groupings to drop from the stack."
           (less
            (with (genome software)
                 (first target)
-                (second target))
-           (first target)))
+                (tree-copy (second target)))
+           (second target)))
     software))
 
 (defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-cut))
