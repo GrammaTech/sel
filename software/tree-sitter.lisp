@@ -4466,6 +4466,14 @@ repeats.")
       (with root ast new-ast)
     (rule-matching-error () nil)))
 
+(defun check-ast-swappable (root ast1 ast2)
+  "Given a root, and 2 asts (members of the root tree), see if 2 asts can
+ be swapped. If so, returns the mutated root, otherwise returns NIL."
+  (handler-case
+      ;; go ahead and try the mutation
+      (swap root ast1 ast2)
+    (rule-matching-error () nil)))
+
 (defun check-ast-insertable (root ast new-ast)
   "Given a root, an ast (a member of the root tree), and new-ast,
  an ast which is not a member, see if the new-ast can be inserted
@@ -5584,15 +5592,25 @@ indicates the number of groupings to drop from the stack."
 (defparameter *max-targeter-new-tries* 100
   "Max number of attempts to find a compatible ast for reuse.")
 
-(defparameter *max-targeter-swappable-tries* 100
-  "Max number of attempts to find a compatible swappable target ast pair.")
-
 (defparameter *max-targeter-moveable-tries* 100
   "Max number of attempts to find a compatible moveable target ast pair.")
 
+(defun evolution-candidate-ast-p (ast)
+  "Returns true iff the ast is one which we will select for mutations."
+  (not (or (typep ast 'inner-whitespace) (typep ast 'comment-ast))))
+
+(defparameter *evolution-asts* nil "Collect list of applicable asts")
+
+(defun evolution-candidate-asts (software)
+  "Returns list of asts in software genome which are valid mutation candidates."
+  (let ((*evolution-asts* '()))
+    (mapc (lambda (a)
+              (if (evolution-candidate-ast-p a)
+                  (push a *evolution-asts*))) (genome software))
+    (nreverse *evolution-asts*)))
+
 (defun pick-2-replaceable (software)
-  (let* ((asts (remove-if (lambda (ast) (typep ast 'inner-whitespace))
-                          (asts software))))
+  (let* ((asts (evolution-candidate-asts software)))
     (do* ((old (random-elt asts) (random-elt asts))
           (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
@@ -5607,8 +5625,7 @@ indicates the number of groupings to drop from the stack."
                 old-tries 0)))))
 
 (defun pick-2-insertable (software)
-  (let* ((asts (remove-if (lambda (ast) (typep ast 'inner-whitespace))
-                          (asts software))))
+  (let* ((asts (evolution-candidate-asts software)))
     (do* ((old (random-elt asts) (random-elt asts))
           (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
@@ -5623,12 +5640,20 @@ indicates the number of groupings to drop from the stack."
                 old-tries 0)))))
 
 (defun pick-2-swappable (software)
-  (iter (for i from 1 to *max-targeter-swappable-tries*)
-    (let* ((pick (pick-2-replaceable software)))
-      ;; make sure the old can also replace the new
-      (if (check-ast-replacement (genome software) (second pick)
-                                 (tree-copy (first pick)))
-          (leave pick)))))
+  "Return a random target of two asts which can be swapped in the software."
+  (let* ((asts (evolution-candidate-asts software)))
+    (do* ((ast1 (random-elt asts) (random-elt asts))
+          (ast2 (random-elt asts))
+          (ast1-tries 0 (+ ast1-tries 1))
+          (ast2-tries 0)
+          (valid (check-ast-swappable (genome software) ast1 ast2)
+                 (check-ast-swappable (genome software) ast1 ast2)))
+         ((or valid (> ast2-tries *max-targeter-new-tries*))
+          (if valid (list ast1 ast2)))
+      (if (> ast1-tries *max-targeter-old-tries*)
+          (setf ast2 (random-elt asts)
+                ast2-tries (+ ast2-tries 1)
+                ast1-tries 0)))))
 
 (defun pick-2-moveable (software)
   (iter (for i from 1 to *max-targeter-moveable-tries*)
@@ -5638,8 +5663,7 @@ indicates the number of groupings to drop from the stack."
           (leave pick)))))
 
 (defun pick-1-cuttable (software)
-  (let* ((asts (remove-if (lambda (ast) (typep ast 'inner-whitespace))
-                          (asts software))))
+  (let* ((asts (evolution-candidate-asts software)))
     (do* ((old (random-elt asts) (random-elt asts))
           (old-tries 0 (+ old-tries 1))
           (valid (check-ast-cut (genome software) old)
@@ -5698,22 +5722,23 @@ indicates the number of groupings to drop from the stack."
   (let ((target (targets mutation)))
     ;; since we are doing a swap we don't need a deep copy of either mutation
     (setf (genome software)
-          (with
-           (with (genome software)
+          (swap
+           (genome software)
                 (first target)
-                (tree-copy (second target)))
-           (second target)
-           (tree-copy (first target))))
+                (second target)))
     software))
 
 (defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-move))
   (let ((target (targets mutation)))
     ;; since we are doing a swap we don't need a deep copy of either mutation
     (setf (genome software)
-          (less
-           (with (genome software)
-                (first target)
-                (tree-copy (second target)))
+          ;; first, remove the ast from its current location, then add it back
+          ;; in at new location
+          (with
+           (less
+            (genome software)
+            (second target))
+           (first target)
            (second target)))
     software))
 
