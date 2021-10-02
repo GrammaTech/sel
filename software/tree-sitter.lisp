@@ -5601,13 +5601,33 @@ indicates the number of groupings to drop from the stack."
 
 (defparameter *evolution-asts* nil "Collect list of applicable asts")
 
-(defun evolution-candidate-asts (software)
+(defun evolution-candidate-asts (software
+                                 &key (filter
+                                   (lambda (x) (declare (ignore x)) t)))
   "Returns list of asts in software genome which are valid mutation candidates."
   (let ((*evolution-asts* '()))
     (mapc (lambda (a)
-              (if (evolution-candidate-ast-p a)
+            (if (and (evolution-candidate-ast-p a)
+                     (funcall filter a))
                   (push a *evolution-asts*))) (genome software))
     (nreverse *evolution-asts*)))
+
+(defmethod mutation-targets ((software tree-sitter)
+                             &key (filter nil) (stmt-pool nil))
+  "Return a list of target ASTs from STMT-POOL for mutation.
+
+* OBJ software object to query for mutation targets
+* FILTER filter AST from consideration when this function returns nil
+* STMT-POOL (non-empty) list of ASTs, or a method on OBJ returning a
+   non-emptylist of ASTs, or NIL (to indicate default pool)"
+  (cond ((consp stmt-pool)
+         (if filter (remove-if-not filter stmt-pool) stmt-pool))
+        ((null stmt-pool)
+         (apply 'evolution-candidate-asts
+                software (if filter `(:filter ,filter))))
+        (t (if filter
+               (remove-if-not filter (funcall stmt-pool software))
+               (funcall stmt-pool software)))))
 
 (defun pick-2-replaceable (software)
   (let* ((asts (evolution-candidate-asts software)))
