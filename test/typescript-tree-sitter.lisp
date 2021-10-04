@@ -26,3 +26,9 @@
 (deftest test-tsx-can-parse ()
   (is (typep (genome (from-string 'typescript-tsx "1+1"))
              'ast)))
+
+(deftest test-typescript-blank-regression ()
+  "Test that we can parse TypeScript rules that contain choices where
+BLANK precedes the other branches."
+  (is (typep (genome (from-string 'typescript-typescript "return 1;"))
+             'ast)))

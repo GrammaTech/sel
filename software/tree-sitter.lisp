@@ -5387,11 +5387,19 @@ the number of immediate tokens encountered."
                      (values (cdr tree) t)))))
            (handle-blank (tree) (values tree t))
            (handle-choice (rule tree)
-             (iter
-               (for branch in (aget :members rule))
-               (for (values result matched?) = (rule-handler branch tree))
-               (when matched?
-                 (leave (values result t)))))
+             (mvlet* ((branches (aget :members rule))
+                      (blank not-blank
+                       (partition (lambda (rule)
+                                    (equal "BLANK" (aget :type rule)))
+                                  branches))
+                      ;; Always try rules other than blanks first.
+                      (branches
+                       (append not-blank blank)))
+               (iter
+                (for branch in branches)
+                (for (values result matched?) = (rule-handler branch tree))
+                (when matched?
+                  (leave (values result t))))))
            (handle-repeat (rule tree)
              ;; NOTE: since this doesn't back track it won't work on certain
              ;;       rules. Currently, I'm not aware of any rules that
