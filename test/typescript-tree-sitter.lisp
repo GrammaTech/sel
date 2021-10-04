@@ -18,7 +18,7 @@
   (typescript-tree-sitter-available-p))
 
 
-;;; Tests
+;;; Parsing tests
 (deftest test-typescript-can-parse ()
   (is (typep (genome (from-string 'typescript-typescript "1+1"))
              'ast)))
