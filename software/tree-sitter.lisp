@@ -1674,7 +1674,13 @@ stored on the AST or external rules.")
                (handler-case
                    (progn
                      (when ,register-language
-                       (register-language ,language ,lib-name))
+                       (register-language
+                        ,language ,lib-name
+                        ,@(string-case lib-name
+                            ("tree-sitter-typescript-typescript"
+                             '(:fn-name "tree_sitter_typescript"))
+                            ("tree-sitter-typescript-tsx"
+                             '(:fn-name "tree_sitter_tsx")))))
                      (setf (gethash ,ast-superclass *superclass->language*) ,language))
                  ;; Try again with an augmented library search path.
                  (load-foreign-library-error ()
