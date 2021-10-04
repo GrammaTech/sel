@@ -9,7 +9,7 @@ RUN apt-get -y --fix-missing update \
     clang clang-format clang-tidy bear astyle \
     sbcl emacs-nox elpa-paredit slime jq \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev \
-    locales
+    locales ca-certificates
 ENV LC_ALL=C.UTF-8 LANG=C.UTF-8
 RUN update-alternatives --install /usr/bin/pytest pytest /usr/bin/pytest-3 1
 # Install NPM
