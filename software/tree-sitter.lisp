@@ -1079,10 +1079,12 @@ for the language.")
        (:catch-ast python-except-clause))
       (:typescript-tsx
        (:ecma-comment typescript-tsx-comment)
-       (:ecma-error typescript-tsx-error))
+       (:ecma-error typescript-tsx-error)
+       (:return-ast typescript-tsx-return-statement))
       (:typescript-typescript
        (:ecma-comment typescript-typescript-comment)
-       (:ecma-error typescript-typescript-error)))
+       (:ecma-error typescript-typescript-error)
+       (:return-ast typescript-typescript-return-statement)))
     "Specifies which classes should inherit from which mixins.
 An alist from languages to alists of mixins and tree-sitter AST
 classes that should inherit from them.
