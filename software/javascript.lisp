@@ -20,21 +20,6 @@
 
 (defmethod transform-parse-tree
     ((language (eql ':javascript))
-     (class (eql 'javascript-lexical-declaration))
-     parse-tree &key)
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree)
-       (cond
-         ((member (car child-tree) '(:let :const))
-          (cons (list :declaration-kind (car child-tree)) (cdr child-tree)))
-         (t child-tree)))
-     (lastcar parse-tree)))))
-
-(defmethod transform-parse-tree
-    ((language (eql ':javascript))
      (class (eql 'javascript-function-declaration))
      parse-tree &key)
   (append
@@ -45,23 +30,6 @@
        (cond
          ((equal (car child-tree) :async)
           (cons (list :async :async) (cdr child-tree)))
-         (t child-tree)))
-     (lastcar parse-tree)))))
-
-(defmethod transform-parse-tree
-    ((language (eql ':javascript))
-     (class (eql 'javascript-for-in-statement))
-     parse-tree &key)
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree &aux (child-car (car child-tree)))
-       (cond
-         ((member child-car '(:var :let :const))
-          (cons (list :declaration-type child-car) (cdr child-tree)))
-         ((member child-car '(:in :of))
-          (cons (list :iteration-type child-car) (cdr child-tree)))
          (t child-tree)))
      (lastcar parse-tree)))))
 

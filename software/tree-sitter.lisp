@@ -680,9 +680,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (python-for-statement (:async))
        (python-with-statement (:async)))
       (:javascript
-       (javascript-lexical-declaration (:declaration-kind))
        (javascript-function-declaration (:async))
-       (javascript-for-in-statement (:declaration-type) (:iteration-type))
        (javascript-export-statement (:default))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
@@ -1089,33 +1087,7 @@ definitions.")
          (:seq (:slot python-internal-asts-0))))
        (python-argument-list
         (python-empty-argument-list
-         (:seq (:slot python-internal-asts-1)))))
-      (:javascript
-       ;; TODO: these will be wrong.
-       (javascript-for-in-statement
-        (javascript-for-in-statement-
-         '(:seq
-           (:field javascript-left javascript-member-expression
-            javascript-subscript-expression javascript-identifier
-            javascript-identifier javascript-object-pattern
-            javascript-array-pattern
-            javascript-parenthesized-expression)
-           (:field javascript-iteration-type javascript-in
-            javascript-of)
-           (:field javascript-right javascript-expression
-            javascript-sequence-expression)
-           (:field javascript-body javascript-statement)))
-        (javascript-for-of-statement
-         '(:seq
-           (:field javascript-declaration-type javascript-var
-            javascript-let javascript-const)
-           (:field javascript-left javascript-identifier
-            javascript-object-pattern javascript-array-pattern)
-           (:field javascript-iteration-type javascript-in
-            javascript-of)
-           (:field javascript-right javascript-expression
-            javascript-sequence-expression)
-           (:field javascript-body javascript-statement)))))))
+         (:seq (:slot python-internal-asts-1)))))))
 
   (defparameter *tree-sitter-json-rule-substitutions*
     '((:c
@@ -1441,44 +1413,6 @@ definitions.")
        ;; TODO: add a substitution for javascript-array.
        ;;       This will add a javascript-blank-ast between any two
        ;;       consecutive commas via a parse tree transformation.
-       (:-FOR-HEADER (:TYPE . "SEQ")
-        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "FIELD")
-            (:NAME . "left")
-            (:CONTENT
-             (:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "SYMBOL") (:NAME . "_lhs_expression"))
-              ((:TYPE . "SYMBOL") (:NAME . "parenthesized_expression")))))
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "FIELD")
-              (:NAME . "declaration_type")
-              (:CONTENT
-               (:TYPE . "CHOICE")
-               (:MEMBERS
-                ((:TYPE . "STRING") (:VALUE . "var"))
-                ((:TYPE . "STRING") (:VALUE . "let"))
-                ((:TYPE . "STRING") (:VALUE . "const")))))
-             ((:TYPE . "FIELD")
-              (:NAME . "left")
-              (:CONTENT
-               (:TYPE . "CHOICE")
-               (:MEMBERS
-                ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-                ((:TYPE . "SYMBOL") (:NAME . "_destructuring_pattern")))))))))
-         ((:TYPE . "FIELD")
-          (:NAME . "iteration_type")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "STRING") (:VALUE . "in"))
-            ((:TYPE . "STRING") (:VALUE . "of")))))
-          ((:TYPE . "FIELD") (:NAME . "right")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expressions")))
-          ((:TYPE . "STRING") (:VALUE . ")"))))
        (:FUNCTION-DECLARATION
         (:TYPE . "PREC_RIGHT") (:VALUE . "declaration")
         (:CONTENT
@@ -1501,25 +1435,6 @@ definitions.")
           ((:TYPE . "CHOICE")
            (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))
                      ((:TYPE . "BLANK")))))))
-       (:LEXICAL-DECLARATION
-        (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "FIELD") (:NAME . "declaration_kind")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "STRING") (:VALUE . "let"))
-            ((:TYPE . "STRING") (:VALUE . "const")))))
-         ((:TYPE . "SEQ")
-          (:MEMBERS
-           ((:TYPE . "SYMBOL") (:NAME . "variable_declarator"))
-           ((:TYPE . "REPEAT")
-            (:CONTENT
-             (:TYPE . "SEQ")
-             (:MEMBERS
-              ((:TYPE . "STRING") (:VALUE . ","))
-              ((:TYPE . "SYMBOL") (:NAME . "variable_declarator")))))))
-         ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
          ((:TYPE . "STRING") (:VALUE . ";"))
