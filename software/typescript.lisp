@@ -26,3 +26,10 @@
 
 (defmethod from-string ((software typescript) string)
   (from-string (change-class software 'typescript-typescript) string))
+
+#+:TREE-SITTER-TYPESCRIPT/TYPESCRIPT
+(progn
+
+
+
+)
