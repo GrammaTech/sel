@@ -1842,6 +1842,9 @@ The name string is obtained by by DEFINITION-NAME"))
 
 Superclass of every generated LANGUAGE-comment class."))
 
+  (defclass ecma-comment (comment-ast) ()
+    (:documentation "Mix-in for comments in dialects of ECMAScript."))
+
   (defclass root-ast (ast) ()
     (:documentation "Mix-in for AST classes which are roots."))
 
