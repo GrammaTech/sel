@@ -672,8 +672,6 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-function-definition
         (:pre-specifiers (:multiple . t))
         (:post-specifiers (:multiple . t)))
-       (cpp-field-expression (:operator))
-       (cpp-assignment-expression (:operator))
        (cpp-type-descriptor
         (:pre-type-qualifiers (:multiple . t))
         (:post-type-qualifiers (:multiple . t))))
@@ -1147,30 +1145,6 @@ definitions.")
              ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))))
        ;; NOTE: remove this and cpp's substitution if this is patched
        ;;       upstream.
-       (:PARAMETER-LIST (:TYPE . "SEQ")
-        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS
-               ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
-               ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration"))))
-             ((:TYPE . "REPEAT")
-              (:CONTENT
-               (:TYPE . "SEQ")
-               (:MEMBERS
-                ((:TYPE . "STRING") (:VALUE . ","))
-                ((:TYPE . "CHOICE")
-                 (:MEMBERS
-                  ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
-                  ((:TYPE . "SYMBOL")
-                   (:NAME . "variadic_declaration")))))))))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "STRING") (:VALUE . ")"))))
-       ;; NOTE: remove this and cpp's substitution if this is patched
-       ;;       upstream.
        (:PREPROC-PARAMS (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "IMMEDIATE_TOKEN")
@@ -1311,33 +1285,6 @@ definitions.")
              ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))))
        ;; NOTE: remove this and cpp's substitution if this is patched
        ;;       upstream.
-       (:PARAMETER-LIST (:TYPE . "SEQ")
-        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS
-               ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
-               ((:TYPE . "SYMBOL") (:NAME . "optional_parameter_declaration"))
-               ((:TYPE . "SYMBOL") (:NAME . "variadic_parameter_declaration"))
-               ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration"))))
-             ((:TYPE . "REPEAT")
-              (:CONTENT
-               (:TYPE . "SEQ")
-               (:MEMBERS
-                ((:TYPE . "STRING") (:VALUE . ","))
-                ((:TYPE . "CHOICE")
-                 (:MEMBERS
-                  ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
-                  ((:TYPE . "SYMBOL") (:NAME . "optional_parameter_declaration"))
-                  ((:TYPE . "SYMBOL") (:NAME . "variadic_parameter_declaration"))
-                  ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration")))))))))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "STRING") (:VALUE . ")"))))
-       ;; NOTE: remove this and cpp's substitution if this is patched
-       ;;       upstream.
        (:PREPROC-PARAMS (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "IMMEDIATE_TOKEN")
@@ -1362,78 +1309,6 @@ definitions.")
                    (:NAME . "variadic_declaration")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")"))))
-       ;; TODO: when the docker image is updated,
-       ;;       remove this and c's substitution, add slot, and parse tree
-       ;;       transform as it has been patched upstream.
-
-       (:FIELD-EXPRESSION (:TYPE . "CHOICE")
-        (:MEMBERS
-         ((:TYPE . "SEQ")
-          (:MEMBERS
-           ((:TYPE . "PREC")
-            (:VALUE . 15)
-            (:CONTENT
-             (:TYPE . "SEQ")
-             (:MEMBERS
-              ((:TYPE . "FIELD")
-               (:NAME . "argument")
-               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
-              ((:TYPE . "FIELD")
-               (:NAME . "operator")
-               (:CONTENT
-                (:TYPE . "CHOICE")
-                (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
-                          ((:TYPE . "STRING") (:VALUE . "->"))))))))
-           ((:TYPE . "FIELD")
-            (:NAME . "field")
-            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_field_identifier")))))
-         ((:TYPE . "SEQ")
-          (:MEMBERS
-           ((:TYPE . "PREC")
-            (:VALUE . 15)
-            (:CONTENT
-             (:TYPE . "SEQ")
-             (:MEMBERS
-              ((:TYPE . "FIELD")
-               (:NAME . "argument")
-               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
-              ((:TYPE . "FIELD")
-               (:NAME . "operator")
-               (:CONTENT
-                (:TYPE . "CHOICE")
-                (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
-                          ((:TYPE . "STRING") (:VALUE . "->"))))))))
-           ((:TYPE . "FIELD")
-            (:NAME . "field")
-            (:CONTENT
-             (:TYPE . "CHOICE")
-             (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "destructor_name"))
-                       ((:TYPE . "SYMBOL") (:NAME . "template_method")))))))))
-       ;; TODO: when the docker image is updated,
-       ;;       remove this and c's substitution, add slot, and parse tree
-       ;;       transform as it has been patched upstream.
-       (:ASSIGNMENT-EXPRESSION (:TYPE . "PREC_RIGHT") (:VALUE . -1)
-        (:CONTENT (:TYPE . "SEQ")
-         (:MEMBERS
-          ((:TYPE . "FIELD") (:NAME . "left")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_assignment_left_expression")))
-          ((:TYPE . "FIELD") (:NAME . "operator")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "STRING") (:VALUE . "="))
-             ((:TYPE . "STRING") (:VALUE . "*="))
-             ((:TYPE . "STRING") (:VALUE . "/="))
-             ((:TYPE . "STRING") (:VALUE . "%="))
-             ((:TYPE . "STRING") (:VALUE . "+="))
-             ((:TYPE . "STRING") (:VALUE . "-="))
-             ((:TYPE . "STRING") (:VALUE . "<<="))
-             ((:TYPE . "STRING") (:VALUE . ">>="))
-             ((:TYPE . "STRING") (:VALUE . "&="))
-             ((:TYPE . "STRING") (:VALUE . "^="))
-             ((:TYPE . "STRING") (:VALUE . "|=")))))
-          ((:TYPE . "FIELD") (:NAME . "right")
-           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression"))))))
        (:TYPE-DESCRIPTOR
         (:TYPE . "SEQ")
         (:MEMBERS

@@ -58,11 +58,6 @@
   (add-operator-to-binary-operation parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-parameter-list)) parse-tree &key)
-  "Transform PARSE-TREE such that the operator is stored in the :operator field."
-  (transform-c-style-variadic-parameter parse-tree))
-
-(defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-preproc-params)) parse-tree &key)
   "Transform PARSE-TREE such that the operator is stored in the :operator field."
   (transform-c-style-variadic-parameter parse-tree))

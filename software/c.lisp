@@ -55,10 +55,6 @@ field."
      (lastcar parse-tree)))))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-parameter-list)) parse-tree &key)
-  (transform-c-style-variadic-parameter parse-tree))
-
-(defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-preproc-params)) parse-tree &key)
   (transform-c-style-variadic-parameter parse-tree))
 
