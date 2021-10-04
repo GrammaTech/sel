@@ -109,6 +109,7 @@ the trailing characters of the symbol string SYMNAME."
                           ("`" . "back-quote")
                           ("u'" . "unicode-single-quote")
                           ("u\"" . "unicode-double-quote")
+                          ("\"\"" . "empty-string")
                           ;; Python terminals
                           (":=" . "walrus")
                           ("<>" . "not-equal-flufl")
@@ -118,6 +119,8 @@ the trailing characters of the symbol string SYMNAME."
                           ("@=" . "matrix-multiply-assign")
                           ("**=" . "pow-assign")
                           ("//=" . "floor-divide-assign")
+                          ("{{" . "double-open-brace")
+                          ("}}" . "double-close-brace")
                           ;; Javascript terminals
                           ("=>" . "arrow")
                           ("?." . "chaining")
@@ -133,6 +136,8 @@ the trailing characters of the symbol string SYMNAME."
                           ;; C/C++ terminals
                           ("[[" . "open-attribute")
                           ("]]" . "close-attribute")
+                          ("[]" . "empty-capture-clause")
+                          ("()" . "call-operator")
                           ("::" . "scope-resolution")
                           ("l'" . "wchar-single-quote")
                           ("l\"" . "wchar-double-quote")
@@ -141,6 +146,8 @@ the trailing characters of the symbol string SYMNAME."
                           ("u8'" . "unsigned-8bit-terminal-single-quote")
                           ("u8\"" . "unsigned-8bit-terminal-double-quote")
                           ("--unaligned" . "underscore-unaligned")
+                          (".*" . "pointer-to-member-dot")
+                          ("->*" . "pointer-to-member-arrow")
                           ("#define" . "macro-define")
                           ("#include" . "macro-include")
                           ("#ifdef" . "macro-if-defined")
