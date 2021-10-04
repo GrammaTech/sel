@@ -416,10 +416,16 @@
   (:import-from :uiop)
   (:import-from :software-evolution-library/software/project
                 :find-include-files :include-paths :include-paths-mixin)
-  (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
+  (:import-from :cffi :translate-camelcase-name :load-foreign-library-error :foreign-funcall)
   (:import-from :functional-trees :map-children)
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:import-from :cl-tree-sitter :register-language)
+        (values))
+  #.(if (asdf:find-system :cl-tree-sitter nil)
+        '(:import-from :cl-tree-sitter/high-level :*language-registry*)
+        (values))
+  #.(if (asdf:find-system :cl-tree-sitter nil)
+        '(:import-from :cl-tree-sitter/low-level :ts-language)
         (values))
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:shadowing-import-from :cl-tree-sitter :parse-string)
@@ -1676,12 +1682,21 @@ stored on the AST or external rules.")
                      (when ,register-language
                        (register-language
                         ,language ,lib-name
-                        ,@(string-case lib-name
-                            ("tree-sitter-typescript-typescript"
-                             '(:fn-name "tree_sitter_typescript"))
-                            ("tree-sitter-typescript-tsx"
-                             '(:fn-name "tree_sitter_tsx")))))
-                     (setf (gethash ,ast-superclass *superclass->language*) ,language))
+                        #+(or) ,@(string-case lib-name
+                                   ("tree-sitter-typescript-typescript"
+                                    '(:fn-name "tree_sitter_typescript"))
+                                   ("tree-sitter-typescript-tsx"
+                                    '(:fn-name "tree_sitter_tsx")))))
+                     (setf (gethash ,ast-superclass *superclass->language*) ,language)
+                     ,@(when-let ((override
+                                   (string-case lib-name
+                                     ("tree-sitter-typescript-typescript"
+                                      "tree_sitter_typescript")
+                                     ("tree-sitter-typescript-tsx"
+                                      "tree_sitter_tsx"))))
+                         `((setf (gethash ',language *language-registry*)
+                                 (lambda ()
+                                   (foreign-funcall ,override ts-language))))))
                  ;; Try again with an augmented library search path.
                  (load-foreign-library-error ()
                    (register-language ,language ,(concatenate 'string "/usr/lib/" lib-name)))))
