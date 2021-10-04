@@ -155,3 +155,20 @@ class MyF
   constexpr MyF()
       : MyF::MapF(X::Y{}) {}};"))
     (is (equal source (source-text (convert 'cpp-ast source))))))
+
+(deftest cpp-labeled-statement-rule-substitution ()
+  (let ((labeled-statement (convert 'cpp-ast "label: break;" :deepest t)))
+    (is (equal "label" (source-text (cpp-label labeled-statement))))
+    (is (equal "break;" (source-text (cpp-statement labeled-statement))))))
+
+(deftest cpp-for-statement-rule-substitution ()
+  (let* ((source "void foo() { for (int i = 0; i<5; i++) { i=i+2; } }")
+         (root (convert 'cpp-ast source))
+         (for-statement (stmt-with-text root "for" :at-start t)))
+    (is (typep (body for-statement) 'compound-ast))))
+
+(deftest cpp-case-statement-rule-substitution ()
+  (let* ((source "void foo(int i) { switch (i) { case 1: i++; break; } }")
+         (root (convert 'cpp-ast source))
+         (case-statement (stmt-with-text root "case" :at-start t)))
+    (is (= 2 (length (cpp-statements case-statement))))))

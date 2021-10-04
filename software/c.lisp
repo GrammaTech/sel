@@ -78,6 +78,18 @@ field."
     ((language (eql ':c)) (class (eql 'c-type-descriptor)) parse-tree &key)
   (transform-c-type-qualifiers parse-tree))
 
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-case-statement)) parse-tree &key)
+  (transform-case-statement parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-labeled-statement)) parse-tree &key)
+  (transform-labeled-statement parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-for-statement)) parse-tree &key)
+  (transform-for-statement parse-tree))
+
 (defgeneric pointers (c-declarator)
   (:documentation "Return the number of pointers around C-DECLARATOR.")
   (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))
@@ -205,10 +217,9 @@ field."
 ;;; TODO: add this for C++.
 (defmethod statements-in-scope ((obj c) (scope c-for-statement) (ast c-ast))
   (iter
-    (iter:with body = (car (direct-children scope)))
     (for c in (remove nil (append (children scope)
-                                  (when (typep body 'c-compound-statement)
-                                    (children body)))))
+                                  (when (typep (body scope) 'c-compound-statement)
+                                    (children (body scope))))))
     (while (path-later-p obj ast c))
     (collect c)))
 

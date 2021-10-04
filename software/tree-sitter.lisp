@@ -684,7 +684,11 @@ searched to populate `*tree-sitter-language-files*'.")
        (c-sized-type-specifier (:modifiers (:multiple . t)))
        (c-type-descriptor
         (:pre-type-qualifiers (:multiple . t))
-        (:post-type-qualifiers (:multiple . t))))
+        (:post-type-qualifiers (:multiple . t)))
+       (c-case-statement
+        (:statements (:multiple . t)))
+       (c-labeled-statement (:statement))
+       (c-for-statement (:body)))
       (:cpp
        (cpp-parameter-declaration
         (:pre-specifiers (:multiple . t))
@@ -700,7 +704,11 @@ searched to populate `*tree-sitter-language-files*'.")
         (:post-specifiers (:multiple . t)))
        (cpp-type-descriptor
         (:pre-type-qualifiers (:multiple . t))
-        (:post-type-qualifiers (:multiple . t))))
+        (:post-type-qualifiers (:multiple . t)))
+       (cpp-case-statement
+        (:statements (:multiple . t)))
+       (cpp-labeled-statement (:statement))
+       (cpp-for-statement (:body)))
       (:python
        (python-function-definition (:async))
        (python-for-statement (:async))
@@ -727,6 +735,8 @@ for the language.")
         (c-body :reader body :initarg :body))
        (c-do-statement
         (c-body :reader body :initarg :body))
+       (c-for-statement
+        (c-body :reader body :initarg :body))
        (c-if-statement
         (c-consequence :initarg :consequence :reader consequence)
         (c-alternative :initarg :alternative :reader alternative)))
@@ -743,6 +753,8 @@ for the language.")
        (cpp-while-statement
         (cpp-body :reader body :initarg :body))
        (cpp-do-statement
+        (cpp-body :reader body :initarg :body))
+       (cpp-for-statement
         (cpp-body :reader body :initarg :body))
        (cpp-if-statement
         (cpp-consequence :initarg :consequence :reader consequence)
@@ -1257,7 +1269,98 @@ definitions.")
            (:TYPE . "CHOICE")
            (:MEMBERS
             ((:TYPE . "SYMBOL") (:NAME . "_abstract_declarator"))
-            ((:TYPE . "BLANK"))))))))
+            ((:TYPE . "BLANK")))))))
+       (:CASE-STATEMENT
+        (:TYPE . "PREC_RIGHT")
+        (:VALUE . 0)
+        (:CONTENT
+         (:TYPE . "SEQ")
+         (:MEMBERS
+          ((:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "STRING") (:VALUE . "case"))
+              ((:TYPE . "FIELD")
+               (:NAME . "value")
+               (:CONTENT
+                (:TYPE . "SYMBOL")
+                (:NAME . "_expression")))))
+            ((:TYPE . "STRING") (:VALUE . "default"))))
+          ((:TYPE . "STRING") (:VALUE . ":"))
+          ((:TYPE . "FIELD")
+           (:NAME . "STATEMENTS")
+           (:CONTENT
+            (:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "ALIAS")
+               (:CONTENT
+                (:TYPE . "SYMBOL")
+                (:NAME . "attributed_non_case_statement"))
+               (:NAMED . T)
+               (:VALUE . "attributed_statement"))
+              ((:TYPE . "SYMBOL") (:NAME . "_non_case_statement"))
+              ((:TYPE . "SYMBOL") (:NAME . "declaration"))
+              ((:TYPE . "SYMBOL") (:NAME . "type_definition")))))))))
+       (:LABELED-STATEMENT
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD")
+          (:NAME . "label")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement_identifier")))
+         ((:TYPE . "STRING") (:VALUE . ":"))
+         ((:TYPE . "FIELD")
+          (:NAME . "statement")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))))
+       (:FOR-STATEMENT
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "STRING") (:VALUE . "for"))
+         ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "FIELD")
+            (:NAME . "initializer")
+            (:CONTENT
+             (:TYPE . "SYMBOL")
+             (:NAME . "declaration")))
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD")
+              (:NAME . "initializer")
+              (:CONTENT
+               (:TYPE . "CHOICE")
+               (:MEMBERS
+                ((:TYPE . "CHOICE")
+                 (:MEMBERS
+                  ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+                  ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
+                ((:TYPE . "BLANK")))))
+             ((:TYPE . "STRING") (:VALUE . ";"))))))
+         ((:TYPE . "FIELD")
+          (:NAME . "condition")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+            ((:TYPE . "BLANK")))))
+         ((:TYPE . "STRING") (:VALUE . ";"))
+         ((:TYPE . "FIELD")
+          (:NAME . "update")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+              ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
+            ((:TYPE . "BLANK")))))
+         ((:TYPE . "STRING") (:VALUE . ")"))
+         ((:TYPE . "FIELD")
+          (:NAME . "body")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
       (:cpp
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
         (:MEMBERS
@@ -1344,7 +1447,98 @@ definitions.")
             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
-            ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))))
+            ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier")))))))
+       (:CASE-STATEMENT
+        (:TYPE . "PREC_RIGHT")
+        (:VALUE . 0)
+        (:CONTENT
+         (:TYPE . "SEQ")
+         (:MEMBERS
+          ((:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "STRING") (:VALUE . "case"))
+              ((:TYPE . "FIELD")
+               (:NAME . "value")
+               (:CONTENT
+                (:TYPE . "SYMBOL")
+                (:NAME . "_expression")))))
+            ((:TYPE . "STRING") (:VALUE . "default"))))
+          ((:TYPE . "STRING") (:VALUE . ":"))
+          ((:TYPE . "FIELD")
+           (:NAME . "STATEMENTS")
+           (:CONTENT
+            (:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "ALIAS")
+               (:CONTENT
+                (:TYPE . "SYMBOL")
+                (:NAME . "attributed_non_case_statement"))
+               (:NAMED . T)
+               (:VALUE . "attributed_statement"))
+              ((:TYPE . "SYMBOL") (:NAME . "_non_case_statement"))
+              ((:TYPE . "SYMBOL") (:NAME . "declaration"))
+              ((:TYPE . "SYMBOL") (:NAME . "type_definition")))))))))
+       (:LABELED-STATEMENT
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD")
+          (:NAME . "label")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement_identifier")))
+         ((:TYPE . "STRING") (:VALUE . ":"))
+         ((:TYPE . "FIELD")
+          (:NAME . "statement")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))))
+       (:FOR-STATEMENT
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "STRING") (:VALUE . "for"))
+         ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "FIELD")
+            (:NAME . "initializer")
+            (:CONTENT
+             (:TYPE . "SYMBOL")
+             (:NAME . "declaration")))
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD")
+              (:NAME . "initializer")
+              (:CONTENT
+               (:TYPE . "CHOICE")
+               (:MEMBERS
+                ((:TYPE . "CHOICE")
+                 (:MEMBERS
+                  ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+                  ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
+                ((:TYPE . "BLANK")))))
+             ((:TYPE . "STRING") (:VALUE . ";"))))))
+         ((:TYPE . "FIELD")
+          (:NAME . "condition")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+            ((:TYPE . "BLANK")))))
+         ((:TYPE . "STRING") (:VALUE . ";"))
+         ((:TYPE . "FIELD")
+          (:NAME . "update")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+              ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
+            ((:TYPE . "BLANK")))))
+         ((:TYPE . "STRING") (:VALUE . ")"))
+         ((:TYPE . "FIELD")
+          (:NAME . "body")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.

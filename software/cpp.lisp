@@ -84,6 +84,18 @@
     ((language (eql ':cpp)) (class (eql 'cpp-type-descriptor)) parse-tree &key)
   (transform-c-type-qualifiers parse-tree))
 
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-case-statement)) parse-tree &key)
+  (transform-case-statement parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-labeled-statement)) parse-tree &key)
+  (transform-labeled-statement parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-for-statement)) parse-tree &key)
+  (transform-for-statement parse-tree))
+
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))

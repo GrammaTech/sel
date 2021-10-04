@@ -438,6 +438,7 @@ the current state of the AST."
 
 int f () {}"))
     (is (equal source (source-text (convert 'c-ast source))))))
+
 
 ;;;; SCOPES tests
 
@@ -796,3 +797,22 @@ when its surrounding text is removed."
           #P"loops.c"
           #P"preproc.c"
           #P"string.c")))
+
+
+;;;; Rule Substitution tests
+(deftest c-labeled-statement-rule-substitution ()
+  (let ((labeled-statement (convert 'c-ast "label: break;" :deepest t)))
+    (is (equal "label" (source-text (c-label labeled-statement))))
+    (is (equal "break;" (source-text (c-statement labeled-statement))))))
+
+(deftest c-for-statement-rule-substitution ()
+  (let* ((source "void foo() { for (int i = 0; i<5; i++) { i=i+2; } }")
+         (root (convert 'c-ast source))
+         (for-statement (stmt-with-text root "for" :at-start t)))
+    (is (typep (body for-statement) 'compound-ast))))
+
+(deftest c-case-statement-rule-substitution ()
+  (let* ((source "void foo(int i) { switch (i) { case 1: i++; break; } }")
+         (root (convert 'c-ast source))
+         (case-statement (stmt-with-text root "case" :at-start t)))
+    (is (= 2 (length (c-statements case-statement))))))

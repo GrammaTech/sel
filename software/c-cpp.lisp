@@ -107,11 +107,6 @@ pointer declarations which are nested on themselves."
 (defmethod field-name ((ast c/cpp-enumerator))
   (c/cpp-name ast))
 
-;;; TODO: find a better way to make this accessor. Can't use extra
-;;;       slot options since the slot is defined in a superclass.
-(defmethod body ((ast c/cpp-for-statement))
-  (car (direct-children ast)))
-
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
   "Transform PARSE-TREE such that any specifiers are placed in relevants slots."
@@ -150,6 +145,45 @@ pointer declarations which are nested on themselves."
                 (cdr child-tree)))
          (t child-tree)))
      (lastcar parse-tree)))))
+
+(defun transform-case-statement (parse-tree)
+  "Transform the case statement's PARSE-TREE to allow the statements
+following the case to be stored in the 'statements' AST slot."
+  (destructuring-bind (node-type range child-parse-trees) parse-tree
+    (list node-type range
+          (mapcar
+           (lambda (child-parse-tree)
+             (let ((node-type (car child-parse-tree)))
+               (cond ((listp node-type) child-parse-tree)
+                     ((member node-type
+                              '(:case :default :\: :comment :text-fragment))
+                      child-parse-tree)
+                     (t (label-parse-tree :statements child-parse-tree)))))
+           child-parse-trees))))
+
+(defun transform-labeled-statement (parse-tree)
+  "Transform the labeled statement's PARSE-TREE to allow the last child to be
+stored in the 'statement' AST slot."
+  (label-last-child :statement parse-tree))
+
+(defun transform-for-statement (parse-tree)
+  "Transform the for statement's PARSE-TREE to allow the last child to be
+stored in the 'body' AST slot."
+  (label-last-child :body parse-tree))
+
+(defun label-last-child (label parse-tree)
+  "Transform PARSE-TREE such that the last child has the given label, allowing
+it to be placed in the corresponding AST slot."
+  (destructuring-bind (node-type range children) parse-tree
+    (list node-type range
+          (append (butlast children)
+                  (list (label-parse-tree label (lastcar children)))))))
+
+(defun label-parse-tree (label parse-tree)
+  "Transform PARSE-TREE to add the given label to the tree's node type, allowing
+it to be placed in the corresponding AST slot."
+  (destructuring-bind (node-type range children) parse-tree
+    `((,label ,node-type) ,range ,children)))
 
 (defgeneric child-variable-use-p (obj child parent &key &allow-other-keys)
   (:documentation "Return T if CHILD occurs in OBJ as a variable. This is
