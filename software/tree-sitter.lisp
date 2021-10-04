@@ -4182,11 +4182,12 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                        class-definition)))
              (create-external-class (name)
                "Create a class for an external rule."
-               `(define-node-class ,(make-class-name name) (,ast-superclass) ()))
+               (when name
+                 `(define-node-class ,(make-class-name name) (,ast-superclass) ())))
              (create-external-classes (grammar)
                "Create classes for the external rules for the grammar file."
-               (mapcar (op (create-external-class (aget :name _)))
-                       (aget :externals grammar))))
+               (filter-map (op (create-external-class (aget :name _)))
+                           (aget :externals grammar))))
       (initialize-subtype->supertypes)
       (initialize-class->extra-slot-options)
       (initialize-class->extra-slots)
