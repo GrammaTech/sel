@@ -576,7 +576,10 @@
   (unless (member :sel/structured-text *features*)
     (push :sel/structured-text *features*))
 
-  (define-condition rule-matching-error (error)
+  (define-condition matching-error (error)
+    ())
+
+  (define-condition rule-matching-error (matching-error)
     ((rule :initarg :rule-matching-error-rule :initform nil
            :reader rule-matching-error-rule)
      (ast :initarg :rule-matching-error-ast :initform nil
@@ -587,6 +590,22 @@
        (format stream "Unable to match~%~a~%on AST of type ~%~a"
                (rule-matching-error-rule condition)
                (type-of (rule-matching-error-ast condition))))))
+
+  (define-condition parse-tree-matching-error (matching-error)
+    ((superclass :initarg :superclass :initform nil
+                 :reader parse-tree-matching-error-superclass)
+     (parse-tree :initarg :parse-tree :initform nil
+                 :reader parse-tree-matching-error-parse-tree)
+     (subclasses :initarg :subclasses :initform nil
+                 :reader parse-tree-matching-error-subclasses))
+    (:documentation "Error when a parse tree can't be matched.")
+    (:report
+     (lambda (condition stream)
+       (with-slots (superclass parse-tree subclasses) condition
+         (let ((*print-circle* nil))
+           (format stream
+                   "Unable to match tree to any subclass of ~s:~%~s~2%Candidates: ~s"
+                   superclass parse-tree subclasses))))))
 
   (defvar *superclass->language* (make-hash-table)
     "Maps an AST superclass to its tree-sitter language. When
@@ -3712,7 +3731,7 @@ subclass based on the order of the children were read in."
                `(defmethod get-choice-expansion-subclass
                     ((class (eql ',superclass)) parse-tree
                      &aux (child-types ',child-types))
-                  (econd
+                  (cond
                    ,@(mapcar
                       (lambda (json-rule subclass-pair)
                         `((match-parsed-children
@@ -3721,7 +3740,13 @@ subclass based on the order of the children were read in."
                            ',(caddr subclass-pair) child-types parse-tree)
                           ',(car subclass-pair)))
                       json-expansions
-                      subclass-pairs))))
+                      subclass-pairs)
+                   (t
+                    (error 'parse-tree-matching-error
+                           :superclass ',superclass
+                           :parse-tree parse-tree
+                           :child-types ',child-types
+                           :subclasses ',(mapcar #'car subclass-pairs))))))
              (generate-computed-text-methods (json-expansions subclass-pairs)
                "Generate the variable text methods for the rules in
                 JSON-EXPANSION."
