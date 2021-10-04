@@ -1,0 +1,28 @@
+;;;; typescript-tree-sitter.lisp --- Typescript tree-sitter representation.
+(defpackage :software-evolution-library/test/typescript-tree-sitter
+  (:nicknames :sel/test/typescript-tree-sitter :sel/test/ts-ts)
+  (:use
+    :gt/full
+    :software-evolution-library/test/util
+    :stefil+
+    :software-evolution-library
+    :software-evolution-library/software/parseable
+    :software-evolution-library/software/tree-sitter
+    :software-evolution-library/software/typescript
+    :software-evolution-library/components/file
+    :software-evolution-library/components/formatting)
+  (:export :test-typescript-tree-sitter))
+(in-package :software-evolution-library/test/typescript-tree-sitter)
+(in-readtable :curry-compose-reader-macros)
+(defsuite test-typescript-tree-sitter "Typescript tree-sitter representation."
+  (typescript-tree-sitter-available-p))
+
+
+;;; Tests
+(deftest test-typescript-can-parse ()
+  (is (typep (genome (from-string 'typescript-typescript "1+1"))
+             'ast)))
+
+(deftest test-tsx-can-parse ()
+  (is (typep (genome (from-string 'typescript-tsx "1+1"))
+             'ast)))

@@ -29,6 +29,7 @@
            :java-tree-sitter-available-p
            :python-tree-sitter-available-p
            :javascript-tree-sitter-available-p
+           :typescript-tree-sitter-available-p
            :json-tree-sitter-available-p
            :stmt-with-text
            :fully-every
@@ -206,6 +207,12 @@
 (defun javascript-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::javascript))
                 (error (e) (declare (ignorable e)) nil)))
+
+(defun typescript-tree-sitter-available-p ()
+  (handler-case (progn
+                  (make-instance 'sel/sw/tree-sitter::typescript-typescript)
+                  (make-instance 'sel/sw/tree-sitter::typescript-tsx))
+    (error (e) (declare (ignorable e)) nil)))
 
 (defun json-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::json))

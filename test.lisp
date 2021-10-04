@@ -41,6 +41,7 @@
         :software-evolution-library/test/java-project
         :software-evolution-library/test/javascript-project
         :software-evolution-library/test/javascript-tree-sitter
+        :software-evolution-library/test/typescript-tree-sitter
         :software-evolution-library/test/json
         :software-evolution-library/test/lisp
         :software-evolution-library/test/lisp-bindings
