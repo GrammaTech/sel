@@ -101,21 +101,10 @@ Examples of the old versus new API are shown below:
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
-module revisions associated with major and minor releases of
-the ASTs pypi package.  This aids in reproducibility/tracing
-of issues in older releases.
+module revisions associated with releases of the ASTs pypi package.
+This aids in reproducibility/tracing of issues in older releases.
 
-## v0.3.0
-
-| Repository             | Revision |
-|------------------------|----------|
-| tree-sitter            | 59cd1c39 |
-| tree-sitter-c          | 008008e3 |
-| tree-sitter-cpp        | c6121241 |
-| tree-sitter-javascript | 2c5b138e |
-| tree-sitter-python     | d6210cea |
-
-## v0.4.0
+## v0.0.0 -> v0.4.0
 
 | Repository             | Revision |
 |------------------------|----------|
@@ -124,3 +113,13 @@ of issues in older releases.
 | tree-sitter-cpp        | c6121241 |
 | tree-sitter-javascript | 2c5b138e |
 | tree-sitter-python     | d6210cea |
+
+## v0.4.1 -> latest
+
+| Repository             | Revision |
+|------------------------|----------|
+| tree-sitter            | 0288dd4a |
+| tree-sitter-c          | e348e8ec |
+| tree-sitter-cpp        | a7652fce |
+| tree-sitter-javascript | fdeb68ac |
+| tree-sitter-python     | 8600d7fa |
