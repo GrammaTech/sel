@@ -4422,9 +4422,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
 (eval-always
  (define-and-export-all-mixin-classes))
 
-(defun pruned-rule-p (ast)
-  "Return t iff the ast has a PRUNED-RULE slot."
-  (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast)))
+(defmethod pruned-rule ((ast t)) nil)
+(defmethod slot-usage ((ast t)) nil)
 
 (defgeneric parse-order (ast &key &allow-other-keys)
   (:documentation "Return a list of children intermixed with keywords
@@ -4443,10 +4442,8 @@ repeats.")
   "Given a tree-sitter ast, returns true iff the pruned rule is valid.
  This is useful when synthesizing new asts, at each step you can validate
  that the rule has not been broken."
-  (if-let ((rule (or pruned-rule
-                     (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast))))
-           (slots (and (slot-exists-p ast 'slot-usage)
-                       (slot-usage ast))))
+  (if-let ((rule (or pruned-rule (pruned-rule ast)))
+           (slots (slot-usage ast)))
     (handler-case
         (children-parser ast rule slots)
       (rule-matching-error () nil))))
@@ -5599,18 +5596,14 @@ indicates the number of groupings to drop from the stack."
   "Returns true iff the ast is one which we will select for mutations."
   (not (or (typep ast 'inner-whitespace) (typep ast 'comment-ast))))
 
-(defparameter *evolution-asts* nil "Collect list of applicable asts")
-
 (defun evolution-candidate-asts (software
                                  &key (filter
                                    (lambda (x) (declare (ignore x)) t)))
   "Returns list of asts in software genome which are valid mutation candidates."
-  (let ((*evolution-asts* '()))
-    (mapc (lambda (a)
-            (if (and (evolution-candidate-ast-p a)
-                     (funcall filter a))
-                  (push a *evolution-asts*))) (genome software))
-    (nreverse *evolution-asts*)))
+  (iter (for a in-tree (genome software))
+    (when (and (evolution-candidate-ast-p a)
+               (funcall filter a))
+      (collect a))))
 
 (defmethod mutation-targets ((software tree-sitter)
                              &key (filter nil) (stmt-pool nil))
@@ -5635,8 +5628,7 @@ indicates the number of groupings to drop from the stack."
           (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
           (new-tries 0)
-          (valid (check-ast-replacement (genome software) old new)
-                 (check-ast-replacement (genome software) old new)))
+          (valid #1=(check-ast-replacement (genome software) old new) #1#))
          ((or valid (> new-tries *max-targeter-new-tries*))
           (if valid (list old new)))
       (if (> old-tries *max-targeter-old-tries*)
@@ -5650,8 +5642,7 @@ indicates the number of groupings to drop from the stack."
           (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
           (new-tries 0)
-          (valid (check-ast-insertable (genome software) old new)
-                 (check-ast-insertable (genome software) old new)))
+          (valid #1=(check-ast-insertable (genome software) old new) #1#))
          ((or valid (> new-tries *max-targeter-new-tries*))
           (if valid (list old new)))
       (if (> old-tries *max-targeter-old-tries*)
@@ -5666,8 +5657,7 @@ indicates the number of groupings to drop from the stack."
           (ast2 (random-elt asts))
           (ast1-tries 0 (+ ast1-tries 1))
           (ast2-tries 0)
-          (valid (check-ast-swappable (genome software) ast1 ast2)
-                 (check-ast-swappable (genome software) ast1 ast2)))
+          (valid #1=(check-ast-swappable (genome software) ast1 ast2) #1#))
          ((or valid (> ast2-tries *max-targeter-new-tries*))
           (if valid (list ast1 ast2)))
       (if (> ast1-tries *max-targeter-old-tries*)
@@ -5686,8 +5676,7 @@ indicates the number of groupings to drop from the stack."
   (let* ((asts (evolution-candidate-asts software)))
     (do* ((old (random-elt asts) (random-elt asts))
           (old-tries 0 (+ old-tries 1))
-          (valid (check-ast-cut (genome software) old)
-                 (check-ast-cut (genome software) old)))
+          (valid #1=(check-ast-cut (genome software) old) #1#))
          ((or valid (> old-tries *max-targeter-old-tries*))
           (if valid (list old))))))
 
@@ -5722,6 +5711,8 @@ indicates the number of groupings to drop from the stack."
                            (mutation tree-sitter-replace))
   (let ((target (targets mutation)))
     ;; need deep copy (tree-copy) to get new serial numbers on new ast
+    ;; TODO: remove this tree-copy when functional-trees get copy-on-collision
+    ;; support added.
     (setf (genome software)
           (with (genome software)
                 (first target)
@@ -5732,6 +5723,8 @@ indicates the number of groupings to drop from the stack."
                            (mutation tree-sitter-insert))
   (let ((target (targets mutation)))
     ;; need deep copy (tree-copy) inserted ast to get new serial numbers
+    ;; TODO: remove this tree-copy when functional-trees get copy-on-collision
+    ;; support added.
     (setf (genome software)
           (insert (genome software)
                 (first target)
