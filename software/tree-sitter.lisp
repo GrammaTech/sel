@@ -656,7 +656,7 @@ searched to populate `*tree-sitter-language-files*'.")
     '((:c compilable normal-scope c/cpp)
       (:cpp compilable normal-scope c/cpp)
       (:javascript normal-scope ecma)
-      (:typescript-typescript typescript)
+      (:typescript-ts typescript)
       (:typescript-tsx typescript)))
 
   (defparameter *tree-sitter-software-direct-slots* '()
@@ -1075,10 +1075,10 @@ for the language.")
        (:ecma-comment typescript-tsx-comment)
        (:ecma-error typescript-tsx-error)
        (:return-ast typescript-tsx-return-statement))
-      (:typescript-typescript
-       (:ecma-comment typescript-typescript-comment)
-       (:ecma-error typescript-typescript-error)
-       (:return-ast typescript-typescript-return-statement)))
+      (:typescript-ts
+       (:ecma-comment typescript-ts-comment)
+       (:ecma-error typescript-ts-error)
+       (:return-ast typescript-ts-return-statement)))
     "Specifies which classes should inherit from which mixins.
 An alist from languages to alists of mixins and tree-sitter AST
 classes that should inherit from them.
@@ -1633,7 +1633,7 @@ the body of a parse tree transformation for each class that uses it.")
   (defparameter *tree-sitter-ast-extra-prefixes*
     '((:c c/cpp)
       (:cpp c/cpp)
-      (:typescript-typescript typescript ecma)
+      (:typescript-ts typescript ecma)
       (:typescript-tsx typescript ecma)
       (:javascript ecma))
     "Alist of languages and extra prefixes.
@@ -1652,6 +1652,7 @@ stored on the AST or external rules.")
      (flet ((alternate-class-name (name)
               (string-case name
                 ("GO" "GOLANG")
+                ("TYPESCRIPT-TYPESCRIPT" "TYPESCRIPT-TS")
                 (t name)))))
      (let* ((path-name (replace-all name "/" "-"))
             (class-name (alternate-class-name (string-upcase path-name)))

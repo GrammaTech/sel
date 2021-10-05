@@ -16,16 +16,16 @@
 ;;;===================================================
 
 (defmethod from-file ((class (eql 'typescript)) file)
-  (from-file 'typescript-typescript file))
+  (from-file 'typescript-ts file))
 
 (defmethod from-file ((software typescript) file)
-  (from-file (change-class software 'typescript-typescript) file))
+  (from-file (change-class software 'typescript-ts) file))
 
 (defmethod from-string ((class (eql 'typescript)) string)
-  (from-string 'typescript-typescript string))
+  (from-string 'typescript-ts string))
 
 (defmethod from-string ((software typescript) string)
-  (from-string (change-class software 'typescript-typescript) string))
+  (from-string (change-class software 'typescript-ts) string))
 
 #+:TREE-SITTER-TYPESCRIPT/TYPESCRIPT
 (progn

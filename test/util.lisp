@@ -210,7 +210,7 @@
 
 (defun typescript-tree-sitter-available-p ()
   (handler-case (progn
-                  (make-instance 'sel/sw/tree-sitter::typescript-typescript)
+                  (make-instance 'sel/sw/tree-sitter::typescript-ts)
                   (make-instance 'sel/sw/tree-sitter::typescript-tsx))
     (error (e) (declare (ignorable e)) nil)))
 
