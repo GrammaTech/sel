@@ -101,7 +101,8 @@
            :*indent-with-tabs-p*
            :*spaces-per-tab*
            :indentablep
-           :combine-all-conflict-asts))
+           :combine-all-conflict-asts
+           :ast-source-range))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1710,6 +1711,11 @@ is useful for ASTs that may have newline literals.")
                                                newline-offsets)
                     (position->source-location text end
                                                newline-offsets))))))))
+
+(-> ast-source-range (t t) (or null source-range))
+(defun ast-source-range (software ast)
+  "Return the source range for AST in SOFTWARE."
+  (values (assocdr ast (ast-source-ranges software))))
 
 (defun ast-start+end (software ast)
   "Return the start and end of AST in SOFTWARE (if any) as source
