@@ -812,9 +812,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   (ematch function-node
     ((python-function-definition
       :python-parameters (and parameters (type node)))
-     (ematch (ast-end software parameters)
-       ((source-location :line line :column column)
-        (make 'source-location :line line :column column))))
+     (ast-end software parameters))
     ((python-lambda :python-parameters (and parameters (type node)))
      (ast-end software parameters))
     ((python-lambda :python-parameters nil)
