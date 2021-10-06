@@ -556,7 +556,9 @@
            :tree-sitter-insert
            :tree-sitter-move
            :tree-sitter-cut
-           :tree-sitter-nop))
+           :tree-sitter-nop
+           :parameter-ast
+           :return-type))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -781,14 +783,45 @@ for the language.")
         (python-right :initarg :rhs :reader rhs)
         (python-operator :initarg :operator :reader operator))
        (python-function-definition
-        (python-body :reader body))
+        (python-body :reader body)
+        (python-return-type :reader return-type))
        (python-keyword-argument
         (python-name :initarg :lhs :reader lhs)
         (python-value :initarg :rhs :reader rhs))
        (python-unary-operator
         (python-operator :initarg :operator :reader operator))
        (python-while-statement
-        (python-body :reader body))))
+        (python-body :reader body)))
+      ((:typescript-ts :typescript-tsx)
+       ;; Anonymous function (function keyword).
+       (typescript-ts-function
+        (typescript-ts-return-type
+         :reader typescript-return-type
+         :reader return-type))
+       (typescript-tsx-function
+        (typescript-tsx-return-type
+         :reader typescript-return-type
+         :reader return-type))
+       (typescript-ts-function-declaration
+        (typescript-ts-return-type
+         :reader typescript-return-type
+         :reader return-type)
+        (typescript-ts-name
+         :reader typescript-name))
+       (typescript-tsx-function-declaration
+        (typescript-tsx-return-type
+         :reader typescript-return-type
+         :reader return-type)
+        (typescript-tsx-name
+         :reader typescript-name))
+       (typescript-ts-arrow-function
+        (typescript-ts-return-type
+         :reader typescript-return-type
+         :reader return-type))
+       (typescript-tsx-arrow-function
+        (typescript-tsx-return-type
+         :reader typescript-return-type
+         :reader return-type))))
     "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
@@ -1011,8 +1044,6 @@ for the language.")
       (:javascript
        (:root-ast javascript-program)
        (:comment-ast javascript-comment)
-       (:ecma-comment javascript-comment)
-       (:ecma-error javascript-error)
        (:class-ast javascript-class-declaration)
        (:control-flow-ast
         javascript-switch-statement javascript-try-statement)
@@ -1026,6 +1057,7 @@ for the language.")
        (:function-ast
         javascript-function javascript-function-declaration
         javascript-arrow-function)
+       (:lambda-ast javascript-function javascript-arrow-function)
        (:parameters-ast javascript-formal-parameters)
        (:variable-declaration-ast javascript-variable-declaration-ast)
        (:identifier-ast
@@ -1047,6 +1079,15 @@ for the language.")
        (:binary-ast javascript-binary-expression)
        (:return-ast javascript-return-statement)
        (:catch-ast javascript-catch-clause))
+      ((:javascript :typescript-ts :typescript-tsx)
+       (:ecma-comment
+        javascript-comment
+        typescript-ts-comment
+        typescript-tsx-comment)
+       (:ecma-error
+        javascript-error
+        typescript-ts-error
+        typescript-tsx-error))
       (:python
        (:root-ast python-module)
        (:comment-ast python-comment)
@@ -1083,17 +1124,58 @@ for the language.")
        (:return-ast python-return-statement)
        (:variable-declaration-ast python-assignment python-keyword-argument)
        (:catch-ast python-except-clause))
-      (:typescript-tsx
-       (:ecma-comment typescript-tsx-comment)
-       (:ecma-error typescript-tsx-error)
-       (:return-ast typescript-tsx-return-statement))
-      (:typescript-ts
-       (:ecma-comment typescript-ts-comment)
-       (:ecma-error typescript-ts-error)
-       (:return-ast typescript-ts-return-statement)))
+      ((:typescript-ts :typescript-tsx)
+       (:root-ast
+        typescript-ts-program
+        typescript-tsx-program)
+       (:class-ast
+        typescript-ts-class-declaration
+        typescript-tsx-class-declaration)
+       (:boolean-true-ast
+        typescript-ts-true
+        typescript-tsx-true)
+       (:boolean-false-ast
+        typescript-ts-false
+        typescript-tsx-false)
+       (:control-flow-ast
+        typescript-ts-switch-statement
+        typescript-tsx-switch-statement
+        typescript-ts-while-statement
+        typescript-tsx-while-statement)
+       (:function-ast
+        typescript-ts-function-declaration
+        typescript-tsx-function-declaration
+        typescript-ts-function
+        typescript-tsx-function
+        typescript-ts-arrow-function
+        typescript-tsx-arrow-function)
+       (:lambda-ast
+        typescript-ts-function
+        typescript-tsx-function
+        typescript-ts-arrow-function
+        typescript-tsx-arrow-function)
+       (:parameter-ast
+        typescript-ts-required-parameter
+        typescript-tsx-required-parameter
+        typescript-ts-optional-parameter
+        typescript-tsx-optional-parameter)
+       (:typescript-type-annotation
+        typescript-ts-type-annotation
+        typescript-tsx-type-annotation)
+       (:typescript-required-parameter
+        typescript-ts-required-parameter
+        typescript-tsx-required-parameter)
+       (:typescript-function-declaration
+        typescript-ts-function-declaration
+        typescript-tsx-function-declaration)
+       (:return-ast
+        typescript-ts-return-statement
+        typescript-tsx-return-statement)))
     "Specifies which classes should inherit from which mixins.
-An alist from languages to alists of mixins and tree-sitter AST
-classes that should inherit from them.
+An alist from a language (or list of languages) to an alist of mixins
+and tree-sitter AST classes that should inherit from them.
+
+A language may appear multiple times; in this case all the mixins for that language apply.
 
 Note that mixins used here will be automatically exported later, and
 those that do not have separate class definitions will be given stub
@@ -1812,15 +1894,16 @@ the body of a parse tree transformation for each class that uses it.")
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
       (iter
-       (for (lang . alist) in *tree-sitter-ast-superclasses*)
-       (let ((lang (intern (string lang) :sel/sw/ts))
-             (lang-table (make-hash-table)))
-         (setf (gethash lang table) lang-table)
-         (iter
-          (for (mixin . subclasses) in alist)
-          (let ((mixin (find-symbol (string mixin) :sel/sw/ts)))
-            (dolist (subclass subclasses)
-              (push subclass (gethash mixin lang-table))))))))
+       (for (langs . alist) in *tree-sitter-ast-superclasses*)
+       (iter (for lang in (ensure-list langs))
+             (let ((lang (intern (string lang) :sel/sw/ts))
+                   (lang-table
+                    (ensure-gethash lang table (make-hash-table))))
+               (iter
+                (for (mixin . subclasses) in alist)
+                (let ((mixin (find-symbol (string mixin) :sel/sw/ts)))
+                  (dolist (subclass subclasses)
+                    (push subclass (gethash mixin lang-table)))))))))
     "Nested hash table from language and mixin to a list of classes
     that inherit from that mixin.")
 
@@ -1847,7 +1930,12 @@ stored on the AST or external rules.")
               (string-case name
                 ("GO" "GOLANG")
                 ("TYPESCRIPT-TYPESCRIPT" "TYPESCRIPT-TS")
-                (t name)))))
+                (t name)))
+            (merge-matching-options (key alist)
+              (mappend #'cdr
+                       (filter (lambda (cons)
+                                 (member key (ensure-list (car cons))))
+                               alist)))))
      (let* ((path-name (replace-all name "/" "-"))
             (class-name (alternate-class-name (string-upcase path-name)))
             (class-keyword (make-keyword class-name))))
@@ -1861,23 +1949,25 @@ stored on the AST or external rules.")
          grammar-file
          class-name
          :ast-superclasses
-         (aget class-keyword *tree-sitter-ast-superclasses*)
+         (merge-matching-options
+          class-keyword *tree-sitter-ast-superclasses*)
          :base-ast-superclasses
-         (aget class-keyword *tree-sitter-base-ast-superclasses*)
+         (merge-matching-options class-keyword *tree-sitter-base-ast-superclasses*)
          :software-superclasses
-         (aget class-keyword *tree-sitter-software-superclasses*)
+         (merge-matching-options class-keyword *tree-sitter-software-superclasses*)
          :software-direct-slots
-         (aget class-keyword *tree-sitter-software-direct-slots*)
+         (merge-matching-options class-keyword *tree-sitter-software-direct-slots*)
          :ast-extra-slot-options
-         (aget class-keyword *tree-sitter-ast-extra-slot-options*)
+         (merge-matching-options
+          class-keyword *tree-sitter-ast-extra-slot-options*)
          :ast-extra-slots
-         (aget class-keyword *tree-sitter-ast-extra-slots*)
+         (merge-matching-options class-keyword *tree-sitter-ast-extra-slots*)
          :node-type-substitutions
-         (aget class-keyword *tree-sitter-json-node-type-substitutions*)
+         (merge-matching-options class-keyword *tree-sitter-json-node-type-substitutions*)
          :json-subtree-choice-resolver
-         (car (aget class-keyword *tree-sitter-json-subtree-choice-resolver*))
+         (car (merge-matching-options class-keyword *tree-sitter-json-subtree-choice-resolver*))
          :json-field-transformations
-         (aget class-keyword *tree-sitter-json-field-transformations*))))))
+         (merge-matching-options class-keyword *tree-sitter-json-field-transformations*))))))
 
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
@@ -4841,6 +4931,7 @@ of a grammar.")
       (t parse-tree)))
   (:method :around (language class parse-tree &rest rest &key)
     ;; Create source-text-fragments where they're needed.
+    (declare (ignore rest))
     (if class
         (transform-malformed-parse-tree (call-next-method) :recursive nil)
         (call-next-method))))
@@ -5021,6 +5112,9 @@ should be rebound.")
   (:method :context ((ast t))
     (ensure-children (call-next-method))))
 
+(defgeneric return-type (ast)
+  (:documentation "Get the return type of AST."))
+
 (defgeneric parameter-type (parameter-ast)
   (:documentation "Return a representation of the TYPE of PARAMETER-AST."))
 
@@ -5029,6 +5123,9 @@ should be rebound.")
 
 (defgeneric function-body (ast)
   (:documentation "Return the body of AST."))
+
+(defgeneric call-function (call-ast)
+  (:documentation "Return the function of CALL-AST."))
 
 (defgeneric call-name (call-ast)
   (:documentation "Return the name of CALL-AST.")
