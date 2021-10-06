@@ -13,6 +13,7 @@
         :software-evolution-library/software/cpp
         :software-evolution-library/software/python
         :software-evolution-library/software/javascript
+        :software-evolution-library/software/typescript
         :software-evolution-library/utility/range
         :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library :oid)
@@ -197,12 +198,12 @@ function name from the API followed by the arguments."
   (allocate-ast ast))
 
 (-> int/copy (ast list) ast)
-(defun int/copy (ast &rest args &aux (language (int/language ast)))
+(defun int/copy (ast &rest args)
   "Copy AST with optional keyword ARGS mapping child slots to new values."
   (labels ((handle-slot-name-argument (arg)
              "Translate the python slot-name argument (ARG) to a
               common lisp slot-name."
-             (cons (python-to-cl-slot-name language (car arg)) (cdr arg)))
+             (cons (python-to-cl-slot-name ast (car arg)) (cdr arg)))
            (handle-args (args)
              "Translate copy args from python to common lisp."
              (mappend [#'handle-keyword-argument #'handle-slot-name-argument]
@@ -223,12 +224,12 @@ function name from the API followed by the arguments."
 
 (-> int/child-slots (ast) list)
 (defun int/child-slots (ast)
-  (mapcar «list [#'cl-to-python-slot-name #'car] #'cdr»
+  (mapcar «list [{cl-to-python-slot-name ast} #'car] #'cdr»
           (remove-if #'internal-child-slot-p (child-slots ast))))
 
 (-> int/child-slot (ast string) (or list ast))
-(defun int/child-slot (ast slot-name &aux (language (int/language ast)))
-  (slot-value ast (safe-intern (python-to-cl-slot-name language slot-name))))
+(defun int/child-slot (ast slot-name)
+  (slot-value ast (safe-intern (python-to-cl-slot-name ast slot-name))))
 
 (-> int/ast-at-point (ast integer integer) ast)
 (defun int/ast-at-point (ast line column)
@@ -238,11 +239,7 @@ function name from the API followed by the arguments."
 
 (-> int/language (ast) string)
 (defun int/language (ast)
-  (etypecase ast
-    (sel/sw/ts::python-ast "PYTHON")
-    (sel/sw/ts::javascript-ast "JAVASCRIPT")
-    (sel/sw/ts::c-ast "C")
-    (sel/sw/ts::cpp-ast "CPP")))
+  (cl-to-python-ast-language (ast-language ast)))
 
 (-> int/imports (ast ast) list)
 (defun int/imports (root ast)
@@ -272,7 +269,7 @@ function name from the API followed by the arguments."
 
 (-> int/get-vars-in-scope (ast ast boolean) list)
 (defun int/get-vars-in-scope (root ast keep-globals)
-  (get-vars-in-scope (make-instance (safe-intern (int/language ast))
+  (get-vars-in-scope (make-instance (safe-intern (ast-language ast))
                                     :genome root)
                      ast
                      keep-globals))
@@ -323,7 +320,9 @@ function name from the API followed by the arguments."
 (-> language-to-ast-symbol (string) symbol)
 (defun language-to-ast-symbol (language)
   "Convert the given language string to the associated AST type symbol."
-  (safe-intern (concatenate 'string (string-upcase language) "-AST")))
+  (safe-intern (concatenate 'string
+                            (string-upcase (python-to-cl-ast-language language))
+                            "-AST")))
 
 (-> keyword-arguments-p (list) boolean)
 (defun keyword-arguments-p (args)

@@ -1,8 +1,18 @@
 ;;; utility.lisp - Utility functions shared by the python API cl applications.
 (defpackage :software-evolution-library/python/lisp/utility
   (:nicknames :sel/py/lisp/utility)
-  (:use :gt/full)
+  (:use :gt/full
+        :software-evolution-library/software/parseable
+        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/c
+        :software-evolution-library/software/cpp
+        :software-evolution-library/software/python
+        :software-evolution-library/software/javascript
+        :software-evolution-library/software/typescript)
   (:export :cl-to-python-type
+           :cl-to-python-ast-language
+           :python-to-cl-ast-language
+           :ast-language
            :internal-child-slot-p
            :cl-to-python-slot-name
            :python-to-cl-slot-name))
@@ -133,6 +143,11 @@ the trailing characters of the symbol string SYMNAME."
                           (">>>" . "unsigned-bitshift-right")
                           ("<<<=" . "unsigned-bitshift-left-assign")
                           (">>>=" . "unsigned-bitshift-right-assign")
+                          ;; Typescript terminals
+                          ("?:" . "opting-type-terminal")
+                          ("-?:" . "omitting-type-terminal")
+                          ("{|" . "object-type-open")
+                          ("|}" . "object-type-close")
                           ;; C/C++ terminals
                           ("[[" . "open-attribute")
                           ("]]" . "close-attribute")
@@ -158,6 +173,36 @@ the trailing characters of the symbol string SYMNAME."
                           ("#endif" . "macro-end-if")
                           ("#end" . "macro-end"))))
 
+;;;; AST language
+(-> cl-to-python-ast-language (string) string)
+(defun cl-to-python-ast-language (language)
+  "Convert LANGUAGE to its form for the python API with dashes
+removed and terms capitalized."
+  (nest (apply #'concatenate 'string)
+        (mapcar #'string-capitalize)
+        (split-sequence #\- language)))
+
+(-> python-to-cl-ast-language (string) string)
+(defun python-to-cl-ast-language (language)
+  "Convert LANGUAGE to its form for the common lisp API with dashes
+added between uppercase terms."
+  (string-upcase (regex-replace-all "(?!^)([A-Z]+)" language "-\\1")))
+
+;; (-> ast-language ((or ast class symbol) string)
+(defgeneric ast-language (ast)
+  (:documentation "Return a string representing the language of the given
+AST (instance, type symbol, or class).")
+  (:method ((ast ast))
+    (ast-language (type-of ast)))
+  (:method ((ast-class class))
+    (ast-language (class-name ast-class )))
+  (:method ((ast-type symbol))
+    (when-let ((superclass (find ast-type
+                                 '(python-ast c-ast cpp-ast javascript-ast
+                                   typescript-ts-ast typescript-tsx-ast)
+                                 :test #'subtypep)))
+      (drop-suffix "-AST" (symbol-name superclass)))))
+
 ;;;; AST slots
 (-> internal-child-slot-p (list) list)
 (defun internal-child-slot-p (slot)
@@ -166,20 +211,37 @@ not be exposed by the python API."
   (member (symbol-name (car slot)) '("internal-ast" "before-asts" "after-asts")
           :test (flip #'string-contains-p)))
 
-;; (-> cl-to-python-slot-name ((or symbol string)) string)
-(defgeneric cl-to-python-slot-name (slot-name)
+;; (-> cl-to-python-slot-name ((or ast class symbol string)
+;;                             (or symbol string))
+;;                             string)
+(defgeneric cl-to-python-slot-name (language slot-name)
   (:documentation "Convert SLOT-NAME to its form for the python API with
-any language prefix stripped.")
-  (:method ((slot-name symbol))
-    (cl-to-python-slot-name (symbol-name slot-name)))
-  (:method ((slot-name string))
+any LANGUAGE prefix stripped.")
+  (:method ((ast ast) (slot-name t))
+    (cl-to-python-slot-name (ast-language ast) slot-name))
+  (:method ((ast-class class) (slot-name t))
+    (cl-to-python-slot-name (ast-language ast-class) slot-name))
+  (:method ((ast-type symbol) (slot-name t))
+    (cl-to-python-slot-name (ast-language ast-type) slot-name))
+  (:method ((language string) (slot-name symbol))
+    (cl-to-python-slot-name language (symbol-name slot-name)))
+  (:method ((language string) (slot-name string))
     (cond ((passthrough-slot-name-p slot-name) slot-name)
-          (t (string-join (cdr (split-sequence #\- slot-name)) #\-)))))
+          (t (drop-prefix (concatenate 'string (string-upcase language) "-")
+                          slot-name)))))
 
-;; (-> python-to-cl-slot-name (string (or symbol string)) string)
+;; (-> python-to-cl-slot-name ((or ast class symbol string)
+;;                             (or symbol string))
+;;                             string)
 (defgeneric python-to-cl-slot-name (language slot-name)
   (:documentation "Convert SLOT-NAME to its form for the common lisp API
-with a language prefix prepended.")
+with a LANGUAGE prefix prepended.")
+  (:method ((ast ast) (slot-name t))
+    (python-to-cl-slot-name (ast-language ast) slot-name))
+  (:method ((ast-class class) (slot-name t))
+    (python-to-cl-slot-name (ast-language ast-class) slot-name))
+  (:method ((ast-type symbol) (slot-name t))
+    (python-to-cl-slot-name (ast-language ast-type) slot-name))
   (:method ((language string) (slot-name symbol))
     (python-to-cl-slot-name language (symbol-name slot-name)))
   (:method ((language string) (slot-name string))

@@ -28,8 +28,8 @@ The ASTs package provides a Python API into GrammaTech's Software
 Evolution Library ([SEL][]) for source code manipulation.  SEL
 generalizes over GitHub's [tree-sitter][] parsing libraries providing
 a uniform interface over multiple programming languages (primarily
-Python, JavaScript, and C/C++), and providing additional functionality
-for software inspection and modification.
+Python, JavaScript/TypeScript, and C/C++), and providing additional
+functionality for software inspection and modification.
 
 # Quick Intro
 
@@ -89,8 +89,8 @@ text language.  The example below shows the creation of a simple AST:
 >>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
 ```
 
-Language enumerations exist for `Python`, `C`, `Cpp`, and
-`Javascript`.
+Language enumerations exist for `Python`, `C`, `Cpp`, `Javascript`,
+`TypescriptTs`, and `TypescriptTsx`.
 
 For larger examples where the language may be inferred, the language
 parameter may optionally be elided.  For instance:

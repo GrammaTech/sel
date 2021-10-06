@@ -6,6 +6,11 @@
         :software-evolution-library/command-line
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/c
+        :software-evolution-library/software/cpp
+        :software-evolution-library/software/python
+        :software-evolution-library/software/javascript
+        :software-evolution-library/software/typescript
         :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library/command-line :alias-language)
   (:export :run-tree-sitter-py-generator))
@@ -17,7 +22,7 @@
     '((("help" #\h #\?) :type boolean :optional t
        :documentation "display help output")
       (("languages" #\L) :type string :optional t
-       :initial-value "c,cpp,javascript,python"
+       :initial-value "c,cpp,javascript,python,typescript-ts,typescript-tsx"
        :action #'handle-languages-argument
        :documentation
        "comma-delimited source languages of the ASTs to dump"))))
@@ -27,10 +32,8 @@
   "Transform the input comma-delimited source languages into a list of
 language-specific AST types."
   (nest (mapcar (lambda (language)
-                  (intern (format nil "~a-AST"
-                                  (string-upcase (symbol-name language)))
+                  (intern (format nil "~a-AST" (string-upcase language))
                           :sel/sw/tree-sitter)))
-        (mapcar #'alias-language)
         (split-sequence #\, languages)))
 
 (-> ast-symbol-p (symbol &optional list) list)
@@ -114,10 +117,12 @@ in top-down order.")
              "Return non-NIL if the given child slot should not be included
               in the python class definition's properties."
              (or (eq (car slot) 'children) (internal-child-slot-p slot)))
-           (python-property-name (slot)
-             "Convert the given child SLOT name to a python property name."
+           (python-property-name (class slot)
+             "Convert the given child SLOT name of CLASS to a python
+              property name."
              (string-replace-all "-"
-                                 (string-downcase (cl-to-python-slot-name slot))
+                                 (nest (string-downcase)
+                                       (cl-to-python-slot-name class slot))
                                  "_"))
            (python-child-slots (class)
              "Return the child slots of CLASS relevant for creating python
@@ -128,22 +133,24 @@ in top-down order.")
                     (slot-definition-initform slot-definition)
                     (apply #'remove-if #'child-slot-ignorable-p
                            (cdr (slot-definition-initform slot-definition))))))
-           (python-property (slot)
-             "Return a string defining a python property for the given SLOT."
+           (python-property (class slot)
+             "Return a string defining a python property for the given
+              SLOT in CLASS."
              (destructuring-bind (symbol . arity) slot
                (nest (indent)
                      (join-with-newlines)
                      (list "@cached_property"
                            (format nil "def ~a(self) -> ~a:"
-                                   (python-property-name symbol)
+                                   (python-property-name class symbol)
                                    (if (zerop arity) "List[AST]" "AST"))
                            (format nil "    return self.child_slot(\"~a\")"
-                                   (cl-to-python-slot-name symbol))))))
+                                   (cl-to-python-slot-name class symbol))))))
            (python-properties (class)
              "Return a list defining python properties for the given CLASS."
-             (nest (mapcar #'indent)
-                   (or (mapcar #'python-property (python-child-slots class))
-                       '("pass")))))
+             (or (nest (mapcar #'indent)
+                       (mapcar {python-property class})
+                       (python-child-slots class))
+                 (list (indent "pass")))))
 
     (ensure-finalized class)
     (format nil "class ~a(~{~a~^, ~}):~%~{~a~^~%~%~}~%~%~%"

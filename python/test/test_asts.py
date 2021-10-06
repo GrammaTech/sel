@@ -459,3 +459,10 @@ class UTF8TestDriver(unittest.TestCase):
         rnge = root.ast_source_ranges()[0][1]
         self.assertEqual('"反复请求多次"', root.source_text)
         self.assertEqual([[1, 1], [1, 9]], rnge)
+
+
+class TypescriptTestDriver(unittest.TestCase):
+    def test_typescript_parse(self):
+        text = "let message: string = 'Hello World!'\nconsole.log(message)"
+        root = AST.from_string(text, ASTLanguage.TypescriptTs)
+        self.assertEqual(root.language, ASTLanguage.TypescriptTs)

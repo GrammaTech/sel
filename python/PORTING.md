@@ -122,4 +122,5 @@ This aids in reproducibility/tracing of issues in older releases.
 | tree-sitter-c          | e348e8ec |
 | tree-sitter-cpp        | a7652fce |
 | tree-sitter-javascript | fdeb68ac |
+| tree-sitter-typescript | ef6ee5b3 |
 | tree-sitter-python     | 8600d7fa |

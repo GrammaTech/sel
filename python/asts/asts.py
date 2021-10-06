@@ -36,6 +36,8 @@ class ASTLanguage(enum.Enum):
     C = 1
     Cpp = 2
     Javascript = 3
+    TypescriptTs = 4
+    TypescriptTsx = 5
 
 
 class ASTException(Exception):
@@ -51,6 +53,8 @@ def _guess_language(text: str) -> Optional[ASTLanguage]:
         return ASTLanguage.Python
     elif isinstance(lexer, pygments.lexers.JavascriptLexer):
         return ASTLanguage.Javascript
+    elif isinstance(lexer, pygments.lexers.TypeScriptLexer):
+        return ASTLanguage.TypescriptTs
     elif isinstance(lexer, pygments.lexers.CLexer):
         return ASTLanguage.C
     elif isinstance(lexer, pygments.lexers.CppLexer):
@@ -215,8 +219,7 @@ class AST:
     @cached_property
     def language(self) -> ASTLanguage:
         """Return the AST's language."""
-        language = _interface.dispatch(AST.language.func.__name__, self)
-        return ASTLanguage[language.capitalize()]
+        return ASTLanguage[_interface.dispatch(AST.language.func.__name__, self)]
 
     @cached_property
     def source_text(self) -> str:
@@ -532,7 +535,7 @@ class _interface:
             if isinstance(v, AST):
                 return {"type": "ast", "oid": v.oid}
             if isinstance(v, ASTLanguage):
-                return v.name.lower()
+                return v.name
             elif isinstance(v, dict):
                 return {serialize(key): serialize(val) for key, val in v.items()}
             elif isinstance(v, list):
