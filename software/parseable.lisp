@@ -1717,17 +1717,22 @@ is useful for ASTs that may have newline literals.")
   "Return the source range for AST in SOFTWARE."
   (values (assocdr ast (ast-source-ranges software))))
 
+(-> ast-start+end (t t)
+    (values (or null source-location) (or null source-location) &optional))
 (defun ast-start+end (software ast)
   "Return the start and end of AST in SOFTWARE (if any) as source
 locations."
-  (when-let (range (assocdr ast (ast-source-ranges software)))
+  (if-let (range (assocdr ast (ast-source-ranges software)))
     (values (begin range)
-            (end range))))
+            (end range))
+    (values nil nil)))
 
+(-> ast-start (t t) (or null source-location))
 (defun ast-start (software ast)
   "Return the start of AST in software, as a source location."
   (values (ast-start+end software ast)))
 
+(-> ast-end (t t) (or null source-location))
 (defun ast-end (software ast)
   "Return the end of AST in software, as a source location."
   (nth-value 1 (ast-start+end software ast)))
