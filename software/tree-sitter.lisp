@@ -456,6 +456,8 @@
            :c/cpp
            :ecma
            :typescript
+           :ecma-ast
+           :typescript-ast
            :parse-error-ast
            :comment-ast
            :definition-ast
@@ -670,6 +672,14 @@ searched to populate `*tree-sitter-language-files*'.")
     ()
     (:documentation "Mix-in class for tree-sitter TypeScript variants."))
 
+  (defclass ecma-ast ()
+    ()
+    (:documentation "Mix-in class for tree-sitter ECMAScript ASTs."))
+
+  (defclass typescript-ast (ecma-ast)
+    ()
+    (:documentation "Mix-in class for tree-sitter TypeScript ASTs."))
+
   (defparameter *tree-sitter-software-superclasses*
     '((:c compilable normal-scope c/cpp)
       (:cpp compilable normal-scope c/cpp)
@@ -681,7 +691,10 @@ searched to populate `*tree-sitter-language-files*'.")
     "Alist of direct slots for software classes, such as `python' or
     `c'.")
 
-  (defparameter *tree-sitter-base-ast-superclasses* '()
+  (defparameter *tree-sitter-base-ast-superclasses*
+    '((:typescript-ts typescript-ast)
+      (:typescript-tsx typescript-ast)
+      (:javascript ecma-ast))
     "Alist of superclasses for the base class of a language (e.g.
     `python-ast').")
 
