@@ -5089,7 +5089,7 @@ should be rebound.")
 
 (defun ensure-children (value)
   (etypecase value
-    (ast (values (children value)
+    (ast (values (direct-children value)
                  value))
     (list value)))
 

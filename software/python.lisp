@@ -805,7 +805,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
   (function-parameters (second (children ast))))
 
 (defmethod function-parameters ((ast python-parameters))
-  (children ast))
+  (direct-children ast))
 
 (defmethod end-of-parameter-list
     ((software python) (function-node function-ast))

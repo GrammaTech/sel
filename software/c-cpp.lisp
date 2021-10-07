@@ -30,10 +30,10 @@
   (source-text (c/cpp-declarator (c/cpp-declarator ast))))
 
 (defmethod function-parameters ((ast c/cpp-function-definition))
-  (children (c/cpp-parameters (c/cpp-declarator ast))))
+  (direct-children (c/cpp-parameters (c/cpp-declarator ast))))
 
 (defmethod call-arguments ((node c/cpp-call-expression))
-  (children (c/cpp-arguments node)))
+  (direct-children (c/cpp-arguments node)))
 
 (defmethod function-body ((ast c/cpp-function-definition)) (c-body ast))
 

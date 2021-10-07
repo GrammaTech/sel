@@ -66,7 +66,7 @@ specialized on `typescript-tsx'."
 
   (defmethod parameter-type ((ast typescript-ts-required-parameter))
     (find-if (of-type 'typescript-ts-type-annotation)
-             (children ast)))
+             (direct-children ast)))
 
   ;; Function declaration.
 
@@ -74,7 +74,7 @@ specialized on `typescript-tsx'."
     (source-text (typescript-ts-name ast)))
 
   (defmethod function-parameters ((ast typescript-ts-function-declaration))
-    (children (typescript-ts-parameters ast)))
+    (direct-children (typescript-ts-parameters ast)))
 
   (defmethod end-of-parameter-list ((software typescript-ts)
                                     (fn typescript-ts-function-declaration))
@@ -86,7 +86,7 @@ specialized on `typescript-tsx'."
     (source-text (typescript-ts-name ast)))
 
   (defmethod function-parameters ((ast typescript-ts-function-signature))
-    (children (typescript-ts-parameters ast)))
+    (direct-children (typescript-ts-parameters ast)))
 
   (defmethod end-of-parameter-list ((software typescript-ts)
                                     (fn typescript-ts-function-signature))
@@ -95,7 +95,7 @@ specialized on `typescript-tsx'."
   ;; Anonymous function (with function keyword)
 
   (defmethod function-parameters ((ast typescript-ts-function))
-    (children (typescript-ts-parameters ast)))
+    (direct-children (typescript-ts-parameters ast)))
 
   (defmethod end-of-parameter-list ((software typescript-ts)
                                     (fn typescript-ts-function))
@@ -110,7 +110,7 @@ specialized on `typescript-tsx'."
   (defmethod function-parameters ((fn typescript-ts-arrow-function))
     (econd-let p
       ((typescript-ts-parameters fn)
-       (children p))
+       (direct-children p))
       ((typescript-ts-parameter fn)
        (list p))))
 
