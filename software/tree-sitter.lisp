@@ -796,31 +796,34 @@ for the language.")
        ;; Anonymous function (function keyword).
        (typescript-ts-function
         (typescript-ts-return-type
-         :reader typescript-return-type
          :reader return-type))
        (typescript-tsx-function
         (typescript-tsx-return-type
-         :reader typescript-return-type
          :reader return-type))
+       ;; Function declaration.
        (typescript-ts-function-declaration
         (typescript-ts-return-type
-         :reader typescript-return-type
          :reader return-type)
         (typescript-ts-name
          :reader typescript-name))
        (typescript-tsx-function-declaration
         (typescript-tsx-return-type
-         :reader typescript-return-type
          :reader return-type)
         (typescript-tsx-name
          :reader typescript-name))
+       ;; Function signature (overload).
+       (typescript-ts-function-signature
+        (typescript-ts-return-type
+         :reader return-type))
+       (typescript-ts-function-signature
+        (typescript-ts-return-type
+         :reader return-type))
+       ;; Arrow function.
        (typescript-ts-arrow-function
         (typescript-ts-return-type
-         :reader typescript-return-type
          :reader return-type))
        (typescript-tsx-arrow-function
         (typescript-tsx-return-type
-         :reader typescript-return-type
          :reader return-type))))
     "Alist from languages to classes with extra slot options.")
 
@@ -1145,6 +1148,8 @@ for the language.")
        (:function-ast
         typescript-ts-function-declaration
         typescript-tsx-function-declaration
+        typescript-ts-function-signature
+        typescript-tsx-function-signature
         typescript-ts-function
         typescript-tsx-function
         typescript-ts-arrow-function

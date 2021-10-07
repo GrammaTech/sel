@@ -52,6 +52,8 @@ specialized on `typescript-tsx'."
                                     'typescript-tsx)))))))
 
 #+:TREE-SITTER-TYPESCRIPT/TYPESCRIPT
+(progn
+
 (with-tsx-methods ()
 
   ;; NB What should `function-parameters' return in the presence of
@@ -66,12 +68,10 @@ specialized on `typescript-tsx'."
     (find-if (of-type 'typescript-ts-type-annotation)
              (children ast)))
 
+  ;; Function declaration.
+
   (defmethod function-name ((ast typescript-ts-function-declaration))
     (source-text (typescript-ts-name ast)))
-
-  (defmethod end-of-parameter-list ((software typescript-ts)
-                                    (fn typescript-ts-function-declaration))
-    (ast-end software (typescript-ts-parameters fn)))
 
   (defmethod function-parameters ((ast typescript-ts-function-declaration))
     (children (typescript-ts-parameters ast)))
@@ -80,18 +80,44 @@ specialized on `typescript-tsx'."
                                     (fn typescript-ts-function-declaration))
     (ast-end software (typescript-ts-parameters fn)))
 
+  ;; Function signature (overload).
+
+  (defmethod function-name ((ast typescript-ts-function-signature))
+    (source-text (typescript-ts-name ast)))
+
+  (defmethod function-parameters ((ast typescript-ts-function-signature))
+    (children (typescript-ts-parameters ast)))
+
+  (defmethod end-of-parameter-list ((software typescript-ts)
+                                    (fn typescript-ts-function-signature))
+    (ast-end software (typescript-ts-parameters fn)))
+
+  ;; Anonymous function (with function keyword)
+
   (defmethod function-parameters ((ast typescript-ts-function))
     (children (typescript-ts-parameters ast)))
+
+  (defmethod end-of-parameter-list ((software typescript-ts)
+                                    (fn typescript-ts-function))
+    (ast-end software (typescript-ts-parameters fn)))
+
+  ;; Arrow function.
+
+  ;; NB an arrow function like `x => 1' has a non-null
+  ;; `typescript-ts-parameter` slot, while `(x) => 1' has a non-null
+  ;; `typescript-ts-parameters` slot.
+
+  (defmethod function-parameters ((fn typescript-ts-arrow-function))
+    (econd-let p
+      ((typescript-ts-parameters fn)
+       (children p))
+      ((typescript-ts-parameter fn)
+       (list p))))
 
   (defmethod end-of-parameter-list ((software typescript-ts)
                                     (fn typescript-ts-arrow-function))
     (ast-end software
              (or (typescript-ts-parameters fn)
-                 (typescript-ts-parameter fn))))
+                 (typescript-ts-parameter fn)))))
 
-  (defmethod function-parameters ((fn typescript-ts-arrow-function))
-    (econd-let p
-               ((typescript-ts-parameters fn)
-                (children p))
-               ((typescript-ts-parameter fn)
-                (list p)))))
+)

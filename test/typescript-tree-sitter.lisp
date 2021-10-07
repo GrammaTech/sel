@@ -32,3 +32,21 @@
 BLANK precedes the other branches."
   (is (typep (genome (from-string 'typescript-ts "return 1;"))
              'ast)))
+
+;;; Representation tests.
+
+(deftest test-arrow-function-parameter/s ()
+  "Test that function-parameters works on arrow functions with one
+unparenthesized argument."
+  (is (length=
+       1
+       (function-parameters (typescript-ts "(x) => 1"))
+       (finishes
+        (assure list
+          (function-parameters (typescript-ts "x => 1"))))))
+  (is (length=
+       1
+       (function-parameters (typescript-tsx "(x) => 1"))
+       (finishes
+        (assure list
+          (function-parameters (typescript-tsx "x => 1")))))))
