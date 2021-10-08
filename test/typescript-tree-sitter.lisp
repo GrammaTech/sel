@@ -32,6 +32,12 @@
 BLANK precedes the other branches."
   (is (typep (genome (from-string 'typescript-ts "return 1;"))
              'ast)))
+
+(deftest test-typescript-readonly-regression ()
+  "Test that the string \"readonly\" doesn't precede a parameter."
+  (let ((string "function (x) { }"))
+    (is (equal string (source-text (typescript-ts string))))))
+
 
 ;;; Representation tests.
 
