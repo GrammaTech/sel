@@ -698,6 +698,11 @@ and keyword parameters with defaults."
     (test-ast-source-ranges-for-files 'python py-files
                                       :ignore-indentation t)))
 
+(deftest test-python-function-parameters ()
+  (is (length= 2
+               (function-parameters
+                (python "def bar(a, b): return a*b")))))
+
 (deftest python-test-end-of-parameter-list ()
   (with-util-file ("functions" sw ast)
     (let ((nodes (iter (for node in-tree ast)
