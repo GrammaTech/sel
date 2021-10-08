@@ -1919,9 +1919,9 @@ the body of a parse tree transformation for each class that uses it.")
       (iter
        (for (langs . alist) in *tree-sitter-ast-superclasses*)
        (iter (for lang in (ensure-list langs))
-             (let ((lang (intern (string lang) :sel/sw/ts))
-                   (lang-table
-                    (ensure-gethash lang table (make-hash-table))))
+             (let* ((lang (intern (string lang) :sel/sw/ts))
+                    (lang-table
+                     (ensure-gethash lang table (make-hash-table))))
                (iter
                 (for (mixin . subclasses) in alist)
                 (let ((mixin (find-symbol (string mixin) :sel/sw/ts)))
