@@ -1208,15 +1208,68 @@ for the language.")
         typescript-tsx-required-parameter
         typescript-ts-optional-parameter
         typescript-tsx-optional-parameter)
+       (:typescript-program
+        typescript-ts-program
+        typescript-tsx-program)
        (:typescript-type-annotation
         typescript-ts-type-annotation
         typescript-tsx-type-annotation)
+       (:typescript-parameter
+        typescript-ts-required-parameter
+        typescript-tsx-required-parameter
+        typescript-ts-optional-parameter
+        typescript-tsx-optional-parameter)
        (:typescript-required-parameter
         typescript-ts-required-parameter
         typescript-tsx-required-parameter)
+       (:typescript-optional-parameter
+        typescript-ts-optional-parameter
+        typescript-tsx-optional-parameter)
+       (:typescript-rest-pattern
+        typescript-ts-rest-pattern
+        typescript-tsx-rest-pattern)
        (:typescript-function-declaration
         typescript-ts-function-declaration
         typescript-tsx-function-declaration)
+       (:typescript-function-signature
+        typescript-ts-function-signature
+        typescript-tsx-function-signature)
+       (:typescript-variable-declarator
+        typescript-ts-variable-declarator
+        typescript-tsx-variable-declarator)
+       (:typescript-assignment-expression
+        typescript-ts-assignment-expression
+        typescript-tsx-assignment-expression)
+       (:typescript-identifier
+        typescript-ts-identifier
+        typescript-tsx-identifier)
+       (:typescript-tuple-type
+        typescript-ts-tuple-type
+        typescript-tsx-tuple-type)
+       (:typescript-array-type
+        typescript-ts-array-type
+        typescript-tsx-array-type)
+       (:typescript-intersection-type
+        typescript-ts-intersection-type
+        typescript-tsx-intersection-type)
+       (:typescript-union-type
+        typescript-ts-union-type
+        typescript-tsx-union-type)
+       (:typescript-type-identifier
+        typescript-ts-type-identifier
+        typescript-tsx-type-identifier)
+       (:typescript-generic-type
+        typescript-ts-generic-type
+        typescript-tsx-generic-type)
+       (:typescript-literal-type
+        typescript-ts-literal-type
+        typescript-tsx-literal-type)
+       (:typescript-type-argument
+        typescript-ts-type-argument
+        typescript-tsx-type-argument)
+       (:typescript-predefined-type
+        typescript-ts-predefined-type
+        typescript-tsx-predefined-type)
        (:return-ast
         typescript-ts-return-statement
         typescript-tsx-return-statement)))
