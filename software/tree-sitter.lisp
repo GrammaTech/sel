@@ -1813,6 +1813,8 @@ definitions.")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "override_modifier"))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "CHOICE")
+          ;; Upstream tree-sitter has this as a STRING instead of a
+          ;; symbol, which means it is always printed.
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "readonly"))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "CHOICE")
