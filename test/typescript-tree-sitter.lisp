@@ -38,6 +38,28 @@ BLANK precedes the other branches."
   (let ((string "function (x) { }"))
     (is (equal string (source-text (typescript-ts string))))))
 
+(deftest test-typescript-export-match ()
+  (is (typep
+       (genome
+        (from-string 'typescript "export { x } from './file';"))
+       'ast)))
+
+(deftest test-const-declarations-persist ()
+  "Test that const doesn't become let."
+  (is (equal "const x = 1"
+             (source-text
+              (typescript-ts "const x = 1")))))
+
+(deftest test-typescript-for-of-const ()
+  ;; It already works with `var' and `let', here to make sure we don't
+  ;; break anything.
+  (is (find-if (of-type 'typescript-ts-for-in-statement)
+               (genome (from-string 'typescript "for (let x of xs) {}"))))
+  (is (find-if (of-type 'typescript-ts-for-in-statement)
+               (genome (from-string 'typescript "for (var x of xs) {}"))))
+  (is (find-if (of-type 'typescript-ts-for-in-statement)
+               (genome (from-string 'typescript "for (const x of xs) {}")))))
+
 
 ;;; Representation tests.
 
