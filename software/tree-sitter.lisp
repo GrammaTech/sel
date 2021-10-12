@@ -1865,68 +1865,54 @@ chosen when gathering a string representation of a JSON subtree.")
 
   (defparameter *tree-sitter-json-field-transformations*
     `((:c
-       ;; symbol name
-       (("#ifdef" "#ifndef")
-        ;; slot name
-        "operator" ; Find a better name for this slot.
-        ;; predicate--determines whether to make the replacement.
-        ,(lambda (rule-name rule subtree)
-           (declare (ignorable rule-name rule subtree))
-           t)
-        ;; parse tree transform.
+       (:symbol-names
+        ("#ifdef" "#ifndef")
+        :slot-name "operator"      ; Find a better name for this slot.
+        :predicate ,(constantly t)
+        :transform
         (lambda (parse-tree)
-          (append
-           (butlast parse-tree)
-           (list
-            (mapcar
-             (lambda (child-tree &aux (child-car (car child-tree)))
-               (cond
-                 ((member child-car '(:|#IFDEF| :|#IFNDEF|))
-                  (cons (list :operator child-car) (cdr child-tree)))
-                 (t child-tree)))
-             (lastcar parse-tree)))))))
+          (copy-parse-tree
+           parse-tree
+           :children
+           (mapcar
+            (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
+              (cond
+                ((member child-type '(:|#IFDEF| :|#IFNDEF|))
+                 (cons (list :operator child-type) (cdr child-tree)))
+                (t child-tree)))
+            (parse-tree-children parse-tree))))))
       (:cpp
-       ;; symbol name
-       (("#ifdef" "#ifndef")
-        ;; slot name
-        "operator" ; Find a better name for this slot.
-        ;; predicate--determines whether to make the replacement.
-        ,(lambda (rule-name rule subtree)
-           (declare (ignorable rule-name rule subtree))
-           t)
-        ;; parse tree transform.
+       (:symbol-names ("#ifdef" "#ifndef")
+        :slot-name "operator"      ; Find a better name for this slot.
+        :predicate ,(constantly t)
+        :transform
         (lambda (parse-tree)
-          (append
-           (butlast parse-tree)
-           (list
-            (mapcar
-             (lambda (child-tree &aux (child-car (car child-tree)))
-               (cond
-                 ((member child-car '(:|#IFDEF| :|#IFNDEF|))
-                  (cons (list :operator child-car) (cdr child-tree)))
-                 (t child-tree)))
-             (lastcar parse-tree)))))))
+          (copy-parse-tree
+           parse-tree
+           :children
+           (mapcar
+            (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
+              (cond
+                ((member child-type '(:|#IFDEF| :|#IFNDEF|))
+                 (cons (list :operator child-type) (cdr child-tree)))
+                (t child-tree)))
+            (parse-tree-children parse-tree))))))
       (:javascript
-       ;; symbol name
-       ("_semicolon"
-        ;; slot name
-        "semicolon"
-        ;; predicate--determines whether to make the replacement.
-        ,(lambda (rule-name rule subtree)
-          (declare (ignorable rule-name rule subtree))
-          t)
-        ;; parse tree transform.
+       (:symbol-names ("_semicolon")
+        :slot-name "semicolon"
+        :predicate ,(constantly t)
+        :transform
         (lambda (parse-tree)
-          (append
-           (butlast parse-tree)
-           (list
+          (copy-parse-tree
+           parse-tree
+           :children
             (mapcar
-             (lambda (child-tree &aux (child-car (car child-tree)))
+             (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
                (cond
-                 ((eql child-car :|;|)
-                  (cons (list :semicolon child-car) (cdr child-tree)))
+                 ((eql child-type :|;|)
+                  (cons (list :semicolon child-type) (cdr child-tree)))
                  (t child-tree)))
-             (lastcar parse-tree))))))))
+             (parse-tree-children parse-tree)))))))
     "A mapping of tree-sitter symbol names that should have fields wrapped
 around them. It is also followed by the slot that should be added to the relevant
 class, a predicate that determines whether a subtree should be encapsulated and
@@ -3223,7 +3209,8 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                   &aux (slot-name (format-symbol
                                    'sel/sw/ts "~a-~a"
                                    language-prefix
-                                   (convert-name (cadr symbol-substitution)))))
+                                   (convert-name (getf symbol-substitution
+                                                       :slot-name)))))
                "Update class-name->class-definition with information from
                 SYMBOL-SUBSTITUTION."
                ;; TODO: add slot name to symbols that need exported.
@@ -3241,7 +3228,7 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                                    (gethash class-name
                                             class-name->parse-tree-transforms)))
                  (setf class-transforms
-                       (cons (cadddr symbol-substitution)
+                       (cons (getf symbol-substitution :transform)
                              class-transforms))))
              (encapsulate-symbol (subtree symbol-substitution)
                "Encapsulates SUBTREE with a field and updates the relevant
@@ -3251,7 +3238,7 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                (when (update-class-definition symbol-substitution)
                  (update-class-transforms symbol-substitution))
                `((:TYPE . "FIELD")
-                 (:NAME . ,(cadr symbol-substitution))
+                 (:NAME . ,(getf symbol-substitution :slot-name))
                  (:CONTENT
                   ,@subtree))))
       (if symbol-substitutions
@@ -3265,12 +3252,11 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                  (lambda (symbol-substitution
                           &aux (symbol-name (or (aget :name subtree)
                                                 (aget :value subtree))))
-                   (if (consp symbol-substitution)
-                       (member symbol-name symbol-substitution :test #'equal)
-                       (equal symbol-substitution symbol-name)))
-                 symbol-substitutions :key #'car)
+                   (member symbol-name symbol-substitution :test #'equal))
+                 symbol-substitutions :key (op (getf _ :symbol-names)))
                 ;; Check if the filter function passes.
-                (if (funcall (caddr substitution) class-name json-rule subtree)
+                (if (funcall (getf substitution :predicate)
+                             class-name json-rule subtree)
                     (encapsulate-symbol subtree substitution)
                     subtree))
                (t subtree)))
