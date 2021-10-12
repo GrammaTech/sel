@@ -606,6 +606,19 @@
                    "Unable to match tree to any subclass of ~s:~%~s~2%Candidates: ~s"
                    superclass parse-tree subclasses))))))
 
+  (defstruct (parse-tree (:type list) (:copier nil))
+    type range children)
+
+  (defun copy-parse-tree (parse-tree
+                          &key
+                            (type (parse-tree-type parse-tree))
+                            (range (parse-tree-range parse-tree))
+                            (children (parse-tree-children parse-tree)))
+    (make-parse-tree :type type :range range :children children))
+
+  (defpattern parse-tree (type range children)
+    `(list ,type ,range ,children))
+
   (defvar *superclass->language* (make-hash-table)
     "Maps an AST superclass to its tree-sitter language. When
 convert is called, the superclass can then be used to look up
