@@ -35,13 +35,14 @@ specialized on `typescript-tsx'."
     (flet ((retarget (form from to)
              (leaf-map (lambda (leaf)
                          (if (and (symbolp leaf)
-                                  (not (keywordp leaf))
                                   (string^= from leaf))
                              (intern (string+ to
                                               (drop-prefix
                                                (string from)
                                                (string leaf)))
-                                     package)
+                                     (if (keywordp leaf)
+                                         #.(find-package :keyword)
+                                         package))
                              leaf))
                        form)))
       `(progn
