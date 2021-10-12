@@ -558,7 +558,10 @@
            :tree-sitter-cut
            :tree-sitter-nop
            :parameter-ast
-           :return-type))
+           :return-type)
+  (:local-nicknames
+   #+sbcl (:md5 :sb-md5)
+   #-sbcl (:md5 :md5)))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -5062,6 +5065,7 @@ or comments.  NIL if no such newline exists."
                      *tree-sitter-language-files*
                      :key 'car :test 'equal)))
     `(eval-always
+      (encode-tree-sitter-version ,@tree-sitter-files)
        (progn
        ,@(apply 'tree-sitter-ast-classes
                 tree-sitter-files)
@@ -5071,6 +5075,29 @@ or comments.  NIL if no such newline exists."
                              "TREE-SITTER-"
                              (string-upcase ,name)) :keyword)
         *features*)))))
+
+(defun file-md5 (file)
+  "Return the MD5 of FILE as a hex string."
+  (with-output-to-string (out)
+    (do-each (byte (md5:md5sum-file file) 'list)
+      (format out "~(~2,'0x~)" byte))))
+
+(defmacro encode-tree-sitter-version (name grammar-file node-types-file)
+  "Warn at load time if GRAMMAR-FILE and NODE-TYPES-FILE have changed
+ since the definitions were compiled."
+  (let ((grammar-file-hash (file-md5 grammar-file))
+        (node-types-file-hash (file-md5 node-types-file)))
+    `(eval-when (:load-toplevel)
+       (when (file-exists-p ,grammar-file)
+         (unless (equal ,grammar-file-hash (file-md5 ,grammar-file))
+           (warn "~a has changed, recompile ~a"
+                 ,grammar-file
+                 ',name)))
+       (when (file-exists-p ,node-types-file)
+         (unless (equal ,node-types-file-hash (file-md5 ,node-types-file))
+           (warn "~a has changed, recompile ~a"
+                 ,node-types-file
+                 ',name))))))
 
 ;;; TODO We may not need this anymore with the language files
 ;;;      available for per-language customizations.
