@@ -1467,6 +1467,7 @@ definitions.")
       (:cpp
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
         (:MEMBERS
+         ;; Inline _declaration_modifiers and wrap a field around it.
          ((:TYPE . "FIELD") (:NAME . "pre-specifiers")
           (:CONTENT
            (:TYPE . "REPEAT")
@@ -1477,8 +1478,10 @@ definitions.")
              ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
              ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
              ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))
+         ;; Wrap a field around the type specifier.
          ((:TYPE . "FIELD") (:NAME . "type")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
+         ;; Inline declaration-modifiers and wrap a field around it.
          ((:TYPE . "FIELD") (:NAME . "post-specifiers")
           (:CONTENT
            (:TYPE . "REPEAT")
@@ -1492,6 +1495,7 @@ definitions.")
        ;; NOTE: remove this and cpp's substitution if this is patched
        ;;       upstream.
        (:PREPROC-PARAMS (:TYPE . "SEQ")
+        ;; Adds variadic declaration nodes in place of literal ellipses.
         (:MEMBERS
          ((:TYPE . "IMMEDIATE_TOKEN")
           (:CONTENT (:TYPE . "STRING") (:VALUE . "(")))
@@ -1518,16 +1522,19 @@ definitions.")
        (:TYPE-DESCRIPTOR
         (:TYPE . "SEQ")
         (:MEMBERS
+         ;; Wrap a field around the type qualifier.
          ((:TYPE . "REPEAT")
           (:CONTENT
            (:TYPE . "FIELD") (:NAME . "pre_type_qualifiers")
            (:CONTENT
             (:TYPE . "SYMBOL") (:NAME . "type_qualifier"))))
+         ;; Wrap a field around the type specifier.
          ((:TYPE . "FIELD")
           (:NAME . "type")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
          ((:TYPE . "REPEAT")
           (:CONTENT
+           ;; Wrap a field around the post type qualifiers.
            (:TYPE . "FIELD") (:NAME . "post_type_qualifiers")
            (:CONTENT
             (:TYPE . "SYMBOL") (:NAME . "type_qualifier"))))
@@ -1648,6 +1655,7 @@ definitions.")
        (:-SIMPLE-STATEMENTS (:TYPE . "SYMBOL") (:NAME . "_simple_statement"))
        (:FUNCTION-DEFINITION (:TYPE . "SEQ")
         (:MEMBERS
+         ;; Add a field for async.
          ((:TYPE . "FIELD") (:NAME . "async")
           (:CONTENT
            (:TYPE . "CHOICE")
@@ -1671,6 +1679,7 @@ definitions.")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_suite")))))
        (:FOR-STATEMENT (:TYPE . "SEQ")
         (:MEMBERS
+         ;; Add a field for async.
          ((:TYPE . "FIELD") (:NAME . "async")
           (:CONTENT
            (:TYPE . "CHOICE")
@@ -1691,11 +1700,12 @@ definitions.")
                      ((:TYPE . "BLANK")))))))
        (:WITH-STATEMENT (:TYPE . "SEQ")
          (:MEMBERS
-         ((:TYPE . "FIELD") (:NAME . "async")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "STRING") (:VALUE . "async")) ((:TYPE . "BLANK")))))
+          ;; Add a field for async.
+          ((:TYPE . "FIELD") (:NAME . "async")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "STRING") (:VALUE . "async")) ((:TYPE . "BLANK")))))
           ((:TYPE . "STRING") (:VALUE . "with"))
           ((:TYPE . "SYMBOL") (:NAME . "with_clause"))
           ((:TYPE . "STRING") (:VALUE . ":"))
@@ -1729,6 +1739,7 @@ definitions.")
                   ((:TYPE . "STRING") (:VALUE . "not"))
                   ((:TYPE . "STRING") (:VALUE . "in"))))
                 ((:TYPE . "STRING") (:VALUE . "in"))
+                ;; The next two clauses are swapped.
                 ((:TYPE . "SEQ")
                  (:MEMBERS ((:TYPE . "STRING") (:VALUE . "is"))
                            ((:TYPE . "STRING") (:VALUE . "not"))))
@@ -1743,6 +1754,7 @@ definitions.")
         (:CONTENT
          (:TYPE . "SEQ")
          (:MEMBERS
+          ;; Add a field for `async'.
           ((:TYPE . "FIELD") (:NAME . "async")
            (:CONTENT
             (:TYPE . "CHOICE")
@@ -1762,6 +1774,7 @@ definitions.")
                      ((:TYPE . "BLANK")))))))
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
+         ;; Put the string before the symbol.
          ((:TYPE . "STRING") (:VALUE . ";"))
          ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))))
        (:EXPORT-STATEMENT (:TYPE . "CHOICE")
