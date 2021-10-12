@@ -57,6 +57,41 @@ specialized on `typescript-tsx'."
 
 (with-tsx-methods ()
 
+  (defmethod transform-parse-tree
+      ((language (eql :typescript-ts))
+       (class (eql 'typescript-ts-lexical-declaration))
+       parse-tree &key)
+    (copy-parse-tree
+     parse-tree
+     :children
+     (mapcar
+      (lambda (child-tree)
+        (let ((type (parse-tree-type child-tree)))
+          (cond ((member type '(:const :let))
+                 (cons (list :kind type)
+                       (cdr child-tree)))
+                (t child-tree))))
+      (parse-tree-children parse-tree))))
+
+  (defmethod transform-parse-tree
+      ((language (eql :typescript-ts))
+       (class (eql 'typescript-ts-for-in-statement))
+       parse-tree &key)
+    (copy-parse-tree
+     parse-tree
+     :children
+     (mapcar
+      (lambda (child-tree)
+        (let ((type (parse-tree-type child-tree)))
+          (cond ((member type '(:const :let :var))
+                 (cons (list :kind type)
+                       (cdr child-tree)))
+                ((member type '(:in :of))
+                 (cons (list :operator type)
+                       (cdr child-tree)))
+                (t child-tree))))
+      (parse-tree-children parse-tree))))
+
   ;; NB What should `function-parameters' return in the presence of
   ;; destructuring? Given a parameter list like `({a, b, c}, {x, y z})'
   ;; are there two parameters or six? Currently our answer is two, not

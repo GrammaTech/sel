@@ -48,7 +48,10 @@ BLANK precedes the other branches."
   "Test that const doesn't become let."
   (is (equal "const x = 1"
              (source-text
-              (typescript-ts "const x = 1")))))
+              (typescript-ts "const x = 1"))))
+  (is (equal "let x = 1"
+             (source-text
+              (typescript-ts "let x = 1")))))
 
 (deftest test-typescript-for-of-const ()
   ;; It already works with `var' and `let', here to make sure we don't

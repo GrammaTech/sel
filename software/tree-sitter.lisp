@@ -733,7 +733,15 @@ searched to populate `*tree-sitter-language-files*'.")
        (python-with-statement (:async)))
       (:javascript
        (javascript-function-declaration (:async))
-       (javascript-export-statement (:default))))
+       (javascript-export-statement (:default)))
+      (:typescript-ts
+       (typescript-ts-lexical-declaration (:kind))
+       (typescript-ts-for-in-statement (:kind) (:operator) (:value))
+       (typescript-ts-export-statement (:default)))
+      (:typescript-tsx
+       (typescript-tsx-lexical-declaration (:kind))
+       (typescript-tsx-for-in-statement (:kind) (:operator) (:value))
+       (typescript-tsx-export-statement (:default))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
 for the language.")
@@ -1835,6 +1843,58 @@ definitions.")
          ;; Put the string before the symbol.
          ((:TYPE . "STRING") (:VALUE . ";"))
          ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))))
+       (:EXPORT-STATEMENT (:TYPE . "CHOICE")
+        (:MEMBERS
+         ((:TYPE . "SEQ")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "export"))
+           ((:TYPE . "CHOICE")
+            (:MEMBERS
+             ;; NOTE: the order here has been changed from the tree-sitter rule.
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "namespace_import"))
+               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "STRING") (:VALUE . "*"))
+               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
+               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "FIELD") (:NAME . "decorator")
+             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "decorator"))))
+           ((:TYPE . "STRING") (:VALUE . "export"))
+           ((:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SEQ")
+              (:MEMBERS
+               ((:TYPE . "FIELD")
+                (:NAME . "default")
+                (:CONTENT (:TYPE . "STRING") (:VALUE . "default")))
+               ((:TYPE . "CHOICE")
+                (:MEMBERS
+                 ((:TYPE . "FIELD") (:NAME . "declaration")
+                                    (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration")))
+                 ((:TYPE . "SEQ")
+                  (:MEMBERS
+                   ((:TYPE . "FIELD") (:NAME . "value")
+                                      (:CONTENT (:TYPE . "SYMBOL") (:NAME . "expression")))
+                   ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))
+             ((:TYPE . "FIELD")
+              (:NAME . "declaration")
+              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration")))))))))
        (:-PARAMETER-NAME (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "REPEAT")
@@ -1853,9 +1913,75 @@ definitions.")
            ((:TYPE . "BLANK"))))
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "pattern"))
-           ((:TYPE . "SYMBOL") (:NAME . "this"))))))))
+           ((:TYPE . "SYMBOL") (:NAME . "this"))))))
+       (:LEXICAL-DECLARATION
+        ;; This is the current (2021-12-10) definition from
+        ;; tree-sitter-javascript.
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD") (:NAME . "kind")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "let"))
+                     ((:TYPE . "STRING") (:VALUE . "const")))))
+         ((:TYPE . "SEQ")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "variable_declarator"))
+           ((:TYPE . "REPEAT")
+            (:CONTENT (:TYPE . "SEQ")
+                      (:MEMBERS ((:TYPE . "STRING") (:VALUE . ","))
+                                ((:TYPE . "SYMBOL") (:NAME . "variable_declarator")))))))
+         ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
+       (:-FOR-HEADER
+        ;; This is the current (2021-12-10) definition from
+        ;; tree-sitter-javascript.
+        (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "FIELD") (:NAME . "left")
+                              (:CONTENT (:TYPE . "CHOICE")
+                                        (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_lhs_expression"))
+                                                  ((:TYPE . "SYMBOL") (:NAME . "parenthesized_expression")))))
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD") (:NAME . "kind")
+                                (:CONTENT (:TYPE . "STRING") (:VALUE . "var")))
+             ((:TYPE . "FIELD") (:NAME . "left")
+                                (:CONTENT (:TYPE . "CHOICE")
+                                          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+                                                    ((:TYPE . "SYMBOL") (:NAME . "_destructuring_pattern")))))
+             ((:TYPE . "CHOICE")
+              (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_initializer"))
+                        ((:TYPE . "BLANK"))))))
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD") (:NAME . "kind")
+                                (:CONTENT (:TYPE . "CHOICE")
+                                          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "let"))
+                                                    ((:TYPE . "STRING") (:VALUE . "const")))))
+             ((:TYPE . "FIELD") (:NAME . "left")
+                                (:CONTENT (:TYPE . "CHOICE")
+                                          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "identifier"))
+                                                    ((:TYPE . "SYMBOL") (:NAME . "_destructuring_pattern")))))))))
+         ((:TYPE . "FIELD") (:NAME . "operator")
+          (:CONTENT (:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "in"))
+                     ((:TYPE . "STRING") (:VALUE . "of")))))
+         ((:TYPE . "FIELD") (:NAME . "right")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expressions")))
+         ((:TYPE . "STRING") (:VALUE . ")"))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
-before class generation and analysis.")
+before class generation and analysis.
+
+Using this variable allows you to override the definitions of rules in
+the `grammar.json' file for a given language.
+
+Most commonly this is used to insert fields in places where
+tree-sitter would otherwise lose data. Note that in that case you will
+also need to (1) add a slot for the field in
+`*tree-sitter-ast-extra-slots*' above and (2) define a corresponding
+`transform-parse-tree' method to postprocess the output of
+tree-sitter.")
 
   (defparameter *tree-sitter-json-node-type-substitutions*
     '((:python
