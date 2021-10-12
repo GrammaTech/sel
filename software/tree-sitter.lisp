@@ -5111,15 +5111,6 @@ or comments.  NIL if no such newline exists."
     (declare (ignore name nodes-file))
     (decode-json-from-source (pathname grammar-file))))
 
-;;; TODO We may not need this anymore with the language files
-;;;      available for per-language customizations.
-(defmacro when-class-defined ((software-class) &body body)
-  "Checks if SOFTWARE-CLASS is defined at compile-time. If so,
-it expands into BODY. Otherwise, the expansion is nil."
-  (when (find-class software-class nil)
-    `(progn
-       ,@body)))
-
 (defun interpreted-phenome (obj bin)
   "Create a phenotype of the interpreted software OBJ."
   (to-file obj bin)
