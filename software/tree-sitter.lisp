@@ -1830,6 +1830,11 @@ definitions.")
               (:NAME . "declaration")
               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration"))))))))))
       (:typescript-ts
+       (:-SEMICOLON (:TYPE . "CHOICE")
+        (:MEMBERS
+         ;; Put the string before the symbol.
+         ((:TYPE . "STRING") (:VALUE . ";"))
+         ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))))
        (:-PARAMETER-NAME (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "REPEAT")
@@ -1911,6 +1916,22 @@ chosen when gathering a string representation of a JSON subtree.")
                 (t child-tree)))
             (parse-tree-children parse-tree))))))
       (:javascript
+       (:symbol-names ("_semicolon")
+        :slot-name "semicolon"
+        :predicate ,(constantly t)
+        :transform
+        (lambda (parse-tree)
+          (copy-parse-tree
+           parse-tree
+           :children
+           (mapcar
+            (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
+              (cond
+                ((eql child-type :|;|)
+                 (cons (list :semicolon child-type) (cdr child-tree)))
+                (t child-tree)))
+            (parse-tree-children parse-tree))))))
+      (:typescript-ts
        (:symbol-names ("_semicolon")
         :slot-name "semicolon"
         :predicate ,(constantly t)
