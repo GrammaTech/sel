@@ -4876,15 +4876,20 @@ are ordered for reproduction as source text.")
          (append-before-and-after-asts
           (computed-text-output-transformation ast)))
         (t
-         (handler-case (append-before-and-after-asts (call-next-method))
-           (rule-matching-error (rule-error)
-             (if (and (not finalized-type)
-                      (slot-exists-p ast 'choice-superclass))
-                 ;; Try to find a relevant subclass if the current one does
-                 ;; not match.
-                 (output-transformation
-                  (change-class ast (slot-value ast 'choice-superclass)))
-                 (error rule-error)))))))))
+         (block nil
+           ;; Use handler-bind so we don't unwind if we can't handle.
+           (handler-bind
+               ((rule-matching-error
+                 (lambda (rule-error)
+                   (declare (ignore rule-error))
+                   (if (and (not finalized-type)
+                            (slot-exists-p ast 'choice-superclass))
+                       ;; Try to find a relevant subclass if the current one does
+                       ;; not match.
+                       (return
+                         (output-transformation
+                          (change-class ast (slot-value ast 'choice-superclass))))))))
+             (append-before-and-after-asts (call-next-method)))))))))
 
 (defmethod predecessor ((root structured-text) (node structured-text))
   (when-let (parent (parent root node))
