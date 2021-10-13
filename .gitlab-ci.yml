@@ -113,7 +113,7 @@ dependent-trace-db:
 # Use kaniko to build docker image.
 #  https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 #  https://github.com/GoogleContainerTools/kaniko
-scheduled-build:
+.image-build: &image-build
   stage: build
   inherit:
     default: false
@@ -123,11 +123,25 @@ scheduled-build:
   tags: ["kubernetes", "cluster"]
   script:
     - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}}}" > /kaniko/.docker/config.json
     - >-
       /kaniko/executor
       --context=$CI_PROJECT_DIR/
       --dockerfile=$CI_PROJECT_DIR/Dockerfile
-      --destination=$DOCKER_REGISTRY/$CI_PROJECT_PATH
+      --destination=$DESTINATION
   only:
     - schedules
+
+scheduled-build-internal:
+  variables:
+    DESTINATION: $DOCKER_REGISTRY/$CI_PROJECT_PATH
+    USERNAME: $CI_REGISTRY_USER
+    PASSWORD: $CI_REGISTRY_PASSWORD
+  <<: *image-build
+
+scheduled-build-public:
+  variables:
+    DESTINATION: grammatech/sel
+    USERNAME: $DOCKERHUB_USERNAME
+    PASSWORD: $DOCKERHUB_PASSWORD
+  <<: *image-build
