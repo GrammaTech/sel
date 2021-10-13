@@ -123,7 +123,7 @@ dependent-trace-db:
   tags: ["kubernetes", "cluster"]
   script:
     - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}}}" > /kaniko/.docker/config.json
     - >-
       /kaniko/executor
       --context=$CI_PROJECT_DIR/
@@ -137,6 +137,7 @@ scheduled-build-internal:
     DESTINATION: $DOCKER_REGISTRY/$CI_PROJECT_PATH
     USERNAME: $CI_REGISTRY_USER
     PASSWORD: $CI_REGISTRY_PASSWORD
+    REGISTRY: $CI_REGISTRY
   <<: *image-build
 
 scheduled-build-public:
@@ -144,4 +145,5 @@ scheduled-build-public:
     DESTINATION: grammatech/sel
     USERNAME: $DOCKERHUB_USERNAME
     PASSWORD: $DOCKERHUB_PASSWORD
+    REGISTRY: https://index.docker.io/v1/
   <<: *image-build
