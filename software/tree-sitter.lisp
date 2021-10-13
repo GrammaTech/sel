@@ -2111,18 +2111,22 @@ extra initarg with that prefix.")
 but aren't detected as such. This is usually due to insufficient information
 stored on the AST or external rules.")
 
+  (defun aget-all (key alist)
+    "Like `aget', but with two differences:
+1. It also matches on conses where the car is a list contains KEY.
+2. It collects *all* the matching clauses and appends them."
+    (mappend #'cdr
+             (filter (lambda (cons)
+                       (member key (ensure-list (car cons))))
+                     alist)))
+
   (defun tree-sitter-ast-classes (name grammar-file node-types-file)
     (nest
      (flet ((alternate-class-name (name)
               (string-case name
                 ("GO" "GOLANG")
                 ("TYPESCRIPT-TYPESCRIPT" "TYPESCRIPT-TS")
-                (t name)))
-            (merge-matching-options (key alist)
-              (mappend #'cdr
-                       (filter (lambda (cons)
-                                 (member key (ensure-list (car cons))))
-                               alist)))))
+                (t name)))))
      (let* ((path-name (replace-all name "/" "-"))
             (class-name (alternate-class-name (string-upcase path-name)))
             (class-keyword (make-keyword class-name))))
@@ -2136,25 +2140,23 @@ stored on the AST or external rules.")
          grammar-file
          class-name
          :ast-superclasses
-         (merge-matching-options
-          class-keyword *tree-sitter-ast-superclasses*)
+         (aget-all class-keyword *tree-sitter-ast-superclasses*)
          :base-ast-superclasses
-         (merge-matching-options class-keyword *tree-sitter-base-ast-superclasses*)
+         (aget-all class-keyword *tree-sitter-base-ast-superclasses*)
          :software-superclasses
-         (merge-matching-options class-keyword *tree-sitter-software-superclasses*)
+         (aget-all class-keyword *tree-sitter-software-superclasses*)
          :software-direct-slots
-         (merge-matching-options class-keyword *tree-sitter-software-direct-slots*)
+         (aget-all class-keyword *tree-sitter-software-direct-slots*)
          :ast-extra-slot-options
-         (merge-matching-options
-          class-keyword *tree-sitter-ast-extra-slot-options*)
+         (aget-all class-keyword *tree-sitter-ast-extra-slot-options*)
          :ast-extra-slots
-         (merge-matching-options class-keyword *tree-sitter-ast-extra-slots*)
+         (aget-all class-keyword *tree-sitter-ast-extra-slots*)
          :node-type-substitutions
-         (merge-matching-options class-keyword *tree-sitter-json-node-type-substitutions*)
+         (aget-all class-keyword *tree-sitter-json-node-type-substitutions*)
          :json-subtree-choice-resolver
-         (car (merge-matching-options class-keyword *tree-sitter-json-subtree-choice-resolver*))
+         (car (aget-all class-keyword *tree-sitter-json-subtree-choice-resolver*))
          :json-field-transformations
-         (merge-matching-options class-keyword *tree-sitter-json-field-transformations*))))))
+         (aget-all class-keyword *tree-sitter-json-field-transformations*))))))
 
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
