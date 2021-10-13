@@ -1770,7 +1770,13 @@ tree-sitter.")
          ((:TYPE . "list_splat_pattern") (:NAMED . T))
          ((:TYPE . "tuple_pattern") (:NAMED . T))
          ((:TYPE . "typed_default_parameter") (:NAMED . T))
-         ((:TYPE . "typed_parameter") (:NAMED . T))))))
+         ((:TYPE . "typed_parameter") (:NAMED . T)))))
+      ;; Both the TSX and TypeScript node-types.json have duplicate
+      ;; number types, one named and one not named, but in the
+      ;; opposite orders. This makes them consistent (and allows TSX
+      ;; to parse numbers!).
+      ((:typescript-ts :typescript-tsx)
+       ((:type . "number") (:named . t))))
     "A mapping of JSON node type substitutions to be performed on the JSON file
 before class generation and analysis. This effectively allows the definition
 of new classes.")
