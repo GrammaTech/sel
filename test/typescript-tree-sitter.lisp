@@ -19,49 +19,45 @@
 
 
 ;;; Parsing tests
-(deftest test-typescript-can-parse ()
-  (is (typep (genome (from-string 'typescript-ts "1+1"))
-             'ast)))
+(defun regression-parse-test (source)
+  "Test that SOURCE can successfully be converted to a javascript-ast and
+back to SOURCE."
+  (is (equal (source-text (convert 'typescript-ts-ast source)) source))
+  (is (equal (source-text (convert 'typescript-tsx-ast source)) source)))
 
-(deftest test-tsx-can-parse ()
-  (is (typep (genome (from-string 'typescript-tsx "1+1"))
-             'ast)))
+(deftest test-typescript-can-parse ()
+  (regression-parse-test "1+1"))
 
 (deftest test-typescript-blank-regression ()
   "Test that we can parse TypeScript rules that contain choices where
 BLANK precedes the other branches."
-  (is (typep (genome (from-string 'typescript-ts "return 1;"))
-             'ast)))
+  (regression-parse-test "return 1;"))
 
 (deftest test-typescript-readonly-regression ()
   "Test that the string \"readonly\" doesn't precede a parameter."
-  (let ((string "function (x) { }"))
-    (is (equal string (source-text (typescript-ts string))))))
+  (regression-parse-test "function (x) { }"))
 
 (deftest test-typescript-export-match ()
-  (is (typep
-       (genome
-        (from-string 'typescript "export { x } from './file';"))
-       'ast)))
+  (regression-parse-test "export { x } from './file';"))
 
 (deftest test-const-declarations-persist ()
-  "Test that const doesn't become let."
-  (is (equal "const x = 1"
-             (source-text
-              (typescript-ts "const x = 1"))))
-  (is (equal "let x = 1"
-             (source-text
-              (typescript-ts "let x = 1")))))
+  "Test that const doesn't become let (or v.v.)."
+  (regression-parse-test "const x = 1")
+  (regression-parse-test "let x = 1"))
 
 (deftest test-typescript-for-of-const ()
   ;; It already works with `var' and `let', here to make sure we don't
   ;; break anything.
-  (is (find-if (of-type 'typescript-ts-for-in-statement)
-               (genome (from-string 'typescript "for (let x of xs) {}"))))
-  (is (find-if (of-type 'typescript-ts-for-in-statement)
-               (genome (from-string 'typescript "for (var x of xs) {}"))))
-  (is (find-if (of-type 'typescript-ts-for-in-statement)
-               (genome (from-string 'typescript "for (const x of xs) {}")))))
+  (regression-parse-test "for (let x of xs) {}")
+  (regression-parse-test "for (var x of xs) {}")
+  (regression-parse-test "for (const x of xs) {}"))
+
+(deftest test-typescript-export-statement-substitution ()
+  "The substitution for export statement parses and
+reproduces source text."
+  (regression-parse-test "export default function myfun() {
+  return true;
+}"))
 
 
 ;;; Representation tests.
