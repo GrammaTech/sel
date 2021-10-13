@@ -1667,7 +1667,8 @@ definitions.")
            (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))
                      ((:TYPE . "BLANK"))))))))
       ((:typescript-ts :typescript-tsx)
-       (:-PARAMETER-NAME (:TYPE . "SEQ")
+       (:-PARAMETER-NAME
+        (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "REPEAT")
           (:CONTENT (:TYPE . "FIELD") (:NAME . "decorator")
@@ -1681,11 +1682,11 @@ definitions.")
          ((:TYPE . "CHOICE")
           ;; Upstream tree-sitter has this as a STRING instead of a
           ;; symbol, which means it is always printed.
-          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "readonly"))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "pattern"))
-           ((:TYPE . "SYMBOL") (:NAME . "this"))))))
+          (:MEMBERS ((:type . "SYMBOL") (:name . "readonly")) ((:TYPE . "BLANK"))))
+         ((:TYPE . "FIELD") (:NAME . "pattern")
+          (:CONTENT (:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "pattern"))
+                     ((:TYPE . "SYMBOL") (:NAME . "this")))))))
        (:LEXICAL-DECLARATION
         ;; This is the current (2021-12-10) definition from
         ;; tree-sitter-javascript.
