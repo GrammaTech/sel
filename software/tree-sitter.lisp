@@ -1241,238 +1241,8 @@ definitions.")
          (:seq (:slot python-internal-asts-1)))))))
 
   (defparameter *tree-sitter-json-rule-substitutions*
-    '((:c
-       (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "FIELD") (:NAME . "pre-specifiers")
-          (:CONTENT
-           (:TYPE . "REPEAT")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))
-         ((:TYPE . "FIELD") (:NAME . "type")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
-         ((:TYPE . "FIELD") (:NAME . "post-specifiers")
-          (:CONTENT
-           (:TYPE . "REPEAT")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))))
-       ;; NOTE: remove this and cpp's substitution if this is patched
-       ;;       upstream.
-       (:PREPROC-PARAMS (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "IMMEDIATE_TOKEN")
-          (:CONTENT (:TYPE . "STRING") (:VALUE . "(")))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS
-               ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-               ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration"))))
-             ((:TYPE . "REPEAT")
-              (:CONTENT
-               (:TYPE . "SEQ")
-               (:MEMBERS
-                ((:TYPE . "STRING") (:VALUE . ","))
-                ((:TYPE . "CHOICE")
-                 (:MEMBERS
-                  ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-                  ((:TYPE . "SYMBOL")
-                   (:NAME . "variadic_declaration")))))))))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "STRING") (:VALUE . ")"))))
-       (:STRUCT-SPECIFIER (:TYPE . "SEQ")
-        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "struct"))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "FIELD")
-              (:NAME . "name")
-              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
-             ((:TYPE . "CHOICE")
-              (:MEMBERS
-               ((:TYPE . "FIELD")
-                (:NAME . "body")
-                (:CONTENT (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))
-               ((:TYPE . "BLANK"))))))
-           ((:TYPE . "FIELD")
-            (:NAME . "body")
-            (:CONTENT
-             (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))))))
-       (:SIZED-TYPE-SPECIFIER (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "REPEAT1")
-          (:CONTENT
-           (:TYPE . "FIELD") (:NAME . "modifiers")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "STRING") (:VALUE . "signed"))
-             ((:TYPE . "STRING") (:VALUE . "unsigned"))
-             ((:TYPE . "STRING") (:VALUE . "long"))
-             ((:TYPE . "STRING") (:VALUE . "short"))))))
-          ((:TYPE . "FIELD") (:NAME . "type")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS
-               ((:TYPE . "PREC_DYNAMIC")
-                (:VALUE . -1)
-                (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
-               ((:TYPE . "SYMBOL") (:NAME . "primitive_type"))))
-             ((:TYPE . "BLANK")))))))
-       (:PREPROC-PARAMS (:TYPE . "SEQ")
-        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS
-               ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-               ((:TYPE . "STRING") (:VALUE . "..."))))
-             ((:TYPE . "REPEAT")
-              (:CONTENT
-               (:TYPE . "SEQ")
-               (:MEMBERS
-                ((:TYPE . "STRING") (:VALUE . ","))
-                ((:TYPE . "CHOICE")
-                 (:MEMBERS
-                  ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-                  ((:TYPE . "STRING") (:VALUE . "...")))))))))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "STRING") (:VALUE . ")"))))
-       (:TYPE-DESCRIPTOR
-        (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "REPEAT")
-          (:CONTENT
-           (:TYPE . "FIELD") (:NAME . "pre_type_qualifiers")
-           (:CONTENT
-            (:TYPE . "SYMBOL") (:NAME . "type_qualifier"))))
-         ((:TYPE . "FIELD")
-          (:NAME . "type")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
-         ((:TYPE . "REPEAT")
-          (:CONTENT
-           (:TYPE . "FIELD") (:NAME . "post_type_qualifiers")
-           (:CONTENT
-            (:TYPE . "SYMBOL") (:NAME . "type_qualifier"))))
-         ((:TYPE . "FIELD")
-          (:NAME . "declarator")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "SYMBOL") (:NAME . "_abstract_declarator"))
-            ((:TYPE . "BLANK")))))))
-       (:CASE-STATEMENT
-        (:TYPE . "PREC_RIGHT")
-        (:VALUE . 0)
-        (:CONTENT
-         (:TYPE . "SEQ")
-         (:MEMBERS
-          ((:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "SEQ")
-             (:MEMBERS
-              ((:TYPE . "STRING") (:VALUE . "case"))
-              ((:TYPE . "FIELD")
-               (:NAME . "value")
-               (:CONTENT
-                (:TYPE . "SYMBOL")
-                (:NAME . "_expression")))))
-            ((:TYPE . "STRING") (:VALUE . "default"))))
-          ((:TYPE . "STRING") (:VALUE . ":"))
-          ((:TYPE . "FIELD")
-           (:NAME . "STATEMENTS")
-           (:CONTENT
-            (:TYPE . "REPEAT")
-            (:CONTENT
-             (:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "ALIAS")
-               (:CONTENT
-                (:TYPE . "SYMBOL")
-                (:NAME . "attributed_non_case_statement"))
-               (:NAMED . T)
-               (:VALUE . "attributed_statement"))
-              ((:TYPE . "SYMBOL") (:NAME . "_non_case_statement"))
-              ((:TYPE . "SYMBOL") (:NAME . "declaration"))
-              ((:TYPE . "SYMBOL") (:NAME . "type_definition")))))))))
-       (:LABELED-STATEMENT
-        (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "FIELD")
-          (:NAME . "label")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement_identifier")))
-         ((:TYPE . "STRING") (:VALUE . ":"))
-         ((:TYPE . "FIELD")
-          (:NAME . "statement")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))))
-       (:FOR-STATEMENT
-        (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "STRING") (:VALUE . "for"))
-         ((:TYPE . "STRING") (:VALUE . "("))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "FIELD")
-            (:NAME . "initializer")
-            (:CONTENT
-             (:TYPE . "SYMBOL")
-             (:NAME . "declaration")))
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "FIELD")
-              (:NAME . "initializer")
-              (:CONTENT
-               (:TYPE . "CHOICE")
-               (:MEMBERS
-                ((:TYPE . "CHOICE")
-                 (:MEMBERS
-                  ((:TYPE . "SYMBOL") (:NAME . "_expression"))
-                  ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
-                ((:TYPE . "BLANK")))))
-             ((:TYPE . "STRING") (:VALUE . ";"))))))
-         ((:TYPE . "FIELD")
-          (:NAME . "condition")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "SYMBOL") (:NAME . "_expression"))
-            ((:TYPE . "BLANK")))))
-         ((:TYPE . "STRING") (:VALUE . ";"))
-         ((:TYPE . "FIELD")
-          (:NAME . "update")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "SYMBOL") (:NAME . "_expression"))
-              ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
-            ((:TYPE . "BLANK")))))
-         ((:TYPE . "STRING") (:VALUE . ")"))
-         ((:TYPE . "FIELD")
-          (:NAME . "body")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
-      (:cpp
+    '(((:c :cpp)
+       ;; These are common to C and C++.
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
         (:MEMBERS
          ;; Inline _declaration_modifiers and wrap a field around it.
@@ -1500,8 +1270,7 @@ definitions.")
              ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
              ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
              ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))))
-       ;; NOTE: remove this and cpp's substitution if this is patched
-       ;;       upstream.
+       ;; NOTE: remove this if this is patched upstream.
        (:PREPROC-PARAMS (:TYPE . "SEQ")
         ;; Adds variadic declaration nodes in place of literal ellipses.
         (:MEMBERS
@@ -1553,19 +1322,6 @@ definitions.")
            (:MEMBERS
             ((:TYPE . "SYMBOL") (:NAME . "_abstract_declarator"))
             ((:TYPE . "BLANK")))))))
-       (:-CONSTRUCTOR-SPECIFIERS (:TYPE . "REPEAT1")
-        (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
-         (:CONTENT
-          (:TYPE . "FIELD")
-          (:NAME . "pre_specifiers")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
-            ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
-            ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-            ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
-            ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier")))))))
        (:CASE-STATEMENT
         (:TYPE . "PREC_RIGHT")
         (:VALUE . 0)
@@ -1657,6 +1413,78 @@ definitions.")
          ((:TYPE . "FIELD")
           (:NAME . "body")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
+      (:c
+       ;; These are specific to C.
+       (:STRUCT-SPECIFIER (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "struct"))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD")
+              (:NAME . "name")
+              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "FIELD")
+                (:NAME . "body")
+                (:CONTENT (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))
+               ((:TYPE . "BLANK"))))))
+           ((:TYPE . "FIELD")
+            (:NAME . "body")
+            (:CONTENT
+             (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))))))
+       (:SIZED-TYPE-SPECIFIER (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "REPEAT1")
+          (:CONTENT
+           (:TYPE . "FIELD") (:NAME . "modifiers")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "STRING") (:VALUE . "signed"))
+             ((:TYPE . "STRING") (:VALUE . "unsigned"))
+             ((:TYPE . "STRING") (:VALUE . "long"))
+             ((:TYPE . "STRING") (:VALUE . "short"))))))
+         ((:TYPE . "FIELD") (:NAME . "type")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "PREC_DYNAMIC")
+               (:VALUE . -1)
+               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
+              ((:TYPE . "SYMBOL") (:NAME . "primitive_type"))))
+            ((:TYPE . "BLANK")))))))
+       (:LABELED-STATEMENT
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "FIELD")
+          (:NAME . "label")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement_identifier")))
+         ((:TYPE . "STRING") (:VALUE . ":"))
+         ((:TYPE . "FIELD")
+          (:NAME . "statement")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
+      (:cpp
+       ;; These are specific to C++.
+       (:-CONSTRUCTOR-SPECIFIERS (:TYPE . "REPEAT1")
+        (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
+         (:CONTENT
+          (:TYPE . "FIELD")
+          (:NAME . "pre_specifiers")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
@@ -1753,33 +1581,7 @@ definitions.")
                            ((:TYPE . "STRING") (:VALUE . "not"))))
                 ((:TYPE . "STRING") (:VALUE . "is")))))
              ((:TYPE . "SYMBOL") (:NAME . "primary_expression")))))))))
-      (:javascript
-       ;; TODO: add a substitution for javascript-array.
-       ;;       This will add a javascript-blank-ast between any two
-       ;;       consecutive commas via a parse tree transformation.
-       (:FUNCTION-DECLARATION
-        (:TYPE . "PREC_RIGHT") (:VALUE . "declaration")
-        (:CONTENT
-         (:TYPE . "SEQ")
-         (:MEMBERS
-          ;; Add a field for `async'.
-          ((:TYPE . "FIELD") (:NAME . "async")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "STRING") (:VALUE . "async"))
-             ((:TYPE . "BLANK")))))
-          ((:TYPE . "STRING") (:VALUE . "function"))
-          ((:TYPE . "FIELD") (:NAME . "name")
-           (:CONTENT
-            (:TYPE . "SYMBOL") (:NAME . "identifier")))
-          ((:TYPE . "SYMBOL") (:NAME . "_call_signature"))
-          ((:TYPE . "FIELD") (:NAME . "body")
-           (:CONTENT
-            (:TYPE . "SYMBOL") (:NAME . "statement_block")))
-          ((:TYPE . "CHOICE")
-           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))
-                     ((:TYPE . "BLANK")))))))
+      ((:javascript :typescript-ts :typescript-tsx)
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
          ;; Put the string before the symbol.
@@ -1837,64 +1639,34 @@ definitions.")
              ((:TYPE . "FIELD")
               (:NAME . "declaration")
               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration"))))))))))
-      (:typescript-ts
-       (:-SEMICOLON (:TYPE . "CHOICE")
-        (:MEMBERS
-         ;; Put the string before the symbol.
-         ((:TYPE . "STRING") (:VALUE . ";"))
-         ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))))
-       (:EXPORT-STATEMENT (:TYPE . "CHOICE")
-        (:MEMBERS
-         ((:TYPE . "SEQ")
-          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "export"))
-           ((:TYPE . "CHOICE")
+      (:javascript
+       ;; TODO: add a substitution for javascript-array.
+       ;;       This will add a javascript-blank-ast between any two
+       ;;       consecutive commas via a parse tree transformation.
+       (:FUNCTION-DECLARATION
+        (:TYPE . "PREC_RIGHT") (:VALUE . "declaration")
+        (:CONTENT
+         (:TYPE . "SEQ")
+         (:MEMBERS
+          ;; Add a field for `async'.
+          ((:TYPE . "FIELD") (:NAME . "async")
+           (:CONTENT
+            (:TYPE . "CHOICE")
             (:MEMBERS
-             ;; NOTE: the order here has been changed from the tree-sitter rule.
-             ((:TYPE . "SEQ")
-              (:MEMBERS
-               ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
-               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
-               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
-             ((:TYPE . "SEQ")
-              (:MEMBERS
-               ((:TYPE . "SYMBOL") (:NAME . "namespace_import"))
-               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
-               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
-             ((:TYPE . "SEQ")
-              (:MEMBERS
-               ((:TYPE . "SYMBOL") (:NAME . "export_clause"))
-               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
-             ((:TYPE . "SEQ")
-              (:MEMBERS
-               ((:TYPE . "STRING") (:VALUE . "*"))
-               ((:TYPE . "SYMBOL") (:NAME . "_from_clause"))
-               ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))
-         ((:TYPE . "SEQ")
-          (:MEMBERS
-           ((:TYPE . "REPEAT")
-            (:CONTENT
-             (:TYPE . "FIELD") (:NAME . "decorator")
-             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "decorator"))))
-           ((:TYPE . "STRING") (:VALUE . "export"))
-           ((:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "SEQ")
-              (:MEMBERS
-               ((:TYPE . "FIELD")
-                (:NAME . "default")
-                (:CONTENT (:TYPE . "STRING") (:VALUE . "default")))
-               ((:TYPE . "CHOICE")
-                (:MEMBERS
-                 ((:TYPE . "FIELD") (:NAME . "declaration")
-                                    (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration")))
-                 ((:TYPE . "SEQ")
-                  (:MEMBERS
-                   ((:TYPE . "FIELD") (:NAME . "value")
-                                      (:CONTENT (:TYPE . "SYMBOL") (:NAME . "expression")))
-                   ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))
-             ((:TYPE . "FIELD")
-              (:NAME . "declaration")
-              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration")))))))))
+             ((:TYPE . "STRING") (:VALUE . "async"))
+             ((:TYPE . "BLANK")))))
+          ((:TYPE . "STRING") (:VALUE . "function"))
+          ((:TYPE . "FIELD") (:NAME . "name")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "identifier")))
+          ((:TYPE . "SYMBOL") (:NAME . "_call_signature"))
+          ((:TYPE . "FIELD") (:NAME . "body")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "statement_block")))
+          ((:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))
+                     ((:TYPE . "BLANK"))))))))
+      ((:typescript-ts :typescript-tsx)
        (:-PARAMETER-NAME (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "REPEAT")
@@ -2703,8 +2475,8 @@ and returns the result."
     ;; NOTE: this will become inefficient with a lot of rule
     ;;       substitutions.
     (let ((substitutions
-            (aget (make-keyword language)
-                  *tree-sitter-json-rule-substitutions*)))
+           (aget-all (make-keyword language)
+                     *tree-sitter-json-rule-substitutions*)))
       (reduce
        (lambda (rules substitution)
          (areplace (car substitution) (cdr substitution) rules))
