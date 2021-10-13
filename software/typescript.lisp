@@ -92,6 +92,21 @@ specialized on `typescript-tsx'."
                 (t child-tree))))
       (parse-tree-children parse-tree))))
 
+  (defmethod transform-parse-tree
+      ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-export-statement))
+       parse-tree &key)
+    (copy-parse-tree
+     parse-tree
+     :children
+     (mapcar
+      (lambda (child-tree &aux (type (parse-tree-type child-tree)))
+        (cond
+          ((eql type :default)
+           (cons (list :default type) (cdr child-tree)))
+          (t child-tree)))
+      (parse-tree-children parse-tree))))
+
   ;; NB What should `function-parameters' return in the presence of
   ;; destructuring? Given a parameter list like `({a, b, c}, {x, y z})'
   ;; are there two parameters or six? Currently our answer is two, not
