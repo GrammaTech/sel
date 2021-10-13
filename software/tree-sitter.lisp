@@ -5099,6 +5099,18 @@ or comments.  NIL if no such newline exists."
                  ,node-types-file
                  ',name))))))
 
+(defun dump-tree-sitter-grammar-json (name
+                                      &aux (*json-identifier-name-to-lisp*
+                                            #'convert-name))
+  "Dump the grammar for language NAME."
+  (destructuring-bind (name grammar-file nodes-file)
+      (or (find name
+                *tree-sitter-language-files*
+                :key 'car :test #'string-equal)
+          (error "Unknown language: ~a" name))
+    (declare (ignore name nodes-file))
+    (decode-json-from-source (pathname grammar-file))))
+
 ;;; TODO We may not need this anymore with the language files
 ;;;      available for per-language customizations.
 (defmacro when-class-defined ((software-class) &body body)
