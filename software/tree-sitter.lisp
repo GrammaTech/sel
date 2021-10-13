@@ -1814,7 +1814,7 @@ chosen when gathering a string representation of a JSON subtree.")
                  (cons (list :operator child-type) (cdr child-tree)))
                 (t child-tree)))
             (parse-tree-children parse-tree))))))
-      (:javascript
+      ((:javascript :typescript-ts :typescript-tsx)
        (:symbol-names ("_semicolon")
         :slot-name "semicolon"
         :predicate ,(constantly t)
@@ -1829,23 +1829,7 @@ chosen when gathering a string representation of a JSON subtree.")
                 ((eql child-type :|;|)
                  (cons (list :semicolon child-type) (cdr child-tree)))
                 (t child-tree)))
-            (parse-tree-children parse-tree))))))
-      (:typescript-ts
-       (:symbol-names ("_semicolon")
-        :slot-name "semicolon"
-        :predicate ,(constantly t)
-        :transform
-        (lambda (parse-tree)
-          (copy-parse-tree
-           parse-tree
-           :children
-            (mapcar
-             (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
-               (cond
-                 ((eql child-type :|;|)
-                  (cons (list :semicolon child-type) (cdr child-tree)))
-                 (t child-tree)))
-             (parse-tree-children parse-tree)))))))
+            (parse-tree-children parse-tree)))))))
     "A mapping of tree-sitter symbol names that should have fields wrapped
 around them. It is also followed by the slot that should be added to the relevant
 class, a predicate that determines whether a subtree should be encapsulated and
