@@ -1686,7 +1686,34 @@ definitions.")
         (:MEMBERS
          ;; Put the string before the symbol.
          ((:TYPE . "STRING") (:VALUE . ";"))
-         ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))))
+         ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon")))))
+      (:javascript
+       ;; TODO: add a substitution for javascript-array.
+       ;;       This will add a javascript-blank-ast between any two
+       ;;       consecutive commas via a parse tree transformation.
+       (:FUNCTION-DECLARATION
+        (:TYPE . "PREC_RIGHT") (:VALUE . "declaration")
+        (:CONTENT
+         (:TYPE . "SEQ")
+         (:MEMBERS
+          ;; Add a field for `async'.
+          ((:TYPE . "FIELD") (:NAME . "async")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "STRING") (:VALUE . "async"))
+             ((:TYPE . "BLANK")))))
+          ((:TYPE . "STRING") (:VALUE . "function"))
+          ((:TYPE . "FIELD") (:NAME . "name")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "identifier")))
+          ((:TYPE . "SYMBOL") (:NAME . "_call_signature"))
+          ((:TYPE . "FIELD") (:NAME . "body")
+           (:CONTENT
+            (:TYPE . "SYMBOL") (:NAME . "statement_block")))
+          ((:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))
+                     ((:TYPE . "BLANK")))))))
        (:EXPORT-STATEMENT (:TYPE . "CHOICE")
         (:MEMBERS
          ((:TYPE . "SEQ")
@@ -1739,33 +1766,6 @@ definitions.")
              ((:TYPE . "FIELD")
               (:NAME . "declaration")
               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "declaration"))))))))))
-      (:javascript
-       ;; TODO: add a substitution for javascript-array.
-       ;;       This will add a javascript-blank-ast between any two
-       ;;       consecutive commas via a parse tree transformation.
-       (:FUNCTION-DECLARATION
-        (:TYPE . "PREC_RIGHT") (:VALUE . "declaration")
-        (:CONTENT
-         (:TYPE . "SEQ")
-         (:MEMBERS
-          ;; Add a field for `async'.
-          ((:TYPE . "FIELD") (:NAME . "async")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "STRING") (:VALUE . "async"))
-             ((:TYPE . "BLANK")))))
-          ((:TYPE . "STRING") (:VALUE . "function"))
-          ((:TYPE . "FIELD") (:NAME . "name")
-           (:CONTENT
-            (:TYPE . "SYMBOL") (:NAME . "identifier")))
-          ((:TYPE . "SYMBOL") (:NAME . "_call_signature"))
-          ((:TYPE . "FIELD") (:NAME . "body")
-           (:CONTENT
-            (:TYPE . "SYMBOL") (:NAME . "statement_block")))
-          ((:TYPE . "CHOICE")
-           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_automatic_semicolon"))
-                     ((:TYPE . "BLANK"))))))))
       ((:typescript-ts :typescript-tsx)
        (:-PARAMETER-NAME
         (:TYPE . "SEQ")
