@@ -59,6 +59,11 @@ reproduces source text."
   return true;
 }"))
 
+(deftest test-typescript-export-variants ()
+  (regression-parse-test "export type x = typeof y;")
+  (regression-parse-test "export as namespace foo;")
+  (regression-parse-test "export = fn;"))
+
 
 ;;; Representation tests.
 
