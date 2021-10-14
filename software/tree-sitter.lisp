@@ -2475,13 +2475,24 @@ and returns the result."
 
   (defun substitute-json-node-types (substitutions node-types)
     "Substitute types in NODE-TYPES based on mappings found for LANGUAGE."
-    ;; NOTE: this will become inefficient with a lot of node type
-    ;;       substitutions.
-    (reduce
-     (lambda (node-types substitution)
-       (cons substitution (remove (cdar substitution) node-types
-                                  :key #'cdar :test #'equal)))
-     substitutions :initial-value node-types))
+    (let* ((node-types
+            ;; NOTE: this will become inefficient with a lot of node
+            ;;       type substitutions.
+            (reduce
+             (lambda (node-types substitution)
+               (cons substitution (remove (cdar substitution) node-types
+                                          :key #'cdar :test #'equal)))
+             substitutions :initial-value (copy-list node-types)))
+           (constraints
+            (iter constraints
+                  (for node-type in node-types)
+                  (for type = (cdar node-type))
+                  (when-let (subtypes (aget :subtypes node-type))
+                    (iter (for subtype in subtypes)
+                          (in constraints
+                              (collect (list type (cdar subtype))))))))
+           (ordering (toposort constraints :test #'equal)))
+      (stable-sort node-types ordering :key #'cdar)))
 
   (defun add-aliased-rules
       (rules
