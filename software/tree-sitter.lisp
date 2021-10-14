@@ -5039,18 +5039,6 @@ or comments.  NIL if no such newline exists."
                  ,node-types-file
                  ',name))))))
 
-(defun dump-tree-sitter-grammar-json (name
-                                      &aux (*json-identifier-name-to-lisp*
-                                            #'convert-name))
-  "Dump the grammar for language NAME."
-  (destructuring-bind (name grammar-file nodes-file)
-      (or (find name
-                *tree-sitter-language-files*
-                :key 'car :test #'string-equal)
-          (error "Unknown language: ~a" name))
-    (declare (ignore name nodes-file))
-    (decode-json-from-source (pathname grammar-file))))
-
 (defun interpreted-phenome (obj bin)
   "Create a phenotype of the interpreted software OBJ."
   (to-file obj bin)
@@ -5428,43 +5416,6 @@ If NODE is not a thing that has fields, return nil.")
          (collect `(declaim (notinline ,(car form))))
          (collect (cons 'defun form)))
      ,@body))
-
-#+nil
-(let ((*json-identifier-name-to-lisp* #'convert-name))
-  (setf rules
-        (aget :rules
-              (setf grammar (decode-json-from-string (file-to-string "/usr/share/tree-sitter/c/grammar.json"))))))
-
-#+nil
-(setf transformed-json
-      (mapcar (lambda (rule)
-                (cons (car rule) (transform-json-rule (cdr rule) grammar)))
-              rules))
-
-#+nil
-(setf types (decode-json-from-string (file-to-string "/usr/share/tree-sitter/c/node-types.json")))
-
-#+nil
-(setf pruned (mapcar (op (list (car _) (prune-rule-tree (cdr _1))))  transformed-json))
-
-#+nil
-(setf collapsed (mapcar (op (list (car _) (collapse-rule-tree (cadr _1))))  pruned))
-
-;;; TODO: this needs to be added into the code generation process and printed out
-;;;       to *error-output* so that these issues are apparent.
-#+nil
-(mapcar (lambda (rule)
-          ;; This will map rules to whether they're problematic or not.
-          (list (car rule) (structured-rule-p (cadr rule))))
-        collapsed)
-
-#+nil
-(setf expansions (mapcar (lambda (json)
-                           (expand-choice-branches (aget (car json) pruned) (cdr json)))
-                         transformed-json))
-
-#+nil
-(defmacro defthings () (generate-structured-text-methods grammar types :c (make-hash-table)))
 
 (defun children-parser (ast pruned-rule slots &aux (child-stack-key '#.(gensym)))
   "Return the children of AST in order based on PRUNED-RULE. SLOTS specifies
