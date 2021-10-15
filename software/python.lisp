@@ -21,16 +21,8 @@
 (defun modify-async-parse-tree (parse-tree)
   "Transform PARSE-TREE such that an async field is present for 'async'
 identifiers."
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree)
-       (cond
-         ((equal (car child-tree) :async)
-          (cons (list :async :async) (cdr child-tree)))
-         (t child-tree)))
-     (lastcar parse-tree)))))
+  (with-modify-parse-tree (parse-tree)
+    (:async (label-as :async))))
 
 (defmethod transform-parse-tree
     ((language (eql ':python)) (class (eql 'python-function-definition))

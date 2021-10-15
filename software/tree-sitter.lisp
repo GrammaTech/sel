@@ -4869,6 +4869,59 @@ of a grammar.")
     (declare (ignorable spec))
     class))
 
+(defun label-as (field-name &rest types)
+  "Return a function that wraps parse trees of TYPE as fields named
+FIELD-NAME.
+
+If there are no types, always wrap."
+  (check-type field-name keyword)
+  (assert (every #'keywordp types))
+  (lambda (tree)
+    (let ((type (parse-tree-type tree)))
+      (when (or (null types) (member type types))
+        (cons (list field-name type)
+              (cdr tree))))))
+
+(defun ignore-types (&rest types)
+  (assert types)
+  (lambda (tree)
+    (and (member (parse-tree-type tree) types)
+         tree)))
+
+(defun rename-type-to (to from)
+  (lambda (tree)
+    (and (eql (parse-tree-type tree) from)
+         (copy-parse-tree tree :type to))))
+
+(-> modify-parse-tree (list &rest function) list)
+(defun modify-parse-tree (parse-tree &rest fns)
+  "For each child of PARSE-TREE, call each function in FNS with the child tree.
+
+The first function to return non-nil is treated as the new child;
+otherwise the original child is used."
+  (copy-parse-tree
+   parse-tree
+   :children
+   (mapcar
+    (lambda (child-tree)
+      (cond ((consp (parse-tree-type child-tree))
+             child-tree)
+            ((some (op (funcall _ child-tree)) fns))
+            (t child-tree)))
+    (parse-tree-children parse-tree))))
+
+(defmacro with-modify-parse-tree ((parse-tree &key) &body body)
+  "Like `modify-parse-tree', but with a case-like syntax.
+Each clause consists of a key (or list of keys) and a function call.
+The keys are simply appended to the function call.
+
+If the key is `t', the call is left unchanged."
+  `(modify-parse-tree
+    ,parse-tree
+    ,@(iter (for (key/s call) in body)
+            (collect (if (eql key/s t) call
+                         (append call (ensure-list key/s)))))))
+
 (defgeneric transform-parse-tree
     (language class parse-tree &rest rest &key &allow-other-keys)
   (:documentation "Transform PARSE-TREE based on LANGUAGE and CLASS.")
@@ -7269,17 +7322,9 @@ the rebinding"
 ;;;; Parse Tree Util
 (defun add-operator-to-binary-operation (parse-tree)
   "Adds the operator in a binary operation to the :operator slot."
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree &aux (car (car child-tree)))
-       (cond
-         ((consp car) child-tree)
-         ((member car '(:error :comment)) child-tree)
-         (t (cons (list :operator (car child-tree))
-                  (cdr child-tree)))))
-     (lastcar parse-tree)))))
+  (with-modify-parse-tree (parse-tree)
+    ((:error :comment) (ignore-types))
+    (t (label-as :operator))))
 
 (defun transform-malformed-parse-tree (parse-tree &key (recursive t))
   "Return a modified version of PARSE-TREE if it is malformed.
@@ -7313,13 +7358,5 @@ Otherwise, returns PARSE-TREE."
 (defun transform-c-style-variadic-parameter (parse-tree)
   "If PARSE-TREE represents a variadic function, return a modified version of it.
 Otherwise, return PARSE-TREE."
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree &aux (car (car child-tree)))
-       (cond
-         ((eql car :|...|)
-          (cons :variadic-declaration (cdr child-tree)))
-         (t child-tree)))
-     (lastcar parse-tree)))))
+  (with-modify-parse-tree (parse-tree)
+    (:|...| (rename-type-to :variadic-declaration))))

@@ -149,17 +149,9 @@ pointer declarations which are nested on themselves."
 (defun transform-case-statement (parse-tree)
   "Transform the case statement's PARSE-TREE to allow the statements
 following the case to be stored in the 'statements' AST slot."
-  (destructuring-bind (node-type range child-parse-trees) parse-tree
-    (list node-type range
-          (mapcar
-           (lambda (child-parse-tree)
-             (let ((node-type (car child-parse-tree)))
-               (cond ((listp node-type) child-parse-tree)
-                     ((member node-type
-                              '(:case :default :\: :comment :text-fragment))
-                      child-parse-tree)
-                     (t (label-parse-tree :statements child-parse-tree)))))
-           child-parse-trees))))
+  (with-modify-parse-tree (parse-tree)
+    ((:case :default :\: :comment :text-fragment) (ignore-types))
+    (t (label-as :statements))))
 
 (defun transform-labeled-statement (parse-tree)
   "Transform the labeled statement's PARSE-TREE to allow the last child to be

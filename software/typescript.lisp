@@ -61,51 +61,23 @@ specialized on `typescript-tsx'."
       ((language (eql :typescript-ts))
        (class (eql 'typescript-ts-lexical-declaration))
        parse-tree &key)
-    (copy-parse-tree
-     parse-tree
-     :children
-     (mapcar
-      (lambda (child-tree)
-        (let ((type (parse-tree-type child-tree)))
-          (cond ((member type '(:const :let))
-                 (cons (list :kind type)
-                       (cdr child-tree)))
-                (t child-tree))))
-      (parse-tree-children parse-tree))))
+    (with-modify-parse-tree (parse-tree)
+      ((:const :let) (label-as :kind))))
 
   (defmethod transform-parse-tree
       ((language (eql :typescript-ts))
        (class (eql 'typescript-ts-for-in-statement))
        parse-tree &key)
-    (copy-parse-tree
-     parse-tree
-     :children
-     (mapcar
-      (lambda (child-tree)
-        (let ((type (parse-tree-type child-tree)))
-          (cond ((member type '(:const :let :var))
-                 (cons (list :kind type)
-                       (cdr child-tree)))
-                ((member type '(:in :of))
-                 (cons (list :operator type)
-                       (cdr child-tree)))
-                (t child-tree))))
-      (parse-tree-children parse-tree))))
+    (with-modify-parse-tree (parse-tree)
+      ((:const :let :var) (label-as :kind))
+      ((:in :of) (label-as :operator))))
 
   (defmethod transform-parse-tree
       ((language (eql ':typescript-ts))
        (class (eql 'typescript-ts-export-statement))
        parse-tree &key)
-    (copy-parse-tree
-     parse-tree
-     :children
-     (mapcar
-      (lambda (child-tree &aux (type (parse-tree-type child-tree)))
-        (cond
-          ((eql type :default)
-           (cons (list :default type) (cdr child-tree)))
-          (t child-tree)))
-      (parse-tree-children parse-tree))))
+    (with-modify-parse-tree (parse-tree)
+      (:default (label-as :default))))
 
   ;; NB What should `function-parameters' return in the presence of
   ;; destructuring? Given a parameter list like `({a, b, c}, {x, y z})'

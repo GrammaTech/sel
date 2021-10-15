@@ -22,31 +22,15 @@
     ((language (eql ':javascript))
      (class (eql 'javascript-function-declaration))
      parse-tree &key)
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree)
-       (cond
-         ((equal (car child-tree) :async)
-          (cons (list :async :async) (cdr child-tree)))
-         (t child-tree)))
-     (lastcar parse-tree)))))
+  (with-modify-parse-tree (parse-tree)
+    (:async (label-as :async))))
 
 (defmethod transform-parse-tree
     ((language (eql ':javascript))
      (class (eql 'javascript-export-statement))
      parse-tree &key)
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree &aux (child-car (car child-tree)))
-       (cond
-         ((eql child-car :default)
-          (cons (list :default child-car) (cdr child-tree)))
-         (t child-tree)))
-     (lastcar parse-tree)))))
+  (with-modify-parse-tree (parse-tree)
+    (:default (label-as :default))))
 
 
 ;;; Methods common to all software objects

@@ -43,16 +43,9 @@
     ((language (eql ':c)) (class (eql 'c-sized-type-specifier)) parse-tree &key)
   "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
 field."
-  (append
-   (butlast parse-tree)
-   (list
-    (mapcar
-     (lambda (child-tree &aux (node-type (car child-tree)))
-       (cond
-         ((consp node-type) child-tree)
-         ((member node-type '(:error :comment)) child-tree)
-         (t (cons (list :modifiers node-type) (cdr child-tree)))))
-     (lastcar parse-tree)))))
+  (with-modify-parse-tree (parse-tree)
+    ((:error :comment) (ignore-types))
+    (t (label-as :modifiers))))
 
 (defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-preproc-params)) parse-tree &key)
