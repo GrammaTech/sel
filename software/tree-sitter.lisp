@@ -1134,7 +1134,19 @@ for the language.")
        (:ecma-error
         javascript-error
         typescript-ts-error
-        typescript-tsx-error))
+        typescript-tsx-error)
+       (:ecma-identifier
+        javascript-identifier
+        typescript-ts-identifier
+        typescript-tsx-identifier)
+       (:ecma-variable-declarator
+        javascript-variable-declarator
+        typescript-ts-variable-declarator
+        typescript-tsx-variable-declarator)
+       (:ecma-assignment-expression
+        javascript-assignment-expression
+        typescript-ts-assignment-expression
+        typescript-tsx-assignment-expression))
       (:python
        (:root-ast python-module)
        (:comment-ast python-comment)
