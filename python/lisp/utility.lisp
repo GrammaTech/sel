@@ -32,7 +32,8 @@ python type identifier.")
     (labels ((pep8-camelcase (term)
                "Camelcase TERM in accordance to PEP-8 conventions."
                ;; Keep abbreviations uppercase, otherwise camelcase per PEP-8.
-               (cond ((member term '("AST" "CPP" "CXX") :test #'string=) term)
+               (cond ((member term '("AST" "CPP" "CXX" "ECMA") :test #'string=)
+                      term)
                      (t (string-capitalize term)))))
       (nest (apply #'concatenate 'string)
             (mapcar #'pep8-camelcase)
