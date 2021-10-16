@@ -171,6 +171,8 @@ AST ast to return the enclosing scope for"
     ((javascript-arrow-function :javascript-parameter (and param (type node)))
      (ast-end software param))))
 
+(defmethod parameter-type ((ast javascript-ast)) nil)
+
 (defmethod lhs ((decl javascript-variable-declarator)) (javascript-name decl))
 
 (defmethod rhs ((decl javascript-variable-declarator)) (javascript-value decl))
