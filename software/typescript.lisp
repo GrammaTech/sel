@@ -99,6 +99,9 @@ specialized on `typescript-tsx'."
                                     (fn typescript-ts-function-declaration))
     (ast-end software (typescript-ts-parameters fn)))
 
+  (defmethod function-body ((ast typescript-ts-function-declaration))
+    (typescript-ts-body ast))
+
   ;; Function signature (overload).
 
   (defmethod function-name ((ast typescript-ts-function-signature))
@@ -111,6 +114,8 @@ specialized on `typescript-tsx'."
                                     (fn typescript-ts-function-signature))
     (ast-end software (typescript-ts-parameters fn)))
 
+  (defmethod function-body ((ast typescript-ts-function-signature)) nil)
+
   ;; Anonymous function (with function keyword)
 
   (defmethod function-parameters ((ast typescript-ts-function))
@@ -119,6 +124,9 @@ specialized on `typescript-tsx'."
   (defmethod end-of-parameter-list ((software typescript-ts)
                                     (fn typescript-ts-function))
     (ast-end software (typescript-ts-parameters fn)))
+
+  (defmethod function-body ((ast typescript-ts-function))
+    (typescript-ts-body ast))
 
   ;; Arrow function.
 
@@ -138,5 +146,8 @@ specialized on `typescript-tsx'."
     (ast-end software
              (or (typescript-ts-parameters fn)
                  (typescript-ts-parameter fn)))))
+
+  (defmethod function-body ((ast typescript-ts-arrow-function))
+    (typescript-ts-body ast))
 
 )
