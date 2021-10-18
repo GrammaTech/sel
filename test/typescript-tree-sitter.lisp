@@ -111,7 +111,7 @@ unparenthesized argument."
   (dolist (file (get-ts-files dir))
     (with-simple-restart (continue "Next")
       (stefil:finishes
-        (genome (from-file 'typescript file))))))
+       (source-text (genome (from-file 'typescript file)))))))
 
 (defun faulty-classes (dir)
   (hash-table-alist
