@@ -65,6 +65,13 @@ reproduces source text."
   (regression-parse-test "export as namespace foo;")
   (regression-parse-test "export = fn;"))
 
+(deftest test-multiple-signatures ()
+  (finishes
+   (genome
+    (from-file 'typescript
+               (asdf:system-relative-pathname
+                :software-evolution-library
+                #p"test/etc/typescript/multiple-signatures-regression.ts")))))
 
 ;;; Representation tests.
 
