@@ -87,10 +87,6 @@ specialized on `typescript-tsx'."
   ;; said the six-parameter case might eventually deserve another
   ;; function.
 
-  (defmethod parameter-type ((ast typescript-ts-required-parameter))
-    (find-if (of-type 'typescript-ts-type-annotation)
-             (direct-children ast)))
-
   ;; Function declaration.
 
   (defmethod function-name ((ast typescript-ts-function-declaration))

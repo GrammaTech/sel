@@ -848,7 +848,14 @@ for the language.")
          :reader return-type))
        (typescript-tsx-arrow-function
         (typescript-tsx-return-type
-         :reader return-type))))
+         :reader return-type))
+       ;; Required parameter.
+       (typescript-ts-required-parameter
+        (typescript-ts-type
+         :reader parameter-type))
+       (typescript-tsx-required-parameter
+        (typescript-tsx-type
+         :reader parameter-type))))
     "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
