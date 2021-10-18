@@ -77,3 +77,10 @@ unparenthesized argument."
        (finishes
         (assure list
           (function-parameters (typescript-tsx "x => 1")))))))
+
+(deftest test-parameter-type ()
+  (is (string$= "string"
+                (source-text
+                 (parameter-type
+                  (find-if (of-type 'typescript-ts-required-parameter)
+                           (typescript-ts "function (x: string) {}")))))))
