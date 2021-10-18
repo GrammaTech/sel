@@ -35,6 +35,13 @@
   (:documentation "Mixin class for software where preserving the original
 path from which the software was created is required."))
 
+(defmethod print-object ((file file) stream)
+  (with-slots (original-path) file
+    (if original-path
+        (print-unreadable-object (file stream :type t)
+          (format stream "~a" original-path))
+        (print-unreadable-object (file stream :type t :identity t)))))
+
 (defgeneric original-directory (obj)
   (:documentation "Return the original directory OBJ was populated from.")
   (:method ((obj file))
