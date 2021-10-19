@@ -17,7 +17,7 @@
 (in-package :software-evolution-library/test/javascript-project)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-javascript-project "Javascript representation."
-    (acorn-available-p))
+  (javascript-tree-sitter-available-p))
 
 (defixture fib-project-javascript
   (:setup

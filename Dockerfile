@@ -14,7 +14,6 @@ ENV LC_ALL=C.UTF-8 LANG=C.UTF-8
 RUN update-alternatives --install /usr/bin/pytest pytest /usr/bin/pytest-3 1
 # Install NPM
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
-RUN npm install --global acorn
 RUN npm install --global prettier
 RUN pip3 install yapf
 

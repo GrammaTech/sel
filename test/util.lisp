@@ -22,7 +22,6 @@
            :+python-utility-dir+
            :+include-processing-dir+
            ;; Other functions
-           :acorn-available-p
            :c-tree-sitter-available-p
            :cpp-tree-sitter-available-p
            :go-tree-sitter-available-p
@@ -181,9 +180,6 @@
 
 
 ;;;; Helper functions.
-(defun acorn-available-p ()
-  (which "acorn"))
-
 (defun c-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::c))
                 (error (e) (declare (ignorable e)) nil)))
