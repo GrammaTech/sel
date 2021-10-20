@@ -748,12 +748,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (javascript-function-declaration (:async))
        (javascript-export-statement (:default)))
       (:typescript-ts
-       (typescript-ts-lexical-declaration (:kind))
-       (typescript-ts-for-in-statement (:kind) (:operator) (:value))
        (typescript-ts-export-statement (:default)))
       (:typescript-tsx
-       (typescript-tsx-lexical-declaration (:kind))
-       (typescript-tsx-for-in-statement (:kind) (:operator) (:value))
        (typescript-tsx-export-statement (:default))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
@@ -1771,63 +1767,7 @@ definitions.")
          ((:TYPE . "FIELD") (:NAME . "pattern")
           (:CONTENT (:TYPE . "CHOICE")
            (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "pattern"))
-                     ((:TYPE . "SYMBOL") (:NAME . "this")))))))
-       (:LEXICAL-DECLARATION
-        ;; This is the current (2021-12-10) definition from
-        ;; tree-sitter-javascript.
-        (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "FIELD") (:NAME . "kind")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "let"))
-                     ((:TYPE . "STRING") (:VALUE . "const")))))
-         ((:TYPE . "SEQ")
-          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "variable_declarator"))
-           ((:TYPE . "REPEAT")
-            (:CONTENT (:TYPE . "SEQ")
-                      (:MEMBERS ((:TYPE . "STRING") (:VALUE . ","))
-                                ((:TYPE . "SYMBOL") (:NAME . "variable_declarator")))))))
-         ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
-       (:-FOR-HEADER
-        ;; This is the current (2021-12-10) definition from
-        ;; tree-sitter-javascript.
-        (:TYPE . "SEQ")
-        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "FIELD") (:NAME . "left")
-                              (:CONTENT (:TYPE . "CHOICE")
-                                        (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_lhs_expression"))
-                                                  ((:TYPE . "SYMBOL") (:NAME . "parenthesized_expression")))))
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "FIELD") (:NAME . "kind")
-                                (:CONTENT (:TYPE . "STRING") (:VALUE . "var")))
-             ((:TYPE . "FIELD") (:NAME . "left")
-                                (:CONTENT (:TYPE . "CHOICE")
-                                          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-                                                    ((:TYPE . "SYMBOL") (:NAME . "_destructuring_pattern")))))
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_initializer"))
-                        ((:TYPE . "BLANK"))))))
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "FIELD") (:NAME . "kind")
-                                (:CONTENT (:TYPE . "CHOICE")
-                                          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "let"))
-                                                    ((:TYPE . "STRING") (:VALUE . "const")))))
-             ((:TYPE . "FIELD") (:NAME . "left")
-                                (:CONTENT (:TYPE . "CHOICE")
-                                          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-                                                    ((:TYPE . "SYMBOL") (:NAME . "_destructuring_pattern")))))))))
-         ((:TYPE . "FIELD") (:NAME . "operator")
-          (:CONTENT (:TYPE . "CHOICE")
-           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "in"))
-                     ((:TYPE . "STRING") (:VALUE . "of")))))
-         ((:TYPE . "FIELD") (:NAME . "right")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expressions")))
-         ((:TYPE . "STRING") (:VALUE . ")"))))))
+                     ((:TYPE . "SYMBOL") (:NAME . "this")))))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.
 
