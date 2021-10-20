@@ -1131,10 +1131,6 @@ for the language.")
         javascript-error
         typescript-ts-error
         typescript-tsx-error)
-       (:ecma-identifier
-        javascript-identifier
-        typescript-ts-identifier
-        typescript-tsx-identifier)
        (:ecma-variable-declarator
         javascript-variable-declarator
         typescript-ts-variable-declarator
@@ -1142,7 +1138,15 @@ for the language.")
        (:ecma-assignment-expression
         javascript-assignment-expression
         typescript-ts-assignment-expression
-        typescript-tsx-assignment-expression))
+        typescript-tsx-assignment-expression)
+       (:ecma-rest-pattern
+        javascript-rest-pattern
+        typescript-ts-rest-pattern
+        typescript-tsx-rest-pattern)
+       (:ecma-assignment-pattern
+        javascript-assignment-pattern
+        typescript-ts-assignment-pattern
+        typescript-tsx-assignment-pattern))
       (:python
        (:root-ast python-module)
        (:comment-ast python-comment)
@@ -1192,6 +1196,18 @@ for the language.")
        (:boolean-false-ast
         typescript-ts-false
         typescript-tsx-false)
+       (:identifier-ast
+        typescript-ts-identifier
+        typescript-tsx-identifier
+        typescript-ts-property-identifier
+        typescript-tsx-property-identifier
+        typescript-ts-shorthand-property-identifier
+        typescript-tsx-shorthand-property-identifier
+        typescript-ts-shorthand-property-identifier-pattern
+        typescript-tsx-shorthand-property-identifier-pattern)
+       (:call-ast
+        typescript-ts-call-expression
+        typescript-tsx-call-expression)
        (:control-flow-ast
         typescript-ts-switch-statement
         typescript-tsx-switch-statement
@@ -1236,6 +1252,9 @@ for the language.")
        (:typescript-rest-pattern
         typescript-ts-rest-pattern
         typescript-tsx-rest-pattern)
+       (:typescript-assignment-pattern
+        typescript-ts-assignment-pattern
+        typescript-tsx-assignment-pattern)
        (:typescript-function-declaration
         typescript-ts-function-declaration
         typescript-tsx-function-declaration)
