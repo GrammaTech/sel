@@ -1867,7 +1867,41 @@ definitions.")
               ((:TYPE . "SYMBOL") (:NAME . "as"))
               ((:TYPE . "SYMBOL") (:NAME . "namespace")))))
            ((:TYPE . "SYMBOL") (:NAME . "identifier"))
-           ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))))
+           ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))))
+       (:CLASS-BODY
+        (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "{"))
+         ((:TYPE . "REPEAT")
+          (:CONTENT (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SYMBOL") (:NAME . "decorator"))
+            ((:TYPE . "SEQ")
+             (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "method_definition"))
+                       ((:TYPE . "CHOICE")
+                        (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))
+                                  ((:TYPE . "BLANK"))))))
+            ((:TYPE . "SEQ")
+             (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "method_signature"))
+                       ((:TYPE . "CHOICE")
+                        ;; We've replaced the
+                        ;; function_signature_automatic_semicolon
+                        ;; token from the external scanner here with
+                        ;; an ordinary semicolon terminal, as the
+                        ;; external terminal confused children-parser.
+                        (:MEMBERS
+                         ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))
+                         ((:TYPE . "STRING") (:VALUE . ","))))))
+            ((:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "CHOICE")
+               (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "abstract_method_signature"))
+                         ((:TYPE . "SYMBOL") (:NAME . "index_signature"))
+                         ((:TYPE . "SYMBOL") (:NAME . "method_signature"))
+                         ((:TYPE . "SYMBOL") (:NAME . "public_field_definition"))))
+              ((:TYPE . "CHOICE")
+               (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))
+                         ((:TYPE . "STRING") (:VALUE . ",")))))))))
+         ((:TYPE . "STRING") (:VALUE . "}"))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.
 
