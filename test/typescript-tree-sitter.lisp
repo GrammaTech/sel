@@ -81,6 +81,14 @@ reproduces source text."
                 :software-evolution-library
                 #p"test/etc/typescript/setter-regression.ts")))))
 
+(deftest test-public-field ()
+  (finishes
+   (genome
+    (from-file 'typescript
+               (asdf:system-relative-pathname
+                :software-evolution-library
+                #p"test/etc/typescript/public-field-regression.ts")))))
+
 
 ;;; Representation tests.
 
