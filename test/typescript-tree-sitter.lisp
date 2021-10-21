@@ -61,9 +61,9 @@ reproduces source text."
 }"))
 
 (deftest test-typescript-export-variants ()
+  (regression-parse-test "export = fn;")
   (regression-parse-test "export type x = typeof y;")
-  (regression-parse-test "export as namespace foo;")
-  (regression-parse-test "export = fn;"))
+  (regression-parse-test "export as namespace foo;"))
 
 (deftest test-multiple-signatures ()
   (finishes
