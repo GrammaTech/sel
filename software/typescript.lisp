@@ -58,21 +58,6 @@ specialized on `typescript-tsx'."
 (with-tsx-methods ()
 
   (defmethod transform-parse-tree
-      ((language (eql :typescript-ts))
-       (class (eql 'typescript-ts-lexical-declaration))
-       parse-tree &key)
-    (with-modify-parse-tree (parse-tree)
-      ((:const :let) (label-as :kind))))
-
-  (defmethod transform-parse-tree
-      ((language (eql :typescript-ts))
-       (class (eql 'typescript-ts-for-in-statement))
-       parse-tree &key)
-    (with-modify-parse-tree (parse-tree)
-      ((:const :let :var) (label-as :kind))
-      ((:in :of) (label-as :operator))))
-
-  (defmethod transform-parse-tree
       ((language (eql ':typescript-ts))
        (class (eql 'typescript-ts-export-statement))
        parse-tree &key)
