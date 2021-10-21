@@ -72,6 +72,15 @@ reproduces source text."
                (asdf:system-relative-pathname
                 :software-evolution-library
                 #p"test/etc/typescript/multiple-signatures-regression.ts")))))
+
+(deftest test-setters ()
+  (finishes
+   (genome
+    (from-file 'typescript
+               (asdf:system-relative-pathname
+                :software-evolution-library
+                #p"test/etc/typescript/setter-regression.ts")))))
+
 
 ;;; Representation tests.
 

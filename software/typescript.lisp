@@ -64,6 +64,13 @@ specialized on `typescript-tsx'."
     (with-modify-parse-tree (parse-tree)
       ((:default := :as :namespace) (label-as :default))))
 
+  (defmethod transform-parse-tree
+      ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-method-definition))
+       parse-tree &key)
+    (with-modify-parse-tree (parse-tree)
+      ((:get :set :*) (label-as :getter-setter))))
+
   ;; NB What should `function-parameters' return in the presence of
   ;; destructuring? Given a parameter list like `({a, b, c}, {x, y z})'
   ;; are there two parameters or six? Currently our answer is two, not
