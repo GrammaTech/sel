@@ -749,10 +749,12 @@ searched to populate `*tree-sitter-language-files*'.")
        (javascript-export-statement (:default)))
       (:typescript-ts
        (typescript-ts-export-statement (:default))
-       (typescript-ts-method-definition (:getter-setter)))
+       (typescript-ts-method-definition (:getter-setter))
+       (typescript-ts-public-field-definition (:modifiers)))
       (:typescript-tsx
        (typescript-tsx-export-statement (:default))
-       (typescript-ts-method-definition (:getter-setter))))
+       (typescript-tsx-method-definition (:getter-setter))
+       (typescript-tsx-public-field-definition (:modifiers))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
 for the language.")
@@ -1944,35 +1946,39 @@ definitions.")
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "accessibility_modifier"))
            ((:TYPE . "BLANK"))))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "STRING") (:VALUE . "static")) ((:TYPE . "BLANK"))))
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "override_modifier"))
-                        ((:TYPE . "BLANK"))))
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "STRING") (:VALUE . "readonly"))
-                        ((:TYPE . "BLANK"))))))
-           ((:TYPE . "SEQ")
-            ;; Convert abstract and readonly from strings to symbols.
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "SYMBOL") (:name . "abstract"))
-                        ((:TYPE . "BLANK"))))
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "SYMBOL") (:name . "readonly"))
-                        ((:TYPE . "BLANK"))))))
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "SYMBOL") (:name . "readonly"))
-                        ((:TYPE . "BLANK"))))
-             ((:TYPE . "CHOICE")
-              (:MEMBERS ((:TYPE . "SYMBOL") (:name . "abstract"))
-                        ((:TYPE . "BLANK"))))))))
+         ((:type . "FIELD")
+          (:name . "modifiers")
+          (:content
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "CHOICE")
+               (:MEMBERS ((:TYPE . "STRING") (:VALUE . "static")) ((:TYPE . "BLANK"))))
+              ((:TYPE . "CHOICE")
+               (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "override_modifier"))
+                         ((:TYPE . "BLANK"))))
+              ((:TYPE . "CHOICE")
+               ;; string -> symbol
+               (:MEMBERS ((:TYPE . "SYMBOL") (:name . "readonly"))
+                         ((:TYPE . "BLANK"))))))
+            ((:TYPE . "SEQ")
+             ;; Convert abstract and readonly from strings to symbols.
+             (:MEMBERS
+              ((:TYPE . "CHOICE")
+               (:MEMBERS ((:TYPE . "SYMBOL") (:name . "abstract"))
+                         ((:TYPE . "BLANK"))))
+              ((:TYPE . "CHOICE")
+               (:MEMBERS ((:TYPE . "SYMBOL") (:name . "readonly"))
+                         ((:TYPE . "BLANK"))))))
+            ((:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "CHOICE")
+               (:MEMBERS ((:TYPE . "SYMBOL") (:name . "readonly"))
+                         ((:TYPE . "BLANK"))))
+              ((:TYPE . "CHOICE")
+               (:MEMBERS ((:TYPE . "SYMBOL") (:name . "abstract"))
+                         ((:TYPE . "BLANK")))))))))
          ((:TYPE . "FIELD") (:NAME . "name")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_property_name")))
          ((:TYPE . "CHOICE")
