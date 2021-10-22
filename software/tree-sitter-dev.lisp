@@ -87,3 +87,32 @@
                   (structured-rule-p (cadr collapsed) (cadr pruned))))
           (set-collapsed-rules name)
           *pruned-rules*))
+
+(defun update-class-allocated-slots ()
+  "For all classes exported by sel/sw/ts, update any class-allocated slots according to their initforms.
+
+\(Note that in CL class-allocated slots are *not* reinitialized if the
+class definition changes.)
+
+Return the number of slots re-initialized."
+  (let* ((symbols (package-exports :sel/sw/ts))
+         (classes (filter-map (op (find-class _ nil)) symbols))
+         (update-count 0))
+    (dolist (class classes update-count)
+      (finalize-inheritance class)
+      (when-let* ((slot-defs (class-slots class))
+                  (class-slot-defs
+                   (keep :class slot-defs :key #'slot-definition-allocation))
+                  (instance (allocate-instance class)))
+        (dolist (slot-def class-slot-defs)
+          (and-let* ((slot (slot-definition-name slot-def))
+                     ((slot-boundp instance slot))
+                     ;; This is wrong in the general case (the
+                     ;; initform should be evaluated in its original
+                     ;; lexical environment) but all the initforms
+                     ;; used by tree-sitter are constant so it doesn't
+                     ;; matter here.
+                     (initform (eval (slot-definition-initform slot-def)))
+                     ((not (equal initform (slot-value instance slot)))))
+            (setf (slot-value instance slot) initform)
+            (incf update-count)))))))
