@@ -77,7 +77,9 @@ reproduces source text."
 (deftest test-typescript-export-variants ()
   (regression-parse-test "export = fn;")
   (regression-parse-test "export type x = typeof y;")
-  (regression-parse-test "export as namespace foo;"))
+  (regression-parse-test "export as namespace foo;")
+  (regression-parse-test "export * as module from 'file';")
+  (regression-parse-test "export * from 'file' as module;"))
 
 (deftest test-multiple-signatures ()
   (regression-parse-test
