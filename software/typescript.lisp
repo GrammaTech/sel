@@ -76,7 +76,10 @@ specialized on `typescript-tsx'."
        (class (eql 'typescript-ts-public-field-definition))
        parse-tree &key)
     (with-modify-parse-tree (parse-tree)
-      ((:static :readonly :abstract) (label-as :modifiers))))
+      ((:static
+        :accessibility-modifier :override-modifier
+        :readonly :abstract)
+       (label-as :modifiers))))
 
   ;; NB What should `function-parameters' return in the presence of
   ;; destructuring? Given a parameter list like `({a, b, c}, {x, y z})'

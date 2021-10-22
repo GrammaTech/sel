@@ -91,6 +91,10 @@ reproduces source text."
   (regression-parse-test
    (path-join +ts-dir+ #p"public-field-regression.ts")))
 
+(deftest test-public-field-2 ()
+  (regression-parse-test
+   (path-join +ts-dir+ #p"public-field-regression-2.ts")))
+
 (deftest test-parameter-type-round-trip ()
   (regression-parse-test "function (x: string) {}"))
 
