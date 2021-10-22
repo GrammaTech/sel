@@ -1,3 +1,3 @@
 class myclass {
-	readonly abstract recommendations: ReadonlyArray<ExtensionRecommendation>;
+    readonly abstract recommendations: ReadonlyArray<ExtensionRecommendation>;
 }

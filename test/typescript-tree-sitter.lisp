@@ -18,13 +18,27 @@
 (defsuite test-typescript-tree-sitter "Typescript tree-sitter representation."
   (typescript-tree-sitter-available-p))
 
+(def +ts-dir+
+  (asdf:system-relative-pathname
+   :software-evolution-library
+   #p"test/etc/typescript/"))
+
 
 ;;; Parsing tests
-(defun regression-parse-test (source)
-  "Test that SOURCE can successfully be converted to a javascript-ast and
-back to SOURCE."
-  (is (equal (source-text (convert 'typescript-ts-ast source)) source))
-  (is (equal (source-text (convert 'typescript-tsx-ast source)) source)))
+(defgeneric regression-parse-test (orig)
+  (:documentation
+   "Test that ORIG can successfully be converted to a javascript-ast and
+back to ORIG.")
+  (:method ((orig string))
+    (declare (optimize debug))
+    (let* ((ast (convert 'typescript-ts-ast orig))
+           (new (source-text ast)))
+      (is (equal orig new)))
+    (let* ((ast (convert 'typescript-tsx-ast orig))
+           (new (source-text ast)))
+      (is (equal orig new))))
+  (:method ((orig pathname))
+    (regression-parse-test (read-file-into-string orig))))
 
 (deftest test-typescript-can-parse ()
   (regression-parse-test "1+1"))
@@ -66,28 +80,23 @@ reproduces source text."
   (regression-parse-test "export as namespace foo;"))
 
 (deftest test-multiple-signatures ()
-  (finishes
-   (genome
-    (from-file 'typescript
-               (asdf:system-relative-pathname
-                :software-evolution-library
-                #p"test/etc/typescript/multiple-signatures-regression.ts")))))
+  (regression-parse-test
+   (path-join +ts-dir+ #p"multiple-signatures-regression.ts")))
 
 (deftest test-setters ()
-  (finishes
-   (genome
-    (from-file 'typescript
-               (asdf:system-relative-pathname
-                :software-evolution-library
-                #p"test/etc/typescript/setter-regression.ts")))))
+  (regression-parse-test
+   (path-join +ts-dir+ #p"setter-regression.ts")))
 
 (deftest test-public-field ()
-  (finishes
-   (genome
-    (from-file 'typescript
-               (asdf:system-relative-pathname
-                :software-evolution-library
-                #p"test/etc/typescript/public-field-regression.ts")))))
+  (regression-parse-test
+   (path-join +ts-dir+ #p"public-field-regression.ts")))
+
+(deftest test-parameter-type-round-trip ()
+  (regression-parse-test "function (x: string) {}"))
+
+(deftest test-arrow-function-round-trip ()
+  (regression-parse-test "(x) => 1")
+  (regression-parse-test "x => 1"))
 
 
 ;;; Representation tests.

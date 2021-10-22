@@ -1,4 +1,4 @@
 class myclass {
 
-	set enabled() {}
+    set enabled() {}
 }
