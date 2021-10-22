@@ -98,6 +98,16 @@ reproduces source text."
   (regression-parse-test "(x) => 1")
   (regression-parse-test "x => 1"))
 
+(deftest (test-typescript-source-ranges :long-running t) ()
+  (let ((files
+         (append (expand-wildcard
+                  (path-join +ts-dir+ #p"../javascript/*/*.js"))
+                 (expand-wildcard (path-join +ts-dir+ "*.ts")))))
+    (test-ast-source-ranges-for-files
+     'typescript-ts files :ignore-indentation t)
+    (test-ast-source-ranges-for-files
+     'typescript-tsx files :ignore-indentation t)))
+
 
 ;;; Representation tests.
 
