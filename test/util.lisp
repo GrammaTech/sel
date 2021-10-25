@@ -17,6 +17,7 @@
            :+multiple-artifact-dir+
            :+lisp-scopes-dir+
            :+javascript-dir+
+           :+typescript-dir+
            :+java-dir+
            :+python-dir+
            :+python-utility-dir+
@@ -112,6 +113,10 @@
   :documentation "Location of the fib example dir")
 
 (define-constant +javascript-dir+ (append +etc-dir+ (list "javascript"))
+  :test #'equalp
+  :documentation "Path to directory holding Javascript test programs.")
+
+(define-constant +typescript-dir+ (append +etc-dir+ (list "typescript"))
   :test #'equalp
   :documentation "Path to directory holding Javascript test programs.")
 
