@@ -1332,9 +1332,27 @@ for the language.")
        (:typescript-generic-type
         typescript-ts-generic-type
         typescript-tsx-generic-type)
+       (:typescript-object-type
+        typescript-ts-object-type
+        typescript-tsx-object-type)
+       (:typescript-index-signature
+        typescript-ts-index-signature
+        typescript-tsx-index-signature)
+       (:typescript-property-signature
+        typescript-ts-property-signature
+        typescript-tsx-property-signature)
+       (:typescript-property-identifier
+        typescript-ts-property-identifier
+        typescript-tsx-property-identifier)
+       (:typescript-flow-maybe-type
+        typescript-ts-flow-maybe-type
+        typescript-tsx-flow-maybe-type)
        (:typescript-literal-type
         typescript-ts-literal-type
         typescript-tsx-literal-type)
+       (:typescript-type-arguments
+        typescript-ts-type-arguments
+        typescript-tsx-type-arguments)
        (:typescript-type-argument
         typescript-ts-type-argument
         typescript-tsx-type-argument)
