@@ -2018,32 +2018,7 @@ definitions.")
                      ((:TYPE . "BLANK")))))
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_initializer"))
-           ((:TYPE . "BLANK"))))))
-       (:property-signature
-        (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "accessibility_modifier"))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "static")) ((:TYPE . "BLANK"))))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "override_modifier"))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "readonly")) ((:TYPE . "BLANK"))))
-         ((:TYPE . "FIELD") (:NAME . "name")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_property_name")))
-         ;; Wrap as a field.
-         ((:type . "FIELD") (:name . "optional")
-          (:content
-           (:TYPE . "CHOICE")
-           ;; String to symbol.
-           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "?")) ((:TYPE . "BLANK")))))
-         ((:TYPE . "FIELD") (:NAME . "type")
-          (:CONTENT (:TYPE . "CHOICE")
-           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "type_annotation"))
-                     ((:TYPE . "BLANK")))))))))
+           ((:TYPE . "BLANK"))))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.
 
@@ -2056,6 +2031,21 @@ also need to (1) add a slot for the field in
 `*tree-sitter-ast-extra-slots*' above and (2) define a corresponding
 `transform-parse-tree' method to postprocess the output of
 tree-sitter.")
+
+  (defparameter *tree-sitter-json-rule-patches*
+    '(((:typescript-ts :typescript-tsx)
+       (:property-signature
+        (:replace
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "?")) ((:TYPE . "BLANK"))))
+         :with
+         ((:type . "FIELD")
+          (:name . "optional")
+          (:content
+           (:TYPE . "CHOICE")
+           ;; String to symbol.
+           (:MEMBERS ((:type . "SYMBOL") (:name . "?"))
+                     ((:TYPE . "BLANK"))))))))))
 
   (defparameter *tree-sitter-json-node-type-substitutions*
     '((:python
@@ -2763,16 +2753,42 @@ and returns the result."
      tree :tag 'prune :traversal traversal))
 
   (defun substitute-json-rules (language rules)
-    "Substitute rules in RULES based on mappings found for LANGUAGE."
+    "Update rules in RULES based on mappings found for LANGUAGE.
+
+First patches (from `*tree-sitter-json-rule-patches*') are applied,
+then whole substitutions (from
+`*tree-sitter-json-rule-substitutions*')."
     ;; NOTE: this will become inefficient with a lot of rule
     ;;       substitutions.
-    (let ((substitutions
-           (aget-all (make-keyword language)
-                     *tree-sitter-json-rule-substitutions*)))
-      (reduce
-       (lambda (rules substitution)
-         (areplace (car substitution) (cdr substitution) rules))
-       substitutions :initial-value rules)))
+    (labels ((patch-rule (rule patches)
+               (let ((alist
+                      (iter (for patch in patches)
+                            (ematch patch
+                              ;; At some point we may want other
+                              ;; kinds of patches.
+                              ((lambda-list &key replace with)
+                               (collect (cons replace with)))))))
+                 (sublis alist rule :test #'equal))))
+      (let* ((patches
+              (aget-all (make-keyword language)
+                        *tree-sitter-json-rule-patches*))
+             (patched-rules
+              (iter (for (rule-type . rule) in rules)
+                    (if-let ((relevant-patches (aget rule-type patches)))
+                      (collect (cons rule-type
+                                     (patch-rule rule relevant-patches))
+                               into patched)
+                      (collect (cons rule-type rule) into unchanged))
+                    ;; Preserve the property that the changed rules
+                    ;; are moved to the front of the list.
+                    (finally (return (append patched unchanged)))))
+             (substitutions
+              (aget-all (make-keyword language)
+                        *tree-sitter-json-rule-substitutions*)))
+        (reduce
+         (lambda (rules substitution)
+           (areplace (car substitution) (cdr substitution) rules))
+         substitutions :initial-value patched-rules))))
 
   (defun substitute-json-node-types (substitutions node-types)
     "Substitute types in NODE-TYPES based on mappings found for LANGUAGE."
