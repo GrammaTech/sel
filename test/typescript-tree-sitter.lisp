@@ -17,10 +17,8 @@
 (defsuite test-typescript-tree-sitter "Typescript tree-sitter representation."
   (typescript-tree-sitter-available-p))
 
-(def +ts-dir+
-  (asdf:system-relative-pathname
-   :software-evolution-library
-   #p"test/etc/typescript/"))
+(def +ts-dir+ (make-pathname :directory +typescript-dir+))
+(def +js-dir+ (make-pathname :directory +javascript-dir+))
 
 
 ;;; Parsing tests
@@ -105,8 +103,7 @@ reproduces source text."
 
 (deftest (test-typescript-source-ranges :long-running t) ()
   (let ((files
-         (append (expand-wildcard
-                  (path-join +ts-dir+ #p"../javascript/*/*.js"))
+         (append (expand-wildcard (path-join +js-dir+ #p"*/*.js"))
                  (expand-wildcard (path-join +ts-dir+ "*.ts")))))
     (test-ast-source-ranges-for-files
      'typescript-ts files :ignore-indentation t)
