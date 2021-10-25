@@ -106,6 +106,69 @@ reproduces source text."
         export const type: RequestType<{ uri: string; encoding?: string; }, string, any> = new RequestType('fs/content');
 }"))
 
+(deftest test-member-expression-round-trip ()
+  (regression-parse-test "const clientMain = extensions.getExtension('vscode.css-language-features')?.packageJSON?.main || '';"))
+
+(deftest test-object-type-round-trip ()
+  (regression-parse-test "let languageModels: { [uri: string]: { version: number, languageId: string, cTime: number, languageModel: T } } = {};")
+  )
+
+(deftest test-optional-chaining-round-trip ()
+  (regression-parse-test "const x = a?.b"))
+
+(deftest test-interface-readonly-round-trip ()
+  (regression-parse-test "export interface RuntimeEnvironment {
+        readonly file?: RequestService;
+}"))
+
+(deftest test-async-arrow-round-trip ()
+  (regression-parse-test "async p => {}"))
+
+(deftest test-async-function-round-trip ()
+  (regression-parse-test "async function () {}"))
+
+(deftest test-trailing-comma-displacement ()
+  (regression-parse-test "return fn(arg,);")
+  (regression-parse-test "return fn(arg,
+                        );")
+  (regression-parse-test "{
+    key: value,
+}"))
+
+(deftest test-optional-member-round-trip ()
+  (regression-parse-test "class File {
+        data?: Uint8Array;
+}")
+  (regression-parse-test "class File {
+        private data?: Uint8Array;
+}"))
+
+(deftest test-constructor-private-readonly-round-trip ()
+  (regression-parse-test "class myclass {
+constructor(
+                private readonly extensionRoot: vscode.Uri,
+        ) { }
+} "))
+
+(deftest test-interface-readonly ()
+  (regression-parse-test "export interface I {
+                readonly content: string;
+}"))
+
+(deftest test-enum-const ()
+  (regression-parse-test "const enum CharCode {
+        Backspace = 8,
+        LineFeed = 10
+}"))
+
+(deftest test-spurious-semicolon-in-class ()
+  (regression-parse-test
+   "class C {
+    is(item) {}
+
+    readonly ref: string;
+}"))
+
 (deftest (test-typescript-source-ranges :long-running t) ()
   (let ((files
          (append (expand-wildcard (path-join +js-dir+ #p"*/*.js"))
