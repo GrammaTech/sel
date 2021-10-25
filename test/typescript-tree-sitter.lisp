@@ -11,7 +11,6 @@
     :software-evolution-library/software/typescript
     :software-evolution-library/components/file
     :software-evolution-library/components/formatting)
-  (:import-from :cmd)
   (:export :test-typescript-tree-sitter))
 (in-package :software-evolution-library/test/typescript-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
