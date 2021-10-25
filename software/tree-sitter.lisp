@@ -2772,27 +2772,28 @@ then whole substitutions (from
                               ;; kinds of patches.
                               ((lambda-list &key replace with)
                                (collect (cons replace with)))))))
-                 (sublis alist rule :test #'equal))))
-      (let* ((patches
-              (aget-all (make-keyword language)
-                        *tree-sitter-json-rule-patches*))
-             (patched-rules
-              (iter (for (rule-type . rule) in rules)
-                    (if-let ((relevant-patches (aget-all rule-type patches)))
-                      (collect (cons rule-type
-                                     (patch-rule rule relevant-patches))
-                               into patched)
-                      (collect (cons rule-type rule) into unchanged))
-                    ;; Preserve the property that the changed rules
-                    ;; are moved to the front of the list.
-                    (finally (return (append patched unchanged)))))
-             (substitutions
-              (aget-all (make-keyword language)
-                        *tree-sitter-json-rule-substitutions*)))
-        (reduce
-         (lambda (rules substitution)
-           (areplace (car substitution) (cdr substitution) rules))
-         substitutions :initial-value patched-rules))))
+                 (sublis alist rule :test #'equal)))
+             (patch-rules (rules)
+               (let ((patches (aget-all (make-keyword language)
+                                        *tree-sitter-json-rule-patches*)))
+                 (iter (for (rule-type . rule) in rules)
+                       (if-let ((relevant-patches (aget-all rule-type patches)))
+                         (collect (cons rule-type
+                                        (patch-rule rule relevant-patches))
+                                  into patched)
+                         (collect (cons rule-type rule) into unchanged))
+                       ;; Preserve the property that the changed rules
+                       ;; are moved to the front of the list.
+                       (finally (return (nconc patched unchanged))))))
+             (substitute-rules (rules)
+               (let ((substitutions
+                      (aget-all (make-keyword language)
+                                *tree-sitter-json-rule-substitutions*)))
+                 (reduce
+                  (lambda (rules substitution)
+                    (areplace (car substitution) (cdr substitution) rules))
+                  substitutions :initial-value rules))))
+      (patch-rules (substitute-rules rules))))
 
   (defun substitute-json-node-types (substitutions node-types)
     "Substitute types in NODE-TYPES based on mappings found for LANGUAGE."
