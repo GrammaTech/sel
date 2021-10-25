@@ -2774,7 +2774,7 @@ then whole substitutions (from
                         *tree-sitter-json-rule-patches*))
              (patched-rules
               (iter (for (rule-type . rule) in rules)
-                    (if-let ((relevant-patches (aget rule-type patches)))
+                    (if-let ((relevant-patches (aget-all rule-type patches)))
                       (collect (cons rule-type
                                      (patch-rule rule relevant-patches))
                                into patched)
