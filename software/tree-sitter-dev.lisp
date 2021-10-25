@@ -145,13 +145,14 @@ to advance to the next file."
          (new
           (stefil:finishes
            (source-text (genome (from-string class orig))))))
-    (stefil:is (equal orig new) "Mismatch in ~a:~%Line: ~a~%Original: ~s~%New: ~s"
+    (stefil:is (equal orig new)
+               "Mismatch in ~a:~%Line: ~a~%Original: ~s~%New: ~s"
                (path-join dir file)
-               (count #\Newline orig :end (mismatch orig new))
+               (1+ (count #\Newline orig :end (mismatch orig new)))
                (take 20 (drop (max 0 (- (mismatch orig new) 5)) orig))
                (take 20 (drop (max 0 (- (mismatch orig new) 5)) new)))))
 
-(defun problematic-classes (files)
+(defun problematic-classes (class dir files)
   "Parse and print FILES, collecting a list of problematic classes."
   (hash-table-alist
    (frequencies
@@ -169,4 +170,4 @@ to advance to the next file."
                           (sel/sw/ts::rule-matching-error-ast
                            e)))
                         (invoke-restart 'continue))))
-        (test-project-parsing files))))))
+        (test-project-parsing class dir files))))))
