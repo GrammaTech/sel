@@ -116,3 +116,39 @@ Return the number of slots re-initialized."
                      ((not (equal initform (slot-value instance slot)))))
             (setf (slot-value instance slot) initform)
             (incf update-count)))))))
+
+(defun get-ts-files (dir)
+  "List TypeScript files in DIR, excluding test files, node_modules,
+and .d.ts files."
+  (mapcar #'pathname
+          (lines (cmd:$cmd "find" (ensure-directory-pathname dir)
+                           "-name '*.ts' | grep -Ev"
+                           (list "node_modules|/test|\.d\.ts$")))))
+
+(defun test-project-parsing (files)
+  "Attempt to parse and print every file in FILES, proving a restart
+to advance to the next file."
+  (dolist (file files)
+    (with-simple-restart (continue "Next")
+      (stefil:finishes
+       (source-text (genome (from-file 'typescript file)))))))
+
+(defun problematic-classes (files)
+  "Parse and print FILES, collecting a list of problematic classes."
+  (hash-table-alist
+   (frequencies
+    (with-collectors (collect)
+      (handler-bind ((sel/sw/ts::parse-tree-matching-error
+                      (lambda (e)
+                        (collect
+                         (sel/sw/ts::parse-tree-matching-error-superclass
+                          e))
+                        (invoke-restart 'continue)))
+                     (sel/sw/ts::rule-matching-error
+                      (lambda (e)
+                        (collect
+                         (type-of
+                          (sel/sw/ts::rule-matching-error-ast
+                           e)))
+                        (invoke-restart 'continue))))
+        (test-project-parsing files))))))

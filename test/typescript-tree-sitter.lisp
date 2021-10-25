@@ -139,37 +139,3 @@ unparenthesized argument."
                  (parameter-type
                   (find-if (of-type 'typescript-ts-required-parameter)
                            (typescript-ts "function (x: string) {}")))))))
-
-
-;;; Auxiliary functions for parsing entire projects.
-
-(defun get-ts-files (dir)
-  (mapcar #'pathname
-          (lines (cmd:$cmd "find" (ensure-directory-pathname dir)
-                           "-name '*.ts' | grep -Ev"
-                           (list "node_modules|/test|\.d\.ts$")))))
-
-(defun test-project-parsing (dir)
-  (dolist (file (get-ts-files dir))
-    (with-simple-restart (continue "Next")
-      (stefil:finishes
-       (source-text (genome (from-file 'typescript file)))))))
-
-(defun faulty-classes (dir)
-  (hash-table-alist
-   (frequencies
-    (with-collectors (collect)
-      (handler-bind ((sel/sw/ts::parse-tree-matching-error
-                      (lambda (e)
-                        (collect
-                         (sel/sw/ts::parse-tree-matching-error-superclass
-                          e))
-                        (invoke-restart 'continue)))
-                     (sel/sw/ts::rule-matching-error
-                      (lambda (e)
-                        (collect
-                         (type-of
-                          (sel/sw/ts::rule-matching-error-ast
-                           e)))
-                        (invoke-restart 'continue))))
-        (test-project-parsing dir))))))
