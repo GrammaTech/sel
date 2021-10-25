@@ -749,13 +749,17 @@ searched to populate `*tree-sitter-language-files*'.")
        (javascript-export-statement (:default)))
       (:typescript-ts
        (typescript-ts-export-statement (:default))
-       (typescript-ts-method-definition (:getter-setter))
-       (typescript-ts-public-field-definition (:modifiers))
+       (typescript-ts-method-definition (:getter-setter) (:optional))
+       (typescript-ts-public-field-definition (:modifiers) (:optional))
+       (typescript-ts-method-signature (:optional))
+       (typescript-ts-abstract-method-signature (:optional))
        (typescript-ts-property-signature (:optional)))
       (:typescript-tsx
        (typescript-tsx-export-statement (:default))
-       (typescript-tsx-method-definition (:getter-setter))
-       (typescript-tsx-public-field-definition (:modifiers))
+       (typescript-tsx-method-definition (:getter-setter) (:optional))
+       (typescript-tsx-public-field-definition (:modifiers) (:optional))
+       (typescript-tsx-method-signature (:getter-setter) (:optional))
+       (typescript-tsx-abstract-method-signature (:optional))
        (typescript-tsx-property-signature (:optional))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
