@@ -1810,6 +1810,7 @@ definitions.")
                           ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))))
                         ((:TYPE . "SEQ")
                          (:MEMBERS
+                          ;; This has been changed into an explicit alias.
                           ((:TYPE . "ALIAS")
                            (:CONTENT (:TYPE . "SYMBOL")
                                      (:NAME . "namespace_import_export"))
@@ -1927,6 +1928,7 @@ definitions.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "readonly")) ((:TYPE . "BLANK"))))
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "async")) ((:TYPE . "BLANK"))))
+         ;; Added a new field to hold get/set.
          ((:type . "FIELD")
           (:name . "getter-setter")
           (:content
@@ -1949,6 +1951,7 @@ definitions.")
         (:MEMBERS
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "declare")) ((:TYPE . "BLANK"))))
+         ;; Added a "modifiers" field.
          ((:type . "FIELD")
           (:name . "modifiers")
           (:content
