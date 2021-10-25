@@ -132,20 +132,24 @@ and .d.ts files."
    string
    (make-string 4 :initial-element #\Space)))
 
-(defun test-project-parsing (files)
+(defun test-project-parsing (class dir files)
   "Attempt to parse and print every file in FILES, proving a restart
 to advance to the next file."
   (declare (optimize debug))
-  (dolist (file (get-ts-files dir))
+  (dolist (file files)
     (with-simple-restart (continue "Next")
-      (let* ((orig (untabify (read-file-into-string file)))
-             (new
-              (stefil:finishes
-               (source-text (genome (from-string 'typescript orig))))))
-        (is (equal orig new) "Mismatch in ~a:~%Original: ~s~%New: ~s"
-            (path-join dir file)
-            (take 10 (drop (max 0 (- (mismatch orig new) 5)) orig))
-            (take 10 (drop (max 0 (- (mismatch orig new) 5)) new)))))))
+      (round-trip-file class dir file))))
+
+(defun round-trip-file (class dir file)
+  (let* ((orig (untabify (read-file-into-string file)))
+         (new
+          (stefil:finishes
+           (source-text (genome (from-string class orig))))))
+    (stefil:is (equal orig new) "Mismatch in ~a:~%Line: ~a~%Original: ~s~%New: ~s"
+               (path-join dir file)
+               (count #\Newline orig :end (mismatch orig new))
+               (take 20 (drop (max 0 (- (mismatch orig new) 5)) orig))
+               (take 20 (drop (max 0 (- (mismatch orig new) 5)) new)))))
 
 (defun problematic-classes (files)
   "Parse and print FILES, collecting a list of problematic classes."
