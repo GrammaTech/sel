@@ -126,13 +126,26 @@ and .d.ts files."
                            "-name '*.ts' | grep -Ev"
                            (list "node_modules|/test|\.d\.ts$")))))
 
+(defun untabify (string)
+  (string-replace-all
+   (string #\Tab)
+   string
+   (make-string 4 :initial-element #\Space)))
+
 (defun test-project-parsing (files)
   "Attempt to parse and print every file in FILES, proving a restart
 to advance to the next file."
-  (dolist (file files)
+  (declare (optimize debug))
+  (dolist (file (get-ts-files dir))
     (with-simple-restart (continue "Next")
-      (stefil:finishes
-       (source-text (genome (from-file 'typescript file)))))))
+      (let* ((orig (untabify (read-file-into-string file)))
+             (new
+              (stefil:finishes
+               (source-text (genome (from-string 'typescript orig))))))
+        (is (equal orig new) "Mismatch in ~a:~%Original: ~s~%New: ~s"
+            (path-join dir file)
+            (take 10 (drop (max 0 (- (mismatch orig new) 5)) orig))
+            (take 10 (drop (max 0 (- (mismatch orig new) 5)) new)))))))
 
 (defun problematic-classes (files)
   "Parse and print FILES, collecting a list of problematic classes."
