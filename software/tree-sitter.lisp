@@ -750,11 +750,13 @@ searched to populate `*tree-sitter-language-files*'.")
       (:typescript-ts
        (typescript-ts-export-statement (:default))
        (typescript-ts-method-definition (:getter-setter))
-       (typescript-ts-public-field-definition (:modifiers)))
+       (typescript-ts-public-field-definition (:modifiers))
+       (typescript-ts-property-signature (:optional)))
       (:typescript-tsx
        (typescript-tsx-export-statement (:default))
        (typescript-tsx-method-definition (:getter-setter))
-       (typescript-tsx-public-field-definition (:modifiers))))
+       (typescript-tsx-public-field-definition (:modifiers))
+       (typescript-tsx-property-signature (:optional))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
 for the language.")
@@ -2016,7 +2018,32 @@ definitions.")
                      ((:TYPE . "BLANK")))))
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_initializer"))
-           ((:TYPE . "BLANK"))))))))
+           ((:TYPE . "BLANK"))))))
+       (:property-signature
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "accessibility_modifier"))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "static")) ((:TYPE . "BLANK"))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "override_modifier"))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "readonly")) ((:TYPE . "BLANK"))))
+         ((:TYPE . "FIELD") (:NAME . "name")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_property_name")))
+         ;; Wrap as a field.
+         ((:type . "FIELD") (:name . "optional")
+          (:content
+           (:TYPE . "CHOICE")
+           ;; String to symbol.
+           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "?")) ((:TYPE . "BLANK")))))
+         ((:TYPE . "FIELD") (:NAME . "type")
+          (:CONTENT (:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "type_annotation"))
+                     ((:TYPE . "BLANK")))))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.
 

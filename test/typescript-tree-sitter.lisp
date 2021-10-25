@@ -101,6 +101,11 @@ reproduces source text."
   (regression-parse-test "(x) => 1")
   (regression-parse-test "x => 1"))
 
+(deftest test-property-signature-round-trip ()
+  (regression-parse-test "export namespace FsContentRequest {
+        export const type: RequestType<{ uri: string; encoding?: string; }, string, any> = new RequestType('fs/content');
+}"))
+
 (deftest (test-typescript-source-ranges :long-running t) ()
   (let ((files
          (append (expand-wildcard (path-join +js-dir+ #p"*/*.js"))
