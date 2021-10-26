@@ -130,6 +130,9 @@ reproduces source text."
 (deftest test-async-function-round-trip ()
   (regression-parse-test "async function () {}"))
 
+(deftest test-async-function-declaration-round-trip ()
+  (regression-parse-test "async function myfun () {}"))
+
 (deftest test-trailing-comma-displacement ()
   (regression-parse-test "return fn(arg,);")
   (regression-parse-test "return fn(arg,
