@@ -52,6 +52,12 @@ specialized on `typescript-tsx'."
                                     'typescript-ts
                                     'typescript-tsx)))))))
 
+(defun transform-ts-parameter-parse-tree (parse-tree)
+  (with-modify-parse-tree (parse-tree)
+    ((:accessibility-modifier :override-modifier
+      :readonly)
+     (label-as :modifiers))))
+
 #+:TREE-SITTER-TYPESCRIPT/TYPESCRIPT
 (progn
 
@@ -109,6 +115,18 @@ specialized on `typescript-tsx'."
         :readonly :abstract)
        (label-as :modifiers))
       ((:? :!) (label-as :optional))))
+
+  (defmethod transform-parse-tree
+      ((language (eql :typescript-ts))
+       (class (eql 'typescript-ts-required-parameter))
+       parse-tree &key)
+    (transform-ts-parameter-parse-tree parse-tree))
+
+  (defmethod transform-parse-tree
+      ((language (eql :typescript-ts))
+       (class (eql 'typescript-ts-optional-parameter))
+       parse-tree &key)
+    (transform-ts-parameter-parse-tree parse-tree))
 
   (defmethod transform-parse-tree
       ((language (eql :typescript-ts))

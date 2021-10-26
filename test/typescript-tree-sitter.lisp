@@ -149,7 +149,7 @@ reproduces source text."
 (deftest test-constructor-private-readonly-round-trip ()
   (regression-parse-test "class myclass {
 constructor(
-                private readonly extensionRoot: vscode.Uri,
+                private readonly extensionRoot: vscode.Uri
         ) { }
 } "))
 
