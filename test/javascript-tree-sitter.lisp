@@ -370,16 +370,6 @@
            (of-type 'conflict-ast)
            (children (get-parent-ast *soft* conflict)))))))
 
-(deftest javascript-conflict-surrounding-text ()
-  "Conflict ASTs can produce source-text when in a surrounding text slot."
-  (let ((ast (convert 'c-ast "    int a = 0;"))
-        (conflict (make-instance 'conflict-ast
-                                 :child-alist '((:my "  ")
-                                                (:your "   ")
-                                                (:old "    ")))))
-    (setf (before-text (find-if (of-type 'statement-ast) ast)) conflict)
-    (is (stringp (source-text ast)))))
-
 ;;; Test case for BI failure
 ;;;(deftest javascript-insert-test ()
 (deftest js-insert-test ()
