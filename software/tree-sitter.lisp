@@ -753,14 +753,16 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-ts-public-field-definition (:modifiers) (:optional))
        (typescript-ts-method-signature (:optional))
        (typescript-ts-abstract-method-signature (:optional))
-       (typescript-ts-property-signature (:optional)))
+       (typescript-ts-property-signature (:optional))
+       (typescript-ts-member-expression (:operator)))
       (:typescript-tsx
        (typescript-tsx-export-statement (:default))
        (typescript-tsx-method-definition (:getter-setter) (:optional))
        (typescript-tsx-public-field-definition (:modifiers) (:optional))
        (typescript-tsx-method-signature (:getter-setter) (:optional))
        (typescript-tsx-abstract-method-signature (:optional))
-       (typescript-tsx-property-signature (:optional))))
+       (typescript-tsx-property-signature (:optional))
+       (typescript-tsx-member-expression (:operator))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
 for the language.")
@@ -2041,7 +2043,8 @@ tree-sitter.")
        (:property-signature
         (:replace
          ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "?")) ((:TYPE . "BLANK"))))
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "?"))
+           ((:TYPE . "BLANK"))))
          :with
          ((:type . "FIELD")
           (:name . "optional")
@@ -2049,7 +2052,21 @@ tree-sitter.")
            (:TYPE . "CHOICE")
            ;; String to symbol.
            (:MEMBERS ((:type . "SYMBOL") (:name . "?"))
-                     ((:TYPE . "BLANK"))))))))))
+                     ((:TYPE . "BLANK")))))))
+       ;; TODO JS too?
+       (:member-expression
+        (:wrap
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
+           ((:TYPE . "STRING") (:VALUE . "?."))))
+         :with
+         ((:type . "FIELD")
+          (:name . "operator")
+          (:content . _))))))
+    ;; TODO Document different syntaxes.
+    "Nested alist of patches to JSON rules.
+Organized first by relevant language (or list of relevant languages)
+and then by AST types.")
 
   (defparameter *tree-sitter-json-node-type-substitutions*
     '((:python
@@ -2764,14 +2781,23 @@ then whole substitutions (from
 `*tree-sitter-json-rule-substitutions*')."
     ;; NOTE: this will become inefficient with a lot of rule
     ;;       substitutions.
-    (labels ((patch-rule (rule patches)
-               (let ((alist
-                      (iter (for patch in patches)
-                            (ematch patch
-                              ;; At some point we may want other
-                              ;; kinds of patches.
-                              ((lambda-list &key replace with)
-                               (collect (cons replace with)))))))
+    (labels ((patch->cons (patch)
+               "Expand PATCH into a cons that can be passed to sublis."
+               (ematch patch
+                 ;; At some point we may want other
+                 ;; kinds of patches.
+                 ((lambda-list &key replace with)
+                  (cons replace with))
+                 ((lambda-list &key wrap with)
+                  (cons wrap (subst wrap '_ with)))
+                 ((lambda-list &key label as)
+                  (patch->cons
+                   `(:wrap ,label
+                     :with ((:type . "FIELD")
+                            (:name . ,(assure string as))
+                            (:content . _)))))))
+             (patch-rule (rule patches)
+               (let ((alist (mapcar #'patch->cons patches)))
                  (sublis alist rule :test #'equal)))
              (patch-rules (rules)
                (let ((patches (aget-all (make-keyword language)

@@ -66,6 +66,13 @@ specialized on `typescript-tsx'."
 
   (defmethod transform-parse-tree
       ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-member-expression))
+       parse-tree &key)
+    (with-modify-parse-tree (parse-tree)
+      ((:?. :.) (label-as :operator))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':typescript-ts))
        (class (eql 'typescript-ts-method-definition))
        parse-tree &key)
     (with-modify-parse-tree (parse-tree)

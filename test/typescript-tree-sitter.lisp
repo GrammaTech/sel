@@ -107,6 +107,9 @@ reproduces source text."
 }"))
 
 (deftest test-member-expression-round-trip ()
+  (regression-parse-test "a?")
+  (regression-parse-test "a?.b")
+  (regression-parse-test "a.b()?.c?.d")
   (regression-parse-test "const clientMain = extensions.getExtension('vscode.css-language-features')?.packageJSON?.main || '';"))
 
 (deftest test-object-type-round-trip ()
