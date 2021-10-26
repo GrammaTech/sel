@@ -100,7 +100,8 @@ specialized on `typescript-tsx'."
       ((:static
         :accessibility-modifier :override-modifier
         :readonly :abstract)
-       (label-as :modifiers))))
+       (label-as :modifiers))
+      ((:? :!) (label-as :optional))))
 
   (defmethod transform-parse-tree
       ((language (eql :typescript-ts))
