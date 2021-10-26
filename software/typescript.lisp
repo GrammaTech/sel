@@ -107,6 +107,20 @@ specialized on `typescript-tsx'."
 
   (defmethod transform-parse-tree
       ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-function-signature))
+       parse-tree &key)
+    (with-modify-parse-tree (parse-tree)
+      (:async (label-as :async))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-generator-function-declaration))
+       parse-tree &key)
+    (with-modify-parse-tree (parse-tree)
+      (:async (label-as :async))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':typescript-ts))
        (class (eql 'typescript-ts-member-expression))
        parse-tree &key)
     (with-modify-parse-tree (parse-tree)

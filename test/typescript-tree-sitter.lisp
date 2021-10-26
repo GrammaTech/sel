@@ -139,6 +139,14 @@ reproduces source text."
 (deftest test-async-function-declaration-round-trip ()
   (regression-parse-test "async function myfun () {}"))
 
+(deftest test-async-function*-declaration-round-trip ()
+  (regression-parse-test "async function* myfun () {}"))
+
+(deftest test-async-function-signature-round-trip ()
+  (regression-parse-test "async function fn(): any;"))
+
+(deftest test-export-async-function-declaration-round-trip ()
+  (regression-parse-test "export async function fn(): Promise<string | undefined>;"))
 (deftest test-trailing-comma-displacement ()
   (regression-parse-test "return fn(arg,);")
   (regression-parse-test "return fn(arg,
