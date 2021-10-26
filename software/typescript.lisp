@@ -59,6 +59,13 @@ specialized on `typescript-tsx'."
 
   (defmethod transform-parse-tree
       ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-arrow-function))
+       parse-tree &key)
+    (with-modify-parse-tree (parse-tree)
+      (:async (label-as :async))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':typescript-ts))
        (class (eql 'typescript-ts-export-statement))
        parse-tree &key)
     (with-modify-parse-tree (parse-tree)

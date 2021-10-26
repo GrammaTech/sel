@@ -754,7 +754,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-ts-method-signature (:optional))
        (typescript-ts-abstract-method-signature (:optional))
        (typescript-ts-property-signature (:optional))
-       (typescript-ts-member-expression (:operator)))
+       (typescript-ts-member-expression (:operator))
+       (typescript-ts-arrow-function (:async)))
       (:typescript-tsx
        (typescript-tsx-export-statement (:default))
        (typescript-tsx-method-definition (:getter-setter) (:optional))
@@ -762,7 +763,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-tsx-method-signature (:getter-setter) (:optional))
        (typescript-tsx-abstract-method-signature (:optional))
        (typescript-tsx-property-signature (:optional))
-       (typescript-tsx-member-expression (:operator))))
+       (typescript-tsx-member-expression (:operator))
+       (typescript-tsx-arrow-function (:async))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
 for the language.")
@@ -2055,14 +2057,17 @@ tree-sitter.")
                      ((:TYPE . "BLANK")))))))
        ;; TODO JS too?
        (:member-expression
-        (:wrap
+        (:label
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
            ((:TYPE . "STRING") (:VALUE . "?."))))
-         :with
-         ((:type . "FIELD")
-          (:name . "operator")
-          (:content . _))))))
+         :as "operator"))
+       (:arrow-function
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "async"))
+           ((:TYPE . "BLANK"))))
+         :as "async"))))
     ;; TODO Document different syntaxes.
     "Nested alist of patches to JSON rules.
 Organized first by relevant language (or list of relevant languages)
