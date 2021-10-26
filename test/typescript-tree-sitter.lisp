@@ -130,6 +130,11 @@ reproduces source text."
         readonly file?: RequestService;
 }"))
 
+(deftest test-declare-readonly ()
+  (regression-parse-test "class C {
+    declare readonly _serviceBrand: undefined;
+}"))
+
 (deftest test-async-arrow-round-trip ()
   (regression-parse-test "async p => {}"))
 

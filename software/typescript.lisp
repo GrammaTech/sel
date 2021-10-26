@@ -149,6 +149,7 @@ specialized on `typescript-tsx'."
         :accessibility-modifier :override-modifier
         :readonly :abstract)
        (label-as :modifiers))
+      (:declare (label-as :declare))
       ((:? :!) (label-as :optional))))
 
   (defmethod transform-parse-tree

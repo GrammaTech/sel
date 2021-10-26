@@ -750,7 +750,7 @@ searched to populate `*tree-sitter-language-files*'.")
       (:typescript-ts
        (typescript-ts-export-statement (:default))
        (typescript-ts-method-definition (:getter-setter) (:optional) (:async))
-       (typescript-ts-public-field-definition (:modifiers) (:optional))
+       (typescript-ts-public-field-definition (:declare) (:modifiers) (:optional))
        (typescript-ts-method-signature (:optional))
        (typescript-ts-abstract-method-signature (:optional))
        (typescript-ts-property-signature (:optional))
@@ -768,7 +768,7 @@ searched to populate `*tree-sitter-language-files*'.")
       (:typescript-tsx
        (typescript-tsx-export-statement (:default))
        (typescript-tsx-method-definition (:getter-setter) (:optional) (:async))
-       (typescript-tsx-public-field-definition (:modifiers) (:optional))
+       (typescript-tsx-public-field-definition (:declare) (:modifiers) (:optional))
        (typescript-tsx-method-signature (:getter-setter) (:optional))
        (typescript-tsx-abstract-method-signature (:optional))
        (typescript-tsx-property-signature (:optional))
@@ -1999,8 +1999,11 @@ definitions.")
        (:public-field-definition
         (:TYPE . "SEQ")
         (:MEMBERS
-         ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "declare")) ((:TYPE . "BLANK"))))
+         ((:type . "FIELD")
+          (:name . "declare")
+          (:content
+           (:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "declare")) ((:TYPE . "BLANK")))))
          ;; Added a "modifiers" field.
          ((:type . "FIELD")
           (:name . "modifiers")
