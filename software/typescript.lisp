@@ -72,6 +72,13 @@ specialized on `typescript-tsx'."
 
   (defmethod transform-parse-tree
       ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-call-expression))
+       parse-tree &key)
+    (with-modify-parse-tree (parse-tree)
+      (:?. (label-as :operator))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':typescript-ts))
        (class (eql 'typescript-ts-enum-declaration))
        parse-tree &key)
     (with-modify-parse-tree (parse-tree)
@@ -114,6 +121,12 @@ specialized on `typescript-tsx'."
 
   (defmethod transform-parse-tree
       ((language (eql :typescript-ts))
+       (class (eql 'typescript-ts-optional-parameter))
+       parse-tree &key)
+    (transform-ts-parameter-parse-tree parse-tree))
+
+  (defmethod transform-parse-tree
+      ((language (eql :typescript-ts))
        (class (eql 'typescript-ts-public-field-definition))
        parse-tree &key)
     (with-modify-parse-tree (parse-tree)
@@ -130,10 +143,11 @@ specialized on `typescript-tsx'."
     (transform-ts-parameter-parse-tree parse-tree))
 
   (defmethod transform-parse-tree
-      ((language (eql :typescript-ts))
-       (class (eql 'typescript-ts-optional-parameter))
+      ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-subscript-expression))
        parse-tree &key)
-    (transform-ts-parameter-parse-tree parse-tree))
+    (with-modify-parse-tree (parse-tree)
+      (:?. (label-as :operator))))
 
   (defmethod transform-parse-tree
       ((language (eql :typescript-ts))

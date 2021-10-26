@@ -755,6 +755,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-ts-abstract-method-signature (:optional))
        (typescript-ts-property-signature (:optional))
        (typescript-ts-member-expression (:operator))
+       (typescript-ts-subscript-expression (:operator))
+       (typescript-ts-call-expression (:operator))
        (typescript-ts-arrow-function (:async))
        (typescript-ts-function (:async))
        (typescript-ts-function-declaration (:async))
@@ -769,6 +771,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-tsx-abstract-method-signature (:optional))
        (typescript-tsx-property-signature (:optional))
        (typescript-tsx-member-expression (:operator))
+       (typescript-tsx-subscript-expression (:operator))
+       (typescript-tsx-call-expression (:operator))
        (typescript-tsx-arrow-function (:async))
        (typescript-tsx-function (:async))
        (typescript-tsx-function-declaration (:async))
@@ -2045,7 +2049,40 @@ definitions.")
                      ((:TYPE . "BLANK")))))
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_initializer"))
-           ((:TYPE . "BLANK"))))))))
+           ((:TYPE . "BLANK"))))))
+       (:call-expression
+        (:TYPE . "CHOICE")
+        (:MEMBERS
+         ;; Swap order.
+         ((:TYPE . "PREC") (:VALUE . "member")
+          (:CONTENT (:TYPE . "SEQ")
+           (:MEMBERS
+            ((:TYPE . "FIELD") (:NAME . "function")
+                               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "primary_expression")))
+            ;; Wrap with operator field.
+            ((:type . "FIELD")
+             (:name . "operator")
+             (:content
+              (:TYPE . "STRING") (:VALUE . "?.")))
+            ((:TYPE . "FIELD") (:NAME . "type_arguments")
+                               (:CONTENT (:TYPE . "CHOICE")
+                                         (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "type_arguments"))
+                                                   ((:TYPE . "BLANK")))))
+            ((:TYPE . "FIELD") (:NAME . "arguments")
+                               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "arguments"))))))
+         ((:TYPE . "PREC") (:VALUE . "call")
+          (:CONTENT (:TYPE . "SEQ")
+           (:MEMBERS
+            ((:TYPE . "FIELD") (:NAME . "function")
+                               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "expression")))
+            ((:TYPE . "FIELD") (:NAME . "type_arguments")
+                               (:CONTENT (:TYPE . "CHOICE")
+                                         (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "type_arguments"))
+                                                   ((:TYPE . "BLANK")))))
+            ((:TYPE . "FIELD") (:NAME . "arguments")
+                               (:CONTENT (:TYPE . "CHOICE")
+                                         (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "arguments"))
+                                                   ((:TYPE . "SYMBOL") (:NAME . "template_string"))))))))))))
     "A mapping of JSON rule substitutions to be performed on the JSON file
 before class generation and analysis.
 
@@ -2081,7 +2118,16 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
            ((:TYPE . "STRING") (:VALUE . "?."))))
          :as "operator"))
-       ((:arrow-function :function :function-declaration)
+       (:subscript-expression
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "?.")) ((:TYPE . "BLANK"))))
+         :as "operator"))
+       ((:arrow-function
+         :function
+         :function-declaration
+         :function-signature
+         :generator-function-declaration)
         (:label
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "async"))

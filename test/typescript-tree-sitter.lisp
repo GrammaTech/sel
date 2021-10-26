@@ -119,6 +119,12 @@ reproduces source text."
 (deftest test-optional-chaining-round-trip ()
   (regression-parse-test "const x = a?.b"))
 
+(deftest test-optional-element-access ()
+  (regression-parse-test "return emojiMap?.[code]"))
+
+(deftest test-optional-call ()
+  (regression-parse-test "fn?.(arg)"))
+
 (deftest test-interface-readonly-round-trip ()
   (regression-parse-test "export interface RuntimeEnvironment {
         readonly file?: RequestService;
