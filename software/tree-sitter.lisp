@@ -755,7 +755,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-ts-abstract-method-signature (:optional))
        (typescript-ts-property-signature (:optional))
        (typescript-ts-member-expression (:operator))
-       (typescript-ts-arrow-function (:async)))
+       (typescript-ts-arrow-function (:async))
+       (typescript-ts-function (:async)))
       (:typescript-tsx
        (typescript-tsx-export-statement (:default))
        (typescript-tsx-method-definition (:getter-setter) (:optional))
@@ -764,7 +765,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-tsx-abstract-method-signature (:optional))
        (typescript-tsx-property-signature (:optional))
        (typescript-tsx-member-expression (:operator))
-       (typescript-tsx-arrow-function (:async))))
+       (typescript-tsx-arrow-function (:async))
+       (typescript-tsx-function (:async))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
 for the language.")
@@ -2062,7 +2064,7 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
            ((:TYPE . "STRING") (:VALUE . "?."))))
          :as "operator"))
-       (:arrow-function
+       ((:arrow-function :function)
         (:label
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "async"))
