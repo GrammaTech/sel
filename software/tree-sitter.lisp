@@ -2234,7 +2234,17 @@ chosen when gathering a string representation of a JSON subtree.")
                 ((eql child-type :|;|)
                  (cons (list :semicolon child-type) (cdr child-tree)))
                 (t child-tree)))
-            (parse-tree-children parse-tree)))))))
+            (parse-tree-children parse-tree))))))
+      ;; This is needed to handle case in TypeScript where it allows
+      ;; commas to be used in place of semicolons (e.g. :object-type).
+      ((:typescript-ts :typescript-tsx)
+       (:symbol-names (",")
+        :slot-name "comma"
+        :predicate ,(constantly t)
+        :transform
+        (lambda (parse-tree)
+          (with-modify-parse-tree (parse-tree)
+            ((:|,|) (label-as :comma)))))))
     "A mapping of tree-sitter symbol names that should have fields wrapped
 around them. It is also followed by the slot that should be added to the relevant
 class, a predicate that determines whether a subtree should be encapsulated and

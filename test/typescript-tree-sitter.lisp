@@ -112,9 +112,11 @@ reproduces source text."
   (regression-parse-test "a.b()?.c?.d")
   (regression-parse-test "const clientMain = extensions.getExtension('vscode.css-language-features')?.packageJSON?.main || '';"))
 
-(deftest test-object-type-round-trip ()
-  (regression-parse-test "let languageModels: { [uri: string]: { version: number, languageId: string, cTime: number, languageModel: T } } = {};")
-  )
+(deftest test-object-type ()
+  "Can we round-trip an object type that uses commas as separators?"
+  ;; Make sure we don't break semicolons.
+  (regression-parse-test "let languageModels: { version: number; languageId: string; cTime: number; languageModel: T }")
+  (regression-parse-test "let languageModels: { version: number, languageId: string, cTime: number, languageModel: T }"))
 
 (deftest test-optional-chaining-round-trip ()
   (regression-parse-test "const x = a?.b"))
