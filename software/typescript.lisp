@@ -66,6 +66,13 @@ specialized on `typescript-tsx'."
 
   (defmethod transform-parse-tree
       ((language (eql ':typescript-ts))
+       (class (eql 'typescript-ts-enum-declaration))
+       parse-tree &key)
+    (with-modify-parse-tree (parse-tree)
+      (:const (label-as :kind))))
+
+  (defmethod transform-parse-tree
+      ((language (eql ':typescript-ts))
        (class (eql 'typescript-ts-export-statement))
        parse-tree &key)
     (with-modify-parse-tree (parse-tree)

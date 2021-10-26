@@ -756,7 +756,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-ts-property-signature (:optional))
        (typescript-ts-member-expression (:operator))
        (typescript-ts-arrow-function (:async))
-       (typescript-ts-function (:async)))
+       (typescript-ts-function (:async))
+       (typescript-ts-enum-declaration (:kind)))
       (:typescript-tsx
        (typescript-tsx-export-statement (:default))
        (typescript-tsx-method-definition (:getter-setter) (:optional))
@@ -766,7 +767,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (typescript-tsx-property-signature (:optional))
        (typescript-tsx-member-expression (:operator))
        (typescript-tsx-arrow-function (:async))
-       (typescript-tsx-function (:async))))
+       (typescript-tsx-function (:async))
+       (typescript-tsx-enum-declaration (:kind))))
     "Alist from languages to classes with extra slots.
 The form should be the same as the fields in the note-types.json
 for the language.")
@@ -2072,7 +2074,13 @@ tree-sitter.")
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "async"))
            ((:TYPE . "BLANK"))))
-         :as "async"))))
+         :as "async"))
+       (:enum-declaration
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "const"))
+           ((:TYPE . "BLANK"))))
+         :as "kind"))))
     ;; TODO Document different syntaxes.
     "Nested alist of patches to JSON rules.
 Organized first by relevant language (or list of relevant languages)
