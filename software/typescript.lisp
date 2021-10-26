@@ -131,7 +131,8 @@ specialized on `typescript-tsx'."
        (class (eql 'typescript-ts-method-definition))
        parse-tree &key)
     (with-modify-parse-tree (parse-tree)
-      ((:get :set :*) (label-as :getter-setter))))
+      ((:get :set :*) (label-as :getter-setter))
+      (:async (label-as :async))))
 
   (defmethod transform-parse-tree
       ((language (eql :typescript-ts))
