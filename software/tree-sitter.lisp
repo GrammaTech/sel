@@ -2861,8 +2861,6 @@ then whole substitutions (from
     (labels ((patch->cons (patch)
                "Expand PATCH into a cons that can be passed to sublis."
                (ematch patch
-                 ;; At some point we may want other
-                 ;; kinds of patches.
                  ((lambda-list &key replace with)
                   (cons replace with))
                  ((lambda-list &key wrap with)
