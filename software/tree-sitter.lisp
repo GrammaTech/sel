@@ -2131,10 +2131,18 @@ tree-sitter.")
           (:MEMBERS
            ((:TYPE . "SYMBOL") (:NAME . "_semicolon"))
            ((:TYPE . "STRING") (:VALUE . ","))))))))
-    ;; TODO Document different syntaxes.
     "Nested alist of patches to JSON rules.
 Organized first by relevant language (or list of relevant languages)
-and then by AST types.")
+and then by AST types.
+
+Supported patch syntaxes are:
+- `(:replace AST1 :with AST2)' Replace every instance of AST1 with AST2.
+- `(:wrap AST1 :with AST2)' Replace every instance of AST1 with
+  AST2, substituting AST1 for every instance of `_' in AST2.
+- `(:label AST1 :as NAME)` Wrap every instance of AST1 with a field
+  named NAME.
+
+All tests are done with `EQUAL'.")
 
   (defparameter *tree-sitter-json-node-type-substitutions*
     '((:python
