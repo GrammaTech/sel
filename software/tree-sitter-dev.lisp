@@ -126,6 +126,7 @@ and .d.ts files."
                            "-name '*.ts' | grep -Ev"
                            (list "node_modules|/test|\.d\.ts$")))))
 
+;;; TODO This should not be necessary.
 (defun untabify (string)
   (string-replace-all
    (string #\Tab)

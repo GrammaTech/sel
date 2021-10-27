@@ -1965,6 +1965,7 @@ definitions.")
        (:public-field-definition
         (:TYPE . "SEQ")
         (:MEMBERS
+         ;; Add a field for declare.
          ((:type . "FIELD")
           (:name . "declare")
           (:content
