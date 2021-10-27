@@ -1150,7 +1150,19 @@ for the language.")
        (:ecma-assignment-pattern
         javascript-assignment-pattern
         typescript-ts-assignment-pattern
-        typescript-tsx-assignment-pattern))
+        typescript-tsx-assignment-pattern)
+       (:ecma-call-expression
+        javascript-call-expression
+        typescript-ts-call-expression
+        typescript-tsx-call-expression)
+       (:ecma-arguments
+        javascript-arguments
+        typescript-ts-arguments
+        typescript-tsx-arguments)
+       (:ecma-member-expression
+        javascript-member-expression
+        typescript-ts-member-expression
+        typescript-tsx-member-expression))
       (:python
        (:root-ast python-module)
        (:comment-ast python-comment)
