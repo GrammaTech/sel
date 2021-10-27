@@ -50,6 +50,7 @@ BLANK precedes the other branches."
   (regression-parse-test "function (x) { }"))
 
 (deftest test-typescript-export-match ()
+  "Test that we can parse exports with destructuring."
   (regression-parse-test "export { x } from './file';"))
 
 (deftest test-const-declarations-persist ()
@@ -58,6 +59,7 @@ BLANK precedes the other branches."
   (regression-parse-test "let x = 1"))
 
 (deftest test-typescript-for-of-const ()
+  "Test that for loops preserve the distinction between let/const."
   ;; It already works with `var' and `let', here to make sure we don't
   ;; break anything.
   (regression-parse-test "for (let x of xs) {}")
@@ -72,6 +74,7 @@ reproduces source text."
 }"))
 
 (deftest test-typescript-export-variants ()
+  "Test support for TypeScript-specific export syntax."
   (regression-parse-test "export = fn;")
   (regression-parse-test "export type x = typeof y;")
   (regression-parse-test "export as namespace foo;")
@@ -79,34 +82,44 @@ reproduces source text."
   (regression-parse-test "export * from 'file' as module;"))
 
 (deftest test-multiple-signatures ()
+  "Test support for multiple method signatures one after another."
   (regression-parse-test
    (path-join +ts-dir+ #p"multiple-signatures-regression.ts")))
 
 (deftest test-setters ()
+  "Test support for setter methods."
   (regression-parse-test
    (path-join +ts-dir+ #p"setter-regression.ts")))
 
 (deftest test-public-field ()
+  "Test support for `readonly abstract' public fields."
   (regression-parse-test
    (path-join +ts-dir+ #p"public-field-regression.ts")))
 
 (deftest test-public-field-2 ()
+  "Test support for `protected override readonly' public fields."
   (regression-parse-test
    (path-join +ts-dir+ #p"public-field-regression-2.ts")))
 
 (deftest test-parameter-type-round-trip ()
+  "Test support for type parameters."
   (regression-parse-test "function (x: string) {}"))
 
 (deftest test-arrow-function-round-trip ()
+  "Test that we preserve the distinction between single-argument arrow
+functions with and without parentheses."
   (regression-parse-test "(x) => 1")
   (regression-parse-test "x => 1"))
 
 (deftest test-property-signature-round-trip ()
+  "Test that we don't lose the ? in a optional property in an object
+type in a property signature."
   (regression-parse-test "export namespace FsContentRequest {
         export const type: RequestType<{ uri: string; encoding?: string; }, string, any> = new RequestType('fs/content');
 }"))
 
 (deftest test-member-expression-round-trip ()
+  "Test that we don't lose ? in member expressions."
   (regression-parse-test "a?")
   (regression-parse-test "a?.b")
   (regression-parse-test "a.b()?.c?.d")
@@ -119,49 +132,61 @@ reproduces source text."
   (regression-parse-test "let languageModels: { version: number, languageId: string, cTime: number, languageModel: T }"))
 
 (deftest test-optional-chaining-round-trip ()
+  "Make sure we don't lose ? in optional chaining."
   (regression-parse-test "const x = a?.b"))
 
 (deftest test-optional-element-access ()
+  "Make sure we don't lose ? in optional element access."
   (regression-parse-test "return emojiMap?.[code]"))
 
 (deftest test-optional-call ()
+  "Make sure we don't lose ? in optional calls."
   (regression-parse-test "fn?.(arg)"))
 
 (deftest test-interface-readonly-round-trip ()
+  "Make sure we don't lose ? in optional interface elements."
   (regression-parse-test "export interface RuntimeEnvironment {
         readonly file?: RequestService;
 }"))
 
 (deftest test-declare-readonly ()
+  "Make sure we don't lose `declare' in `declare readonly'."
   (regression-parse-test "class C {
     declare readonly _serviceBrand: undefined;
 }"))
 
 (deftest test-async-arrow-round-trip ()
+  "Make sure we don't lose `async' on an arrow function."
   (regression-parse-test "async p => {}"))
 
 (deftest test-async-function-round-trip ()
+  "Make sure we don't lose `async' on a function expression."
   (regression-parse-test "async function () {}"))
 
 (deftest test-async-function-declaration-round-trip ()
+  "Make sure we don't lose `async' on a function declaration."
   (regression-parse-test "async function myfun () {}"))
 
 (deftest test-async-function*-declaration-round-trip ()
+  "Make sure we don't lose `async' on a generator function declaration."
   (regression-parse-test "async function* myfun () {}"))
 
 (deftest test-async-function-signature-round-trip ()
+  "Make sure we don't lose `async' on a function signature."
   (regression-parse-test "async function fn(): any;"))
 
 (deftest test-export-async-function-declaration-round-trip ()
+  "Make sure we don't lose `async' on an exported function declaration."
   (regression-parse-test "export async function fn(): Promise<string | undefined>;"))
 
 (deftest test-static-async-method ()
+  "Make sure we can parse `static async' methods."
   (regression-parse-test "class myclass {
     static async fn() {};
-}")
-  )
+}"))
 
 (deftest test-trailing-comma-displacement ()
+  "Make sure trailing commas don't get displaced."
   (regression-parse-test "return fn(arg,);")
   (regression-parse-test "return fn(arg,
                         );")
@@ -170,6 +195,7 @@ reproduces source text."
 }"))
 
 (deftest test-optional-member-round-trip ()
+  "Make sure we don't lose the ? in optional class members."
   (regression-parse-test "class File {
         data?: Uint8Array;
 }")
@@ -178,6 +204,7 @@ reproduces source text."
 }"))
 
 (deftest test-constructor-private-readonly-round-trip ()
+  "Make sure we support `private readonly' class members."
   (regression-parse-test "class myclass {
         constructor(
                 private readonly extensionRoot: vscode.Uri
@@ -185,18 +212,22 @@ reproduces source text."
 } "))
 
 (deftest test-interface-readonly ()
+  "Make sure we keep `readonly' in interface properties."
   (regression-parse-test "export interface I {
                 readonly content: string;
 }"))
 
 (deftest test-enum-const ()
+  "Make sure a `const enum' keeps it's `const'."
   (regression-parse-test "const enum CharCode {
         Backspace = 8,
         LineFeed = 10
 }"))
 
 ;;; TODO
-#+(or) (deftest test-spurious-semicolon-in-class ()
+#+(or)
+(deftest test-spurious-semicolon-in-class ()
+  "Make sure semicolons aren't inserted in the wrong place when semicolons and ASI are mixed in a class body."
   (regression-parse-test
    "class C {
     is(item) {}
