@@ -1,4 +1,5 @@
 import atexit
+import collections
 import enum
 import json
 import multiprocessing
@@ -322,6 +323,15 @@ class AST:
             yield from child._perform_traverse(post_order=post_order)
         if post_order:
             yield self
+
+    def level_traverse(self) -> Generator["AST", None, None]:
+        """Perform an AST traversal in level order, yielding subtrees."""
+        queue = collections.deque([])
+        queue.append(self)
+        while queue:
+            node = queue.popleft()
+            yield node
+            queue.extend(node.children)
 
     # AST mutation
     @staticmethod
