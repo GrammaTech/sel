@@ -890,6 +890,13 @@ for the language.")
        (typescript-tsx-arrow-function
         (typescript-tsx-return-type
          :reader return-type))
+       ;; Optional parameter.
+       (typescript-ts-optional-parameter
+        (typescript-ts-type
+         :reader parameter-type))
+       (typescript-tsx-optional-parameter
+        (typescript-tsx-type
+         :reader parameter-type))
        ;; Required parameter.
        (typescript-ts-required-parameter
         (typescript-ts-type
