@@ -49,4 +49,8 @@ RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-proj
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
 
+# Install pre-release version of ASDF needed for CCL package-local nicknames
+RUN mkdir /root/common-lisp
+RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8.tar.gz| tar xzC /root/common-lisp
+
 WORKDIR /root/quicklisp/local-projects
