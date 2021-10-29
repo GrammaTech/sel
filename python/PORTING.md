@@ -135,3 +135,14 @@ This aids in reproducibility/tracing of issues in older releases.
 | tree-sitter-javascript | fdeb68ac |
 | tree-sitter-typescript | 5f904154 |
 | tree-sitter-python     | 8600d7fa |
+
+## v0.4.3
+
+| Repository             | Revision |
+|------------------------|----------|
+| tree-sitter            | 67de9435 |
+| tree-sitter-c          | e348e8ec |
+| tree-sitter-cpp        | e8dcc9d2 |
+| tree-sitter-javascript | fdeb68ac |
+| tree-sitter-typescript | 11f8f151 |
+| tree-sitter-python     | 8600d7fa |
