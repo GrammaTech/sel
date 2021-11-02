@@ -18,6 +18,12 @@
     - [Mutation Primitives](#mutation-primitives)
     - [Transformers](#transformers)
 - [Architecture](#architecture)
+- [FAQ](#faq)
+  - [ASTs package does not faithfully reproduce original text](#asts-package-does-not-faithfully-reproduce-original-text)
+  - [ASTs package inserts/deletes characters upon mutation.](#asts-package-insertsdeletes-characters-upon-mutation)
+  - [ASTs package throws "Unable to match ... on on AST of type ..."](#asts-package-throws-unable-to-match--on-on-ast-of-type-)
+  - [What is the difference between the "children" property and the "children" child slot?](#what-is-the-difference-between-the-children-property-and-the-children-child-slot)
+  - [Why does every AST has a child slot named "children"?](#why-does-every-ast-has-a-child-slot-named-children)
 - [License](#license)
 
 <!--TOC-->
@@ -708,8 +714,12 @@ returns a node with the `print` statements immediately below it elided:
 >>> def delete_print_statements(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Delete all print statements from the children of AST."""
 ...     if isinstance(ast, (asts.RootAST, asts.CompoundAST)):
-...         # Build a list of new children under the AST, eliding print statements.
-...         new_children = [c for c in ast.children if not is_print_statement(c)]
+...         # Build a list of new, non-comment children directly under the AST,
+...         # eliding print statements.
+...         new_children = [
+...             c for c in ast.child_slot("children")
+...             if not is_print_statement(c)
+...         ]
 ...
 ...         # Special case; if no children remain, add a "pass" statement nop to
 ...         # avoid syntax errors.
@@ -775,6 +785,146 @@ the `ast_ref_count` method.
 The underlying Common Lisp ASTs are themselves treated as immutable.
 Therefore, when performing mutation operations (e.g. cut, replace,
 insert), new ASTs are created in the process.
+
+# FAQ
+
+## ASTs package does not faithfully reproduce original text
+
+The source text property of an AST created using the ASTs package
+may not match the original text given to the parser, even if no
+mutations are performed.  An automatic source code formatter, such
+as `black` or `clang-format`, may be used on the original source
+text and the source text attribute of the parsed AST before printing
+to ensure consistency if this is required.  This flexibility in
+parsing allows for us to perform structured mutation operations -
+for instance, automatically inserting a comma when an item is
+added to an initializer list in C++.
+
+## ASTs package inserts/deletes characters upon mutation.
+
+As part of a mutation, the ASTs package may insert or delete whitespace
+or separator characters (e.g. commas) between ASTs.  One common
+idiom is to use an automatic source code formatter, such as `black`
+or `clang-format`, on the source text after mutation to ensure
+consistency before printing to screen or disk.
+
+## ASTs package throws "Unable to match ... on on AST of type ..."
+
+This error occurs after a mutation when an AST is inserted or
+replaces another and the type of the new AST does not match that
+expected by the tree-sitter grammer.  These errors are often subtle
+and may be tricky to diagnose.  As an example, consider the following:
+
+```python
+>>> func = asts.AST.from_string("print(a)", asts.ASTLanguage.Python, deepest=True)
+>>> type(func)
+<class 'asts.types.PythonCall'>
+```
+
+In the above snippet, we create a `func` AST representing a call to the print
+function.  Consider now that we wish to replace the `print` call with something
+different, say `foo`.  We may believe the following will perform
+the operation:
+
+```python
+>>> foo = asts.AST.from_string("foo", asts.ASTLanguage.Python)
+>>> new_func = asts.AST.copy(func, function=foo)
+>>> new_func.source_text
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File ".../Python-3.8.12/lib/python3.8/functools.py", line 967, in __get__
+    val = self.func(instance)
+  File ".../python/asts/asts.py", line 228, in source_text
+    return _interface.dispatch(AST.source_text.func.__name__, self)
+  File ".../python/asts/asts.py", line 589, in dispatch
+    return deserialize(handle_errors(json.loads(response.decode())))
+  File ".../python/asts/asts.py", line 539, in handle_errors
+    raise ASTException(data["error"])
+asts.asts.ASTException: An unhandled error condition has been signalled: Unable to match
+(SEQ (FIELD PYTHON-FUNCTION PYTHON-PRIMARY-EXPRESSION)
+ (FIELD PYTHON-ARGUMENTS PYTHON-GENERATOR-EXPRESSION PYTHON-ARGUMENT-LIST))
+on AST of type
+PYTHON-CALL
+```
+
+However, this does not work properly.  If we look at the type of `foo` and the type
+of the function child slot of `new_func`, we can see as to why.
+
+```python
+>>> type(foo)
+<class 'asts.types.PythonModule'>
+>>> type(new_func.child_slot("function"))
+<class 'asts.types.PythonModule'>
+```
+
+In this case, we attempt to insert a `PythonModule` AST as the function child
+slot of `func`.  A `PythonModule` AST is a "root" AST type, associated with an
+entire python file, replete with imports, functions, etc.  This AST type does
+not make sense as the "function" portion of a call AST; in this case,
+we want an identifier AST.  We can get the identifier by passing the `deepest`
+keyword during AST creation, retrieving the deepest subnode still
+encompassing all of the given source text, as shown below:
+
+
+```python
+>>> foo = asts.AST.from_string("foo", asts.ASTLanguage.Python, deepest=True)
+>>> type(foo)
+<class 'asts.types.PythonIdentifier'>
+>>> new_func = asts.AST.copy(func, function=foo)
+>>> new_func.source_text
+'foo(a)'
+```
+
+## What is the difference between the "children" property and the "children" child slot?
+
+An AST is composed of several child slots, the arity of which may
+be 0 (zero or more) or 1 (single AST).  For instance, in the AST
+for `print(a)`, there are two child slots, `[['FUNCTION', 1], ['ARGUMENTS', 1]]`,
+allowing for destructuring into component parts of the AST.
+
+In addition, internally, each AST has private before/after-AST slots
+for storing comments that appear in the source code.  For instance,
+in the AST for the function body below, the `return 0` AST has
+the comment `# This is a comment` stored in the internal before-AST
+slot.
+
+```python
+def foo():
+    # This is a comment
+    return 0
+```
+
+The `children` property on AST will return the concatenated list of
+component slots of an AST and any comments included in each AST's
+internal before or after AST slot.  The order of the ASTs will
+match the order they appear in the source text.
+
+The `children` child slot on an AST will return all ASTs not
+assigned to an explicit slot (e.g. 'FUNCTION', 'ARGUMENTS' above)
+and will NOT include any comment ASTs stored internally in an
+AST's before/after-AST slots.
+
+When using the AST `copy` method, care should be taken when
+using the `children` key (e.g. `AST.copy(ast, children=...)`).
+In this case, we are setting the `children` slot and not the
+property.  Therefore, in almost all cases, we will want to
+use the children slot, not property, of another AST to populate
+the keyword argument (e.g. `AST.copy(ast, children=other.child_slot("children"))`).
+If the property is utilized and a comment is added to the copy
+AST's children slot, the error described above in "ASTs package
+throws 'Unable to match...'" will occur.
+
+## Why does every AST has a child slot named "children"?
+
+To begin, lets consider the AST for `print(a)`; for this AST there
+are two explicit child slots not named `children`:
+`[['FUNCTION', 1], ['ARGUMENTS', 1]]`.  All ASTs not assigned to an
+explicit child slot on an AST (e.g. "FUNCTION" or "ARGUMENTS"
+previously) are assigned to the "catchall" slot named "children".
+Additionally, for ASTs with no named slots (e.g. function
+bodies), all of the ASTs are stored in the slot named "children".
+In essence, the slot serves as a fall-thru place to store all
+ASTs not assigned to an explicit, named slot.
 
 # License
 
