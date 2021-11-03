@@ -48,9 +48,20 @@
 (deftest test-deepest-sans-semicolon ()
   (is (typep (convert 'c-ast "int x = y" :deepest t) 'c-ast)))
 
-(deftest function-name-on-c-tree-sitter ()
+(deftest function-name-on-c-tree-sitter1 ()
   (with-fixture w/while
-    (string= "main" (function-name (find-if {typep _ 'function-ast} *soft*)))))
+    (is (equal "main"
+               (function-name (find-if (of-type 'function-ast) *soft*))))))
+
+(deftest function-name-on-c-tree-sitter2 ()
+  (let ((root (convert 'c-ast "char* foo(char * line) { return line; }")))
+    (is (equal "foo"
+               (function-name (find-if (of-type 'function-ast) root))))))
+
+(deftest function-name-on-c-tree-sitter3 ()
+  (let ((root (convert 'c-ast "int (*foo(int * node))(int32) { return 0; }")))
+    (is (equal "foo"
+               (function-name (find-if (of-type 'function-ast) root))))))
 
 (deftest parameter-type-on-c-tree-sitter ()
   (is (equalp (parameter-type

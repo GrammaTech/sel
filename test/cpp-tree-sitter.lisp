@@ -49,6 +49,11 @@ int main () {
     (is (equal "FileDescriptorTables::GetEmptyInstance"
                (function-name fn)))))
 
+(deftest function-name-on-cpp-tree-sitter ()
+  (let ((root (convert 'cpp-ast "void z::y::z() { return; }")))
+    (is (equal "z::y::z"
+               (function-name (find-if (of-type 'function-ast) root))))))
+
 (deftest preprocessor-test-1 () ;; address sel issue 136
   "Ensure that #ifndef is not converted to #ifdef"
   (let ((*soft* (from-string (make-instance 'cpp) 

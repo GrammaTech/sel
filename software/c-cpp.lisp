@@ -27,7 +27,11 @@
 (progn
  
 (defmethod function-name ((ast c/cpp-function-definition))
-  (source-text (c/cpp-declarator (c/cpp-declarator ast))))
+  (nest (source-text)
+        (find-if «or (of-type 'identifier-ast)
+                     (of-type 'cpp-qualified-identifier)»)
+        (c/cpp-declarator)
+        (c/cpp-declarator ast)))
 
 (defmethod function-parameters ((ast c/cpp-function-definition))
   (direct-children (c/cpp-parameters (c/cpp-declarator ast))))
