@@ -6739,6 +6739,13 @@ parent in the cases where the parent indentation changes.")
   identifier-ast parameters-ast
   identifier-ast arguments-ast)
 
+(defgeneric prefer-child-indentation-p (ast)
+  (:method (ast) nil)
+  (:documentation " Return t if AST is a type that prefers its indentation be
+attached to its indent-children slot as opposed to its parent's. This is
+primarily for process-indentation and working around python-block which is a
+unique edge case."))
+
 (defun process-indentation (root &aux indentation-carryover indentation-ast)
   "Process the indentation of ROOT such that indentation information is stored in
 the indentation slots."
@@ -6802,12 +6809,7 @@ the indentation slots."
                    ;; total - inherited
                    (- (+ indentation indentation-carryover)
                       (get-indentation-at ast parents)))
-                  (only-indentation? (not (scan "[^ \\t\\n]" text)))
-                  ;; A set of classes that prefer their indentation
-                  ;; be attached to their indent-children slot as opposed
-                  ;; to their parent's. This is primarily for working around
-                  ;; python-block which is a unique edge case.
-                  (prefer-child-indentation-set '(python-block)))
+                  (only-indentation? (not (scan "[^ \\t\\n]" text))))
              "Patch either AST or PARENT to have INDENTATION for the
               relevant line or lines."
              (symbol-macrolet ((indent-children-parent (indent-children parent))
@@ -6837,12 +6839,7 @@ the indentation slots."
                   (unless only-indentation?
                     (setf indentation-carryover nil
                           indentation-ast nil)))
-                 ((find-if
-                   (lambda (type)
-                     ;; Use #'subtypep to avoid matching types that haven't been
-                     ;; loaded into the package.
-                     (subtypep (type-of ast) type))
-                   prefer-child-indentation-set)
+                 ((prefer-child-indentation-p ast)
                   (backpatch-indent-children-slots ast adjusted-indentation)
                   (setf indent-children-current adjusted-indentation
                         indentation-carryover nil

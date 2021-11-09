@@ -76,6 +76,9 @@ are created if they're present in PARSE-TREE."
   ;; so the parent can be computed.
   " ")
 
+(defmethod prefer-child-indentation-p ((ast python-block))
+  t)
+
 
 ;;; Methods common to all software objects
 
