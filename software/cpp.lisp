@@ -54,6 +54,12 @@
   (unless (compiler cpp)
     (setf (compiler cpp) "c++")))
 
+(defmethod contextualize-ast :around (software (ast cpp-ast) context &rest rest
+                                      &key ast-type &allow-other-keys)
+  (if ast-type
+      (call-next-method)
+      (apply #'call-next-method software ast context :ast-type 'cpp-ast rest)))
+
 (defmethod ast-for-match ((language (eql 'cpp))
                           string software context)
   (@ (convert (language-ast-class language)

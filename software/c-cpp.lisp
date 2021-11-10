@@ -25,7 +25,50 @@
 
 #+(or :tree-sitter-c :tree-sitter-cpp)
 (progn
- 
+
+
+;;; Cleanup Pass
+;;; TODO: likely want to move this to a different file.
+(defgeneric contextualize-ast (software ast context
+                               &key ast-type parents
+                               &allow-other-keys)
+  (:method (software ast context &key &allow-other-keys) ast)
+  (:method :around (software ast context &key &allow-other-keys)
+    (or (call-next-method) ast))
+  (:documentation "Return a version of AST which has been patched, if needed,
+to take CONTEXT into account."))
+
+(defmethod contextualize-ast ((software c/cpp)
+                              (ast c/cpp-binary-expression)
+                              context
+                              &key ast-type &allow-other-keys)
+  ;;; TODO: this can likely be addressed with #'scopes to some extent, though
+  ;;;       it won't find any external global variables.
+  (match ast
+    ((c/cpp-binary-expression
+      :c/cpp-left
+      (c/cpp-parenthesized-expression
+       :children (list (and identifier (c/cpp-identifier)))))
+     ;; TODO: improve this. Currently assumes that we will want it to be a
+     ;;       cast expression regardless.
+     (convert
+      `,ast-type
+      `((:class . :cast-expression)
+        (:type
+         (:class . :type-descriptor)
+         (:type
+          (:class . :type-identifier)
+          (:text . ,(text identifier)))
+         (:before-text . ,(before-text identifier))
+         (:after-text . ,(after-text identifier)))
+        (:value
+         (:class . :pointer-expression)
+         (:argument . ,(c/cpp-right ast))
+         (:operator . ,(c/cpp-operator ast)))
+        (:before-text . ,(before-text ast))
+        (:after-text . ,(after-text ast)))))))
+
+;;; Generics and Transformations
 (defmethod function-name ((ast c/cpp-function-definition))
   (nest (source-text)
         (find-if «or (of-type 'identifier-ast)
