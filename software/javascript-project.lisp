@@ -31,14 +31,6 @@
 (define-software javascript-project (parseable-project) ()
   (:documentation "Project specialization for javascript software objects."))
 
-(defun find-json ()
-  (let ((package
-         (some #'find-package
-               '(:software-evolution-library/software/tree-sitter))))
-    (or (and package
-             (find-external-symbol (string 'json) package))
-        (error "No available representation for JSON ASTs."))))
-
 (defmethod initialize-instance :after ((javascript-project javascript-project)
                                        &key)
   (setf (slot-value javascript-project 'component-class)
@@ -85,7 +77,7 @@
 simple text software objects."
   (mapcar (lambda (pair &aux (file (car pair)))
             (if (equal "json" (pathname-type file))
-                (cons file (nest (from-file (make-instance (find-json)))
+                (cons file (nest (from-file (make-instance 'json))
                                  (merge-pathnames-as-file (project-dir project)
                                                           file)))
                 pair))
