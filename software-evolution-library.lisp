@@ -22,6 +22,7 @@
    :*crossover-stats*
    :genome
    :phenome
+   :interpreted-phenome
    :phenome-p
    :ignore-phenome-errors
    :return-nil-for-bin
@@ -227,6 +228,10 @@ For example an AST genome, e.g., of a `cil' or `lisp' software object
 my have a tree structure while the genome of an `asm' or `llvm'
 software object will be a vector."))
 
+(defclass interpreted-phenome ()
+  ()
+  (:documentation "Mixin for an interpreted phenome."))
+
 (defgeneric phenome (software &key bin)
   (:documentation
    "Phenotype of the software.
@@ -238,7 +243,14 @@ or a numeric indication of success, of the compilation process, (3)
 STDERR of the compilation process, or a string holding error output
 relevant to phenome generation, (4) STDOUT of the compilation process,
 or a string holding non-error output relevant to phenome
-generation, (5) the source file name used during compilation. "))
+generation, (5) the source file name used during compilation. ")
+  (:method ((software interpreted-phenome) &key bin)
+    (interpreted-phenome software bin)))
+
+(defun interpreted-phenome (obj bin)
+  "Create a phenotype of the interpreted software OBJ."
+  (to-file obj bin)
+  (values bin 0 nil nil nil))
 
 (defgeneric phenome-p (software)
   (:documentation "Return non-nil if SOFTWARE has a phenotype."))

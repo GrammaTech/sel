@@ -5549,11 +5549,6 @@ or comments.  NIL if no such newline exists."
                  ,node-types-file
                  ',name))))))
 
-(defun interpreted-phenome (obj bin)
-  "Create a phenotype of the interpreted software OBJ."
-  (to-file obj bin)
-  (values bin 0 nil nil nil))
-
 (defmethod get-parent-full-stmt (obj (ast tree-sitter-ast))
   (if (typep ast 'statement-ast)
       ast
