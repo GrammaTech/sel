@@ -1,9 +1,10 @@
 ;;; javascript-project.lisp --- Projects composed of JavaScript objects
 ;;;
-;;; Implements the core functionality of the software-evolution-library
-;;; for nodejs projects.  The JavaScript project software object
+;;; Implements the core functionality of the
+;;; software-evolution-library for nodejs projects (including
+;;; TypeScript projects). The JavaScript project software object
 ;;; utilizes the nodejs project's @code{package.json} file to identify
-;;; the files to parse and utilize.  This class is supported by the
+;;; the files to parse and utilize. This class is supported by the
 ;;; @code{javascript} software object class.
 ;;;
 ;;; For proper operation, installation of nodejs and the npm package
@@ -21,15 +22,31 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/python
         :software-evolution-library/software/javascript
+        :software-evolution-library/software/typescript
         :software-evolution-library/software/json
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project)
-  (:export :javascript-project))
+  (:export :javascript-project
+           :typescript-project))
 (in-package :software-evolution-library/software/javascript-project)
 (in-readtable :curry-compose-reader-macros)
 
 (define-software javascript-project (parseable-project) ()
   (:documentation "Project specialization for javascript software objects."))
+
+(define-software typescript-project (javascript-project) ()
+  (:documentation "Project specialization for typescript software objects."))
+
+(defgeneric evolve-file-extension-p (project extension)
+  (:documentation "Is EXTENSION an evolve-file for PROJECT?")
+  (:method (project (extension null))
+    nil)
+  (:method ((js-project javascript-project) (extension string))
+    (string-case extension
+      (("js" "mjs" "jsx") t)))
+  (:method ((ts-project typescript-project) (extension string))
+    (string-case extension
+      (("ts" "tsx") t))))
 
 (defmethod initialize-instance :after ((javascript-project javascript-project)
                                        &key)
@@ -41,6 +58,12 @@
         (slot-value javascript-project 'ignore-paths)
         (adjoin "node_modules/**/*" (ignore-paths javascript-project)
                 :test #'equal)))
+
+(defmethod initialize-instance :after ((typescript-project typescript-project)
+                                       &key)
+  (with-slots (component-class) typescript-project
+    (when (eql component-class 'javascript)
+      (setf component-class 'typescript))))
 
 (defmethod collect-evolve-files ((project javascript-project) &aux result)
   (with-current-directory ((project-dir project))
@@ -59,13 +82,14 @@
         :test (lambda (file)
                 ;; Heuristics for identifying files in the project:
                 ;; 1) The file is not in an ignored directory.
-                ;;    and the file has a "js" extension.
+                ;;    and the file has a JS or TS extension.
                 ;; 2) The file is listed as a "bin" in package.json.
                 ;; 3) The file is listed as "main" in package.json.
                 (let ((rel-path (pathname-relativize (project-dir project)
                                                      file)))
                   (or (and (not (ignored-evolve-path-p project rel-path))
-                           (equal "js" (pathname-type rel-path)))
+                           (evolve-file-extension-p project
+                                                    (pathname-type rel-path)))
                       (find rel-path (aget :bin package-spec)
                             :key [#'canonical-pathname #'cdr]
                             :test #'equal)
@@ -91,10 +115,23 @@ genome instead of a binary.
 
 OBJ object to create a phenome for
 BIN location where the phenome will be created on the filesystem"
-  (values bin 0 nil nil nil))
+  (interpreted-phenome obj bin))
 
 (defmethod phenome :around ((obj javascript-project) &key (bin (temp-file-name)))
   "Bind *build-dir* to BIN ensuring the genome of OBJ in written to BIN."
   (ensure-directories-exist (ensure-directory-pathname bin))
   (let ((*build-dir* bin))
     (call-next-method)))
+
+(defmethod phenome ((obj typescript-project) &key (bin (temp-file-name)))
+  "Create a phenotype of a TypeScript project.
+This ensures that the project is compiled to Javascript.
+
+Requires that `npm' and `npx' be in the path."
+  (to-file obj bin)
+  (shell "cd '~a' && test -e tsconfig.json || tsc --init"
+         bin)
+  (multiple-value-bind (stdout stderr errno)
+      (shell "cd '~a' && npm install --also=dev && npx tsc -b"
+             bin)
+    (values bin errno stderr stdout nil)))
