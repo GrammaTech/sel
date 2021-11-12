@@ -31,6 +31,7 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/all-tree-sitter
         :software-evolution-library/software/javascript
+        :software-evolution-library/software/typescript
         :software-evolution-library/software/c
         :software-evolution-library/software/cpp
         :software-evolution-library/software/c-project
@@ -109,6 +110,7 @@
            ;; Projects including git urls.
            :git-clang-project
            :git-javascript-project
+           :git-typescript-project
            :git-lisp-project))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
@@ -132,6 +134,7 @@
 
 (defclass clang-git-project (clang-project git-project) ())
 (defclass javascript-git-project (javascript-project git-project) ())
+(defclass typescript-git-project (typescript-project git-project) ())
 (defclass java-git-project (javascript-project git-project) ())
 (defclass lisp-git-project (lisp-project git-project) ())
 
@@ -177,6 +180,7 @@
          "scala" scala
          "text" simple
          "ts" typescript
+         "tsx" typescript
          "typescript" typescript)
   "Case-insensitive hash table from aliases (names, extensions) to languages.")
 
@@ -436,27 +440,47 @@ based on heuristics based on whether SOURCES points to files or
 directories and if files based on their extensions."
   (labels
       ((best-guess (guesses)
-         (car (extremum (hash-table-alist (frequencies guesses))
-                        #'> :key #'cdr)))
+         (let ((frequencies (frequencies guesses)))
+           ;; Inside of a project we remove all JSON and SIMPLE software
+           ;; objects assuming that they may exist in any type of project.
+           ;;
+           ;; NOTE: We will have to add to this list of incidental
+           ;; software types that don't determine the project type.
+           (mapc (op (remhash _ frequencies))
+                 '(nil json simple bash))
+           ;; If a project contains both Javascript and TypeScript,
+           ;; it's a TypeScript project.
+           (when-let* ((js-count (gethash 'javascript frequencies))
+                       (ts-count (gethash 'typescript frequencies)))
+             (incf (gethash 'typescript frequencies) js-count)
+             (remhash 'javascript frequencies))
+           (when-let* ((js-count (gethash 'javascript-project frequencies))
+                       (ts-count (gethash 'typescript-project frequencies)))
+             (incf (gethash 'typescript-project frequencies) js-count)
+             (remhash 'javascript-project frequencies))
+           (car (extremum (hash-table-alist frequencies)
+                          #'> :key #'cdr))))
        (guess-helper (sources project-p)
          (let ((guesses
                 (mapcar (lambda (source)
-                           (if (directory-p source)
-                               (when-let ((guess (guess-helper
-                                                  (list-directory source)
-                                                  t)))
-                                 (language-to-project guess))
+                          (if (directory-p source)
+                              (unless (intersection
+                                       ;; If we descended into
+                                       ;; node_modules we might end up
+                                       ;; labelling a JS project as
+                                       ;; TypeScript or v.v.
+                                       '(".git" "node_modules")
+                                       (pathname-directory source)
+                                       :test #'equal)
+                                (when-let ((guess (guess-helper
+                                                   (list-directory source)
+                                                   t)))
+                                  (language-to-project guess)))
                                (alias-language (pathname-type source))))
                         sources)))
            (cond
              (project-p
-              ;; Inside of a project we remove all JSON and SIMPLE software
-              ;; objects assuming that they may exist in any type of project.
-              ;;
-              ;; NOTE: We will have to add to this list of incidental
-              ;; software types that don't determine the project type.
-              (best-guess
-               (remove-if {member _ '(nil json simple bash)} guesses)))
+              (best-guess guesses))
              ((= 1 (length sources))
               ;; For a single file either return the guess, or return
               ;; SIMPLE if no language matched.
@@ -514,6 +538,7 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                              (ecase (guess-language path)
                                (clang-project 'clang-git-project)
                                (javascript-project 'javascript-git-project)
+                               (typescript-project 'typescript-git-project)
                                (lisp-project 'lisp-git-project)
                                (simple 'simple))))))))
          (obj (from-file
