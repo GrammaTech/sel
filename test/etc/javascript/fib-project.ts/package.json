@@ -11,7 +11,8 @@
     "fib.js"
   ],
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "lint": "eslint src --ext ts"
   },
   "main": "app.js"
 }

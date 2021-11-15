@@ -26,6 +26,8 @@
         :software-evolution-library/software/json
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project)
+  (:import-from :software-evolution-library/software/parseable
+                :source-text)
   (:export :javascript-project
            :typescript-project))
 (in-package :software-evolution-library/software/javascript-project)
@@ -130,6 +132,64 @@ This ensures that the project is compiled to Javascript.
 Requires that `npm' be in the path."
   (to-file obj bin)
   (multiple-value-bind (stdout stderr errno)
-      (shell "cd '~a' && npm install --also=dev && npm run build"
-             bin)
+      (shell "cd '~a' && npm install --also=dev && ~a"
+             bin
+             (or (guess-typescript-project-build-command obj)
+                 (error "Could not figure out how to build ~a" obj)))
     (values bin errno stderr stdout nil)))
+
+(defun javascript-project-scripts (project)
+  "Extract the scripts key from the package.json of PROJECT as an alist."
+  (when-let* ((package.json
+               (javascript-project-package-json project)))
+    (package-json-scripts (genome package.json))))
+
+(defun javascript-project-package-json (project)
+  (aget "package.json" (all-files project) :test #'equal))
+
+(-> package-json-scripts (json-document)
+    (values list &optional))
+(defun package-json-scripts (json)
+  (when-let*
+      ((scripts-object
+        ;; TODO Lenses for JSON translation and manipulation.
+        (match json
+          ((json-document
+            :children
+            (list (json-object :children data)))
+           (find "\"scripts\""
+                 data
+                 :key [#'source-text #'json-key]
+                 :test #'equal)))))
+    (mapcar (lambda (pair)
+              (cons
+               (string-trim "\""
+                            (source-text (json-key pair)))
+               (string-trim "\""
+                            (source-text (json-value pair)))))
+            (children (json-value scripts-object)))))
+
+(defun guess-typescript-project-build-command (proj)
+  "Guess how to build PROJ.
+First looks for a `build' script, then a `compile' script, then some
+script that invokes `tsc', and finally to running `tsc' directly if
+there is a `tsconfig.json' file."
+  (flet ((get-build-script (proj)
+           (when-let ((alist (javascript-project-scripts proj)))
+             (guess-build-script alist)))
+         (use-tsconfig (proj)
+           ;; If tsconfig.json exists, just invoke local tsc with npx.
+           (and (aget "tsconfig.json" (all-files proj) :test #'equal)
+                "npx tsc -b")))
+    (if-let (script (get-build-script proj))
+      (fmt "npm run ~a" script)
+      (use-tsconfig proj))))
+
+(defun guess-build-script (alist)
+  "Guess which build script in ALIST to use.
+Note we want the name of the script (the car) not the script
+itself (the cdr)."
+  (or (car (assoc "build" alist :test #'equal))
+      (car (assoc "compile" alist :test #'equal))
+      ;; Just look for a script that calls tsc.
+      (car (rassoc "tsc" alist :test #'string~=))))

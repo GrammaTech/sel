@@ -13,8 +13,15 @@
    :software-evolution-library/software/project
    :software-evolution-library/software/javascript-project
    :software-evolution-library/components/test-suite)
+
   (:import-from :software-evolution-library/command-line
                 :guess-language)
+  (:import-from :software-evolution-library/software/javascript-project
+                :package-json-scripts
+                :javascript-project-package-json
+                :guess-build-script)
+  (:import-from :software-evolution-library/software/tree-sitter
+                :json)
   (:export :test-javascript-project))
 (in-package :software-evolution-library/test/javascript-project)
 (in-readtable :curry-compose-reader-macros)
@@ -40,18 +47,29 @@
   (:teardown
    (setf *soft* nil)))
 
-(deftest (can-identity-a-javascript-project) ()
+(deftest can-identity-a-javascript-project ()
   (is (eql 'javascript-project
            (guess-language (javascript-dir #p"fib-project/")))))
 
-(deftest (can-identity-a-javascript-project-with-typescript-deps) ()
+(deftest can-identity-a-javascript-project-with-typescript-deps ()
   "Can identify a JS project as such (even if it has TS deps)."
   (is (eql 'javascript-project
            (guess-language (javascript-dir #p"fib-project.js/")))))
 
-(deftest (can-identity-a-typescript-project) ()
+(deftest can-identity-a-typescript-project ()
   (is (eql 'typescript-project
            (guess-language (javascript-dir #p"fib-project.ts/")))))
+
+(deftest can-process-package-json ()
+  (with-fixture fib-project-typescript
+    (let ((package.json (javascript-project-package-json *soft*)))
+      (is (typep package.json 'json))
+      (let ((scripts (package-json-scripts (genome package.json))))
+        (is (equal '(("build" . "tsc -b")
+                     ("lint" . "eslint src --ext ts"))
+                   scripts)
+            (is (equal "tsc -b"
+                       (guess-build-script scripts))))))))
 
 (deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
