@@ -1,0 +1,14 @@
+{
+  "name": "Fibonacci",
+  "description": "Fibonacci number generator",
+  "version": "1.0.0",
+  "dependencies": {
+    "argparse": "latest",
+    "@types/node": "latest",
+    "typescript": "latest"
+  },
+  "files": [
+    "fib.js"
+  ],
+  "main": "app.js"
+}

@@ -28,7 +28,28 @@
   (:teardown
    (setf *soft* nil)))
 
+(defixture fib-project-typescript
+    (:setup
+     (setf *soft*
+           (from-file (make-instance 'typescript-project
+                                     :component-class 'sel/sw/ts:typescript)
+                      (javascript-dir #P"fib-project.ts/"))))
+  (:teardown
+   (setf *soft* nil)))
+
 (deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
     (is (equal 2 (length (evolve-files *soft*))))
     (is (not (zerop (size *soft*))))))
+
+(deftest (can-parse-a-typescript-project :long-running) ()
+  (with-fixture fib-project-typescript
+    (is (typep *soft* 'typescript-project))
+    (is (equal 2 (length (evolve-files *soft*))))
+    (is (not (zerop (size *soft*))))))
+
+(deftest (can-compile-a-typescript-project :long-running) ()
+  (with-fixture fib-project-typescript
+    (let ((phenome (ensure-directory-pathname (phenome *soft*))))
+      (is (file-exists-p (path-join phenome "app.js")))
+      (is (file-exists-p (path-join phenome "fib.js"))))))
