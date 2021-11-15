@@ -10,5 +10,8 @@
   "files": [
     "fib.js"
   ],
+  "scripts": {
+    "build": "tsc -b"
+  },
   "main": "app.js"
 }

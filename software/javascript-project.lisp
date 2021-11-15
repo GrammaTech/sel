@@ -127,11 +127,9 @@ BIN location where the phenome will be created on the filesystem"
   "Create a phenotype of a TypeScript project.
 This ensures that the project is compiled to Javascript.
 
-Requires that `npm' and `npx' be in the path."
+Requires that `npm' be in the path."
   (to-file obj bin)
-  (shell "cd '~a' && test -e tsconfig.json || tsc --init"
-         bin)
   (multiple-value-bind (stdout stderr errno)
-      (shell "cd '~a' && npm install --also=dev && npx tsc -b"
+      (shell "cd '~a' && npm install --also=dev && npm run build"
              bin)
     (values bin errno stderr stdout nil)))
