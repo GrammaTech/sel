@@ -13,11 +13,14 @@
    :software-evolution-library/software/project
    :software-evolution-library/software/javascript-project
    :software-evolution-library/components/test-suite)
+  (:import-from :software-evolution-library/command-line
+                :guess-language)
   (:export :test-javascript-project))
 (in-package :software-evolution-library/test/javascript-project)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-javascript-project "Javascript representation."
-  (javascript-tree-sitter-available-p))
+  (and (javascript-tree-sitter-available-p)
+       (typescript-tree-sitter-available-p)))
 
 (defixture fib-project-javascript
   (:setup
@@ -36,6 +39,19 @@
                       (javascript-dir #P"fib-project.ts/"))))
   (:teardown
    (setf *soft* nil)))
+
+(deftest (can-identity-a-javascript-project) ()
+  (is (eql 'javascript-project
+           (guess-language (javascript-dir #p"fib-project/")))))
+
+(deftest (can-identity-a-javascript-project-with-typescript-deps) ()
+  "Can identify a JS project as such (even if it has TS deps)."
+  (is (eql 'javascript-project
+           (guess-language (javascript-dir #p"fib-project.js/")))))
+
+(deftest (can-identity-a-typescript-project) ()
+  (is (eql 'typescript-project
+           (guess-language (javascript-dir #p"fib-project.ts/")))))
 
 (deftest (can-parse-a-javascript-project :long-running) ()
   (with-fixture fib-project-javascript
