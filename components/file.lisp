@@ -112,7 +112,11 @@ permissions and modification time when creating OBJ."
   "Wrapper around the `to-file` method to preserve permissions and
 modification time when writing OBJ to PATH."
   (when (modification-time obj)
-    (shell "touch -t ~a \"~a\"" (modification-time obj) path))
+    (uiop:run-program (list
+                       "touch"
+                       "-t"
+                       (modification-time obj)
+                       (princ-to-string path))))
   (unless (permissions obj)
     (warn "No permissions set for file ~S, using u+rw" obj)
     (setf (permissions obj)
