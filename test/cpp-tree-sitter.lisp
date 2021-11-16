@@ -583,3 +583,56 @@ line, after a comment if there is one."
 
   return OpenLR::LocationReferencePoint::OTHER;
 }"))
+
+
+;;; Contextualize-ast Tests
+(deftest cpp-contextualize-function-declarator-1 ()
+  "Contextualize-ast turns a function-declarator into an init declarator and
+doesn't contain any abstract function parameters or type identifiers."
+  (let* ((source "Obj object(a, X(b, Y()));")
+         (root (convert 'cpp-ast source))
+         (software (make-instance 'cpp :genome root))
+         (result (sel/sw/ts::contextualize-ast
+                  software
+                  (find-if (of-type 'cpp-function-declarator) root)
+                  nil)))
+    (is (typep result 'cpp-init-declarator))
+    (is (not (find-if (of-type 'cpp-abstract-function-declarator) result)))
+    (is (not (find-if (of-type 'cpp-type-identifier) result)))))
+
+(deftest cpp-contextualize-function-declarator-2 ()
+  "Contextualize-ast maintains the source representation of a function-declarator
+when it is contextualized."
+  (let* ((source "Obj object ( a, X ( b , Y ( ))) ;")
+         (root (convert 'cpp-ast source))
+         (software (make-instance 'cpp :genome root))
+         (target-ast (find-if (of-type 'cpp-function-declarator) root))
+         (result (sel/sw/ts::contextualize-ast software target-ast nil)))
+    ;; TODO: need to replace the target with the result and check then.
+    (is (equal (source-text target-ast) (source-text result)))))
+
+(deftest cpp-contextualize-binary-expression-1 ()
+  "Contextualize-ast turns a binary expression into a cast expression when
+the left hand side is a parenthesized identifier and doesn't contain
+parenthesized expressions or binary expressions."
+  (let* ((source "(Type) * variable;")
+         (root (convert 'cpp-ast source))
+         (software (make-instance 'cpp :genome root))
+         (result (sel/sw/ts::contextualize-ast
+                  software
+                  (find-if (of-type 'cpp-binary-expression) root)
+                  nil)))
+    (is (typep result 'cpp-cast-expression))
+    (is (not (find-if (of-type 'cpp-binary-expression) result)))
+    (is (not (find-if (of-type 'cpp-parenthesized-expression) result)))))
+
+(deftest cpp-contextualize-binary-expression-2 ()
+  "Contextualize-ast maintains the source representation of a binary expression
+when it is contextualized."
+  (let* ((source "( Type ) * variable ;")
+         (root (convert 'cpp-ast source))
+         (software (make-instance 'cpp :genome root))
+         (target-ast (find-if (of-type 'cpp-binary-expression) root))
+         (result (sel/sw/ts::contextualize-ast software target-ast nil)))
+    ;; TODO: need to replace the target with the result and check then.
+    (is (equal (source-text target-ast) (source-text result)))))
