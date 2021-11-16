@@ -108,10 +108,10 @@
            :+clang-project-command-line-options+
            :+evolutionary-command-line-options+
            ;; Projects including git urls.
-           :git-clang-project
-           :git-javascript-project
-           :git-typescript-project
-           :git-lisp-project))
+           :clang-git-project
+           :javascript-git-project
+           :typescript-git-project
+           :lisp-git-project))
 (in-package :software-evolution-library/command-line)
 (in-readtable :curry-compose-reader-macros)
 
