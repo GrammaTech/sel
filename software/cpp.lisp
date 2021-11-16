@@ -60,6 +60,79 @@
       (call-next-method)
       (apply #'call-next-method software ast context :ast-type 'cpp-ast rest)))
 
+(defmethod contextualize-ast ((software cpp)
+                              (ast cpp-function-declarator)
+                              context
+                              &key ast-type parents &allow-other-keys)
+  (labels ((abstract-function-parameter-p (parameter-ast)
+             "Return T if parameter-ast is an abstract-function parameter."
+             (match parameter-ast
+               ((cpp-parameter-declaration
+                 :cpp-type (cpp-type-identifier)
+                 :cpp-declarator (cpp-abstract-function-declarator))
+                t)))
+           (abstract-function-parameter->call-expression (parameter)
+             "Convert FUNCTION-PARAMETER to a call-expression."
+             (let ((parameters (cpp-parameters (cpp-declarator parameter)))
+                   (name (cpp-type parameter)))
+               (convert
+                'cpp-ast
+                `((:class . :call-expression)
+                  (:before-text . ,(before-text parameter))
+                  (:after-text . ,(after-text parameter))
+                  (:function
+                   (:class . :identifier)
+                   (:before-text . ,(before-text name))
+                   (:after-text . ,(after-text name))
+                   (:text . ,(text name)))
+                  (:arguments
+                   (:class . :argument-list)
+                   (:before-text . ,(before-text (cpp-declarator parameter)))
+                   (:after-text . ,(after-text (cpp-declarator parameter)))
+                   (:internal-asts-0 ,@(cpp-internal-asts-3 parameters))
+                   (:children
+                    ,@(mapcar #'convert-for-argument-list
+                              (direct-children parameters))))))))
+           (parameter-declaration->identifier (parameter)
+             "Convert PARAMETER into an identifier."
+             (let ((type-identifier (cpp-type parameter)))
+               (convert
+                'cpp-ast
+                `((:class . :identifier)
+                  (:before-text . ,(string+ (before-text parameter)
+                                            (before-text type-identifier)))
+                  (:after-text . ,(string+ (after-text type-identifier)
+                                           (after-text parameter)))
+                  (:text . ,(text type-identifier))))))
+           (convert-for-argument-list (target-ast)
+             "Convert TARGET-AST to a type that is suited for an argument list."
+             ;; TODO: this almost certainly doesn't cover every case.
+             (if (abstract-function-parameter-p target-ast)
+                 (abstract-function-parameter->call-expression target-ast)
+                 (parameter-declaration->identifier target-ast)))
+           (function-declarator->init-declarator (function-declarator)
+             "Convert FUNCTION-DECLARATOR into an init-declarator."
+             (let ((parameters (cpp-parameters function-declarator)))
+               (convert
+                ast-type
+                `((:class . :init-declarator)
+                  (:before-text . ,(before-text function-declarator))
+                  (:after-text . ,(after-text function-declarator))
+                  (:declarator . ,(cpp-declarator function-declarator))
+                  (:value
+                   (:class . :argument-list)
+                   (:before-text . ,(before-text parameters))
+                   (:after-text . ,(after-text parameters))
+                   (:children
+                    ,@(mapcar #'convert-for-argument-list
+                              (direct-children parameters)))))))))
+    ;; TODO: ignore top-level definitions. This can probably be narrowed
+    ;;       to target more specific areas, such as header files and preprocs.
+    ;;       It may also make sense to allow these in class definitions too.
+    (unless (typep (car parents) 'cpp-translation-unit)
+      ;; NOTE: perform blanket transformation for now.
+      (function-declarator->init-declarator ast))))
+
 (defmethod ast-for-match ((language (eql 'cpp))
                           string software context)
   (@ (convert (language-ast-class language)
