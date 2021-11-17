@@ -55,6 +55,8 @@
   (is (string-equal "ruby" (guess-language #P"this/foo.rb")))
   (is (string-equal "scala" (guess-language #P"this/foo.scala")))
   (is (string-equal "typescript" (guess-language #P"this/foo.ts")))
+  ;; TypeScript interface files are used in JS projects.
+  (is (string-equal "javascript" (guess-language #P"this/foo.d.ts")))
   (is (eql (sel/command-line::language-to-project (sel/command-line::find-c))
            (guess-language (make-pathname :directory +grep-prj-dir+))))
   (is (eql 'simple (guess-language #P"this/Makefile")))

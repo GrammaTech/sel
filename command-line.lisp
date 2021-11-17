@@ -197,6 +197,19 @@
     (cpp (find-cpp))
     (t language)))
 
+(-> pathname-language ((or string pathname)) symbol)
+(defun pathname-language (p &aux (p (pathname p)))
+  (let ((type (pathname-type p)))
+    (let ((guess (alias-language type)))
+      ;; .d.ts files are interface files used by JavaScript projects
+      ;; so they can be consumed by TypeScript projects. They are
+      ;; evidence for JavaScript, not TypeScript.
+      (if (and (eql guess 'typescript)
+               (equal (pathname-type p) "ts")
+               (string$= ".d" (pathname-name p)))
+          'javascript
+          guess))))
+
 
 ;;;; Functions to handle command line options and arguments.
 
@@ -476,7 +489,7 @@ directories and if files based on their extensions."
                                                    (list-directory source)
                                                    t)))
                                   (language-to-project guess)))
-                               (alias-language (pathname-type source))))
+                              (pathname-language source)))
                         sources)))
            (cond
              (project-p
