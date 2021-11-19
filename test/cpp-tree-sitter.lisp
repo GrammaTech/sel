@@ -14,7 +14,8 @@
     :software-evolution-library/components/formatting)
   (:import-from :software-evolution-library/software/tree-sitter
                 :inner-declarations
-                :outer-declarations)
+                :outer-declarations
+                :contextualize-ast)
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers)
   (:export :test-cpp-tree-sitter))
@@ -592,7 +593,7 @@ doesn't contain any abstract function parameters or type identifiers."
   (let* ((source "Obj object(a, X(b, Y()));")
          (root (convert 'cpp-ast source))
          (software (make-instance 'cpp :genome root))
-         (result (sel/sw/ts::contextualize-ast
+         (result (contextualize-ast
                   software
                   (find-if (of-type 'cpp-function-declarator) root)
                   nil)))
@@ -607,7 +608,7 @@ when it is contextualized."
          (root (convert 'cpp-ast source))
          (software (make-instance 'cpp :genome root))
          (target-ast (find-if (of-type 'cpp-function-declarator) root))
-         (result (sel/sw/ts::contextualize-ast software target-ast nil)))
+         (result (contextualize-ast software target-ast nil)))
     ;; TODO: need to replace the target with the result and check then.
     (is (equal (source-text target-ast) (source-text result)))))
 
@@ -618,7 +619,7 @@ parenthesized expressions or binary expressions."
   (let* ((source "(Type) * variable;")
          (root (convert 'cpp-ast source))
          (software (make-instance 'cpp :genome root))
-         (result (sel/sw/ts::contextualize-ast
+         (result (contextualize-ast
                   software
                   (find-if (of-type 'cpp-binary-expression) root)
                   nil)))
@@ -633,6 +634,22 @@ when it is contextualized."
          (root (convert 'cpp-ast source))
          (software (make-instance 'cpp :genome root))
          (target-ast (find-if (of-type 'cpp-binary-expression) root))
-         (result (sel/sw/ts::contextualize-ast software target-ast nil)))
+         (result (contextualize-ast software target-ast nil)))
     ;; TODO: need to replace the target with the result and check then.
     (is (equal (source-text target-ast) (source-text result)))))
+
+(deftest cpp-contextualize-binary-expression-context-1 ()
+  "Contextualize-ast turns a binary expression into a cast expression when
+the left hand side is a type and the binary operator is also a valid prefix
+operator."
+  (let* ((context-table (dict "Type" :type))
+         (source "(Type) * variable;")
+         (root (convert 'cpp-ast source))
+         (software (make-instance 'cpp :genome root))
+         (result (contextualize-ast
+                  software
+                  (find-if (of-type 'cpp-binary-expression) root)
+                  context-table)))
+    (is (typep result 'cpp-cast-expression))
+    (is (not (find-if (of-type 'cpp-binary-expression) result)))
+    (is (not (find-if (of-type 'cpp-parenthesized-expression) result)))))

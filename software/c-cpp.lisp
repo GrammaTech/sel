@@ -38,35 +38,71 @@
   (:documentation "Return a version of AST which has been patched, if needed,
 to take CONTEXT into account."))
 
+(defun get-context-for (ast context-table)
+  ;; TODO: remove this.
+  ;; NOTE: this is a temporary function until a symbol table is ready.
+  (etypecase ast
+    ((or c/cpp-identifier c/cpp-type-identifier)
+     (gethash (text ast) context-table))))
+
+(defun binary-expression->cast-expression (ast-type ast)
+  "Converts BINARY-EXPRESSION into its corresponding cast expression."
+  ;; NOTE: unary -> + and -
+  ;;       pointer-expression -> * and &
+  (let ((identifier (car (direct-children (c/cpp-left ast))))
+        (operator (c/cpp-operator ast)))
+    (convert
+     ast-type
+     `((:class . :cast-expression)
+       (:type
+        (:class . :type-descriptor)
+        (:type
+         (:class . :type-identifier)
+         (:text . ,(text identifier)))
+        (:before-text . ,(before-text identifier))
+        (:after-text . ,(after-text identifier)))
+       (:value
+        (:class . ,(if (typep operator '(or c/cpp-+ c/cpp--))
+                       :unary-expression
+                       :pointer-expression))
+        (:argument . ,(c/cpp-right ast))
+        (:operator . ,operator))
+       (:before-text . ,(before-text ast))
+       (:after-text . ,(after-text ast))))))
+
 (defmethod contextualize-ast ((software c/cpp)
                               (ast c/cpp-binary-expression)
-                              context
+                              (context hash-table)
                               &key ast-type &allow-other-keys)
-  ;;; TODO: this can likely be addressed with #'scopes to some extent, though
-  ;;;       it won't find any external global variables.
   (match ast
     ((c/cpp-binary-expression
       :c/cpp-left
       (c/cpp-parenthesized-expression
-       :children (list (and identifier (c/cpp-identifier)))))
+       :children (list (and identifier (c/cpp-identifier))))
+      :c/cpp-operator
+      ;; TODO: does this cover everything?
+      ;; TODO: NOTE: the c/cpp on these terminals seem to be screwing things up.
+      (or (c/cpp-*) (c/cpp--) (c/cpp-+) (c/cpp-&)))
+     (when (eql (get-context-for identifier context) :type)
+       (binary-expression->cast-expression ast-type ast)))))
+
+(defmethod contextualize-ast ((software c/cpp)
+                              (ast c/cpp-binary-expression)
+                              context
+                              &key ast-type &allow-other-keys)
+  ;; TODO: this can likely be addressed with #'scopes to some extent, though
+  ;;       it won't find any external global variables.
+  ;; TODO: this is also ambiguous for any operator that is both a prefix and
+  ;;       an infix operator. This includes -, +, &, etc.
+  (match ast
+    ((c/cpp-binary-expression
+      :c/cpp-left
+      (c/cpp-parenthesized-expression
+       :children (list (c/cpp-identifier))))
      ;; TODO: improve this. Currently assumes that we will want it to be a
      ;;       cast expression regardless.
-     (convert
-      `,ast-type
-      `((:class . :cast-expression)
-        (:type
-         (:class . :type-descriptor)
-         (:type
-          (:class . :type-identifier)
-          (:text . ,(text identifier)))
-         (:before-text . ,(before-text identifier))
-         (:after-text . ,(after-text identifier)))
-        (:value
-         (:class . :pointer-expression)
-         (:argument . ,(c/cpp-right ast))
-         (:operator . ,(c/cpp-operator ast)))
-        (:before-text . ,(before-text ast))
-        (:after-text . ,(after-text ast)))))))
+     (binary-expression->cast-expression ast-type ast))))
+
 
 ;;; Generics and Transformations
 (defmethod function-name ((ast c/cpp-function-definition))
@@ -334,5 +370,4 @@ determined by looking at PARENT.")
                                       ast1
                                       (ast2 c/cpp-preproc-include))
   "")
-
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)
