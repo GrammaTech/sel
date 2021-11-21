@@ -19,12 +19,6 @@
     - [Transformers](#transformers)
 - [Architecture](#architecture)
 - [FAQ](#faq)
-  - [ASTs package does not faithfully reproduce original text](#asts-package-does-not-faithfully-reproduce-original-text)
-  - [ASTs package inserts/deletes characters upon mutation.](#asts-package-insertsdeletes-characters-upon-mutation)
-  - [ASTs package throws "Unable to match ... on on AST of type ..."](#asts-package-throws-unable-to-match--on-on-ast-of-type-)
-  - [What is the difference between the "children" property and the "children" child slot?](#what-is-the-difference-between-the-children-property-and-the-children-child-slot)
-  - [Why does every AST has a child slot named "children"?](#why-does-every-ast-has-a-child-slot-named-children)
-  - [ASTs package throws "tree-sitter-interface crashed"](#asts-package-throws-tree-sitter-interface-crashed)
 - [License](#license)
 
 <!--TOC-->
@@ -789,7 +783,7 @@ insert), new ASTs are created in the process.
 
 # FAQ
 
-## ASTs package does not faithfully reproduce original text
+#### ASTs package does not faithfully reproduce original text
 
 The source text property of an AST created using the ASTs package
 may not match the original text given to the parser, even if no
@@ -801,7 +795,7 @@ parsing allows for us to perform structured mutation operations -
 for instance, automatically inserting a comma when an item is
 added to an initializer list in C++.
 
-## ASTs package inserts/deletes characters upon mutation.
+#### ASTs package inserts/deletes characters upon mutation.
 
 As part of a mutation, the ASTs package may insert or delete whitespace
 or separator characters (e.g. commas) between ASTs.  One common
@@ -809,7 +803,7 @@ idiom is to use an automatic source code formatter, such as `black`
 or `clang-format`, on the source text after mutation to ensure
 consistency before printing to screen or disk.
 
-## ASTs package throws "Unable to match ... on on AST of type ..."
+#### ASTs package throws "Unable to match ... on on AST of type ..."
 
 This error occurs after a mutation when an AST is inserted or
 replaces another and the type of the new AST does not match that
@@ -876,7 +870,7 @@ encompassing all of the given source text, as shown below:
 'foo(a)'
 ```
 
-## What is the difference between the "children" property and the "children" child slot?
+#### What is the difference between the "children" property and the "children" child slot?
 
 An AST is composed of several child slots, the arity of which may
 be 0 (zero or more) or 1 (single AST).  For instance, in the AST
@@ -915,7 +909,7 @@ If the property is utilized and a comment is added to the copy
 AST's children slot, the error described above in "ASTs package
 throws 'Unable to match...'" will occur.
 
-## Why does every AST has a child slot named "children"?
+#### Why does every AST has a child slot named "children"?
 
 To begin, lets consider the AST for `print(a)`; for this AST there
 are two explicit child slots not named `children`:
@@ -927,7 +921,7 @@ bodies), all of the ASTs are stored in the slot named "children".
 In essence, the slot serves as a fall-thru place to store all
 ASTs not assigned to an explicit, named slot.
 
-## ASTs package throws "tree-sitter-interface crashed"
+#### ASTs package throws "tree-sitter-interface crashed"
 
 This error is raised when the Common Lisp binary (`tree-sitter-interface`)
 backing the ASTs python package crashes.  If available, the error will
