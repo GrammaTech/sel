@@ -24,6 +24,7 @@
   - [ASTs package throws "Unable to match ... on on AST of type ..."](#asts-package-throws-unable-to-match--on-on-ast-of-type-)
   - [What is the difference between the "children" property and the "children" child slot?](#what-is-the-difference-between-the-children-property-and-the-children-child-slot)
   - [Why does every AST has a child slot named "children"?](#why-does-every-ast-has-a-child-slot-named-children)
+  - [ASTs package throws "tree-sitter-interface crashed"](#asts-package-throws-tree-sitter-interface-crashed)
 - [License](#license)
 
 <!--TOC-->
@@ -925,6 +926,19 @@ Additionally, for ASTs with no named slots (e.g. function
 bodies), all of the ASTs are stored in the slot named "children".
 In essence, the slot serves as a fall-thru place to store all
 ASTs not assigned to an explicit, named slot.
+
+## ASTs package throws "tree-sitter-interface crashed"
+
+This error is raised when the Common Lisp binary (`tree-sitter-interface`)
+backing the ASTs python package crashes.  If available, the error will
+report the standard output and standard error streams for the
+`tree-sitter-interface` process prior to the crash.
+
+The most common error cause occurs upon startup/import of the asts package,
+and the error message will reference "wrong ELF class: ELFCLASS32.".  This
+occurs on systems which do not support 32-bit shared libraries (which the
+ASTs package depends upon); to remedy this, you will need to apt-install
+`gcc-multilib` on Ubuntu systems.
 
 # License
 
