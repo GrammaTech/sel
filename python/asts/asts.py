@@ -508,10 +508,18 @@ class _interface:
                 # requisite tree-sitter libraries to be loaded and the launching
                 # application notification to be given.
                 if cmd != _interface._DEFAULT_CMD_NAME:
+                    lines = []
                     for line in _interface._proc.stderr:
                         line = line.decode().strip()
                         if line == "==> Launching application.":
                             break
+                        lines.append(line)
+
+                    if not _interface.is_process_running():
+                        stderr = "\n".join(lines)
+                        msg = f"{_interface._DEFAULT_CMD_NAME} crashed."
+                        msg = msg + f"\n\nstderr: {stderr}"
+                        raise RuntimeError(msg)
 
                 # Wait _DEFAULT_STARTUP_WAIT seconds for the interface to
                 # setup the socket for us to connect with if using ports.
