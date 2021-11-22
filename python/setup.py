@@ -11,7 +11,7 @@ with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="asts",
-    version="0.4.4",
+    version="0.4.5",
     description="A library for programmatic software modification",
     long_description=long_description,
     long_description_content_type="text/markdown",
