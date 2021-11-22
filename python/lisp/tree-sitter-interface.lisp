@@ -17,6 +17,8 @@
         :software-evolution-library/utility/range
         :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library :oid)
+  (:import-from :osicat)
+  (:import-from :deploy :define-library)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/lisp/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
@@ -27,6 +29,8 @@
     '((("port") :type integer
        :documentation "listen for requests on the given port"))
     "tree-sitter-interface command line options."))
+
+(define-library osicat-posix::librt :dont-open t :dont-deploy t)
 
 (defvar *external-asts* (make-hash-table)
   "Mapping of hashes to (AST . refcount) pairs for externally referenced ASTs.")

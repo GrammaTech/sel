@@ -928,12 +928,6 @@ backing the ASTs python package crashes.  If available, the error will
 report the standard output and standard error streams for the
 `tree-sitter-interface` process prior to the crash.
 
-The most common error cause occurs upon startup/import of the asts package,
-and the error message will reference "wrong ELF class: ELFCLASS32.".  This
-occurs on systems which do not support 32-bit shared libraries (which the
-ASTs package depends upon); to remedy this, you will need to apt-install
-`gcc-multilib` on Ubuntu systems.
-
 # License
 
 GPLv3+
