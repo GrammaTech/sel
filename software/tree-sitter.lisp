@@ -733,6 +733,18 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-function-definition
         (:pre-specifiers (:multiple . t))
         (:post-specifiers (:multiple . t)))
+       (cpp-for-range-loop
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
+       (cpp-operator-cast
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
+       (cpp-template-instantiation
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
+       (cpp-optional-parameter-declaration
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
        (cpp-type-descriptor
         (:pre-type-qualifiers (:multiple . t))
         (:post-type-qualifiers (:multiple . t)))
