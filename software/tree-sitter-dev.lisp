@@ -134,13 +134,16 @@ and .d.ts files."
    string
    (make-string 4 :initial-element #\Space)))
 
-(defun test-project-parsing (class dir files)
+(defun test-project-parsing (class dir files &key (round-trip t))
   "Attempt to parse and print every file in FILES, proving a restart
 to advance to the next file."
   (declare (optimize debug))
   (dolist (file files)
     (with-simple-restart (continue "Next")
-      (round-trip-file class dir file))))
+      (if round-trip
+          (round-trip-file class dir file)
+          (stefil:finishes
+           (source-text (genome (from-file class file))))))))
 
 (defun round-trip-file (class dir file)
   (let* ((orig (untabify (read-file-into-string file)))
@@ -154,7 +157,8 @@ to advance to the next file."
                (take 20 (drop (max 0 (- (mismatch orig new) 5)) orig))
                (take 20 (drop (max 0 (- (mismatch orig new) 5)) new)))))
 
-(defun problematic-classes (class dir files)
+(defun problematic-classes (class dir files &rest args
+                            &key &allow-other-keys)
   "Parse and print FILES, collecting a list of problematic classes."
   (hash-table-alist
    (frequencies
@@ -172,4 +176,4 @@ to advance to the next file."
                           (sel/sw/ts::rule-matching-error-ast
                            e)))
                         (invoke-restart 'continue))))
-        (test-project-parsing class dir files))))))
+        (apply #'test-project-parsing class dir files args))))))
