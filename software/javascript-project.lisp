@@ -28,10 +28,15 @@
         :software-evolution-library/software/project)
   (:import-from :software-evolution-library/software/parseable
                 :source-text)
+  #+(and :TREE-SITTER-JAVASCRIPT :TREE-SITTER-JSON)
   (:export :javascript-project
            :typescript-project))
 (in-package :software-evolution-library/software/javascript-project)
 (in-readtable :curry-compose-reader-macros)
+
+
+#+(and :TREE-SITTER-JAVASCRIPT :TREE-SITTER-JSON)
+(progn
 
 (define-software javascript-project (parseable-project) ()
   (:documentation "Project specialization for javascript software objects."))
@@ -193,3 +198,5 @@ itself (the cdr)."
       (car (assoc "compile" alist :test #'equal))
       ;; Just look for a script that calls tsc.
       (car (rassoc "tsc" alist :test #'string~=))))
+
+) ; #+(and :TREE-SITTER-JAVASCRIPT :TREE-SITTER-JSON)

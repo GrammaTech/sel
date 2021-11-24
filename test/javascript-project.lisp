@@ -16,6 +16,7 @@
 
   (:import-from :software-evolution-library/command-line
                 :guess-language)
+  #+(and :TREE-SITTER-JAVASCRIPT :TREE-SITTER-JSON)
   (:import-from :software-evolution-library/software/javascript-project
                 :package-json-scripts
                 :javascript-project-package-json
@@ -27,7 +28,8 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-javascript-project "Javascript representation."
   (and (javascript-tree-sitter-available-p)
-       (typescript-tree-sitter-available-p)))
+       (typescript-tree-sitter-available-p)
+       (find-class 'javascript-project nil)))
 
 (defixture fib-project-javascript
   (:setup
