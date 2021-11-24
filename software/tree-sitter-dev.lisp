@@ -177,3 +177,14 @@ to advance to the next file."
                            e)))
                         (invoke-restart 'continue))))
         (apply #'test-project-parsing class dir files args))))))
+
+(defun problematic-classes-in-project (dir extension &rest args
+                                       &key &allow-other-keys)
+  (let* ((files (split-sequence #\Null
+                                (cmd:$cmd "find" dir
+                                          "-name"
+                                          (list (string+ "*." extension))
+                                          "-type f"
+                                          "-print0")
+                                :remove-empty-subseqs t)))
+    (apply #'problematic-classes 'cpp dir files args)))
