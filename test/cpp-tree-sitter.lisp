@@ -177,3 +177,10 @@ class MyF
          (root (convert 'cpp-ast source))
          (case-statement (stmt-with-text root "case" :at-start t)))
     (is (= 2 (length (cpp-statements case-statement))))))
+
+(defun can-parse (lang string)
+  (finishes (genome (from-string lang string))))
+
+(deftest test-cpp-field-expression ()
+  (can-parse 'cpp "config.put();")
+  (can-parse 'cpp "config.put<int>();"))

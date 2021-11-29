@@ -2112,7 +2112,14 @@ also need to (1) add a slot for the field in
 tree-sitter.")
 
   (defparameter *tree-sitter-json-rule-patches*
-    '(((:typescript-ts :typescript-tsx)
+    '((:cpp
+       (:field-expression
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
+           ((:TYPE . "STRING") (:VALUE . "->"))))
+         :as "operator")))
+      ((:typescript-ts :typescript-tsx)
        (:property-signature
         (:replace
          ((:TYPE . "CHOICE")
