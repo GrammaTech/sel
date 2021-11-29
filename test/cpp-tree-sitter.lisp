@@ -181,6 +181,11 @@ class MyF
 (defun can-parse (lang string)
   (finishes (genome (from-string lang string))))
 
+(deftest test-cpp-operator-name ()
+  (can-parse 'cpp "bool operator+() {}")
+  (can-parse 'cpp "bool operator<() {}")
+  (can-parse 'cpp "bool operator>() {}"))
+
 (deftest test-cpp-field-expression ()
   (can-parse 'cpp "config.put();")
   (can-parse 'cpp "config.put<int>();"))

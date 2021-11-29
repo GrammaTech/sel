@@ -17,6 +17,29 @@
 ;;; !! Language generated in c-cpp !!
 ;;;===================================================
 
+(defconst +cpp-operator-names+
+  '("co_await"
+    "+" "-"
+    "*" "/"
+    "%" "^"
+    "&" "|"
+    "~" "!"
+    "=" "<"
+    ">" "+="
+    "-=" "*="
+    "/=" "%="
+    "^=" "&="
+    "|=" "<<"
+    ">>" ">>="
+    "<<=" "=="
+    "!=" "<="
+    ">=" "&&"
+    "||" "++"
+    "--" ","
+    "->*" "->"
+    "()" "[]")
+  "Names of operators that can occur in operator_name ASTs.")
+
 #+:TREE-SITTER-CPP
 (progn
 
@@ -95,6 +118,12 @@
 (defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-for-statement)) parse-tree &key)
   (transform-for-statement parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql :cpp)) (class (eql 'cpp-operator-name)) parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    (#.(mapcar #'make-keyword +cpp-operator-names+)
+       (label-as :name))))
 
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
