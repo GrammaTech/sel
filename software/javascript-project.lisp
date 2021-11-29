@@ -97,7 +97,7 @@
                       (equal rel-path (aget "main" package-spec :test #'equal))))))))
   result)
 
- (defmethod collect-other-files :around ((project javascript-project))
+(defmethod collect-other-files :around ((project javascript-project))
    "Wrapper to represent JSON files as JSON software objects instead of
 simple text software objects."
   (mapcar (lambda (pair &aux (file (car pair)))
