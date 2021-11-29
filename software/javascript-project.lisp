@@ -17,26 +17,20 @@
   (:nicknames :sel/software/javascript-project
               :sel/sw/javascript-project)
   (:use :gt/full
-        :cl-json
         :software-evolution-library
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/python
         :software-evolution-library/software/javascript
         :software-evolution-library/software/typescript
-        :software-evolution-library/software/json
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project)
+  (:import-from :jsown)
   (:import-from :software-evolution-library/software/parseable
                 :source-text)
-  #+(and :TREE-SITTER-JAVASCRIPT :TREE-SITTER-JSON)
   (:export :javascript-project
            :typescript-project))
 (in-package :software-evolution-library/software/javascript-project)
 (in-readtable :curry-compose-reader-macros)
-
-
-#+(and :TREE-SITTER-JAVASCRIPT :TREE-SITTER-JSON)
-(progn
 
 (define-software javascript-project (parseable-project) ()
   (:documentation "Project specialization for javascript software objects."))
@@ -77,8 +71,8 @@
     (assert (probe-file "package.json") ((project-dir project))
             "JavaScript project requires a package.json file in ~a."
             (project-dir project))
-    (let ((package-spec (nest (decode-json-from-string)
-                              (file-to-string "package.json"))))
+    (let ((package-spec (cdr (jsown:parse (file-to-string "package.json")
+                                          "bin" "main"))))
       (walk-directory
         (project-dir project)
         (lambda (file)
@@ -97,14 +91,14 @@
                   (or (and (not (ignored-evolve-path-p project rel-path))
                            (evolve-file-extension-p project
                                                     (pathname-type rel-path)))
-                      (find rel-path (aget :bin package-spec)
+                      (find rel-path (aget "bin" package-spec :test #'equal)
                             :key [#'canonical-pathname #'cdr]
                             :test #'equal)
-                      (equal rel-path (aget :main package-spec))))))))
+                      (equal rel-path (aget "main" package-spec :test #'equal))))))))
   result)
 
-(defmethod collect-other-files :around ((project javascript-project))
-  "Wrapper to represent JSON files as JSON software objects instead of
+ (defmethod collect-other-files :around ((project javascript-project))
+   "Wrapper to represent JSON files as JSON software objects instead of
 simple text software objects."
   (mapcar (lambda (pair &aux (file (car pair)))
             (if (equal "json" (pathname-type file))
@@ -147,32 +141,15 @@ Requires that `npm' be in the path."
   "Extract the scripts key from the package.json of PROJECT as an alist."
   (when-let* ((package.json
                (javascript-project-package-json project)))
-    (package-json-scripts (genome package.json))))
+    (package-json-scripts (genome-string package.json))))
 
 (defun javascript-project-package-json (project)
   (aget "package.json" (all-files project) :test #'equal))
 
-(-> package-json-scripts (json-document)
+(-> package-json-scripts (string)
     (values list &optional))
 (defun package-json-scripts (json)
-  (when-let*
-      ((scripts-object
-        ;; TODO Lenses for JSON translation and manipulation.
-        (match json
-          ((json-document
-            :children
-            (list (json-object :children data)))
-           (find "\"scripts\""
-                 data
-                 :key [#'source-text #'json-key]
-                 :test #'equal)))))
-    (mapcar (lambda (pair)
-              (cons
-               (string-trim "\""
-                            (source-text (json-key pair)))
-               (string-trim "\""
-                            (source-text (json-value pair)))))
-            (children (json-value scripts-object)))))
+  (cdr (aget "scripts" (cdr (jsown:parse json "scripts")) :test #'equal)))
 
 (defun guess-typescript-project-build-command (proj)
   "Guess how to build PROJ.
@@ -198,5 +175,3 @@ itself (the cdr)."
       (car (assoc "compile" alist :test #'equal))
       ;; Just look for a script that calls tsc.
       (car (rassoc "tsc" alist :test #'string~=))))
-
-) ; #+(and :TREE-SITTER-JAVASCRIPT :TREE-SITTER-JSON)

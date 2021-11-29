@@ -16,7 +16,6 @@
 
   (:import-from :software-evolution-library/command-line
                 :guess-language)
-  #+(and :TREE-SITTER-JAVASCRIPT :TREE-SITTER-JSON)
   (:import-from :software-evolution-library/software/javascript-project
                 :package-json-scripts
                 :javascript-project-package-json
@@ -66,7 +65,7 @@
   (with-fixture fib-project-typescript
     (let ((package.json (javascript-project-package-json *soft*)))
       (is (typep package.json 'json))
-      (let ((scripts (package-json-scripts (genome package.json))))
+      (let ((scripts (package-json-scripts (genome-string package.json))))
         (is (equal '(("build" . "tsc -b")
                      ("lint" . "eslint src --ext ts"))
                    scripts)
