@@ -125,7 +125,9 @@ pointer declarations which are nested on themselves."
           (setf position-slot :post-specifiers)
           child-tree)
          ((member car '(:storage-class-specifier :type-qualifier
-                        :attribute-specifier :ms-declspec-modifier))
+                        :attribute-specifier :ms-declspec-modifier
+                        :virtual-function-specifier
+                        :explicit-function-specifier))
           (cons (list position-slot (car child-tree))
                 (cdr child-tree)))
          (t child-tree)))

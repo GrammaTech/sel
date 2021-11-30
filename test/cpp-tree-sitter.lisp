@@ -189,3 +189,21 @@ class MyF
 (deftest test-cpp-field-expression ()
   (can-parse 'cpp "config.put();")
   (can-parse 'cpp "config.put<int>();"))
+
+(deftest test-cpp-virtual-destructor ()
+  (can-parse 'cpp "virtual ~NoCost() {}")
+  (can-parse 'cpp "class TruckCost : public DynamicCost {
+public:
+
+  virtual ~TruckCost();
+
+};"))
+
+(deftest test-cpp-explicit ()
+  (can-parse 'cpp "struct B
+{
+    explicit B(int) { }
+    explicit B(int, int) { }
+    explicit operator bool() const { return true; }
+};"))
+
