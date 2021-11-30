@@ -166,25 +166,29 @@ to advance to the next file."
                (take 20 (drop (max 0 (- (mismatch orig new) 5)) new)))))
 
 (defun problematic-classes (class dir files &rest args
-                            &key &allow-other-keys)
+                            &key dont-catch &allow-other-keys)
   "Parse and print FILES, collecting a list of problematic classes."
   (hash-table-alist
    (frequencies
     (with-collectors (collect)
       (handler-bind ((sel/sw/ts::parse-tree-matching-error
                       (lambda (e)
-                        (collect
-                         (sel/sw/ts::parse-tree-matching-error-superclass
-                          e))
-                        (invoke-restart 'continue)))
+                        (let ((class
+                               (parse-tree-matching-error-superclass e)))
+                          (collect class)
+                          (unless (member class dont-catch)
+                            (invoke-restart 'continue)))))
                      (sel/sw/ts::rule-matching-error
                       (lambda (e)
-                        (collect
-                         (type-of
-                          (sel/sw/ts::rule-matching-error-ast
-                           e)))
-                        (invoke-restart 'continue))))
-        (apply #'test-project-parsing class dir files args))))))
+                        (let ((class
+                               (type-of
+                                (rule-matching-error-ast
+                                 e))))
+                          (collect class)
+                          (unless (member class dont-catch)
+                            (invoke-restart 'continue))))))
+        (apply #'test-project-parsing class dir files
+               :allow-other-keys t args))))))
 
 (defun problematic-classes-in-project (dir extension &rest args
                                        &key &allow-other-keys)
