@@ -1425,39 +1425,6 @@ definitions.")
   (defparameter *tree-sitter-json-rule-substitutions*
     '(((:c :cpp)
        ;; These are common to C and C++.
-       (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
-        (:MEMBERS
-         ;; Inline _declaration_modifiers and wrap a field around it.
-         ((:TYPE . "FIELD") (:NAME . "pre-specifiers")
-          (:CONTENT
-           (:TYPE . "REPEAT")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
-             ;; TODO OK in C?
-             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))
-         ;; Wrap a field around the type specifier.
-         ((:TYPE . "FIELD") (:NAME . "type")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
-         ;; Inline declaration-modifiers and wrap a field around it.
-         ((:TYPE . "FIELD") (:NAME . "post-specifiers")
-          (:CONTENT
-           (:TYPE . "REPEAT")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
-             ;; TODO OK in C?
-             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))))
        ;; NOTE: remove this if this is patched upstream.
        (:PREPROC-PARAMS (:TYPE . "SEQ")
         ;; Adds variadic declaration nodes in place of literal ellipses.
@@ -1603,6 +1570,33 @@ definitions.")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
       (:c
        ;; These are specific to C.
+       (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
+        (:MEMBERS
+         ;; Inline _declaration_modifiers and wrap a field around it.
+         ((:TYPE . "FIELD") (:NAME . "pre-specifiers")
+          (:CONTENT
+           (:TYPE . "REPEAT")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))
+         ;; Wrap a field around the type specifier.
+         ((:TYPE . "FIELD") (:NAME . "type")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
+         ;; Inline declaration-modifiers and wrap a field around it.
+         ((:TYPE . "FIELD") (:NAME . "post-specifiers")
+          (:CONTENT
+           (:TYPE . "REPEAT")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))))
        (:STRUCT-SPECIFIER (:TYPE . "SEQ")
         (:MEMBERS ((:TYPE . "STRING") (:VALUE . "struct"))
          ((:TYPE . "CHOICE")
@@ -1660,6 +1654,39 @@ definitions.")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
       (:cpp
        ;; These are specific to C++.
+       (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
+        (:MEMBERS
+         ;; Inline _declaration_modifiers and wrap a field around it.
+         ((:TYPE . "FIELD") (:NAME . "pre-specifiers")
+          (:CONTENT
+           (:TYPE . "REPEAT")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
+             ;; Added for C++.
+             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))
+         ;; Wrap a field around the type specifier.
+         ((:TYPE . "FIELD") (:NAME . "type")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
+         ;; Inline declaration-modifiers and wrap a field around it.
+         ((:TYPE . "FIELD") (:NAME . "post-specifiers")
+          (:CONTENT
+           (:TYPE . "REPEAT")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
+             ;; Added for C++.
+             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))))
        (:-CONSTRUCTOR-SPECIFIERS (:TYPE . "REPEAT1")
         (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
          (:CONTENT
