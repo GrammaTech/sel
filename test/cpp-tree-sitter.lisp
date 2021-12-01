@@ -222,3 +222,46 @@ public:
 
   virtual bool AllowTransitions() const;
 };"))
+
+(deftest test-preserve-private-modifier ()
+  "Private and protected keywords used to become public keywords."
+  (can-parse 'cpp "class myclass {
+private:
+  const std::vector<char> memory_;
+};")
+  (can-parse 'cpp "class myclass {
+protected:
+  const std::vector<char> memory_;
+};"))
+
+(deftest test-cpp-stray-comma ()
+  "Commas used to be displaced sometimes to the next line."
+  (can-parse 'cpp "for (auto* cache : std::vector<x>{
+           new y,
+       }) {}")
+  (can-parse 'cpp "const gurka::ways ways = {
+      {\"AB\", {{\"highway\", \"service\"}}},
+  };"))
+
+(deftest test-cpp-preserve-unsigned ()
+  "Unsigned used to sometimes become signed."
+  (can-parse 'cpp "const std::unordered_map<unsigned, valhalla::valhalla_exception_t> error_codes{}")
+  (can-parse 'cpp "s.avail_in = static_cast<unsigned int>(uncompressed.size() * sizeof(std::string::value_type));"))
+
+(deftest test-cpp-preserve-const-in-for ()
+  "Check that const doesn't disappear in the binding of a for loop."
+  (can-parse 'cpp "for (const auto& location : locations) {}"))
+
+(deftest test-cpp-preserve-const-in-param ()
+  ;; The first const was disappearing.
+  (can-parse 'cpp "const boost::property_tree::ptree&
+configure(const boost::optional<std::string>& config = boost::none) {}")
+  ;; The second const was disappearing.
+  (can-parse 'cpp "virtual void Log(const std::string& message, const std::string& custom_directive = \" [TRACE] \") {}"))
+
+(deftest test-preserve-class-vs-typename ()
+  "This was turning class into typename."
+  (can-parse 'cpp
+             "template <class T> T clamp(T val, const T low, const T high) {
+  return std::min<T>(std::max<T>(val, low), high);
+}"))
