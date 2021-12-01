@@ -142,11 +142,11 @@ and .d.ts files."
    string
    (make-string 4 :initial-element #\Space)))
 
-(defun test-project-parsing (class dir files &key (round-trip t))
+(defun test-project-parsing (class dir files &key (round-trip t) shuffle)
   "Attempt to parse and print every file in FILES, proving a restart
 to advance to the next file."
   (declare (optimize debug))
-  (dolist (file files)
+  (do-each (file (if shuffle (reshuffle files) files))
     (with-simple-restart (continue "Next")
       (if round-trip
           (round-trip-file class dir file)
