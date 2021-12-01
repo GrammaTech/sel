@@ -207,3 +207,15 @@ public:
     explicit operator bool() const { return true; }
 };"))
 
+(deftest test-cpp-virtual-const-override ()
+  (can-parse 'cpp "virtual bool Allowed() const override {}")
+  (can-parse 'cpp "virtual bool Allowed() const {}")
+  (can-parse 'cpp "virtual bool Allowed() override {}")
+  (can-parse 'cpp "virtual bool Allowed() {}"))
+
+(deftest test-cpp-virtual-method-declaration ()
+  (can-parse 'cpp "class TruckCost : public DynamicCost {
+public:
+
+  virtual bool AllowTransitions() const;
+};"))

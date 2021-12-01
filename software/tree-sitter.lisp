@@ -1437,7 +1437,10 @@ definitions.")
              ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
              ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
              ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
+             ;; TODO OK in C?
+             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))
          ;; Wrap a field around the type specifier.
          ((:TYPE . "FIELD") (:NAME . "type")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
@@ -1451,7 +1454,10 @@ definitions.")
              ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
              ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
              ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))))))))
+             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
+             ;; TODO OK in C?
+             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
+             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))))
        ;; NOTE: remove this if this is patched upstream.
        (:PREPROC-PARAMS (:TYPE . "SEQ")
         ;; Adds variadic declaration nodes in place of literal ellipses.
