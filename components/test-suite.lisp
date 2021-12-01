@@ -2,19 +2,21 @@
 (defpackage :software-evolution-library/components/test-suite
   (:nicknames :sel/components/test-suite :sel/cp/test-suite)
   (:use :gt/full
-        :software-evolution-library
+   :software-evolution-library
         :software-evolution-library/utility/debug)
   #-windows (:shadowing-import-from :uiop :wait-process)
   (:export :*process-sleep-interval*
-           :*process-kill-timeout*
-           :test-suite
-           :test-cases
-           :test-case
-           :program-name
-           :program-args
-           :start-test
-           :finish-test
-           :run-test))
+   :*process-kill-timeout*
+   :test-suite
+   :test-cases
+   :test-case
+   :program-name
+   :program-args
+   :time-limit
+   :limit-path
+   :start-test
+   :finish-test
+   :run-test))
 ;; dummy definition for Windows
 #+windows (defun uiop::wait-process (x) 0)
 (in-package :software-evolution-library/components/test-suite)
@@ -29,7 +31,7 @@
 (defclass test-suite (oid-object)
   ((test-cases
     :initarg :test-cases :initform nil :accessor test-cases :type list
-    :documentation "List of `test-case' objects that make up the test suite."))
+    :documentation "List of `test-case' objects that makeup the test suite."))
   (:documentation "A suite of unit tests."))
 
 (defclass test-case ()
@@ -49,11 +51,21 @@ Each argument must be either a string or symbol :bin, which will be
 replaced by the name of the compiled phenome.")
    (fitness
     :initarg :fitness :initform nil :accessor fitness
-    :documentation "May be used to store the fitness result from a prior run of the test case.
-This field is not updated automatically since some components may need
-to perform comparisons between new and old values (e.g., condition
-synthesis)."))
-  (:documentation "Test case object."))
+    :documentation "May be used to store the fitness result from a prior run of
+the test case. This field is not updated automatically since some components
+may need to perform comparisons between new and old values (e.g., condition
+synthesis).")
+   (time-limit
+    :initarg :time-limit
+    :initform nil
+    :accessor time-limit
+    :documentation "If non-nil, specifies the maximum number of seconds the test
+is allowed to run before terminating it.")
+   (limit-path
+    :initarg :limit-path
+    :initform "limit"
+    :accessor limit-path
+    :documentation "Specifies the path to the 'limit' executable.")))
 
 (defmethod print-object ((obj test-suite) stream)
   "Print `test-suite' OBJ to STREAM"
@@ -63,7 +75,12 @@ synthesis)."))
 (defmethod print-object ((obj test-case) stream)
   "Print `test-case' OBJ to STREAM"
   (print-unreadable-object (obj stream :type t)
-    (format stream "~a ~{~a ~}" (program-name obj) (program-args obj))))
+    (format stream "~a~a ~{~a ~}"
+            (if (numberp (time-limit obj))
+                (format nil "~a -s ~d " (limit-path obj) (time-limit obj))
+                "")
+            (program-name obj)
+            (program-args obj))))
 
 (defgeneric start-test (phenome test-case &rest extra-keys
                         &key &allow-other-keys)
@@ -130,6 +147,13 @@ Some EXTRA-KEYS that may be useful are:
       (plist-drop :output extra-keys)
       (plist-drop :error-output extra-keys)
       (plist-drop :error extra-keys)
+
+      ;; if time limit is specified, modify real-cmd with limit call
+      (when (numberp (time-limit test-case))
+        (setf real-cmd
+              (append (list (limit-path test-case) "-s"
+                            (format nil "~A" (time-limit test-case)))
+                      real-cmd)))
 
       (when *shell-debug*
         (format t "~&  cmd: ~{~a ~}~%" real-cmd))

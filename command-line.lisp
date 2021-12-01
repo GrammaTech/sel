@@ -613,34 +613,46 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
                path)))
     obj))
 
-(defgeneric create-test (script)
+(defgeneric create-test (script &rest other-keys &key &allow-other-keys)
   (:documentation "Return a test case of SCRIPT.")
-  (:method ((script pathname))
-    (make-instance 'test-case :program-name (namestring script)))
-  (:method ((script string))
-    (create-test (split-sequence #\Space script)))
-  (:method ((script list))
-    (make-instance 'test-case
+  (:method ((script pathname) &rest other-keys &key &allow-other-keys)
+    (apply 'make-instance 'test-case
+           :program-name (namestring script)
+           other-keys))
+  (:method ((script string) &rest other-keys &key &allow-other-keys)
+    (apply 'create-test (split-sequence #\Space script) other-keys))
+  (:method ((script list) &rest other-keys &key &allow-other-keys)
+    (apply
+      'make-instance
+      'test-case
       :program-name (car script)
       :program-args (mapcar (lambda (x) (if (string= x "~a") :bin x))
-                            (cdr script)))))
+                            (cdr script))
+      other-keys)))
 
-(defgeneric create-test-suite (script num-tests)
+(defgeneric create-test-suite (script num-tests
+                               &rest other-keys &key &allow-other-keys)
   (:documentation "Return a test suite of SCRIPT and NUM-TESTS.
 Replaces ~~a with the binary name and ~~d with NUM-TESTS if they occur
 in SCRIPT.")
-  (:method ((script pathname) (num-tests t))
-    (create-test-suite (namestring script) num-tests))
-  (:method ((script string) (num-tests t))
-    (nest
-     (let ((cmd (split-sequence #\space script))))
-     (flet ((replace-num (num)
-              (cons (car cmd)
-                    (mapcar (lambda (x)
-                              (if (string= x "~d") (write-to-string num) x))
-                            (cdr cmd))))))
-     (make-instance 'test-suite :test-cases)
-     (mapcar [#'create-test #'replace-num] (iota num-tests)))))
+  (:method ((script pathname) (num-tests t)
+            &rest other-keys &key &allow-other-keys)
+    (apply 'create-test-suite (namestring script) num-tests other-keys))
+  (:method ((script string) (num-tests t)
+            &rest other-keys &key &allow-other-keys)
+    (let ((cmd (split-sequence #\space script)))
+      (flet ((replace-num (num)
+               (cons (car cmd)
+                     (mapcar (lambda (x)
+                               (if (string= x "~d") (write-to-string num) x))
+                             (cdr cmd)))))
+        (make-instance 'test-suite
+               :test-cases
+               (mapcar (lambda (num)
+                         (apply 'create-test
+                                (replace-num num)
+                                other-keys))
+                       (iota num-tests)))))))
 
 
 ;;;; Common sets of command-line-arguments options.

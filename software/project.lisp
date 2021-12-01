@@ -50,7 +50,7 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       :documentation
       "Source files which may be used but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
-      :copier copy-files)
+      :copier shallow-copy-files)
      (ignore-paths
       :initarg :ignore-paths
       :reader ignore-paths
@@ -141,9 +141,15 @@ object (e.g., the original program).")
                     :only-paths (only-other-paths obj))))
 
 (defun copy-files (files)
-  "Copier for `evolve-files' and `other-files' on `project' software objects."
+  "Copier for `evolve-files' on `project' software objects."
   (loop for (p . c) in files
      collecting (cons p (copy c))))
+
+(defun shallow-copy-files (files)
+  "Copier for `other-files' on `project' software objects. Since these are not
+ modified during evolve, no need to fully copy them--just copy the wrappers."
+  (loop for (p . c) in files
+        collecting (cons p c)))
 
 (defmethod all-files ((obj project))
   "Returns concatenation of `evolve-files' and `other-files'."
