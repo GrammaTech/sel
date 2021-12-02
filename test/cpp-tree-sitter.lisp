@@ -254,7 +254,7 @@ protected:
   "Check that const doesn't disappear in the binding of a for loop."
   (can-parse 'cpp "for (const auto& location : locations) {}"))
 
-(deftest test-cpp-preserve-const-in-param ()
+(deftest test-cpp-preserve-const-in-optional-param ()
   ;; The first const was disappearing.
   (can-parse 'cpp "const boost::property_tree::ptree&
 configure(const boost::optional<std::string>& config = boost::none) {}")
