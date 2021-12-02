@@ -1591,6 +1591,7 @@ definitions.")
               ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
             ((:TYPE . "BLANK")))))
          ((:TYPE . "STRING") (:VALUE . ")"))
+         ;; Add a body field.
          ((:TYPE . "FIELD")
           (:NAME . "body")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
