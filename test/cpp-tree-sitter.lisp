@@ -267,3 +267,7 @@ configure(const boost::optional<std::string>& config = boost::none) {}")
              "template <class T> T clamp(T val, const T low, const T high) {
   return std::min<T>(std::max<T>(val, low), high);
 }"))
+
+(deftest test-preserve-ref-ref ()
+  "Two ampersands were being collapsed into one."
+  (can-parse 'cpp "VectorGraphMemory(std::vector<char>&& memory) : memory_(std::move(memory)) {}"))
