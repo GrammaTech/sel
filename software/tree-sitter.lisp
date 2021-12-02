@@ -1057,7 +1057,11 @@ for the language.")
        (:field-ast cpp-field-expression)
        (:subscript-ast cpp-subscript-expression)
        (:catch-ast cpp-catch-clause)
-       (:loop-ast cpp-while-statement cpp-for-statement cpp-do-statement)
+       (:loop-ast
+        cpp-while-statement
+        cpp-for-statement
+        cpp-for-range-loop
+        cpp-do-statement)
        (:c/cpp-+ cpp-+)
        (:c/cpp-- cpp--)
        (:c/cpp-* cpp-*)
