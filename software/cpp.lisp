@@ -125,6 +125,10 @@
   (transform-for-statement parse-tree))
 
 (defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-for-range-loop)) parse-tree &key)
+  (transform-c-declaration-specifiers parse-tree))
+
+(defmethod transform-parse-tree
     ((language (eql :cpp)) (class (eql 'cpp-operator-name)) parse-tree &key)
   (with-modify-parse-tree (parse-tree)
     (#.(mapcar #'make-keyword +cpp-operator-names+)
