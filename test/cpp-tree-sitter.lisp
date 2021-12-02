@@ -179,10 +179,12 @@ class MyF
     (is (= 2 (length (cpp-statements case-statement))))))
 
 (defun can-parse (lang string)
-  (is (equal string
-             (source-text
-              (finishes
-               (genome (from-string lang string)))))))
+  (declare (optimize debug))
+  (let* ((genome
+          (finishes
+           (genome (from-string lang string))))
+         (new-text (source-text genome)))
+    (is (equal string new-text))))
 
 (deftest test-cpp-operator-name ()
   (can-parse 'cpp "bool operator+() {}")
