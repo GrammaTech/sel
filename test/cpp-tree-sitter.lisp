@@ -225,7 +225,7 @@ public:
   virtual bool AllowTransitions() const;
 };"))
 
-(deftest test-preserve-private-modifier ()
+(deftest test-preserve-access-specifier-keyword ()
   "Private and protected keywords used to become public keywords."
   (can-parse 'cpp "class myclass {
 private:
