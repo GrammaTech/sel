@@ -271,3 +271,12 @@ configure(const boost::optional<std::string>& config = boost::none) {}")
 (deftest test-preserve-ref-ref ()
   "Two ampersands were being collapsed into one."
   (can-parse 'cpp "VectorGraphMemory(std::vector<char>&& memory) : memory_(std::move(memory)) {}"))
+
+(deftest test-weird-indent ()
+  "Spaces get printed in the wrong place when indentation is off."
+  (can-parse 'cpp "void fun() {
+  for (int i = 0;
+       i < 100; i++) {
+    foo();
+  }
+}"))
