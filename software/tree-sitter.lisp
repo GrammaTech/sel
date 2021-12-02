@@ -752,7 +752,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-case-statement
         (:statements (:multiple . t)))
        (cpp-labeled-statement (:statement))
-       (cpp-for-statement (:body)))
+       (cpp-for-statement (:body))
+       (cpp-sized-type-specifier (:modifiers (:multiple . t))))
       (:python
        (python-function-definition (:async))
        (python-for-statement (:async))
@@ -1451,6 +1452,29 @@ definitions.")
                    (:NAME . "variadic_declaration")))))))))
            ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")"))))
+       (:SIZED-TYPE-SPECIFIER (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "REPEAT1")
+          (:CONTENT
+           (:TYPE . "FIELD") (:NAME . "modifiers")
+           (:CONTENT
+            (:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "STRING") (:VALUE . "signed"))
+             ((:TYPE . "STRING") (:VALUE . "unsigned"))
+             ((:TYPE . "STRING") (:VALUE . "long"))
+             ((:TYPE . "STRING") (:VALUE . "short"))))))
+         ((:TYPE . "FIELD") (:NAME . "type")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "CHOICE")
+             (:MEMBERS
+              ((:TYPE . "PREC_DYNAMIC")
+               (:VALUE . -1)
+               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
+              ((:TYPE . "SYMBOL") (:NAME . "primitive_type"))))
+            ((:TYPE . "BLANK")))))))
        (:TYPE-DESCRIPTOR
         (:TYPE . "SEQ")
         (:MEMBERS
@@ -1619,29 +1643,6 @@ definitions.")
             (:NAME . "body")
             (:CONTENT
              (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))))))
-       (:SIZED-TYPE-SPECIFIER (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "REPEAT1")
-          (:CONTENT
-           (:TYPE . "FIELD") (:NAME . "modifiers")
-           (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "STRING") (:VALUE . "signed"))
-             ((:TYPE . "STRING") (:VALUE . "unsigned"))
-             ((:TYPE . "STRING") (:VALUE . "long"))
-             ((:TYPE . "STRING") (:VALUE . "short"))))))
-         ((:TYPE . "FIELD") (:NAME . "type")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "PREC_DYNAMIC")
-               (:VALUE . -1)
-               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
-              ((:TYPE . "SYMBOL") (:NAME . "primitive_type"))))
-            ((:TYPE . "BLANK")))))))
        (:LABELED-STATEMENT
         (:TYPE . "SEQ")
         (:MEMBERS

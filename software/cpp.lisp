@@ -125,6 +125,13 @@
     (#.(mapcar #'make-keyword +cpp-operator-names+)
        (label-as :name))))
 
+(defmethod transform-parse-tree
+    ((language (eql :cpp)) (class (eql 'cpp-sized-type-specifier))
+     parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:error :comment) (ignore-types))
+    (t (label-as :modifiers))))
+
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))
