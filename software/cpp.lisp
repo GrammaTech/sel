@@ -153,14 +153,25 @@
   (with-modify-parse-tree (parse-tree)
     ((:typename :class) (label-as :keyword))))
 
+(defmethod transform-parse-tree
+    ((language (eql :cpp)) (class (eql 'cpp-reference-declarator))
+     parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:& :&&) (label-as :valueness))))
+
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))
 
 (defmethod cpp-declarator ((ast cpp-reference-declarator))
-  (if (single (children ast))
-      (cpp-declarator (first (children ast)))
-      (call-next-method)))
+  (let ((children (children ast)))
+    (if (single children)
+        (cpp-declarator (first children))
+        (if-let ((first-non-terminal
+                  (find-if-not (of-type 'terminal-symbol)
+                               children)))
+          (cpp-declarator first-non-terminal)
+          (call-next-method)))))
 
 (defmethod c/cpp-declarator ((ast cpp-reference-declarator))
   (cpp-declarator ast))

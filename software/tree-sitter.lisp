@@ -755,7 +755,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-for-statement (:body))
        (cpp-sized-type-specifier (:modifiers (:multiple . t)))
        (cpp-access-specifier (:keyword))
-       (cpp-type-parameter-declaration (:keyword)))
+       (cpp-type-parameter-declaration (:keyword))
+       (cpp-reference-declarator (:valueness)))
       (:python
        (python-function-definition (:async))
        (python-for-statement (:async))
@@ -1664,6 +1665,20 @@ definitions.")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
       (:cpp
        ;; These are specific to C++.
+       (:REFERENCE-DECLARATOR
+        (:TYPE . "PREC_DYNAMIC") (:VALUE . 1)
+        (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
+         (:CONTENT (:TYPE . "SEQ")
+          (:MEMBERS
+           ;; Wrap in a field.
+           ((:type . "FIELD")
+            (:name . "valueness")
+            (:content
+             (:TYPE . "CHOICE")
+             ;; Convert strings to symbols.
+             (:MEMBERS ((:TYPE . "SYMBOL") (:name . "&"))
+                       ((:TYPE . "SYMBOL") (:name . "&&")))))
+           ((:TYPE . "SYMBOL") (:NAME . "_declarator"))))))
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
         (:MEMBERS
          ;; Inline _declaration_modifiers and wrap a field around it.
