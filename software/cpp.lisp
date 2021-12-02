@@ -138,6 +138,12 @@
   (with-modify-parse-tree (parse-tree)
     ((:public :private :protected) (label-as :keyword))))
 
+(defmethod transform-parse-tree
+    ((language (eql :cpp)) (class (eql 'cpp-type-parameter-declaration))
+     parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:typename :class) (label-as :keyword))))
+
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))

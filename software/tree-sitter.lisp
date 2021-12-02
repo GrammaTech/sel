@@ -754,7 +754,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-labeled-statement (:statement))
        (cpp-for-statement (:body))
        (cpp-sized-type-specifier (:modifiers (:multiple . t)))
-       (cpp-access-specifier (:keyword)))
+       (cpp-access-specifier (:keyword))
+       (cpp-type-parameter-declaration (:keyword)))
       (:python
        (python-function-definition (:async))
        (python-for-statement (:async))
@@ -2201,6 +2202,12 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "public"))
            ((:TYPE . "STRING") (:VALUE . "private"))
            ((:TYPE . "STRING") (:VALUE . "protected"))))
+         :as "keyword"))
+       (:type-parameter-declaration
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "typename"))
+           ((:TYPE . "STRING") (:VALUE . "class"))))
          :as "keyword")))
       ((:typescript-ts :typescript-tsx)
        (:property-signature
