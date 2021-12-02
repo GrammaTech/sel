@@ -839,6 +839,8 @@ for the language.")
         (cpp-body :reader body :initarg :body))
        (cpp-for-statement
         (cpp-body :reader body :initarg :body))
+       (cpp-for-range-loop
+        (cpp-body :reader body :initarg :body))
        (cpp-if-statement
         (cpp-consequence :initarg :consequence :reader consequence)
         (cpp-alternative :initarg :alternative :reader alternative)))
