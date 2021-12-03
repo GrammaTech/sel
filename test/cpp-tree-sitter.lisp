@@ -272,6 +272,21 @@ configure(const boost::optional<std::string>& config = boost::none) {}")
   "Two ampersands were being collapsed into one."
   (can-parse 'cpp "VectorGraphMemory(std::vector<char>&& memory) : memory_(std::move(memory)) {}"))
 
+(deftest test-preserve-operator-cast-specifiers ()
+  (can-parse 'cpp
+             "struct edge_t {
+  GraphId i;
+  const DirectedEdge* e;
+  operator const GraphId&() const {
+    return i;
+  }
+  operator const DirectedEdge*() const {
+    return e;
+  }
+  operator bool() const {
+    return i.Is_Valid() && e;
+  }
+};"))
 (deftest test-weird-indent ()
   "Spaces get printed in the wrong place when indentation is off."
   (can-parse 'cpp "void fun() {
