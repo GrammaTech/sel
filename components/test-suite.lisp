@@ -16,7 +16,14 @@
    :limit-path
    :start-test
    :finish-test
-   :run-test))
+   :run-test
+   :all-tests-suite
+   :all-tests-case
+   :random-test-suite
+   :analyze-fitness
+   :create-all-tests-suite
+   :create-random-test-suite
+   :update-random-test-suite))
 ;; dummy definition for Windows
 #+windows (defun uiop::wait-process (x) 0)
 (in-package :software-evolution-library/components/test-suite)
@@ -286,5 +293,113 @@ By default, sum the results of applying `evaluate' to each test-case using
     (apply #'reduce (or (plist-get :function extra-keys) #'+)
            (mapcar (lambda (test) (apply #'evaluate phenome test keys))
                    (test-cases test-suite))
+           (when-let ((val (plist-get :initial-value extra-keys)))
+             (list :initial-value val)))))
+
+(defclass all-tests-suite (test-suite) ()
+  (:documentation "Like test-suite, but a single test-case runs all tests."))
+(defclass all-tests-case (test-case) ()
+  (:documentation "A test case to run all tests in test script. A single one of
+ these should be included in ALL-TESTS-SUITE"))
+
+(defclass random-test-suite (test-suite)
+  ((failed-tests :initarg :failed-tests :accessor failed-tests :initform nil)
+   (full-tests :initarg :full-tests :accessor full-tests :initform nil)
+   (num-random-tests :initarg :num-random-tests :accessor num-random-tests)))
+
+(defmethod test-cases :around ((suite random-test-suite))
+  "Return both the randomly-selected cases and the previously failed tests."
+  (append (call-next-method)
+          (failed-tests suite)))
+
+(defgeneric analyze-fitness (obj exit-code stdout stderr)
+  (:documentation
+   "Determine fitness based on output of exit-code, stdout and stderr")
+  (:method ((obj all-tests-case) exit-code stdout stderr)
+                                        ; default to fitness in (0, 1)
+    (if (zerop exit-code)
+        1 ; success, return 1
+        0)))
+
+(defmethod evaluate (phenome (obj all-tests-case) &rest extra-keys
+		     &key &allow-other-keys)
+  "Run `test-case' OBJ on PHENOME and return a fitness score (as
+ opposed to the output and exit code returned by `finish-test`).
+ Return total number of test cases passing, if all pass, or 0 if an error
+ occurs. The ANALYZE-FITNESS method can be overridden to provide the correct
+ count of passing tests based on exit-code, stdout and stderr.
+
+- PHENOME the phenome of the `software' object under test.
+
+- OBJ the `test-case' to run.
+
+- EXTRA-KEYS additional keyword arguments to pass to `run-test'. See the
+`start-test' documentation for more information.
+"
+  (multiple-value-bind (stdout stderr exit-code)
+      (apply #'run-test phenome obj extra-keys)
+    (declare (ignorable stdout stderr))
+    (analyze-fitness obj exit-code stdout stderr)))
+
+(defun create-all-tests-suite (script
+                               &key time-limit limit-path all-tests-case-class)
+  "Create a test script with a single test-case, which runs all tests."
+  (make-instance
+   'all-tests-suite
+   :test-cases
+   (list (make-instance (or all-tests-case-class 'all-tests-case)
+                        :program-name (car (split-sequence #\space script))
+                        :program-args
+                        (list (cadr (split-sequence #\space script)) :bin)
+                        :time-limit time-limit
+                        :limit-path limit-path))))
+
+(defun randomly-select-n (list n)
+  "Return randomly selected subset list of length n"
+  (let ((len (length list)))
+    (iter (for i from 0 below (min n len))
+      (let* ((r (random len))
+             (rando (elt list r)))
+        (setf list (remove rando list :test 'eq))
+        (collect rando)
+        (decf len)))))
+
+(defun create-random-test-suite (test-suite num-random-tests)
+  "Create an instance of random-test-suite containing random subset of
+ scripted tests."
+  (let ((random-suite
+          (make-instance 'random-test-suite
+                         :full-tests test-suite
+                         :num-random-tests num-random-tests
+                         :failed-tests nil
+                         :test-cases
+                         (randomly-select-n
+                          (test-cases test-suite) num-random-tests))))
+    random-suite))
+
+(defun update-random-test-suite (random-test-suite)
+  "Update the set of random test cases and return modified suite."
+  (setf (test-cases random-test-suite)
+        (randomly-select-n
+         (test-cases (full-tests random-test-suite))
+         (num-random-tests random-test-suite)))
+  random-test-suite)
+
+(defmethod evaluate (phenome (test-suite random-test-suite) &rest extra-keys
+                     &key &allow-other-keys)
+  "Evaluate all test-cases in TEST-SUITE aggregating their output.
+By default, sum the results of applying `evaluate' to each test-case using
+`reduce'. Keyword arguments `:function' and `:initial-value' may be used as in
+`reduce' to specify an aggregation function and starting value."
+  (let ((keys (plist-drop :function (plist-drop :initial-value extra-keys))))
+    (apply #'reduce (or (plist-get :function extra-keys) #'+)
+           (mapcar
+            (lambda (test)
+              (let ((result (apply #'evaluate phenome test keys)))
+                (when (zerop result)
+                  #+debug (note 2 "Failed test ~A~%" test)
+                  (push test (failed-tests test-suite))) ; track failed tests
+                result))
+            (test-cases test-suite))
            (when-let ((val (plist-get :initial-value extra-keys)))
              (list :initial-value val)))))
