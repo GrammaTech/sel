@@ -237,7 +237,6 @@ field."
                      (genome obj)
                      scope)))))
 
-;;; TODO: add this for C++.
 (defmethod outer-declarations ((ast c-function-declarator))
   ;; Special handling for uninitialized variables.
   (list (c-declarator ast)))

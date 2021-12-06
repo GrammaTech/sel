@@ -184,4 +184,23 @@
 (defmethod definition-name ((ast cpp-class-specifier))
   (source-text (cpp-name ast)))
 
+
+;;; Methods common to all software objects
+
+
+;;;; Methods for tree-sitter generics
+
+(defmethod outer-declarations ((ast cpp-function-declarator))
+  (list (cpp-declarator ast)))
+
+(defmethod parameter-names ((ast cpp-parameter-declaration))
+  ;; Note that currently (2021) C++ allows destructuring ("structured
+  ;; bindings") in blocks but not in parameter declarations.
+  (remove-if (of-type 'cpp-namespace-identifier)
+             (identifiers ast)))
+
+
+;;; Whitespace rules
+
+
 ) ; #+:TREE-SITTER-CPP

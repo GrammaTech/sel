@@ -62,6 +62,7 @@
            :find-if-in-parents
            :built-ins
            :scopes
+           :scope-tree
            :get-vars-in-scope
            :parse-asts
            :ast-source-ranges
@@ -692,6 +693,31 @@ Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
 and :SCOPE.
 
 Scopes are returned innermost-first."))
+
+(defun scope-table (software)
+  "Build a table from nodes to bindings in SOFTWARE."
+  (let ((table (make-hash-table)))
+    (iter (for node in-tree (genome software))
+          (iter (for scope in (scopes software node))
+                (iter (for bind in scope)
+                      (let ((scope-ast (aget :scope bind)))
+                        (pushnew bind
+                                 (gethash scope-ast table)
+                                 :test #'equal)))))
+    (iter (for (k v) in-hashtable table)
+          (setf (gethash k table) (nreverse v)))
+    table))
+
+(defgeneric scope-tree (software)
+  (:documentation "Return a tree of scopes in SOFTWARE.")
+  (:method ((software t))
+    (let ((scope-table (scope-table software)))
+      (labels ((scope-tree (root)
+                 (let ((subtrees (filter-map #'scope-tree (children root))))
+                   (if-let (scope (gethash root scope-table))
+                     (cons scope subtrees)
+                     subtrees))))
+        (scope-tree (genome software))))))
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
