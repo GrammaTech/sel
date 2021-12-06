@@ -5767,6 +5767,14 @@ should be rebound.")
 (defgeneric parameter-name (parameter-ast)
   (:documentation "Return the name of PARAMETER-AST."))
 
+(defgeneric parameter-names (parameter-ast)
+  (:documentation "Return the names of PARAMETER-AST.
+
+A parameter AST may introduce multiple names in languages with
+argument destructuring (e.g. ECMAScript).")
+  (:method ((ast t))
+    (identifiers ast)))
+
 (defgeneric function-body (ast)
   (:documentation "Return the body of AST."))
 
@@ -5796,7 +5804,7 @@ should be rebound.")
   (:documentation "Return a list of variable declarations affecting inner scopes.")
   (:method ((ast ast)) nil)
   (:method ((ast function-ast))
-    (mappend #'identifiers (function-parameters ast))))
+    (mappend #'parameter-names (function-parameters ast))))
 
 (defgeneric outer-declarations (ast)
   (:documentation
