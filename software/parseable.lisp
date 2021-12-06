@@ -710,7 +710,7 @@ Scopes are returned innermost-first."))
 
 (defgeneric scope-tree (software)
   (:documentation "Return a tree of scopes in SOFTWARE.")
-  (:method ((software t))
+  (:method ((software parseable))
     (let ((scope-table (scope-table software)))
       (labels ((scope-tree (root)
                  (let ((subtrees (filter-map #'scope-tree (children root))))
