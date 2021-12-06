@@ -513,6 +513,7 @@
            :function-parameters
            :parameter-type
            :parameter-name
+           :parameter-names
            :function-body
            :call-name
            :call-function
@@ -5992,7 +5993,7 @@ Every element in the list has the following form:
                 in DECLARATIONS."
                (and (contains-identifier-p declarations)
                     ;; This is a hack to get around the original decl of the
-                    ;; variable. This is caused bycollect-var-use-children
+                    ;; variable. This is caused by collect-var-use-children
                     ;; starting at the enclosing scope and
                     ;; outer/inner-declarations not returning enough information
                     ;; to determine if the decl is the original one.
