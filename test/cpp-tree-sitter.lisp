@@ -12,6 +12,8 @@
     :software-evolution-library/test/util-clang
     :software-evolution-library/components/file
     :software-evolution-library/components/formatting)
+  (:import-from :software-evolution-library/software/tree-sitter
+                :inner-declarations)
   (:export :test-cpp-tree-sitter))
 (in-package :software-evolution-library/test/cpp-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -36,6 +38,17 @@ int main () {
     (is x-binding)
     (is z-binding)
     (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))
+
+(deftest test-qualified-function-name ()
+  (is (equal "trim_front"
+             (function-name (cpp "std::list<Point> trim_front() {}")))))
+
+(deftest test-qualified-parameter-name ()
+  (is (equal "pts"
+             (source-text
+              (only-elt
+               (inner-declarations
+                (cpp "fn(std::list<Point>& pts) {}")))))))
 
 (deftest test-reference-return ()
   (is (equal "foo"
