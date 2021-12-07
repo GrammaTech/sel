@@ -538,7 +538,7 @@ class _interface:
             _interface._communicate(_interface._DEFAULT_QUIT_SENTINEL)
 
     @staticmethod
-    def dispatch(fn: str, *args: Tuple[Any], **kwargs: Dict[str, Any]) -> Any:
+    def dispatch(*args: Tuple[Any], **kwargs: Dict[str, Any]) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
         def handle_errors(data: Any) -> Any:
@@ -575,6 +575,10 @@ class _interface:
                 return tuple(deserialize(i) for i in v)
             else:
                 return v
+
+        # Pop the function name from *args.
+        fn = args[0]
+        args = args[1:]
 
         # Special case: When garbage collection is occuring, place the
         # AST object id (oid) to be garbage collected on a queue to later
