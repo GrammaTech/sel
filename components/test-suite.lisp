@@ -72,7 +72,8 @@ is allowed to run before terminating it.")
     :initarg :limit-path
     :initform "limit"
     :accessor limit-path
-    :documentation "Specifies the path to the 'limit' executable.")))
+    :documentation "Specifies the path to the 'limit' executable."))
+  (:documentation "Test case object, to be used in test cases of a test suite."))
 
 (defmethod print-object ((obj test-suite) stream)
   "Print `test-suite' OBJ to STREAM"
