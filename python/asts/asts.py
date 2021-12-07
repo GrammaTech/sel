@@ -360,7 +360,7 @@ class AST:
 
     @staticmethod
     def transform(
-        self,
+        root: "AST",
         transformer: Callable[["AST"], Optional[LiteralOrAST]],
     ) -> "AST":
         """
@@ -382,7 +382,7 @@ class AST:
         with "y" replaced with "x", as shown below:
 
         ```
-        new_ast = ast.transform(y_to_x)
+        new_ast = AST.transform(ast, y_to_x)
         ```
 
         See the python README for more information.
@@ -411,7 +411,6 @@ class AST:
 
             return root
 
-        root = AST.copy(self)
         return transform_helper(transformer, root, root)
 
     # AST mutation helpers/sanity checks
