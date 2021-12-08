@@ -1041,7 +1041,8 @@ for the language.")
         cpp-union-specifier
         cpp-field-declaration
         cpp-enum-specifier cpp-preproc-def
-        cpp-preproc-function-def)
+        cpp-preproc-function-def
+        cpp-namespace-definition)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
        (:statement-ast cpp--statement cpp-function-definition cpp-declaration)
        (:expression-statement-ast cpp-expression-statement)

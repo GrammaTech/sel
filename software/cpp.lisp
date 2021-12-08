@@ -184,6 +184,9 @@
 (defmethod definition-name ((ast cpp-class-specifier))
   (source-text (cpp-name ast)))
 
+(defmethod definition-name ((ast cpp-namespace-definition))
+  (source-text (cpp-name ast)))
+
 
 ;;; Methods common to all software objects
 
