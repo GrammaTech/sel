@@ -193,6 +193,28 @@
 (defmethod outer-declarations ((ast cpp-function-declarator))
   (list (cpp-declarator ast)))
 
+(def +unnamed-namespace-ast+
+  (make 'cpp-ast)
+  "Dummy AST for an unnamed namespace.")
+
+(defmethod outer-declarations ((ast cpp-namespace-definition))
+  (let ((name (cpp-name ast)))
+    (etypecase name
+      (null nil)
+      (cpp-identifier (list name))
+      ;; E.g. namespace A::B {}
+      (cpp-namespace-definition-name
+       (children name)))))
+
+(defmethod inner-declarations ((ast cpp-namespace-definition))
+  (let ((name (cpp-name ast)))
+    (etypecase name
+      (null (list +unnamed-namespace-ast+))
+      (cpp-identifier (list name))
+      ;; E.g. namespace A::B {}
+      (cpp-namespace-definition-name
+       (children name)))))
+
 (defmethod parameter-names ((ast cpp-parameter-declaration))
   ;; Note that currently (2021) C++ allows destructuring ("structured
   ;; bindings") in blocks but not in parameter declarations.
