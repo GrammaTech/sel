@@ -203,6 +203,7 @@
 (defmethod outer-declarations ((ast cpp-namespace-definition))
   (let ((name (cpp-name ast)))
     (etypecase name
+      ;; TODO An unnamed namespace exposes all its definitions.
       (null nil)
       (cpp-identifier (list name))
       ;; E.g. namespace A::B {}
@@ -224,14 +225,80 @@
   (remove-if (of-type 'cpp-namespace-identifier)
              (identifiers ast)))
 
-(defgeneric namespace-qualifiers (obj ast)
-  (:method ((obj cpp) (ast cpp-identifier))
+(defgeneric explicit-namespace-qualifiers (ast)
+  (:documentation "Explicit namespace qualifiers (e.g. A::x).")
+  (:method ((ast cpp-identifier))
     nil)
-  (:method ((obj cpp) (ast cpp-qualified-identifier))
+  (:method ((ast cpp-qualified-identifier))
     (let ((scope (cpp-scope ast)))
-      (if (null scope) (list obj)
+      (if (null scope) (list :global)
           (append (list scope)
-                  (namespace-qualifiers obj (cpp-name ast)))))))
+                  (explicit-namespace-qualifiers (cpp-name ast))))))
+  (:method ((ast cpp-init-declarator))
+    (explicit-namespace-qualifiers (cpp-declarator ast))))
+
+(defgeneric implicit-namespace-qualifiers (obj ast)
+  (:documentation "Namespace qualifiers derived from surrounding namespaces.")
+  (:method ((obj cpp) ast)
+    (reverse
+     (iter (for ns in (find-all-enclosing 'cpp-namespace-definition obj ast))
+           (match ns
+             ;; Unnamed namespace.
+             ((cpp-namespace-definition :cpp-name nil))
+             ((cpp-namespace-definition
+               :cpp-name (and name (type cpp-identifier)))
+              (collecting name))
+             ((cpp-namespace-definition
+               :cpp-name (and name (type cpp-namespace-definition-name)))
+              (appending (children name))))))))
+
+(defgeneric namespace-qualifiers (obj ast)
+  (:documentation "Final namespace qualifiers, derived by resolving
+  explicit (relative) namespace qualifiers relative to
+  implicit (absolute) ones.")
+  (:method ((obj cpp) ast)
+    (let ((explicit (explicit-namespace-qualifiers ast)))
+      (if-let ((tail (member :global explicit)))
+        (rest tail)
+        (let ((implicit (implicit-namespace-qualifiers obj ast)))
+          (if explicit
+              (let ((index (search explicit implicit
+                                   :key #'source-text
+                                   :test #'equal)))
+                (append (take (or index 0) implicit)
+                        explicit))
+              implicit))))))
+
+(defgeneric unqualified-name (name)
+  (:documentation "Remove namespace qualifications from NAME.")
+  (:method ((ast cpp-identifier))
+    ast)
+  (:method ((ast cpp-qualified-identifier))
+    (declare (optimize (debug 0)))
+    (unqualified-name (cpp-name ast)))
+  (:method ((ast cpp-namespace-definition-name))
+    (lastcar (children ast))))
+
+(defmethod get-declaration-ast ((obj cpp) (ast ast))
+  (let ((explicits (explicit-namespace-qualifiers ast)))
+    (if (null explicits)
+        (call-next-method)
+        (let* ((full-qualifiers
+                (mapcar #'source-text (namespace-qualifiers obj ast)))
+               (source-text (source-text (unqualified-name ast)))
+               (scope
+                (occurs-if
+                 (lambda (scope)
+                   (match scope
+                     ((alist (:name . (and name (type string)))
+                             (:decl . (and decl (type ast))))
+                      (and (equal source-text name)
+                           (equal
+                            full-qualifiers
+                            (mapcar #'source-text
+                                    (namespace-qualifiers obj decl)))))))
+                 (scope-tree obj))))
+          (aget :decl scope)))))
 
 
 ;;; Whitespace rules

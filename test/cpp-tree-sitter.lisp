@@ -16,7 +16,7 @@
                 :inner-declarations
                 :outer-declarations)
   (:import-from :software-evolution-library/software/tree-sitter
-                :namespace-qualifiers)
+                :explicit-namespace-qualifiers)
   (:export :test-cpp-tree-sitter))
 (in-package :software-evolution-library/test/cpp-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -54,38 +54,81 @@ int main () {
                 (cpp-declarator (cpp "std::list<Point> trim_front() {}"))))))))
 
 (deftest test-qualified-parameter-name ()
-  (is (equal "pts"
-             (source-text
-              (only-elt
-               (inner-declarations
-                (cpp "fn(std::list<Point>& pts) {}")))))))
+  (is (member "pts"
+              (inner-declarations
+               (cpp "fn(std::list<Point>& pts) {}"))
+              :test #'equal
+              :key #'source-text)))
 
 (deftest test-single-namespace-qualifier ()
   (let* ((cpp (from-string 'cpp "A::x;"))
          (id (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (equal '("A")
                (mapcar #'source-text
-                       (namespace-qualifiers cpp id))))))
+                       (explicit-namespace-qualifiers id))))))
 
-(deftest test-multiple-namespace-qualifiers ()
+(deftest test-multiple-explicit-namespace-qualifiers ()
   (let* ((cpp (from-string 'cpp "A::B::C::x;"))
          (id (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (equal '("A" "B" "C")
                (mapcar #'source-text
-                       (namespace-qualifiers cpp id))))))
+                       (explicit-namespace-qualifiers id))))))
 
-(deftest test-multiple-namespace-qualifiers-same-name ()
+(deftest test-multiple-explicit-namespace-qualifiers-same-name ()
   (let* ((cpp (from-string 'cpp "A::A::x;"))
          (id (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (equal '("A" "A")
                (mapcar #'source-text
-                       (namespace-qualifiers cpp id))))))
+                       (explicit-namespace-qualifiers id))))))
 
 (deftest test-global-namespace-qualifier ()
   (let* ((cpp (from-string 'cpp "::x;"))
          (id (find-if (of-type 'cpp-qualified-identifier) (genome cpp)))
-         (qualifiers (namespace-qualifiers cpp id)))
-    (is (eql cpp (only-elt qualifiers)))))
+         (qualifiers (explicit-namespace-qualifiers id)))
+    (is (eql :global (only-elt qualifiers)))))
+
+(deftest test-namespace-qualify-1 ()
+  (let* ((cpp
+          (from-string 'cpp
+                       "namespace A {
+  int x = 0;
+
+  int f () {
+    return A::x;
+  }
+}"))
+         (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
+    (is (string*= "x = 0" (source-text (get-declaration-ast cpp qid))))))
+
+(deftest test-namespace-qualify-2 ()
+  (let* ((cpp
+          (from-string 'cpp
+                       "namespace A {
+  int x = 0;
+
+  namespace B {
+    int f () {
+      return A::x;
+    }
+  }
+}"))
+         (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
+    (is (string*= "x = 0" (source-text (get-declaration-ast cpp qid))))))
+
+(deftest test-namespace-qualify-3 ()
+  (let* ((cpp
+          (from-string 'cpp
+                       "int x = 1;
+
+  namespace A {
+    int x = 2;
+    int f () {
+      return ::x;
+    }
+  }
+}"))
+         (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
+    (is (string*= "x = 1" (source-text (get-declaration-ast cpp qid))))))
 
 (deftest test-reference-return ()
   (is (equal "foo"
