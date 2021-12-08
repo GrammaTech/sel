@@ -522,6 +522,7 @@
            :no-fallthrough
            :type-in
            :find-enclosing
+           :find-all-enclosing
            :find-preceding
            :find-following
            :comments-for
@@ -5865,6 +5866,11 @@ The alist should contain at least the following:
   (:method ((type t) (software tree-sitter) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (find-if {typep _ type} (get-parent-asts software ast))))
+
+(defgeneric find-all-enclosing (type software ast)
+  (:documentation "Return the nearest enclosing AST of TYPE in SOFTWARE.")
+  (:method ((type t) (software tree-sitter) (ast ast))
+    (filter {typep _ type} (get-parent-asts* software ast))))
 
 (defgeneric find-preceding (type software ast)
   (:documentation "Return any siblings of TYPE preceding AST in SOFTWARE.")
