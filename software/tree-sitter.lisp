@@ -1036,7 +1036,7 @@ for the language.")
        (:c/cpp-update-expression c-update-expression)
        (:c/cpp-while-statement c-while-statement))
       (:cpp
-       (:scope-ast cpp-namespace-definition)
+       (:scope-ast cpp-namespace-definition cpp-declaration-list)
        (:root-ast cpp-translation-unit)
        (:comment-ast cpp-comment)
        (:definition-ast cpp-type-definition cpp-struct-specifier

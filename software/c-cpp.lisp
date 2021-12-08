@@ -59,6 +59,12 @@
            ;; Special handling for uninitialized variables.
            (t (c/cpp-declarator d)))))))
 
+(defmethod inner-declarations ((ast c/cpp-compound-statement))
+  (mappend #'outer-declarations (children ast)))
+
+(defmethod inner-declarations ((ast cpp-declaration-list))
+  (mappend #'outer-declarations (children ast)))
+
 (defun get-nested-declaration (ast)
   "Get the declaration nested in AST. This is useful for array and
 pointer declarations which are nested on themselves."
