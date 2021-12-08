@@ -351,7 +351,7 @@ By default, sum the results of applying `evaluate' to each test-case using
    (list (make-instance (or all-tests-case-class 'all-tests-case)
                         :program-name (car (split-sequence #\space script))
                         :program-args
-                        (list (cadr (split-sequence #\space script)) :bin)
+                        (append (cdr (split-sequence #\space script)) '(:bin))
                         :time-limit time-limit
                         :limit-path limit-path))))
 

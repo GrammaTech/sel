@@ -96,7 +96,8 @@ TEST_ARTIFACTS = \
 
 # FIXME: move test binaries into test/bin or bin/test/
 # Extend cl.mk to have a separate build target for test binaries
-BINS = rest-server dump-store tree-sitter-interface tree-sitter-py-generator test-parse
+BINS = rest-server dump-store tree-sitter-interface tree-sitter-py-generator test-parse \
+       limit
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate
@@ -113,6 +114,9 @@ test/etc/gcd/gcd: test/etc/gcd/gcd.c
 
 test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 	$(CC) $< -S -masm=intel -o $@
+
+bin/limit: limit.c
+	$(CC) $< -o $@
 
 python-check: bin/tree-sitter-interface bin/tree-sitter-py-generator
 	PATH=$(ROOT_DIR)/bin:$$PATH pytest python
