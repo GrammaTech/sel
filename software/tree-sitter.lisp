@@ -495,6 +495,7 @@
            ;; Generics
            ;; TODO: should this be in parseable?
            :collect-var-uses
+           :get-declaration-ast
            :variable-use-p
            :patch-whitespace
            :prettify-software
@@ -5985,6 +5986,26 @@ Every element in the list has the following form:
 (defgeneric variable-use-p (obj identifier &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
+(defgeneric get-declaration-ast (obj ast)
+  (:documentation "Get the declaration AST associated with identifier.")
+  (:method ((obj normal-scope) (identifier identifier-ast))
+    (or
+     ;; Check if this identifier is part of a declaration before
+     ;; checking scopes to avoid returning a shadowed variable.
+     (iter
+      (for parent in (get-parent-asts* obj identifier))
+      (when (member identifier
+                    (append (outer-declarations parent)
+                            (inner-declarations parent))
+                    ;; Looking for the exact AST.
+                    :test #'eq)
+        (return parent)))
+     (aget :decl
+           (find-if-in-scopes
+            {equal (source-text identifier)}
+            (scopes obj identifier)
+            :key {aget :name})))))
+
 (defgeneric collect-var-uses (obj identifier &key &allow-other-keys)
   (:documentation "Collect uses of IDENTIFIER in OBJ.")
   (:method ((obj normal-scope) (identifier identifier-ast)
@@ -6009,24 +6030,6 @@ Every element in the list has the following form:
                     ;; outer/inner-declarations not returning enough information
                     ;; to determine if the decl is the original one.
                     (not (initial-declaration-p))))
-             (get-declaration-ast ()
-               "Get the declaration AST associated with identifier."
-               (or
-                ;; Check if this identifier is part of a declaration before
-                ;; checking scopes to avoid returning a shadowed variable.
-                (iter
-                  (for parent in (get-parent-asts* obj identifier))
-                  (when (member identifier
-                                (append (outer-declarations parent)
-                                        (inner-declarations parent))
-                                ;; Looking for the exact AST.
-                                :test #'eq)
-                    (return parent)))
-                (aget :decl
-                      (find-if-in-scopes
-                       {equal (source-text identifier)}
-                       (scopes obj identifier)
-                       :key {aget :name}))))
              (collect-var-use-children (ast parents)
                "Return all variable uses in the children of AST."
                (cond
@@ -6043,7 +6046,7 @@ Every element in the list has the following form:
                     (appending
                      (collect-var-use-children child (cons ast parents)))
                     (until (variable-shadowed-p (outer-declarations child))))))))
-      (when-let ((declaration-ast (get-declaration-ast)))
+      (when-let ((declaration-ast (get-declaration-ast obj identifier)))
         (remove-if-not
          (op (path-later-p obj _ declaration-ast))
          (collect-var-use-children
