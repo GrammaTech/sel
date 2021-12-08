@@ -628,15 +628,6 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
           (mapcar {get-unbound-funs obj} children))
    :test #'equal))
 
-;; TODO: move into parseable?
-(-> find-if-in-scopes (function list &key (:key function))
-  (values list &optional))
-(defun find-if-in-scopes (predicate scopes &key (key #'identity))
-  "Return the first binding in SCOPES that satisfies PREDICATE."
-  (some (lambda (scope)
-         (find-if predicate scope :key key))
-       scopes))
-
 (defmethod get-function-from-function-call ((obj python) (ast python-ast))
   (match ast
     ((python-call

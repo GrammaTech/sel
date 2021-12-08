@@ -60,6 +60,7 @@
            :enclosing-scope
            :find-if-in-scope
            :find-if-in-parents
+           :find-if-in-scopes
            :built-ins
            :scopes
            :scope-tree
@@ -720,6 +721,12 @@ Scopes are returned innermost-first."))
         subtrees)))
   (:method ((software parseable) &key (table (scope-table software)))
     (scope-tree (genome software) :table table)))
+
+(defun find-if-in-scopes (predicate scopes &key (key #'identity))
+  "Return the first binding in SCOPES that satisfies PREDICATE."
+  (some (lambda (scope)
+          (find-if predicate scope :key key))
+        scopes))
 
 (defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))

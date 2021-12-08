@@ -441,7 +441,6 @@
            :computed-text
            :structured-text
            ;; Python
-           :find-if-in-scopes
            :get-asts-in-namespace
            :get-vars
            :identical-name-p
