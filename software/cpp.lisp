@@ -221,6 +221,15 @@
   (remove-if (of-type 'cpp-namespace-identifier)
              (identifiers ast)))
 
+(defgeneric namespace-qualifiers (obj ast)
+  (:method ((obj cpp) (ast cpp-identifier))
+    nil)
+  (:method ((obj cpp) (ast cpp-qualified-identifier))
+    (let ((scope (cpp-scope ast)))
+      (if (null scope) (list obj)
+          (append (list scope)
+                  (namespace-qualifiers obj (cpp-name ast)))))))
+
 
 ;;; Whitespace rules
 
