@@ -78,6 +78,7 @@
            :bad-mutation-targets
            :shares-path-of-p
            :ancestor-of-p
+           :descendant-of-p
            :get-function-from-function-call
            :map-arguments-to-parameters
            :assign-to-var-p
@@ -832,6 +833,10 @@ of SHARED-PATH-AST's path in OBJ.")
   (:method ((root ast) target-ast ancestor)
     (unless (eq target-ast ancestor)
       (shares-path-of-p root target-ast ancestor))))
+
+(defun descendant-of-p (obj target-ast descendant)
+  "Returns T if DESCENDANT is a descendant of TARGET-AST in OBJ."
+  (ancestor-of-p obj descendant target-ast))
 
 
 ;;; Core parseable methods
