@@ -470,7 +470,7 @@
            :while-ast
            :loop-ast
            :class-ast
-           :scope-ast
+           :scope-ast-p
            :function-ast
            :parameters-ast
            :variable-declaration-ast
@@ -1036,7 +1036,6 @@ for the language.")
        (:c/cpp-update-expression c-update-expression)
        (:c/cpp-while-statement c-while-statement))
       (:cpp
-       (:scope-ast cpp-namespace-definition cpp-declaration-list)
        (:root-ast cpp-translation-unit)
        (:comment-ast cpp-comment)
        (:definition-ast cpp-type-definition cpp-struct-specifier
@@ -2687,7 +2686,7 @@ Superclass of every generated LANGUAGE-comment class."))
     (:documentation "Mix-in for AST classes that are parenthesized
     expressions."))
 
- (defclass compound-ast (scope-ast) ()
+ (defclass compound-ast (ast) ()
     (:documentation "Mix-in for AST classes that are compounds."))
 
   (defclass conditional-ast (ast) ()
@@ -2702,7 +2701,7 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass while-ast (control-flow-ast conditional-ast) ()
     (:documentation "Mix-in for AST classes that are whiles."))
 
- (defclass loop-ast (control-flow-ast scope-ast) ()
+ (defclass loop-ast (control-flow-ast) ()
     (:documentation "Mix-in for AST classes that are loops."))
 
   (defclass class-ast (ast) ()
@@ -2714,10 +2713,7 @@ Superclass of every generated LANGUAGE-comment class."))
 
 Superclass of every generated LANGUAGE-error class."))
 
- (defclass scope-ast (ast) ()
-   (:documentation "Mixin for AST classes that introduce a scope."))
-
- (defclass function-ast (scope-ast) ()
+ (defclass function-ast (ast) ()
     (:documentation "Mix-in for AST classes that are functions."))
 
   (defclass parameters-ast (ast) ()
@@ -5725,11 +5721,17 @@ should be rebound.")
   (:method (ast) nil)
   (:method ((ast identifier-ast)) t))
 
+(defgeneric scope-ast-p (ast)
+  (:method ((ast t)) nil)
+  (:method ((ast function-ast)) t)
+  (:method ((ast loop-ast)) t)
+  (:method ((ast compound-ast)) t))
+
 (defmethod enclosing-scope ((obj tree-sitter) (ast ast))
   "Return the enclosing scope of AST in OBJ.
 - OBJ tree-sitter software object
 - AST ast to return the enclosing scope for"
-  (or (find-if (of-type 'scope-ast)
+  (or (find-if #'scope-ast-p
                (get-parent-asts* obj ast))
       (genome obj)))
 
