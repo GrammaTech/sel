@@ -547,6 +547,7 @@
            :java
            :text-fragment
            :choice-superclass
+           :canonicalize-declarator
            ;; Styles
            :c-style-indentation
            ;; string-clauses.lisp
@@ -6176,6 +6177,11 @@ Equivalent type descriptors should be equal under `equal?'.")
     (make-keyword (source-text type-ast))))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
+
+(defgeneric canonicalize-declarator (declarator)
+  (:documentation "Get a canonicalized form of DECLARATOR. This form can be
+used to determine whether two types are identical.")
+  (:method (ast) nil))
 
 
 ;;;; Structured text

@@ -364,4 +364,23 @@ determined by looking at PARENT.")
                                       ast1
                                       (ast2 c/cpp-preproc-include))
   "")
+
+(defmethod canonicalize-declarator ((declarator c/cpp-array-declarator))
+  (append (canonicalize-declarator (c/cpp-declarator declarator))
+          `((:array ,(c/cpp-size declarator)))))
+
+(defmethod canonicalize-declarator ((declarator c/cpp-parenthesized-declarator))
+  (append (canonicalize-declarator (car (direct-children declarator)))
+          `((:paren))))
+
+(defmethod canonicalize-declarator ((declarator c/cpp-pointer-declarator))
+  (append (canonicalize-declarator (c/cpp-declarator declarator))
+          ;; NOTE: direct children should contain the type qualifiers.
+          `((:pointer ,@(direct-children declarator)))))
+
+(defmethod canonicalize-declarator ((declarator c/cpp-function-declarator))
+  (append (canonicalize-declarator (c/cpp-declarator declarator))
+          `((:function ,(c/cpp-parameters declarator)))))
+
+
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)

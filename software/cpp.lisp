@@ -470,6 +470,12 @@
 (defmethod definition-name ((ast cpp-namespace-definition))
   (source-text (cpp-name ast)))
 
+(defmethod canonicalize-declarator ((declarator cpp-reference-declarator))
+  ;; NOTE: more or less an alias. Maybe adding it to the type information
+  ;;       isn't really needed or maybe it can just be ignored?
+  (append (canonicalize-declarator (car (direct-children declarator)))
+          `((:reference))))
+
 
 ;;; Methods common to all software objects
 
