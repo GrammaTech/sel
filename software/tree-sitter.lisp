@@ -6092,7 +6092,8 @@ If NODE is not a thing that has fields, return nil.")
           result))))
 
 (defgeneric type-in (software ast)
-  (:documentation "Return the type of AST in SOFTWARE."))
+  (:documentation "Return the type of AST in SOFTWARE.")
+  (:method ((software tree-sitter) (ast ast)) nil))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
 

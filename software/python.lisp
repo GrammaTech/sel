@@ -173,9 +173,6 @@ Every element in the list has the following form:
 (defmethod phenome ((obj python) &key (bin (temp-file-name)))
   (interpreted-phenome obj bin))
 
-(defmethod type-in ((obj python) (ast python-ast))
-  nil)
-
 (defmethod type-in ((obj python) (ast python-identifier))
   (let ((name (source-text ast))
         (scopes (scopes obj ast)))
