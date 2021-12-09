@@ -8,5 +8,8 @@
   "files": [
     "fib.js"
   ],
+  "bin": {
+    "express": "./bin/express"
+  },
   "main": "app.js"
 }

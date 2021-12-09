@@ -91,7 +91,8 @@
                   (or (and (not (ignored-evolve-path-p project rel-path))
                            (evolve-file-extension-p project
                                                     (pathname-type rel-path)))
-                      (find rel-path (aget "bin" package-spec :test #'equal)
+                      (find rel-path (cdr (aget "bin" package-spec :test
+                                                #'equal))
                             :key [#'canonical-pathname #'cdr]
                             :test #'equal)
                       (equal rel-path (aget "main" package-spec :test #'equal))))))))
