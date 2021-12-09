@@ -23,6 +23,21 @@
 (defsuite test-cpp-tree-sitter "C tree-sitter representation."
   (cpp-tree-sitter-available-p))
 
+
+;;; Utility
+
+(defixture trim-front
+    (:setup
+     (setf *soft*
+           (from-file 'cpp
+                      (asdf:system-relative-pathname
+                       :software-evolution-library
+                       "test/etc/cpp-fragments/trim_front.cc"))))
+  (:teardown (nix *soft*)))
+
+
+;;; Tests
+
 (deftest test-scopes ()
   (let* ((c (sel:from-string (make 'cpp) (fmt "~
 int main () {
@@ -158,6 +173,64 @@ int main () {
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (string*= "x = 1" (source-text (get-declaration-ast cpp qid))))))
+
+(deftest test-trim-front-types ()
+  (let ((result-alist
+         '(("trim_front" . "std::list<Point>")
+           ("pts" . "std::list<Point>&")
+           ;; TODO Should this be const float?
+           ("dist" . "float")
+           ("result" . "std::list<Point>&")
+           ("d" . "double")
+           ("p1" . "auto")
+           ("p2" . "auto")
+           ("segdist" . "double")
+           ("frac" . "double")
+           ("midpoint" . "auto"))))
+    ;; Test that we have all and only the above identifiers.
+    (with-fixture trim-front
+      (let ((scope-tree (scope-tree *soft*))
+            (all-scopes (all-scopes *soft*)))
+        ;; Test that we have all and only the above identifiers.
+        (let ((wanted-names
+               (mapcar #'car result-alist))
+              (names
+               (mapcar {aget :name} (all-scopes *soft*))))
+          (is (null (set-difference names wanted-names :test #'equal)))
+          (is (null (set-difference wanted-names names :test #'equal))))
+        scope-tree
+        (let* ((last-ids
+                ;; Get the last occurrence of each name.
+                (remove-duplicates
+                 (collect-if (of-type 'cpp-identifier)
+                             (genome *soft*))
+                 :from-end nil
+                 :key #'source-text
+                 :test #'equal))
+               (accesses
+                ;; Filter out everything whose name that isn't in the
+                ;; result alist.
+                (filter (lambda (id)
+                          (member (source-text id) result-alist
+                                  :key #'car
+                                  :test #'equal))
+                        last-ids)))
+          ;; Get the declaration for each access.
+          (iter (for access in accesses)
+                (for decl = (get-declaration-ast *soft* access))
+                (for string = (source-text access))
+                (iter (for scope in all-scopes)
+                      (when (equal string (aget :name scope))
+                        (let ((scope-decl (aget :decl scope)))
+                          (is (or (eql decl scope-decl)
+                                  (descendant-of-p *soft* decl scope-decl)))))))
+          (iter (for access in accesses)
+                (is (string= (assure string
+                               (aget (source-text access)
+                                     result-alist
+                                     :test #'equal))
+                             (assure (or null keyword)
+                               (type-in *soft* access))))))))))
 
 (deftest test-reference-return ()
   (is (equal "foo"
