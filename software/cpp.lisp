@@ -264,7 +264,8 @@
           (if explicit
               (let ((index (search explicit implicit
                                    :key #'source-text
-                                   :test #'equal)))
+                                   :test #'equal
+                                   :from-end t)))
                 (append (take (or index 0) implicit)
                         explicit))
               implicit))))))

@@ -130,6 +130,27 @@ int main () {
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (string*= "x = 1" (source-text (get-declaration-ast cpp qid))))))
 
+(deftest test-namespace-deepest-match ()
+  "Check that we return the deepest matching namespace."
+  (let* ((cpp
+          (from-string 'cpp
+                       "namespace A {
+  int x = 0;
+
+  namespace B {
+    namespace A {
+      namespace B {
+        int x = 1;
+        int f () {
+          return A::B::x;
+        }
+      }
+    }
+  }
+}"))
+         (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
+    (is (string*= "x = 1" (source-text (get-declaration-ast cpp qid))))))
+
 (deftest test-reference-return ()
   (is (equal "foo"
              (function-name
