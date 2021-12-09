@@ -78,11 +78,7 @@ to take CONTEXT into account."))
     ((c/cpp-binary-expression
       :c/cpp-left
       (c/cpp-parenthesized-expression
-       :children (list (and identifier (c/cpp-identifier))))
-      :c/cpp-operator
-      ;; TODO: does this cover everything?
-      ;; TODO: NOTE: the c/cpp on these terminals seem to be screwing things up.
-      (or (c/cpp-*) (c/cpp--) (c/cpp-+) (c/cpp-&)))
+       :children (list (and identifier (c/cpp-identifier)))))
      (when (eql (get-context-for identifier context) :type)
        (binary-expression->cast-expression ast-type ast)))))
 
@@ -92,13 +88,13 @@ to take CONTEXT into account."))
                               &key ast-type &allow-other-keys)
   ;; TODO: this can likely be addressed with #'scopes to some extent, though
   ;;       it won't find any external global variables.
-  ;; TODO: this is also ambiguous for any operator that is both a prefix and
-  ;;       an infix operator. This includes -, +, &, etc.
   (match ast
     ((c/cpp-binary-expression
       :c/cpp-left
       (c/cpp-parenthesized-expression
-       :children (list (c/cpp-identifier))))
+       :children (list (c/cpp-identifier)))
+      :c/cpp-operator
+      (or (c/cpp-*) (c/cpp--) (c/cpp-+) (c/cpp-&)))
      ;; TODO: improve this. Currently assumes that we will want it to be a
      ;;       cast expression regardless.
      (binary-expression->cast-expression ast-type ast))))
