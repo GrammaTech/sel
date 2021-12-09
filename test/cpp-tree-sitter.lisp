@@ -587,69 +587,83 @@ line, after a comment if there is one."
 
 
 ;;; Contextualize-ast Tests
+(defun contextualization-check (source target-ast-type
+                                &key result-type unexpected-type context-table)
+  (let* ((root (convert 'cpp-ast source))
+         (software (make-instance 'cpp :genome root))
+         (target-ast (find-if (of-type target-ast-type) root))
+         (result (contextualize-ast software target-ast context-table))
+         (result-root (mapcar (lambda (ast)
+                                (if (eq ast target-ast)
+                                    result
+                                    ast))
+                              root)))
+    (is (equal (source-text target-ast) (source-text result)))
+    (is (equal source (source-text result-root)))
+    (when result-type
+      (is (typep result result-type)))
+    (when unexpected-type
+      (is (not (find-if (of-type unexpected-type) result))))))
+
 (deftest cpp-contextualize-function-declarator-1 ()
   "Contextualize-ast turns a function-declarator into an init declarator and
 doesn't contain any abstract function parameters or type identifiers."
-  (let* ((source "Obj object(a, X(b, Y()));")
-         (root (convert 'cpp-ast source))
-         (software (make-instance 'cpp :genome root))
-         (result (contextualize-ast
-                  software
-                  (find-if (of-type 'cpp-function-declarator) root)
-                  nil)))
-    (is (typep result 'cpp-init-declarator))
-    (is (not (find-if (of-type 'cpp-abstract-function-declarator) result)))
-    (is (not (find-if (of-type 'cpp-type-identifier) result)))))
+  (contextualization-check
+   "Obj object(a, X(b, Y()));"
+   'cpp-function-declarator
+   :result-type 'cpp-init-declarator
+   :unexpected-type '(or cpp-abstract-function-declarator cpp-type-identifier)))
 
 (deftest cpp-contextualize-function-declarator-2 ()
   "Contextualize-ast maintains the source representation of a function-declarator
 when it is contextualized."
-  (let* ((source "Obj object ( a, X ( b , Y ( ))) ;")
-         (root (convert 'cpp-ast source))
-         (software (make-instance 'cpp :genome root))
-         (target-ast (find-if (of-type 'cpp-function-declarator) root))
-         (result (contextualize-ast software target-ast nil)))
-    ;; TODO: need to replace the target with the result and check then.
-    (is (equal (source-text target-ast) (source-text result)))))
+  (contextualization-check
+   "Obj object ( a, X ( b , Y ( ))) ;"
+   'cpp-function-declarator
+   :unexpected-type '(or cpp-abstract-function-declarator cpp-type-identifier)))
+
+(deftest cpp-contextualize-function-declarator-3 ()
+  "Contextualize-ast turns a function-declarator into an init declarator and
+doesn't contain any abstract function parameters or type identifiers."
+  (contextualization-check
+   "Obj object(a, X(b, Y<1,2> ()));"
+   'cpp-function-declarator
+   :result-type 'cpp-init-declarator
+   :unexpected-type '(or cpp-abstract-function-declarator cpp-type-identifier)))
+
+(deftest cpp-contextualize-function-declarator-context-1 ()
+  "Contextualize-ast turns a function-declarator into an init declarator when
+it doesn't contain any valid types."
+  (contextualization-check
+   "Obj object(a, x = 10);"
+   'cpp-function-declarator
+   :context-table (dict "x" :type)
+   :result-type 'cpp-init-declarator
+   :unexpected-type '(or cpp-abstract-function-declarator
+                      cpp-type-identifier cpp-optional-parameter-declaration)))
 
 (deftest cpp-contextualize-binary-expression-1 ()
   "Contextualize-ast turns a binary expression into a cast expression when
 the left hand side is a parenthesized identifier and doesn't contain
 parenthesized expressions or binary expressions."
-  (let* ((source "(Type) * variable;")
-         (root (convert 'cpp-ast source))
-         (software (make-instance 'cpp :genome root))
-         (result (contextualize-ast
-                  software
-                  (find-if (of-type 'cpp-binary-expression) root)
-                  nil)))
-    (is (typep result 'cpp-cast-expression))
-    (is (not (find-if (of-type 'cpp-binary-expression) result)))
-    (is (not (find-if (of-type 'cpp-parenthesized-expression) result)))))
+  (contextualization-check
+   "(Type) * variable;"
+   'cpp-binary-expression
+   :result-type 'cpp-cast-expression
+   :unexpected-type '(or cpp-binary-expression cpp-parenthesized-expression)))
 
 (deftest cpp-contextualize-binary-expression-2 ()
   "Contextualize-ast maintains the source representation of a binary expression
 when it is contextualized."
-  (let* ((source "( Type ) * variable ;")
-         (root (convert 'cpp-ast source))
-         (software (make-instance 'cpp :genome root))
-         (target-ast (find-if (of-type 'cpp-binary-expression) root))
-         (result (contextualize-ast software target-ast nil)))
-    ;; TODO: need to replace the target with the result and check then.
-    (is (equal (source-text target-ast) (source-text result)))))
+  (contextualization-check "(Type) * variable ;" 'cpp-binary-expression))
 
 (deftest cpp-contextualize-binary-expression-context-1 ()
   "Contextualize-ast turns a binary expression into a cast expression when
 the left hand side is a type and the binary operator is also a valid prefix
 operator."
-  (let* ((context-table (dict "Type" :type))
-         (source "(Type) * variable;")
-         (root (convert 'cpp-ast source))
-         (software (make-instance 'cpp :genome root))
-         (result (contextualize-ast
-                  software
-                  (find-if (of-type 'cpp-binary-expression) root)
-                  context-table)))
-    (is (typep result 'cpp-cast-expression))
-    (is (not (find-if (of-type 'cpp-binary-expression) result)))
-    (is (not (find-if (of-type 'cpp-parenthesized-expression) result)))))
+  (contextualization-check
+   "(Type) * variable;"
+   'cpp-binary-expression
+   :context-table (dict "Type" :type)
+   :result-type 'cpp-cast-expression
+   :unexpected-type '(or cpp-binary-expression cpp-parenthesized-expression)))
