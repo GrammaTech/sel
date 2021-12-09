@@ -54,25 +54,114 @@
   (unless (compiler cpp)
     (setf (compiler cpp) "c++")))
 
+;;; The following information is gathered from
+;;;   Meta-Compilation for C++ by Edward D. Willink.
+;;;
+;;; Typed Ambiguities:
+;;; 5.5.3.1 Declaration/Declaration
+;;; ---Parenthesized variable declaration
+;;;     vs
+;;;    single-argument type constructor
+;;;
+;;;    int (x);
+;;;
+;;;    where 'x' may be a previously defined variable or a new one.
+;;;
+;;;    NOTE:
+;;;    It seems reasonable to exclude this from an acceptable set of C++,
+;;;    at least initially. It will likely require some static analysis
+;;;    otherwise, but it may be unlikely that a single-argument
+;;;    type constructor would be given its own line as it would need
+;;;    side-effects to do anything.
+;;;
+;;; ---Constructed Object Declaration
+;;;     vs
+;;;    Function Declaration
+;;;
+;;;    TypeName a(x);
+;;;
+;;;    where 'x' could be a variable or a type.
+;;;
+;;;    This can be addressed with a symbol table.
+;;;
+;;; 5.5.3.2 Declaration/Expression
+;;; ---The Most Vexing Parse
+;;;    TypeName ()--Constructor or Function Declaration?
+;;;
+;;;    NOTE: not much that can be done here. The function declaration will
+;;;          be taken as what's intended even if it is not.
+;;;
+;;; 5.5.3.4 Type-id/Expression-list
+;;; ---parenthesised-call
+;;;     vs
+;;;    cast-parenthesis
+;;;
+;;;    (a) (x);
+;;;
+;;;    where 'a' could be a type or a function name.
+;;;
+;;;    NOTE: with the current representation not distinguishing between
+;;;          call expressions and functional casts, it probably doesn't
+;;;          make much sense to handle this right now either since they're
+;;;          semantically identical, more or less.
+;;;
+;;; ---parenthesised-binary
+;;;     vs
+;;;    cast-unary
+;;;
+;;;    (x) - y;
+;;;
+;;;    where 'x' could be a variable or a typename.
+;;;
+;;; 5.5.3.5 Call/Functional-cast
+;;; fun(x)      // function call
+;;; TypeName(x) // functional-cast equivalent to (TypeName) x
+;;;
+;;; NOTE: for now, don't support this transformation since it would
+;;;       require adding a functional-cast AST.
+
+;;; Type-less Ambiguities:
+;;;
+;;; 5.7.1.1: Declaration/Expression
+;;; ---assignment expression
+;;;     vs
+;;;    parameter declaration
+;;;
+;;;    int f (x = 7);
+;;;
+;;;    where 'x' could be a type name or a variable name.
+;;;
+;;; ---5.7.1.3 type-id/expression-list
+;;;
+;;;    (x)+5
+;;;
+;;;    where 'x' can be type name or a variable.
+
 (defmethod contextualize-ast :around (software (ast cpp-ast) context &rest rest
                                       &key ast-type &allow-other-keys)
   (if ast-type
       (call-next-method)
       (apply #'call-next-method software ast context :ast-type 'cpp-ast rest)))
 
-(defmethod contextualize-ast ((software cpp)
-                              (ast cpp-function-declarator)
-                              context
-                              &key ast-type parents &allow-other-keys)
+(defun function-declarator->init-declarator (function-declarator)
+  "Convert FUNCTION-DECLARATOR into an init-declarator."
   (labels ((abstract-function-parameter-p (parameter-ast)
-             "Return T if parameter-ast is an abstract-function parameter."
+             "Return T if PARAMETER-AST is an abstract-function parameter."
              (match parameter-ast
                ((cpp-parameter-declaration
-                 :cpp-type (cpp-type-identifier)
+                 :cpp-type (or (cpp-type-identifier) (cpp-template-type))
                  :cpp-declarator (cpp-abstract-function-declarator))
                 t)))
+           (type-identifier->identifier (type-identifier)
+             "Convert TYPE-IDENTIFIER into an identifier AST."
+             (convert
+              'cpp-ast
+              `((:class . :identifier)
+                (:before-text . ,(before-text type-identifier))
+                (:after-text . ,(after-text type-identifier))
+                (:text . ,(text type-identifier)))))
            (abstract-function-parameter->call-expression (parameter)
-             "Convert FUNCTION-PARAMETER to a call-expression."
+             "Convert PARAMETER to a call-expression."
              (let ((parameters (cpp-parameters (cpp-declarator parameter)))
                    (name (cpp-type parameter)))
                (convert
@@ -81,10 +170,14 @@
                   (:before-text . ,(before-text parameter))
                   (:after-text . ,(after-text parameter))
                   (:function
-                   (:class . :identifier)
-                   (:before-text . ,(before-text name))
-                   (:after-text . ,(after-text name))
-                   (:text . ,(text name)))
+                   . ,(if (typep name 'cpp-template-type)
+                          `((:class . :template-function)
+                            (:cpp-arguments . ,(cpp-arguments name))
+                            (:cpp-name . ,(type-identifier->identifier
+                                           (cpp-name name)))
+                            (:before-text . ,(before-text name))
+                            (:after-text . ,(after-text name)))
+                          (type-identifier->identifier name)))
                   (:arguments
                    (:class . :argument-list)
                    (:before-text . ,(before-text (cpp-declarator parameter)))
@@ -93,6 +186,26 @@
                    (:children
                     ,@(mapcar #'convert-for-argument-list
                               (direct-children parameters))))))))
+           (optional-parameter-declaration->assignment-expression (parameter)
+             "Convert PARAMETER into an assignment expression."
+             (let ((lhs (cpp-type parameter))
+                   (rhs (cpp-default-value parameter)))
+               (convert
+                'cpp-ast
+                `((:class . :assignment-expression)
+                  (:left
+                   (:class . :identifier)
+                   (:text . ,(text lhs))
+                   (:before-text . ,(before-text lhs))
+                   (:after-text . ,(after-text lhs)))
+                  (:operator (:class . :=))
+                  (:right
+                   (:class . :identifier)
+                   (:text . ,(text rhs))
+                   (:before-text . ,(before-text rhs))
+                   (:after-text . ,(after-text rhs)))
+                  (:before-text . ,(before-text parameter))
+                  (:after-text . ,(after-text parameter))))))
            (parameter-declaration->identifier (parameter)
              "Convert PARAMETER into an identifier."
              (let ((type-identifier (cpp-type parameter)))
@@ -106,32 +219,85 @@
                   (:text . ,(text type-identifier))))))
            (convert-for-argument-list (target-ast)
              "Convert TARGET-AST to a type that is suited for an argument list."
-             ;; TODO: this almost certainly doesn't cover every case.
-             (if (abstract-function-parameter-p target-ast)
-                 (abstract-function-parameter->call-expression target-ast)
-                 (parameter-declaration->identifier target-ast)))
-           (function-declarator->init-declarator (function-declarator)
-             "Convert FUNCTION-DECLARATOR into an init-declarator."
-             (let ((parameters (cpp-parameters function-declarator)))
-               (convert
-                ast-type
-                `((:class . :init-declarator)
-                  (:before-text . ,(before-text function-declarator))
-                  (:after-text . ,(after-text function-declarator))
-                  (:declarator . ,(cpp-declarator function-declarator))
-                  (:value
-                   (:class . :argument-list)
-                   (:before-text . ,(before-text parameters))
-                   (:after-text . ,(after-text parameters))
-                   (:children
-                    ,@(mapcar #'convert-for-argument-list
-                              (direct-children parameters)))))))))
-    ;; TODO: ignore top-level definitions. This can probably be narrowed
-    ;;       to target more specific areas, such as header files and preprocs.
-    ;;       It may also make sense to allow these in class definitions too.
-    (unless (typep (car parents) 'cpp-translation-unit)
-      ;; NOTE: perform blanket transformation for now.
-      (function-declarator->init-declarator ast))))
+             ;; TODO: this probably doesn't cover every case.
+             (econd
+               ((abstract-function-parameter-p target-ast)
+                (abstract-function-parameter->call-expression target-ast))
+               ((typep target-ast 'cpp-optional-parameter-declaration)
+                (optional-parameter-declaration->assignment-expression
+                 target-ast))
+               ((typep target-ast 'cpp-parameter-declaration)
+                (parameter-declaration->identifier target-ast)))))
+    (let ((parameters (cpp-parameters function-declarator)))
+      (convert
+       'cpp-ast
+       `((:class . :init-declarator)
+         (:before-text . ,(before-text function-declarator))
+         (:after-text . ,(after-text function-declarator))
+         (:declarator . ,(cpp-declarator function-declarator))
+         (:value
+          (:class . :argument-list)
+          (:before-text . ,(before-text parameters))
+          (:after-text . ,(after-text parameters))
+          (:children
+           ,@(mapcar #'convert-for-argument-list
+                     (direct-children parameters)))))))))
+
+(defmethod contextualize-ast ((software cpp)
+                              (ast cpp-function-declarator)
+                              (context hash-table)
+                              &key &allow-other-keys)
+  ;; TODO: this can be further improved.
+  ;;       Currently, it only checks if the parameters are valid types.
+  (labels ((definite-type-p (parameter-ast)
+             "Return T if PARAMETER-AST definitely represents a type in
+              context."
+             (match parameter-ast
+               ((cpp-parameter-declaration
+                 :cpp-type (and identifier (identifier-ast))
+                 ;; Currently assumes that abstract function declarators won't
+                 ;; be used unless another valid type is found.
+                 :cpp-declarator (not (cpp-abstract-function-declarator)))
+                (eql :type (get-context-for identifier context)))
+               ((cpp-optional-parameter-declaration
+                 :cpp-type (and identifier (identifier-ast))
+                 :cpp-declarator declarator)
+                (or declarator
+                    (eql :type (get-context-for identifier context))))))
+           (definite-parameter-p (parameter)
+             "Return T if AST is definitely a parameter AST."
+             (match parameter
+               ((cpp-parameter-declaration
+                 :cpp-type (cpp-type-identifier)
+                 :cpp-declarator (cpp-identifier))
+                t)))
+           (definite-parameters-p (parameters)
+             "Return T if PARAMETERS definitely contains a parameter."
+             (find-if «or #'definite-parameter-p #'definite-type-p»
+                      (direct-children parameters))))
+    (match ast
+      ((cpp-function-declarator
+        :cpp-declarator identifier
+        :cpp-parameters parameters)
+       (when (or (equal :function (get-context-for identifier context))
+                 (find-if #'definite-parameters-p parameters))
+         (function-declarator->init-declarator ast))))))
+
+(defmethod contextualize-ast ((software cpp)
+                              (ast cpp-function-declarator)
+                              context
+                              &key parents &allow-other-keys)
+  ;; TODO: IMPROVEMENTS:
+  ;;       Take the file extension into account--variable initializations are
+  ;;       probably not in a header file.
+  ;;       Consider whether it's top-level or class-level vs. otherwise.
+  ;;
+  ;; TODO: ignore top-level definitions. This can probably be narrowed
+  ;;       to target more specific areas, such as header files and preprocs.
+  ;;       It may also make sense to allow these in class definitions too.
+  (unless (typep (car parents) 'cpp-translation-unit)
+    ;; NOTE: perform blanket transformation for now.
+    (function-declarator->init-declarator ast)))
 
 (defmethod ast-for-match ((language (eql 'cpp))
                           string software context)
