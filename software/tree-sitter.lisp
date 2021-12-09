@@ -5844,8 +5844,8 @@ argument destructuring (e.g. ECMAScript).")
 (defgeneric get-parent-decl (obj identifier)
   (:documentation "For the given IDENTIFIER AST, return the parent declaration.")
   (:method (obj identifier)
-    (car (remove-if-not {typep _ 'variable-declaration-ast}
-                        (get-parent-asts obj identifier)))))
+    (find-if (of-type 'variable-declaration-ast)
+             (get-parent-asts obj identifier))))
 
 (defgeneric ast-to-scope-alist (obj scope ast)
   (:documentation "Return a scope alist based on AST with SCOPE.
