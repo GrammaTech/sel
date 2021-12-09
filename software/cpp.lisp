@@ -225,8 +225,15 @@
 (defmethod parameter-names ((ast cpp-parameter-declaration))
   ;; Note that currently (2021) C++ allows destructuring ("structured
   ;; bindings") in blocks but not in parameter declarations.
-  (remove-if (of-type 'cpp-namespace-identifier)
-             (identifiers ast)))
+  (let ((ids
+         (remove-if (of-type 'cpp-namespace-identifier)
+                    (identifiers ast))))
+    (if-let (type (cpp-type ast))
+      (remove-if (lambda (id)
+                   (or (eql type id)
+                       (ancestor-of-p ast id type)))
+                 ids)
+      ids)))
 
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")

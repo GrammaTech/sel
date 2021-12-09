@@ -959,6 +959,7 @@ for the language.")
        (:binary-ast c-binary-expression)
        (:return-ast c-return-statement)
        (:goto-ast c-goto-statement)
+       (:parameter-ast c-parameter-declaration)
        (:c/cpp-+ c-+)
        (:c/cpp-- c--)
        (:c/cpp-* c-*)
@@ -1069,6 +1070,7 @@ for the language.")
         cpp-for-statement
         cpp-for-range-loop
         cpp-do-statement)
+       (:parameter-ast cpp-parameter-declaration)
        (:c/cpp-+ cpp-+)
        (:c/cpp-- cpp--)
        (:c/cpp-* cpp-*)
@@ -2718,6 +2720,9 @@ Superclass of every generated LANGUAGE-error class."))
 
   (defclass parameters-ast (ast) ()
     (:documentation "Mix-in for AST classes that are parameter lists."))
+
+ (defclass parameter-ast (ast) ()
+   (:documentation "Mix-in for AST classes that are individual parameters."))
 
   (defclass variable-declaration-ast (ast) ()
     (:documentation "Mix-in for AST classes that are variable declarations."))

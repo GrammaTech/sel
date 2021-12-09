@@ -60,6 +60,14 @@ int main () {
               :test #'equal
               :key #'source-text)))
 
+(deftest test-types-not-in-parameter-names ()
+  (is (equal "pts"
+             (source-text
+              (first
+               (parameter-names
+                (find-if (of-type 'parameter-ast)
+                         (cpp "trim_front(std::list<Point>& pts) {}"))))))))
+
 (deftest test-single-namespace-qualifier ()
   (let* ((cpp (from-string 'cpp "A::x;"))
          (id (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
