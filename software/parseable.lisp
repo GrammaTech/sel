@@ -64,6 +64,7 @@
            :built-ins
            :scopes
            :scope-tree
+           :all-scopes
            :get-vars-in-scope
            :parse-asts
            :ast-source-ranges
@@ -708,6 +709,12 @@ Scopes are returned innermost-first."))
     (iter (for (k v) in-hashtable table)
           (setf (gethash k table) (nreverse v)))
     table))
+
+(defgeneric all-scopes (software)
+  (:documentation "Return a flat list of all scopes in SOFTWARE. For a
+tree that preserves how scopes are nested, use `scope-tree'.")
+  (:method ((software parseable))
+    (apply #'append (hash-table-values (scope-table software)))))
 
 (defgeneric scope-tree (software &key table)
   (:documentation "Return a tree of scopes in SOFTWARE.")
