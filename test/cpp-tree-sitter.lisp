@@ -242,9 +242,9 @@ int main () {
                            +trim-front-types+
                            :test #'equal)))
                   (extracted-type
-                   (assure (or null keyword)
+                   (assure (or null ast)
                      (type-in *soft* access))))
-              (is (string= reference-type extracted-type)
+              (is (string= reference-type (source-text extracted-type))
                   "Mismatch for ~a: should be ~s, got ~s"
                   access-source-text
                   reference-type extracted-type))))))

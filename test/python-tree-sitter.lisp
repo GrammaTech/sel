@@ -792,7 +792,7 @@ and keyword parameters with defaults."
       (is (consp (find-if-in-scopes (of-name "greeting") scopes)))
       (is (null (find-if-in-scopes (of-name "name: str") scopes)))
       (is (consp (find-if-in-scopes (of-name "name") scopes)))
-      (is (eql :str (type-in software name-param-id))))))
+      (is (equal "str" (source-text (type-in software name-param-id)))))))
 
 (deftest test-python-call-name ()
   (is (string= (call-name (convert 'python-ast "foo(1, 2, 3)" :deepest t)) "foo")))

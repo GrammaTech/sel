@@ -181,21 +181,18 @@ Every element in the list has the following form:
                   (op (equal (aget :name _) name))
                   scopes))
                 (decl (aget :decl binding)))
-      (make-keyword
-       (string-upcase
-        (source-text
-         (or
-          ;; Extract just the name of the variable from a parameter.
-          (some
-           (lambda (parent)
-             (and (typep parent 'python-parameter)
-                  (find-if
-                   (lambda (child)
-                     (and (typep child 'python-identifier)
-                          (equal name (source-text ast))))
-                   parent)))
-           decl)
-          decl)))))))
+      (or
+       ;; Extract just the name of the variable from a parameter.
+       (some
+        (lambda (parent)
+          (and (typep parent 'python-parameter)
+               (find-if
+                (lambda (child)
+                  (and (typep child 'python-identifier)
+                       (equal name (source-text ast))))
+                parent)))
+        decl)
+       decl))))
 
 (defmethod enclosing-scope ((obj python) (ast python-ast))
   "Return the enclosing scope of AST in OBJ.

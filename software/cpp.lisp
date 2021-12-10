@@ -235,22 +235,20 @@
       ids)))
 
 (defmethod type-in ((obj cpp) (ast cpp-identifier))
-  (when-let* ((decl (get-declaration-ast obj ast))
-              (type-ast
-               (or
-                ;; Look for a surrounding variable declaration.
-                (when-let ((declaration
-                            (find-if (of-type '(and variable-declaration-ast
-                                                (not cpp-init-declarator)))
-                                     ;; Inclusive of AST.
-                                     (get-parent-asts obj decl))))
-                  (cpp-type declaration))
-                ;; If the declaration is for a function, return that
-                ;; function's type.
-                (and-let* ((function (find-enclosing 'function-ast obj decl))
-                           ((eql decl (cpp-declarator function))))
-                  (cpp-type function)))))
-    (make-keyword (source-text type-ast))))
+  (when-let* ((decl (get-declaration-ast obj ast)))
+    (or
+     ;; Look for a surrounding variable declaration.
+     (when-let ((declaration
+                 (find-if (of-type '(and variable-declaration-ast
+                                     (not cpp-init-declarator)))
+                          ;; Inclusive of AST.
+                          (get-parent-asts obj decl))))
+       (cpp-type declaration))
+     ;; If the declaration is for a function, return that
+     ;; function's type.
+     (and-let* ((function (find-enclosing 'function-ast obj decl))
+                ((eql decl (cpp-declarator function))))
+       (cpp-type function)))))
 
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")
