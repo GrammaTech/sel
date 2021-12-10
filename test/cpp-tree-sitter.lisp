@@ -177,70 +177,79 @@ int main () {
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (string*= "x = 1" (source-text (get-declaration-ast cpp qid))))))
 
-(deftest test-trim-front-types ()
-  (let ((result-alist
-         '(("trim_front" . "std::list<Point>")
-           ("pts" . "std::list<Point>")
-           ;; TODO Should this be const float?
-           ("dist" . "float")
-           ("result" . "std::list<Point>")
-           ("d" . "double")
-           ("p1" . "auto")
-           ("p2" . "auto")
-           ("segdist" . "double")
-           ("frac" . "double")
-           ("midpoint" . "auto"))))
+(def +trim-front-types+
+  '(("trim_front" . "std::list<Point>")
+    ("pts" . "std::list<Point>")
+    ;; TODO Should this be const float?
+    ("dist" . "float")
+    ("result" . "std::list<Point>")
+    ("d" . "double")
+    ("p1" . "auto")
+    ("p2" . "auto")
+    ("segdist" . "double")
+    ("frac" . "double")
+    ("midpoint" . "auto"))
+  "The types extracted from the trim_front example.")
+
+(deftest test-trim-front-scopes ()
+  "Test that we get all and only the scopes we want."
+  (with-fixture trim-front
+    (let ((wanted-names
+           (convert 'set (mapcar #'car +trim-front-types+)))
+          (scope-names
+           (convert 'set (mapcar {aget :name} (all-scopes *soft*)))))
+      (is (empty? (set-difference scope-names wanted-names)))
+      (is (empty? (set-difference wanted-names scope-names))))))
+
+(labels ((last-ids ()
+           "Get the last occurrence of each name."
+           (remove-duplicates
+            (collect-if (of-type 'cpp-identifier)
+                        (genome *soft*))
+            :from-end nil
+            :key #'source-text
+            :test #'equal))
+         (accesses ()
+           "Filter out everything whose name that isn't in the
+         result alist."
+           (filter (lambda (id)
+                     (member (source-text id) +trim-front-types+
+                             :key #'car
+                             :test #'equal))
+                   (last-ids))))
+
+  (deftest test-trim-front-decls ()
+    "Test that we get the right declaration for each identifier."
     ;; Test that we have all and only the above identifiers.
     (with-fixture trim-front
-      (let ((scope-tree (scope-tree *soft*))
-            (all-scopes (all-scopes *soft*)))
-        ;; Test that we have all and only the above identifiers.
-        (let ((wanted-names
-               (mapcar #'car result-alist))
-              (names
-               (mapcar {aget :name} (all-scopes *soft*))))
-          (is (null (set-difference names wanted-names :test #'equal)))
-          (is (null (set-difference wanted-names names :test #'equal))))
-        scope-tree
-        (let* ((last-ids
-                ;; Get the last occurrence of each name.
-                (remove-duplicates
-                 (collect-if (of-type 'cpp-identifier)
-                             (genome *soft*))
-                 :from-end nil
-                 :key #'source-text
-                 :test #'equal))
-               (accesses
-                ;; Filter out everything whose name that isn't in the
-                ;; result alist.
-                (filter (lambda (id)
-                          (member (source-text id) result-alist
-                                  :key #'car
-                                  :test #'equal))
-                        last-ids)))
-          ;; Get the declaration for each access.
-          (iter (for access in accesses)
-                (for decl = (get-declaration-ast *soft* access))
-                (for string = (source-text access))
-                (iter (for scope in all-scopes)
-                      (when (equal string (aget :name scope))
-                        (let ((scope-decl (aget :decl scope)))
-                          (is (or (eql decl scope-decl)
-                                  (descendant-of-p *soft* decl scope-decl)))))))
-          (iter (for access in accesses)
-                (for access-source-text = (source-text access))
-                (let ((reference-type
-                       (assure string
-                         (aget access-source-text
-                               result-alist
-                               :test #'equal)))
-                      (extracted-type
-                       (assure (or null keyword)
-                         (type-in *soft* access))))
-                  (is (string= reference-type extracted-type)
-                      "Mismatch for ~a: should be ~s, got ~s"
-                      access-source-text
-                      reference-type extracted-type))))))))
+      (let* ((all-scopes (all-scopes *soft*)))
+        (iter (for access in (accesses))
+              (for decl = (get-declaration-ast *soft* access))
+              (for string = (source-text access))
+              (iter (for scope in all-scopes)
+                    (when (equal string (aget :name scope))
+                      (let ((scope-decl (aget :decl scope)))
+                        (is (or (eql decl scope-decl)
+                                (descendant-of-p *soft* decl scope-decl))))))))))
+
+  (deftest test-trim-front-types ()
+    "Test that we retrieve the correct type for each identifier."
+    (with-fixture trim-front
+      ;; Get the type for each access.
+      (iter (for access in (accesses))
+            (for access-source-text = (source-text access))
+            (let ((reference-type
+                   (assure string
+                     (aget access-source-text
+                           +trim-front-types+
+                           :test #'equal)))
+                  (extracted-type
+                   (assure (or null keyword)
+                     (type-in *soft* access))))
+              (is (string= reference-type extracted-type)
+                  "Mismatch for ~a: should be ~s, got ~s"
+                  access-source-text
+                  reference-type extracted-type))))))
 
 (deftest test-reference-return ()
   (is (equal "foo"
