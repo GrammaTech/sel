@@ -388,7 +388,6 @@ making a directory."
                (declare (ignore stdout))
                (when (not (zerop exit))
                  (error (make-condition 'phenome :text stderr
-                                        :project project
                                         :loc build-dir))))))
       ((car artifacts)
        ;; Copy artifact to BIN.
@@ -401,7 +400,6 @@ making a directory."
          (declare (ignore stdout))
          (when (not (zerop exit))
            (error (make-condition 'phenome :text stderr
-                                  :project project
                                   :loc build-dir))))))))
 
 (defmethod phenome :around
