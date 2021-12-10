@@ -30,8 +30,6 @@
     (:setup
      (setf *soft*
            (from-file 'cpp
-                      ;; This is a simplified example adapted from
-                      ;; utils.cc in the Valhalla library.
                       (asdf:system-relative-pathname
                        :software-evolution-library
                        "test/etc/cpp-fragments/trim_front.cc"))))
