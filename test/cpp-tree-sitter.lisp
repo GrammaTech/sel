@@ -177,10 +177,10 @@ int main () {
 (deftest test-trim-front-types ()
   (let ((result-alist
          '(("trim_front" . "std::list<Point>")
-           ("pts" . "std::list<Point>&")
+           ("pts" . "std::list<Point>")
            ;; TODO Should this be const float?
            ("dist" . "float")
-           ("result" . "std::list<Point>&")
+           ("result" . "std::list<Point>")
            ("d" . "double")
            ("p1" . "auto")
            ("p2" . "auto")
@@ -225,12 +225,19 @@ int main () {
                           (is (or (eql decl scope-decl)
                                   (descendant-of-p *soft* decl scope-decl)))))))
           (iter (for access in accesses)
-                (is (string= (assure string
-                               (aget (source-text access)
-                                     result-alist
-                                     :test #'equal))
-                             (assure (or null keyword)
-                               (type-in *soft* access))))))))))
+                (for access-source-text = (source-text access))
+                (let ((reference-type
+                       (assure string
+                         (aget access-source-text
+                               result-alist
+                               :test #'equal)))
+                      (extracted-type
+                       (assure (or null keyword)
+                         (type-in *soft* access))))
+                  (is (string= reference-type extracted-type)
+                      "Mismatch for ~a: should be ~s, got ~s"
+                      access-source-text
+                      reference-type extracted-type))))))))
 
 (deftest test-reference-return ()
   (is (equal "foo"

@@ -236,14 +236,18 @@
       ids)))
 
 (defmethod type-in ((obj cpp) (ast cpp-identifier))
-  (let* ((decl (get-declaration-ast obj ast))
-         (declaration
-          (find-if (of-type '(and variable-declaration-ast
-                              (not cpp-init-declarator)))
-                   ;; Inclusive of AST.
-                   (get-parent-asts obj decl))))
-    (when declaration
-      (make-keyword (source-text (cpp-type declaration))))))
+  (when-let* ((decl (get-declaration-ast obj ast))
+              (type-ast
+               (or (when-let ((declaration
+                               (find-if (of-type '(and variable-declaration-ast
+                                                   (not cpp-init-declarator)))
+                                        ;; Inclusive of AST.
+                                        (get-parent-asts obj decl))))
+                     (cpp-type declaration))
+                   (and-let* ((function (find-enclosing 'function-ast obj decl))
+                              ((eql decl (cpp-declarator function))))
+                     (cpp-type function)))))
+    (make-keyword (source-text type-ast))))
 
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")
