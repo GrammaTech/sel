@@ -231,10 +231,7 @@
                     (identifiers ast))))
     (if-let (type (cpp-type ast))
       ;; We don't want identifiers from type declarations.
-      (remove-if (lambda (id)
-                   (or (eql type id)
-                       (ancestor-of-p ast id type)))
-                 ids)
+      (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
 
 (defmethod type-in ((obj cpp) (ast cpp-identifier))
