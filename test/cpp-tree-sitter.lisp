@@ -30,6 +30,8 @@
     (:setup
      (setf *soft*
            (from-file 'cpp
+                      ;; This is a simplified example adapted from
+                      ;; utils.cc in the Valhalla library.
                       (asdf:system-relative-pathname
                        :software-evolution-library
                        "test/etc/cpp-fragments/trim_front.cc"))))
@@ -76,6 +78,7 @@ int main () {
               :key #'source-text)))
 
 (deftest test-types-not-in-parameter-names ()
+  "Test that identifiers from type declarations are not included as parameter names."
   (is (equal "pts"
              (source-text
               (first

@@ -226,9 +226,11 @@
   ;; Note that currently (2021) C++ allows destructuring ("structured
   ;; bindings") in blocks but not in parameter declarations.
   (let ((ids
+         ;; If parameter have explicit namespaces we don't want those.
          (remove-if (of-type 'cpp-namespace-identifier)
                     (identifiers ast))))
     (if-let (type (cpp-type ast))
+      ;; We don't want identifiers from type declarations.
       (remove-if (lambda (id)
                    (or (eql type id)
                        (ancestor-of-p ast id type)))
@@ -238,15 +240,19 @@
 (defmethod type-in ((obj cpp) (ast cpp-identifier))
   (when-let* ((decl (get-declaration-ast obj ast))
               (type-ast
-               (or (when-let ((declaration
-                               (find-if (of-type '(and variable-declaration-ast
-                                                   (not cpp-init-declarator)))
-                                        ;; Inclusive of AST.
-                                        (get-parent-asts obj decl))))
-                     (cpp-type declaration))
-                   (and-let* ((function (find-enclosing 'function-ast obj decl))
-                              ((eql decl (cpp-declarator function))))
-                     (cpp-type function)))))
+               (or
+                ;; Look for a surrounding variable declaration.
+                (when-let ((declaration
+                            (find-if (of-type '(and variable-declaration-ast
+                                                (not cpp-init-declarator)))
+                                     ;; Inclusive of AST.
+                                     (get-parent-asts obj decl))))
+                  (cpp-type declaration))
+                ;; If the declaration is for a function, return that
+                ;; function's type.
+                (and-let* ((function (find-enclosing 'function-ast obj decl))
+                           ((eql decl (cpp-declarator function))))
+                  (cpp-type function)))))
     (make-keyword (source-text type-ast))))
 
 (defgeneric explicit-namespace-qualifiers (ast)
