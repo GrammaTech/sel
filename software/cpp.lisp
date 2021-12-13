@@ -249,6 +249,8 @@
                               &key &allow-other-keys)
   ;; TODO: this can be further improved.
   ;;       Currently, it only checks if the parameters are valid types.
+  ;;       Can probably check if parent is a function definition; on the other
+  ;;       hand, this may be redundant.
   (labels ((definite-type-p (parameter-ast)
              "Return T if PARAMETER-AST definitely represents a type in
               context."
@@ -286,18 +288,28 @@
 (defmethod contextualize-ast ((software cpp)
                               (ast cpp-function-declarator)
                               context
-                              &key parents &allow-other-keys)
-  ;; TODO: IMPROVEMENTS:
-  ;;       Take the file extension into account--variable initializations are
-  ;;       probably not in a header file.
-  ;;       Consider whether it's top-level or class-level vs. otherwise.
-  ;;
-  ;; TODO: ignore top-level definitions. This can probably be narrowed
-  ;;       to target more specific areas, such as header files and preprocs.
-  ;;       It may also make sense to allow these in class definitions too.
-  (unless (typep (car parents) 'cpp-translation-unit)
-    ;; NOTE: perform blanket transformation for now.
-    (function-declarator->init-declarator ast)))
+                              &key (parents (get-parent-asts* software ast))
+                              &allow-other-keys)
+  (labels ((header-file-p (software)
+             "Return T if SOFTWARE has probably originated from a header file."
+             (when-let ((path (namestring (original-path software))))
+               (scan "^\\.(h|hpp)$" path)))
+           (top-level-p (parents)
+             "Return T if AST is likely a top-level form in SOFTWARE."
+             (every (of-type '(or cpp-translation-unit
+                               cpp-preproc-if cpp-preproc-ifdef
+                               cpp-class-specifier cpp-namespace-definition
+                               cpp-declaration-list cpp-field-declaration-list
+                               cpp-struct-specifier))
+                    parents))
+           (part-of-definition-p (parents)
+             (typep (car parents) 'cpp-function-definition)))
+    ;; NOTE: assume that function declarators are the intention in header files.
+    (unless (or (header-file-p software)
+                (top-level-p parents)
+                (part-of-definition-p parents))
+      ;; NOTE: perform blanket transformation for now.
+      (function-declarator->init-declarator ast))))
 
 (defmethod ast-for-match ((language (eql 'cpp))
                           string software context)
