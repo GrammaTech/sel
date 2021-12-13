@@ -521,6 +521,10 @@
            :variable-name
            :no-fallthrough
            :type-in
+           :expression-type-in
+           :expression-type
+           :declaration-type-in
+           :declaration-type
            :find-enclosing
            :find-all-enclosing
            :find-preceding
@@ -6015,6 +6019,8 @@ Every element in the list has the following form:
 
 (defgeneric get-declaration-ast (obj ast)
   (:documentation "Get the declaration AST associated with identifier.")
+  ;; NB Not tree-sitter, since that would shadow normal-scope.
+  (:method ((obj t) (ast ast)) nil)
   (:method ((obj normal-scope) (identifier identifier-ast))
     (or
      ;; Check if this identifier is part of a declaration before
@@ -6106,8 +6112,31 @@ If NODE is not a thing that has fields, return nil.")
           result))))
 
 (defgeneric type-in (software ast)
-  (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.")
-  (:method ((software tree-sitter) (ast ast)) nil))
+  (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
+
+By default this first tries `expression-type', then invokes `declaration-type-in' on the result of `get-declaration-ast'.")
+  (:method ((software tree-sitter) (ast ast))
+    (or (expression-type-in software ast)
+        (when-let (decl (get-declaration-ast software ast))
+          (declaration-type-in software decl)))))
+
+(defgeneric expression-type-in (software ast)
+  (:method ((software tree-sitter) (ast ast))
+    (expression-type ast)))
+
+(defgeneric expression-type (ast)
+  (:method ((ast ast)) nil))
+
+(defgeneric declaration-type-in (software decl-ast)
+  (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
+
+By default calls `declaration-type' with DECL-AST.")
+  (:method ((software tree-sitter) (ast ast))
+    (declaration-type ast)))
+
+(defgeneric declaration-type (declaration-ast)
+  (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
+  (:method ((ast ast)) nil))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
 

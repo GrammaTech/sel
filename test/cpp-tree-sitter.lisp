@@ -36,7 +36,7 @@
   (:teardown (nix *soft*)))
 
 
-;;; Tests
+;;; Analysis tests
 
 (deftest test-scopes ()
   (let* ((c (sel:from-string (make 'cpp) (fmt "~
@@ -248,6 +248,25 @@ int main () {
                   "Mismatch for ~a: should be ~s, got ~s"
                   access-source-text
                   reference-type extracted-type))))))
+
+(deftest test-expression-type ()
+  (is (equal "double"
+             (source-text
+              (expression-type
+               (find-if (of-type 'call-ast)
+                        (cpp "static_cast<double>(x);")))))))
+
+(deftest test-expression-type-in ()
+  (let ((cpp (from-string 'cpp "double frac = (dist - d) / segdist;")))
+    (is (equal "double"
+               (source-text
+                (expression-type-in cpp
+                                    (find-if
+                                     (of-type 'expression-ast)
+                                     (genome cpp))))))))
+
+
+;;; Parsing tests
 
 (deftest test-reference-return ()
   (is (equal "foo"

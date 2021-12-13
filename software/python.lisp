@@ -173,26 +173,24 @@ Every element in the list has the following form:
 (defmethod phenome ((obj python) &key (bin (temp-file-name)))
   (interpreted-phenome obj bin))
 
-(defmethod type-in ((obj python) (ast python-identifier))
+(defmethod get-declaration-ast ((obj python) (ast python-identifier))
   (let ((name (source-text ast))
         (scopes (scopes obj ast)))
     (when-let* ((binding
                  (find-if-in-scopes
                   (op (equal (aget :name _) name))
-                  scopes))
-                (decl (aget :decl binding)))
-      (or
-       ;; Extract just the name of the variable from a parameter.
-       (some
-        (lambda (parent)
-          (and (typep parent 'python-parameter)
-               (find-if
-                (lambda (child)
-                  (and (typep child 'python-identifier)
-                       (equal name (source-text ast))))
-                parent)))
-        decl)
-       decl))))
+                  scopes)))
+      (aget :decl binding))))
+
+(defmethod declaration-type ((decl python-ast))
+  (or
+   ;; Extract just the name of the variable from a parameter.
+   (some
+    (lambda (parent)
+      (and (typep parent 'python-parameter)
+           (find-if (of-type 'python-identifier) parent)))
+    decl)
+   decl))
 
 (defmethod enclosing-scope ((obj python) (ast python-ast))
   "Return the enclosing scope of AST in OBJ.

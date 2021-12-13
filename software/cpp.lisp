@@ -193,6 +193,14 @@
 
 ;;;; Methods for tree-sitter generics
 
+(defmethod call-name ((ast cpp-call-expression))
+  "If the call function is a template function, extract just the name of the template function without its arguments."
+  (source-text
+   (let ((function (call-function ast)))
+     (if (typep function 'cpp-template-function)
+         (cpp-name function)
+         function))))
+
 (defmethod scope-ast-p ((ast cpp-namespace-definition)) t)
 (defmethod scope-ast-p ((ast cpp-declaration-list)) t)
 
@@ -226,7 +234,7 @@
   ;; Note that currently (2021) C++ allows destructuring ("structured
   ;; bindings") in blocks but not in parameter declarations.
   (let ((ids
-         ;; If parameter have explicit namespaces we don't want those.
+         ;; If parameters have explicit namespaces we don't want those.
          (remove-if (of-type 'cpp-namespace-identifier)
                     (identifiers ast))))
     (if-let (type (cpp-type ast))
@@ -234,30 +242,90 @@
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
 
-(defmethod type-in ((obj cpp) (ast cpp-identifier))
-  (when-let* ((decl (get-declaration-ast obj ast)))
-    (or
-     ;; Look for a surrounding variable declaration.
-     (when-let ((declaration
-                 (find-if (of-type '(and variable-declaration-ast
-                                     (not cpp-init-declarator)))
-                          ;; Inclusive of AST.
-                          (get-parent-asts obj decl))))
-       (cpp-type declaration))
-     ;; If the declaration is for a function, return that
-     ;; function's type.
-     (and-let* ((function (find-enclosing 'function-ast obj decl))
-                ((eql decl (cpp-declarator function))))
-       (cpp-type function)))))
+(defmethod declaration-type-in ((obj cpp) (decl cpp-ast))
+  (or
+   ;; Look for a surrounding variable declaration.
+   (when-let ((declaration
+               (find-if (of-type '(and variable-declaration-ast
+                                   (not cpp-init-declarator)))
+                        ;; Inclusive of AST.
+                        (get-parent-asts obj decl))))
+     (cpp-type declaration))
+   ;; If the declaration is for a function, return that
+   ;; function's type.
+   (and-let* ((function (find-enclosing 'function-ast obj decl))
+              ((eql decl (cpp-declarator function))))
+     (cpp-type function))))
+
+(defmethod expression-type ((ast cpp-call-expression))
+  (match ast
+    ((cpp-call-expression
+      :cpp-function
+      (cpp-template-function
+       :cpp-name
+       (cpp-identifier
+        :text (or "const_cast"
+                  "static_cast"
+                  "dynamic_cast"
+                  "reinterpret_cast"))
+       :cpp-arguments
+       (cpp-template-argument-list
+        :children (list type-descriptor))))
+     type-descriptor)
+    (otherwise
+     (call-next-method))))
+
+(defmethod expression-type ((ast cpp-number-literal))
+  (match (text ast)
+    ;; TODO Unfinished. See
+    ;; https://en.cppreference.com/w/cpp/language/integer_literal and
+    ;; https://en.cppreference.com/w/cpp/language/floating_literal. We
+    ;; may not have to craft regexes from the docs if we can pull them
+    ;; out of the tree-sitter grammar. Automatically or by hand?
+    ((ppcre "^[0-9]+$")
+     (make 'cpp-primitive-type :text "int"))
+    ((ppcre "^[0-9]+\\.[0-9]*$")
+     (make 'cpp-primitive-type :text "double"))
+    ((ppcre "^[0-9]+\\.[0-9]*f$")
+     (make 'cpp-primitive-type :text "float"))))
+
+(defmethod expression-type-in ((obj cpp) (ast cpp-parenthesized-expression))
+  (expression-type-in obj (only-elt (children ast))))
+
+(defmethod expression-type-in ((obj cpp) (ast cpp-binary-expression))
+  (string-case (source-text (cpp-operator ast))
+    ;; TODO Ternary operator?
+    (("+" "-" "*" "/" "%"
+          "<" ">" "<=" ">=" "==" "!="
+          "&" "^" "|")
+     (let* ((left-type (type-in obj (cpp-left ast)))
+            (right-type (type-in obj (cpp-right ast)))
+            (left-type-source (source-text left-type))
+            (right-type-source (source-text right-type)))
+       ;; TODO Sized integer types. Complex and imaginary types?
+       (match* (left-type-source right-type-source)
+         ;; There's a long double.
+         (("long double" _) left-type)
+         ((_ "long double") right-type)
+         ;; There's a double.
+         (("double" "float") left-type)
+         (("float" "double") right-type)
+         (("double" "int") left-type)
+         (("int" "double") left-type)
+         ;; There's a float.
+         (("float" "int") left-type)
+         (("int" "float") left-type)
+         ((x y) (and (equal x y) left-type)))))))
+
+(defmethod expression-type-in ((obj cpp) (ast expression-ast))
+  (match (take 2 (get-parent-asts* obj ast))
+    ((list (type cpp-init-declarator)
+           (and decl (type cpp-declaration)))
+     (cpp-type decl))))
 
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")
-  (:method ((ast cpp-identifier))
-    nil)
-  (:method ((ast cpp-template-type))
-    nil)
-  (:method ((ast cpp-namespace-identifier))
-    nil)
+  (:method ((ast cpp-ast)))
   (:method ((ast cpp-qualified-identifier))
     (let ((scope (cpp-scope ast)))
       (if (null scope) (list :global)
