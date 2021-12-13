@@ -214,3 +214,25 @@ to advance to the next file."
                (dolist (child (children ast))
                  (summarize-ast child (+ depth indent)))))
       (summarize-ast ast 0))))
+
+(defun ambiguous-asts (software &key context)
+  "Return a list that contains a list of an ambiguous AST and its contextualized
+representation."
+  (let (contextualization-stack)
+    (labels ((contextualization-stack-handler (ast)
+               "Push information onto the contextualization stack if AST needs to
+                be contextualized."
+               (let ((contextualized-ast
+                       (contextualize-ast software ast context)))
+                 (unless (eq contextualized-ast ast)
+                   (push (list ast contextualized-ast)
+                         contextualization-stack)))))
+      (mapc #'contextualization-stack-handler (genome software)))
+    contextualization-stack))
+
+(defun ambiguities-in-project (project)
+  "Return a mapping of software objects in PROJECT to their ambiguities."
+  (iter
+    (for (nil . obj) in (sel/sw/project:evolve-files project))
+    (when-let ((ambiguities (ambiguous-asts obj)))
+      (collect (list obj ambiguities)))))
