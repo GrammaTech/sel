@@ -355,6 +355,10 @@ By default, sum the results of applying `evaluate' to each test-case using
                         :time-limit time-limit
                         :limit-path limit-path))))
 
+(defparameter *max-failed-tests* 100
+  "This is the maximum number of unique failed tests we maintain during
+ evolution. When the number exceeds this we remove the oldest from the queue.")
+
 (defun randomly-select-n (list n)
   "Return randomly selected subset list of length n"
   (let ((len (length list)))
@@ -393,13 +397,21 @@ By default, sum the results of applying `evaluate' to each test-case using
 `reduce'. Keyword arguments `:function' and `:initial-value' may be used as in
 `reduce' to specify an aggregation function and starting value."
   (let ((keys (plist-drop :function (plist-drop :initial-value extra-keys))))
+    (note 2 "Evaluating random-test-suite with ~D tests."
+          (length (test-cases test-suite)))
     (apply #'reduce (or (plist-get :function extra-keys) #'+)
            (mapcar
             (lambda (test)
+              #+debug (note 2 "Evaluating test-case.")
               (let ((result (apply #'evaluate phenome test keys)))
                 (when (zerop result)
-                  #+debug (note 2 "Failed test ~A~%" test)
-                  (push test (failed-tests test-suite))) ; track failed tests
+                  (note 2 "Failed test ~A~%" test)
+                  (pushnew test (failed-tests test-suite)
+                           :test 'equal :key 'program-args) ;track failed tests
+                  (if (> (length (failed-tests test-suite)) *max-failed-tests*)
+                      (setf (failed-tests test-suite)
+                            (butlast (failed-tests test-suite))))
+                  (return-from evaluate result))
                 result))
             (test-cases test-suite))
            (when-let ((val (plist-get :initial-value extra-keys)))
