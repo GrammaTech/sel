@@ -152,14 +152,14 @@
                  :cpp-type (or (cpp-type-identifier) (cpp-template-type))
                  :cpp-declarator (cpp-abstract-function-declarator))
                 t)))
-           (type-identifier->identifier (type-identifier)
-             "Convert TYPE-IDENTIFIER into an identifier AST."
+           (general-identifier->identifier (general-identifier)
+             "Convert GENERAL-IDENTIFIER into an identifier AST."
              (convert
               'cpp-ast
               `((:class . :identifier)
-                (:before-text . ,(before-text type-identifier))
-                (:after-text . ,(after-text type-identifier))
-                (:text . ,(text type-identifier)))))
+                (:before-text . ,(before-text general-identifier))
+                (:after-text . ,(after-text general-identifier))
+                (:text . ,(text general-identifier)))))
            (abstract-function-parameter->call-expression (parameter)
              "Convert PARAMETER to a call-expression."
              (let ((parameters (cpp-parameters (cpp-declarator parameter)))
@@ -173,11 +173,11 @@
                    . ,(if (typep name 'cpp-template-type)
                           `((:class . :template-function)
                             (:cpp-arguments . ,(cpp-arguments name))
-                            (:cpp-name . ,(type-identifier->identifier
+                            (:cpp-name . ,(general-identifier->identifier
                                            (cpp-name name)))
                             (:before-text . ,(before-text name))
                             (:after-text . ,(after-text name)))
-                          (type-identifier->identifier name)))
+                          (general-identifier->identifier name)))
                   (:arguments
                    (:class . :argument-list)
                    (:before-text . ,(before-text (cpp-declarator parameter)))
@@ -234,7 +234,8 @@
        `((:class . :init-declarator)
          (:before-text . ,(before-text function-declarator))
          (:after-text . ,(after-text function-declarator))
-         (:declarator . ,(cpp-declarator function-declarator))
+         (:declarator . ,(general-identifier->identifier
+                          (cpp-declarator function-declarator)))
          (:value
           (:class . :argument-list)
           (:before-text . ,(before-text parameters))
