@@ -1685,6 +1685,20 @@ definitions.")
              (:MEMBERS ((:TYPE . "SYMBOL") (:name . "&"))
                        ((:TYPE . "SYMBOL") (:name . "&&")))))
            ((:TYPE . "SYMBOL") (:NAME . "_declarator"))))))
+       (:REFERENCE-FIELD-DECLARATOR
+        (:TYPE . "PREC_DYNAMIC") (:VALUE . 1)
+        (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
+         (:CONTENT (:TYPE . "SEQ")
+          (:MEMBERS
+           ;; Wrap in a field.
+           ((:type . "FIELD")
+            (:name . "valueness")
+            (:content
+             (:TYPE . "CHOICE")
+             ;; Convert strings to symbols.
+             (:MEMBERS ((:TYPE . "SYMBOL") (:name . "&"))
+                       ((:TYPE . "SYMBOL") (:name . "&&")))))
+           ((:TYPE . "SYMBOL") (:NAME . "_field_declarator"))))))
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
         (:MEMBERS
          ;; Inline _declaration_modifiers and wrap a field around it.

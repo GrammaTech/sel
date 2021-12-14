@@ -491,6 +491,11 @@ configure(const boost::optional<std::string>& config = boost::none) {}")
   }
 };"))
 
+(deftest test-preserve-valueness-reference-field-declarator ()
+  (can-parse 'cpp "class X {
+  const Obj&
+};"))
+
 ;;; TODO
 #+(or)
 (deftest test-cpp-stray-comma ()
