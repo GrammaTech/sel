@@ -370,7 +370,7 @@ Then if we cannot infer the type of y per se we infer its type to be int."
 
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")
-  (:method ((ast cpp-ast)))
+  (:method ((ast cpp-ast)) nil)
   (:method ((ast cpp-qualified-identifier))
     (let ((scope (cpp-scope ast)))
       (if (null scope) (list :global)
