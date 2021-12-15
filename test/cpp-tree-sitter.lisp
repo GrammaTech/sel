@@ -257,13 +257,16 @@ int main () {
                         (cpp "static_cast<double>(x);")))))))
 
 (deftest test-infer-expression-type ()
-  (let ((cpp (from-string 'cpp "double frac = (dist - d) / segdist;")))
+  (with-fixture trim-front
     (is (equal "double"
                (source-text
-                (infer-expression-type cpp
-                                    (find-if
-                                     (of-type 'expression-ast)
-                                     (genome cpp))))))))
+                (infer-expression-type *soft*
+                                       (find-if
+                                        (lambda (ast)
+                                          (and (typep ast 'expression-ast)
+                                               (equal (source-text ast)
+                                                      "(dist - d) / segdist")))
+                                        (genome *soft*))))))))
 
 
 ;;; Parsing tests
