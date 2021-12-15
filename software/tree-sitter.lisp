@@ -6138,6 +6138,14 @@ By default calls `declaration-type' with DECL-AST.")
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
   (:method ((ast ast)) nil))
 
+(defgeneric type-descriptor (type-ast)
+  (:documentation "Return the type denoted by AST in some canonical form.
+Equivalent type descriptors should be equal under `equal?'.")
+  (:method ((type-ast null)) nil)
+  (:method ((type-ast ast))
+    ;; TODO A canonical that doesn't destroy the internal structure.
+    (make-keyword (source-text type-ast))))
+
 (defmethod is-stmt-p ((ast statement-ast)) t)
 
 

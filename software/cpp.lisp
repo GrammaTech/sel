@@ -40,6 +40,11 @@
     "()" "[]")
   "Names of operators that can occur in operator_name ASTs.")
 
+(defconst +cpp-implicitly-converting-arithmetic-operators+
+  '("+" "-" "*" "/" "%"
+    "<" ">" "<=" ">=" "==" "!="
+    "&" "^" "|"))
+
 #+:TREE-SITTER-CPP
 (progn
 
@@ -259,6 +264,7 @@
 
 (defmethod expression-type ((ast cpp-call-expression))
   (match ast
+    ;; Extract the type from a casting operator.
     ((cpp-call-expression
       :cpp-function
       (cpp-template-function
@@ -276,14 +282,27 @@
      (call-next-method))))
 
 (defmethod expression-type ((ast cpp-number-literal))
-  (match (text ast)
+  ;; NB There are no negative integer literals in C++; they are
+  ;; handed through implicit conversion with the unary minus
+  ;; operator (TODO).
+  (match
+      ;; C++ does not care about case (in hex numbers) and allows ' as
+      ;; a separator.
+      (remove #\' (string-downcase (text ast)))
     ;; TODO Unfinished. See
     ;; https://en.cppreference.com/w/cpp/language/integer_literal and
-    ;; https://en.cppreference.com/w/cpp/language/floating_literal. We
-    ;; may not have to craft regexes from the docs if we can pull them
-    ;; out of the tree-sitter grammar. Automatically or by hand?
-    ((ppcre "^[0-9]+$")
-     (make 'cpp-primitive-type :text "int"))
+    ;; https://en.cppreference.com/w/cpp/language/floating_literal.
+    ((and string (ppcre "^[0-9]+$"))
+     (let ((int (parse-integer string)))
+       (econd
+        ;; TODO Allow configuring the thresholds? Extract them from
+        ;; the environment?
+        ((< int (expt 2 16))
+         (make 'cpp-primitive-type :text "int"))
+        ((< int (expt 2 32))
+         (ast-from-template "$1 x;" 'cpp-ast "long int"))
+        ((< int (expt 2 64))
+         (ast-from-template "$1 x;" 'cpp-ast "long long int")))))
     ((ppcre "^[0-9]+\\.[0-9]*$")
      (make 'cpp-primitive-type :text "double"))
     ((ppcre "^[0-9]+\\.[0-9]*f$")
@@ -294,28 +313,41 @@
 
 (defmethod infer-expression-type ((obj cpp) (ast cpp-binary-expression))
   (string-case (source-text (cpp-operator ast))
-    ;; TODO Ternary operator?
-    (("+" "-" "*" "/" "%"
-          "<" ">" "<=" ">=" "==" "!="
-          "&" "^" "|")
+    (#.+cpp-implicitly-converting-arithmetic-operators+
      (let* ((left-type (infer-type obj (cpp-left ast)))
             (right-type (infer-type obj (cpp-right ast)))
-            (left-type-source (source-text left-type))
-            (right-type-source (source-text right-type)))
-       ;; TODO Sized integer types. Complex and imaginary types?
-       (match* (left-type-source right-type-source)
-         ;; There's a long double.
-         (("long double" _) left-type)
-         ((_ "long double") right-type)
-         ;; There's a double.
-         (("double" "float") left-type)
-         (("float" "double") right-type)
-         (("double" "int") left-type)
-         (("int" "double") left-type)
-         ;; There's a float.
-         (("float" "int") left-type)
-         (("int" "float") left-type)
-         ((x y) (and (equal x y) left-type)))))))
+            (left-type-descriptor (type-descriptor left-type))
+            (right-type-descriptor (type-descriptor right-type))
+            (conversion (usual-arithmetic-conversions
+                         left-type-descriptor
+                         right-type-descriptor)))
+       (econd
+        ((equal? conversion left-type-descriptor)
+         left-type)
+        ((equal? conversion right-type-descriptor)
+         right-type)
+        ((null conversion) nil))))))
+
+(defun usual-arithmetic-conversions (type1 type2)
+  ;; TODO Sized integer types. Complex and imaginary types? Note that
+  ;; one thing we would want from type descriptors is to be able to
+  ;; have, e.g. an integer type descriptor that matches all integer
+  ;; types, so that individual rules don't have to be written for
+  ;; signed, signed, long, short ints to express the fact that they
+  ;; all get coerce to floats.
+  (match* ((string type1) (string type2))
+    ;; There's a long double.
+    (("long double" _) type1)
+    ((_ "long double") type2)
+    ;; There's a double.
+    (("double" "float") type1)
+    (("float" "double") type2)
+    (("double" "int") type1)
+    (("int" "double") type1)
+    ;; There's a float.
+    (("float" "int") type1)
+    (("int" "float") type1)
+    ((x y) (and (equal x y) type1))))
 
 (defmethod infer-expression-type ((obj cpp) (ast expression-ast))
   (match (take 2 (get-parent-asts* obj ast))
