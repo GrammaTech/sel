@@ -115,8 +115,8 @@ field."
                              {typep _ 'c-parameter-declaration}»
                              (get-parent-asts c ast))))
     (if (typep (c-declarator decl) 'c-pointer-declarator)
-        :pointer
-        (make-keyword (string-upcase (source-text (c-type decl)))))))
+        (c-declarator decl)
+        (c-type decl))))
 
 (defun fix-nil-internal-asts-slots (ast)
   "Fix missing line endings in c preprocessor #if statements.
