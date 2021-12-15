@@ -285,28 +285,29 @@
   ;; NB There are no negative integer literals in C++; they are
   ;; handed through implicit conversion with the unary minus
   ;; operator (TODO).
-  (match
-      ;; C++ does not care about case (in hex numbers) and allows ' as
-      ;; a separator.
-      (remove #\' (string-downcase (text ast)))
-    ;; TODO Unfinished. See
-    ;; https://en.cppreference.com/w/cpp/language/integer_literal and
-    ;; https://en.cppreference.com/w/cpp/language/floating_literal.
-    ((and string (ppcre "^[0-9]+$"))
-     (let ((int (parse-integer string)))
-       (econd
-        ;; TODO Allow configuring the thresholds? Extract them from
-        ;; the environment?
-        ((< int (expt 2 16))
-         (make 'cpp-primitive-type :text "int"))
-        ((< int (expt 2 32))
-         (ast-from-template "$1 x;" 'cpp-ast "long int"))
-        ((< int (expt 2 64))
-         (ast-from-template "$1 x;" 'cpp-ast "long long int")))))
-    ((ppcre "^[0-9]+\\.[0-9]*$")
-     (make 'cpp-primitive-type :text "double"))
-    ((ppcre "^[0-9]+\\.[0-9]*f$")
-     (make 'cpp-primitive-type :text "float"))))
+  (flet ((integer-type (int)
+           (econd
+            ;; TODO Allow configuring the thresholds? Extract them from
+            ;; the environment?
+            ((< int (expt 2 16))
+             (make 'cpp-primitive-type :text "int"))
+            ((< int (expt 2 32))
+             (ast-from-template "$1 x;" 'cpp-ast "long int"))
+            ((< int (expt 2 64))
+             (ast-from-template "$1 x;" 'cpp-ast "long long int")))))
+    (match
+        ;; C++ does not care about case (in hex numbers) and allows ' as
+        ;; a separator.
+        (remove #\' (string-downcase (text ast)))
+      ;; TODO Unfinished. See
+      ;; https://en.cppreference.com/w/cpp/language/integer_literal and
+      ;; https://en.cppreference.com/w/cpp/language/floating_literal.
+      ((and string (ppcre "^[0-9]+$"))
+       (integer-type (parse-integer string)))
+      ((ppcre "^[0-9]+\\.[0-9]*$")
+       (make 'cpp-primitive-type :text "double"))
+      ((ppcre "^[0-9]+\\.[0-9]*f$")
+       (make 'cpp-primitive-type :text "float")))))
 
 (defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
   (infer-expression-type obj (only-elt (children ast))))
