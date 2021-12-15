@@ -310,7 +310,7 @@
        (make 'cpp-primitive-type :text "float")))))
 
 (defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
-  (infer-expression-type obj (only-elt (children ast))))
+  (infer-expression-type obj (only-elt (direct-children ast))))
 
 (defmethod infer-expression-type ((obj cpp) (ast cpp-binary-expression))
   (string-case (source-text (cpp-operator ast))
