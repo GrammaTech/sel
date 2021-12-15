@@ -346,7 +346,7 @@
     (("int" "double") type1)
     ;; There's a float.
     (("float" "int") type1)
-    (("int" "float") type1)
+    (("int" "float") type2)
     ((x y) (and (equal x y) type1))))
 
 (defmethod infer-expression-type ((obj cpp) (ast expression-ast))

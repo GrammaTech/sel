@@ -254,7 +254,17 @@ int main () {
              (source-text
               (expression-type
                (find-if (of-type 'call-ast)
-                        (cpp "static_cast<double>(x);")))))))
+                        (cpp "static_cast<double>(x);"))))))
+  (let ((cpp (from-string 'cpp "1.0 + 2.0f;")))
+    (is (equal "double"
+               (source-text
+                (infer-type cpp
+                            (find-if (of-type 'cpp-binary-expression) cpp))))))
+  (let ((cpp (from-string 'cpp "1 + 2.0f;")))
+    (is (equal "float"
+               (source-text
+                (infer-type cpp
+                            (find-if (of-type 'cpp-binary-expression) cpp)))))))
 
 (deftest test-infer-expression-type ()
   (with-fixture trim-front
