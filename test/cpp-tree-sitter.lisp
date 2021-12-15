@@ -267,6 +267,13 @@ int main () {
                             (find-if (of-type 'cpp-binary-expression) cpp)))))))
 
 (deftest test-infer-expression-type ()
+  (let ((cpp (from-string 'cpp "int x = fn(b);")))
+    (is (equal "int"
+               (source-text
+                (infer-expression-type cpp
+                                       (lastcar
+                                        (collect-if (of-type 'expression-ast)
+                                                    (genome cpp))))))))
   (with-fixture trim-front
     (is (equal "double"
                (source-text

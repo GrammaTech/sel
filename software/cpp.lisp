@@ -350,11 +350,23 @@
     (("int" "float") type2)
     ((x y) (and (equal x y) type1))))
 
-(defmethod infer-expression-type ((obj cpp) (ast expression-ast))
-  (match (take 2 (get-parent-asts* obj ast))
-    ((list (type cpp-init-declarator)
-           (and decl (type cpp-declaration)))
-     (cpp-type decl))))
+(defmethod infer-expression-type :around ((obj cpp) (ast expression-ast))
+  "Fall back to inferring the expression type from the surrounding declaration.
+
+That is, if the type of an expression cannot be extracted, then if it
+occurs as the RHS of a init declarator in a declaration, take the type
+of a declaration.
+
+E.g. given
+
+    int x = y
+
+Then if we cannot infer the type of y per se we infer its type to be int."
+  (or (call-next-method)
+      (match (take 2 (get-parent-asts* obj ast))
+        ((list (type cpp-init-declarator)
+               (and decl (type cpp-declaration)))
+         (cpp-type decl)))))
 
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")
