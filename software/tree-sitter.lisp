@@ -520,10 +520,10 @@
            :call-function
            :variable-name
            :no-fallthrough
-           :type-in
-           :expression-type-in
+           :infer-type
+           :infer-expression-type
            :expression-type
-           :declaration-type-in
+           :extract-declaration-type
            :declaration-type
            :find-enclosing
            :find-all-enclosing
@@ -6111,23 +6111,23 @@ If NODE is not a thing that has fields, return nil.")
           (source-text result)
           result))))
 
-(defgeneric type-in (software ast)
+(defgeneric infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
-By default this first tries `expression-type', then invokes `declaration-type-in' on the result of `get-declaration-ast'.")
+By default this first tries `expression-type', then invokes `extract-declaration-type' on the result of `get-declaration-ast'.")
   (:method ((software tree-sitter) (ast ast))
-    (or (expression-type-in software ast)
+    (or (infer-expression-type software ast)
         (when-let (decl (get-declaration-ast software ast))
-          (declaration-type-in software decl)))))
+          (extract-declaration-type software decl)))))
 
-(defgeneric expression-type-in (software ast)
+(defgeneric infer-expression-type (software ast)
   (:method ((software tree-sitter) (ast ast))
     (expression-type ast)))
 
 (defgeneric expression-type (ast)
   (:method ((ast ast)) nil))
 
-(defgeneric declaration-type-in (software decl-ast)
+(defgeneric extract-declaration-type (software decl-ast)
   (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
 
 By default calls `declaration-type' with DECL-AST.")

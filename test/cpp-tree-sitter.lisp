@@ -243,7 +243,7 @@ int main () {
                            :test #'equal)))
                   (extracted-type
                    (assure (or null ast)
-                     (type-in *soft* access))))
+                     (infer-type *soft* access))))
               (is (string= reference-type (source-text extracted-type))
                   "Mismatch for ~a: should be ~s, got ~s"
                   access-source-text
@@ -256,11 +256,11 @@ int main () {
                (find-if (of-type 'call-ast)
                         (cpp "static_cast<double>(x);")))))))
 
-(deftest test-expression-type-in ()
+(deftest test-infer-expression-type ()
   (let ((cpp (from-string 'cpp "double frac = (dist - d) / segdist;")))
     (is (equal "double"
                (source-text
-                (expression-type-in cpp
+                (infer-expression-type cpp
                                     (find-if
                                      (of-type 'expression-ast)
                                      (genome cpp))))))))

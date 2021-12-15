@@ -242,7 +242,7 @@
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
 
-(defmethod declaration-type-in ((obj cpp) (decl cpp-ast))
+(defmethod extract-declaration-type ((obj cpp) (decl cpp-ast))
   (or
    ;; Look for a surrounding variable declaration.
    (when-let ((declaration
@@ -289,17 +289,17 @@
     ((ppcre "^[0-9]+\\.[0-9]*f$")
      (make 'cpp-primitive-type :text "float"))))
 
-(defmethod expression-type-in ((obj cpp) (ast cpp-parenthesized-expression))
-  (expression-type-in obj (only-elt (children ast))))
+(defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
+  (infer-expression-type obj (only-elt (children ast))))
 
-(defmethod expression-type-in ((obj cpp) (ast cpp-binary-expression))
+(defmethod infer-expression-type ((obj cpp) (ast cpp-binary-expression))
   (string-case (source-text (cpp-operator ast))
     ;; TODO Ternary operator?
     (("+" "-" "*" "/" "%"
           "<" ">" "<=" ">=" "==" "!="
           "&" "^" "|")
-     (let* ((left-type (type-in obj (cpp-left ast)))
-            (right-type (type-in obj (cpp-right ast)))
+     (let* ((left-type (infer-type obj (cpp-left ast)))
+            (right-type (infer-type obj (cpp-right ast)))
             (left-type-source (source-text left-type))
             (right-type-source (source-text right-type)))
        ;; TODO Sized integer types. Complex and imaginary types?
@@ -317,7 +317,7 @@
          (("int" "float") left-type)
          ((x y) (and (equal x y) left-type)))))))
 
-(defmethod expression-type-in ((obj cpp) (ast expression-ast))
+(defmethod infer-expression-type ((obj cpp) (ast expression-ast))
   (match (take 2 (get-parent-asts* obj ast))
     ((list (type cpp-init-declarator)
            (and decl (type cpp-declaration)))
