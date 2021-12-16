@@ -292,9 +292,9 @@
             ((< int (expt 2 16))
              (make 'cpp-primitive-type :text "int"))
             ((< int (expt 2 32))
-             (ast-from-template "$1 x;" 'cpp-ast "long int"))
+             (cpp-type (convert 'cpp-ast "long long a;" :deepest t)))
             ((< int (expt 2 64))
-             (ast-from-template "$1 x;" 'cpp-ast "long long int")))))
+             (cpp-type (convert 'cpp-ast "long long int a;" :deepest t))))))
     (match
         ;; C++ does not care about case (in hex numbers) and allows ' as
         ;; a separator.
