@@ -73,31 +73,41 @@ to take CONTEXT into account."))
 (defmethod contextualize-ast ((software c/cpp)
                               (ast c/cpp-binary-expression)
                               (context hash-table)
-                              &key ast-type &allow-other-keys)
-  (match ast
-    ((c/cpp-binary-expression
-      :c/cpp-left
-      (c/cpp-parenthesized-expression
-       :children (list (and identifier (c/cpp-identifier)))))
-     (when (eql (get-context-for identifier context) :type)
-       (binary-expression->cast-expression ast-type ast)))))
+                              &key ast-type
+                                (parents (get-parent-asts* software ast))
+                              &allow-other-keys)
+  ;; TODO: this works around some issues with sizeof for the time being.
+  ;;       https://github.com/tree-sitter/tree-sitter-c/issues/51
+  (unless (typep (car parents) 'c/cpp-sizeof-expression)
+    (match ast
+      ((c/cpp-binary-expression
+        :c/cpp-left
+        (c/cpp-parenthesized-expression
+         :children (list (and identifier (c/cpp-identifier)))))
+       (when (eql (get-context-for identifier context) :type)
+         (binary-expression->cast-expression ast-type ast))))))
 
 (defmethod contextualize-ast ((software c/cpp)
                               (ast c/cpp-binary-expression)
                               context
-                              &key ast-type &allow-other-keys)
-  ;; TODO: this can likely be addressed with #'scopes to some extent, though
-  ;;       it won't find any external global variables.
-  (match ast
-    ((c/cpp-binary-expression
-      :c/cpp-left
-      (c/cpp-parenthesized-expression
-       :children (list (c/cpp-identifier)))
-      :c/cpp-operator
-      (or (c/cpp-*) (c/cpp--) (c/cpp-+) (c/cpp-&)))
-     ;; TODO: improve this. Currently assumes that we will want it to be a
-     ;;       cast expression regardless.
-     (binary-expression->cast-expression ast-type ast))))
+                              &key ast-type
+                                (parents (get-parent-asts* software ast))
+                              &allow-other-keys)
+  ;; TODO: this works around some issues with sizeof for the time being.
+  ;;       https://github.com/tree-sitter/tree-sitter-c/issues/51
+  (unless (typep (car parents) 'c/cpp-sizeof-expression)
+    ;; TODO: this can likely be addressed with #'scopes to some extent, though
+    ;;       it won't find any external global variables.
+    (match ast
+      ((c/cpp-binary-expression
+        :c/cpp-left
+        (c/cpp-parenthesized-expression
+         :children (list (c/cpp-identifier)))
+        :c/cpp-operator
+        (or (c/cpp-*) (c/cpp--) (c/cpp-+) (c/cpp-&)))
+       ;; TODO: improve this. Currently assumes that we will want it to be a
+       ;;       cast expression regardless.
+       (binary-expression->cast-expression ast-type ast)))))
 
 
 ;;; Generics and Transformations

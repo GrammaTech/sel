@@ -21,7 +21,7 @@
   (:export :test-cpp-tree-sitter))
 (in-package :software-evolution-library/test/cpp-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-cpp-tree-sitter "C tree-sitter representation."
+(defsuite test-cpp-tree-sitter "C++ tree-sitter representation."
   (cpp-tree-sitter-available-p))
 
 
@@ -656,6 +656,16 @@ parenthesized expressions or binary expressions."
   "Contextualize-ast maintains the source representation of a binary expression
 when it is contextualized."
   (contextualization-check "(Type) * variable ;" 'cpp-binary-expression))
+
+(deftest cpp-contextualize-binary-expression-3 ()
+  "Contextualize-ast does nothing when the parent AST is a sizeof expression."
+  ;; NOTE: this should be a temporary fix until precedence issues are addressed
+  ;;       upstream.
+  (contextualization-check
+   "sizeof(Type) * variable ;"
+   'cpp-binary-expression
+   :result-type 'cpp-binary-expression
+   :unexpected-type 'cpp-cast-expression))
 
 (deftest cpp-contextualize-binary-expression-context-1 ()
   "Contextualize-ast turns a binary expression into a cast expression when
