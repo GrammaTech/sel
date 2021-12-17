@@ -588,10 +588,17 @@ line, after a comment if there is one."
 
 ;;; Contextualize-ast Tests
 (defun contextualization-check (source target-ast-type
-                                &key result-type unexpected-type context-table)
+                                &key result-type unexpected-type context-table
+                                  (target-ast-position 0)
+                                  (file-name ""))
   (let* ((root (convert 'cpp-ast source))
-         (software (make-instance 'cpp :genome root))
-         (target-ast (find-if (of-type target-ast-type) root))
+         (software (make-instance 'cpp
+                                  :genome root
+                                  :original-path file-name))
+         (target-ast
+           (nth
+            target-ast-position
+            (collect-if (of-type target-ast-type) root)))
          (result (contextualize-ast software target-ast context-table))
          (result-root (mapcar (lambda (ast)
                                 (if (eq ast target-ast)
@@ -609,27 +616,93 @@ line, after a comment if there is one."
   "Contextualize-ast turns a function-declarator into an init declarator and
 doesn't contain any abstract function parameters or type identifiers."
   (contextualization-check
-   "Obj object(a, X(b, Y()));"
+   "void f () {
+  Obj object(a, X(b, Y<1,2>()), Y());
+}"
    'cpp-function-declarator
+   :target-ast-position 1
    :result-type 'cpp-init-declarator
    :unexpected-type '(or cpp-abstract-function-declarator cpp-type-identifier)))
 
 (deftest cpp-contextualize-function-declarator-2 ()
-  "Contextualize-ast maintains the source representation of a function-declarator
-when it is contextualized."
+  "Contextualize-ast doesn't alter declarations in header files."
   (contextualization-check
-   "Obj object ( a, X ( b , Y ( ))) ;"
+   "void f () {
+  Obj object(a, X(b, Y<1,2>()), Y());
+}"
    'cpp-function-declarator
-   :unexpected-type '(or cpp-abstract-function-declarator cpp-type-identifier)))
+   :target-ast-position 1
+   :filename "header.h"
+   :result-type 'cpp-function-declarator
+   :unexpected-type 'cpp-init-declarator))
 
 (deftest cpp-contextualize-function-declarator-3 ()
-  "Contextualize-ast turns a function-declarator into an init declarator and
-doesn't contain any abstract function parameters or type identifiers."
+  "Contextualize-ast doesn't alter declarations that are part of a function
+definition (excluding the body)."
   (contextualization-check
-   "Obj object(a, X(b, Y<1,2> ()));"
+   "void f () {
+  Obj object(a, X(b, Y<1,2>()), Y());
+}"
    'cpp-function-declarator
-   :result-type 'cpp-init-declarator
-   :unexpected-type '(or cpp-abstract-function-declarator cpp-type-identifier)))
+   :target-ast-position 0
+   :result-type 'cpp-function-declarator
+   :unexpected-type 'cpp-init-declarator))
+
+(deftest cpp-contextualize-function-declarator-4 ()
+  "Contextualize-ast doesn't alter declarations that have trailing specifiers."
+  (contextualization-check
+   "void f () {
+  Obj object(a, X(b, Y<1,2>()), Y()) override;
+}"
+   'cpp-function-declarator
+   :target-ast-position 1
+   :result-type 'cpp-function-declarator
+   :unexpected-type 'cpp-init-declarator))
+
+(deftest cpp-contextualize-function-declarator-5 ()
+  "Contextualize-ast doesn't alter declarations that have a parameter with a type
+and an identifier."
+  (contextualization-check
+   "void f () {
+  Obj object(int a, X(b, Y<1,2>()), Y());
+}"
+   'cpp-function-declarator
+   :target-ast-position 1
+   :result-type 'cpp-function-declarator
+   :unexpected-type 'cpp-init-declarator))
+
+(deftest cpp-contextualize-function-declarator-6 ()
+  "Contextualize-ast doesn't alter declarations that have an optional parameter."
+  (contextualization-check
+   "void f () {
+  Obj object(a, int b = 0);
+}"
+   'cpp-function-declarator
+   :target-ast-position 1
+   :result-type 'cpp-function-declarator
+   :unexpected-type 'cpp-init-declarator))
+
+(deftest cpp-contextualize-function-declarator-7 ()
+  "Contextualize-ast doesn't alter declarations that have a parameter with
+specializers."
+  (contextualization-check
+   "void f () {
+  Obj object(const a);
+}"
+   'cpp-function-declarator
+   :target-ast-position 1
+   :result-type 'cpp-function-declarator
+   :unexpected-type 'cpp-init-declarator))
+
+(deftest cpp-contextualize-function-declarator-8 ()
+  "Contextualize-ast doesn't alter declarations that are in a class definition."
+  (contextualization-check
+   "class Obj {
+  Obj get_obj();
+};"
+   'cpp-function-declarator
+   :result-type 'cpp-function-declarator
+   :unexpected-type 'cpp-init-declarator))
 
 (deftest cpp-contextualize-function-declarator-context-1 ()
   "Contextualize-ast turns a function-declarator into an init declarator when

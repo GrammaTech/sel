@@ -244,6 +244,22 @@
            ,@(mapcar #'convert-for-argument-list
                      (direct-children parameters)))))))))
 
+(defun definite-parameter-p (parameter)
+  "Return T if AST is definitely a parameter AST."
+  (match parameter
+    ((cpp-parameter-declaration
+      :cpp-type (identifier-ast)
+      :cpp-declarator (identifier-ast))
+     t)
+    ((cpp-parameter-declaration
+      :cpp-pre-specifiers pre-specifiers
+      :cpp-post-specifiers post-specifiers)
+     (or pre-specifiers post-specifiers))
+    ((cpp-optional-parameter-declaration
+      :cpp-type (identifier-ast)
+      :cpp-declarator declarator)
+     declarator)))
+
 (defmethod contextualize-ast ((software cpp)
                               (ast cpp-function-declarator)
                               (context hash-table)
@@ -263,17 +279,8 @@
                  :cpp-declarator (not (cpp-abstract-function-declarator)))
                 (eql :type (get-context-for identifier context)))
                ((cpp-optional-parameter-declaration
-                 :cpp-type (and identifier (identifier-ast))
-                 :cpp-declarator declarator)
-                (or declarator
-                    (eql :type (get-context-for identifier context))))))
-           (definite-parameter-p (parameter)
-             "Return T if AST is definitely a parameter AST."
-             (match parameter
-               ((cpp-parameter-declaration
-                 :cpp-type (cpp-type-identifier)
-                 :cpp-declarator (cpp-identifier))
-                t)))
+                 :cpp-type (and identifier (identifier-ast)))
+                (eql :type (get-context-for identifier context)))))
            (definite-parameters-p (parameters)
              "Return T if PARAMETERS definitely contains a parameter."
              (find-if «or #'definite-parameter-p #'definite-type-p»
@@ -293,7 +300,8 @@
                               &allow-other-keys)
   (labels ((header-file-p (software)
              "Return T if SOFTWARE has probably originated from a header file."
-             (when-let ((path (namestring (original-path software))))
+             ;; TODO: consider if the other checks work well enough without this.
+             (when-let ((path (namestring (or (original-path software) ""))))
                (scan "^\\.(h|hpp)$" path)))
            (top-level-p (parents)
              "Return T if AST is likely a top-level form in SOFTWARE."
@@ -301,14 +309,35 @@
                                cpp-preproc-if cpp-preproc-ifdef
                                cpp-class-specifier cpp-namespace-definition
                                cpp-declaration-list cpp-field-declaration-list
-                               cpp-struct-specifier))
+                               cpp-struct-specifier cpp-field-declaration
+                               cpp-function-declarator cpp-declaration
+                               cpp-reference-declarator cpp-pointer-declarator
+                               cpp-template-declaration))
                     parents))
-           (part-of-definition-p (parents)
-             (typep (car parents) 'cpp-function-definition)))
+           (part-of-definition-p (software ast parents)
+             "Return T if AST is part of the declaration of a function
+              definition."
+             (when-let ((definition (find-if (of-type 'cpp-function-definition)
+                                             parents)))
+               (shares-path-of-p software ast (cpp-declarator definition))))
+           (definite-parameters-p (ast)
+             "Return T if PARAMETERS definitely contains a parameter."
+             (match ast
+               ((cpp-function-declarator
+                 :cpp-parameters parameters)
+                (find-if #'definite-parameter-p (direct-children parameters)))))
+           (trailing-specifiers-p (ast)
+             "Return non-NIL if AST has any trailing specifiers."
+             (match ast
+               ((cpp-function-declarator
+                 :cpp-children children)
+                children))))
     ;; NOTE: assume that function declarators are the intention in header files.
     (unless (or (header-file-p software)
                 (top-level-p parents)
-                (part-of-definition-p parents))
+                (part-of-definition-p software ast parents)
+                (definite-parameters-p ast)
+                (trailing-specifiers-p ast))
       ;; NOTE: perform blanket transformation for now.
       (function-declarator->init-declarator ast))))
 
