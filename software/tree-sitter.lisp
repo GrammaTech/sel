@@ -8055,3 +8055,26 @@ Otherwise, returns PARSE-TREE."
 Otherwise, return PARSE-TREE."
   (with-modify-parse-tree (parse-tree)
     (:|...| (rename-type-to :variadic-declaration))))
+
+
+;;; Contextualization
+(defgeneric contextualize-ast (software ast context
+                               &key ast-type parents
+                               &allow-other-keys)
+  (:method (software ast context &key &allow-other-keys) ast)
+  (:method :around (software ast context &key &allow-other-keys)
+    (or (call-next-method) ast))
+  (:documentation "Return a version of AST which has been patched, if needed,
+to take CONTEXT into account."))
+
+;;; TODO: find a better name for this. Disambiguate?
+(defgeneric add-context (software &key)
+  (:documentation
+   "Add context to SOFTWARE that wasn't available at parse time.")
+  (:method ((software software) &key context)
+    ;; TODO: figure out how to pass the parent ASTs in. Right now,
+    ;;       the relevant methods will look them up if unavailable.
+    (copy software
+          :genome
+          (mapcar (op (contextualize-ast software _ context))
+                  (genome software)))))

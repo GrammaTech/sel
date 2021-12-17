@@ -27,17 +27,7 @@
 (progn
 
 
-;;; Cleanup Pass
-;;; TODO: likely want to move this to a different file.
-(defgeneric contextualize-ast (software ast context
-                               &key ast-type parents
-                               &allow-other-keys)
-  (:method (software ast context &key &allow-other-keys) ast)
-  (:method :around (software ast context &key &allow-other-keys)
-    (or (call-next-method) ast))
-  (:documentation "Return a version of AST which has been patched, if needed,
-to take CONTEXT into account."))
-
+;;; Contextualization
 (defun get-context-for (ast context-table)
   ;; TODO: remove this.
   ;; NOTE: this is a temporary function until a symbol table is ready.
