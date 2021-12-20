@@ -6575,6 +6575,7 @@ indicates the number of groupings to drop from the stack."
          (unless parse-stack
            (values success? (reverse inner-asts-order))))))))
 
+
 ;;;
 ;;; Primitive mutation types
 ;;;
@@ -6782,6 +6783,8 @@ indicates the number of groupings to drop from the stack."
   "Select type of mutation to apply to OBJ."
   (random-pick *tree-sitter-mutation-types*))
 
+
+;;; AST Construction
 (defgeneric whitespace-between/parent (parent style ast1 ast2)
   (:method ((parent t) style ast1 ast2)
     (whitespace-between style ast1 ast2))
@@ -7872,6 +7875,8 @@ for ASTs which need to appear in the surrounding text slots.")
             (cdr (butlast (output-transformation ast))))
       (handle-text (after-text ast) ast t parents :surrounding-text t))))
 
+
+;;; Common Methods
 (defmethod rebind-vars ((ast tree-sitter-ast)
                         var-replacements fun-replacements)
   "Replace variable and function references, returning a new AST.
@@ -8078,3 +8083,35 @@ to take CONTEXT into account."))
           :genome
           (mapcar (op (contextualize-ast software _ context))
                   (genome software)))))
+
+
+;;; Utility
+(defgeneric preserve-properties (ast &key group-by-position)
+  (:documentation
+   "Return properties that should be preserved when creating a new AST.
+
+:GROUP-BY-POSITION groups the properties based on whether they occur before
+  or after AST. This is useful when properties need to be split across
+  two ASTs.")
+  (:method ((ast structured-text) &key group-by-position)
+    (if group-by-position
+        `((:before (:before-text . ,(before-text ast))
+                   (:before-asts . ,(before-asts ast)))
+          (:after (:after-text . ,(after-text ast))
+                  (:after-asts . ,(after-asts ast))))
+        `((:before-text . ,(before-text ast))
+          (:before-asts . ,(before-asts ast))
+          (:after-text . ,(after-text ast))
+          (:after-asts . ,(after-asts ast))))))
+
+(defun merge-preserved-properties (before-alist after-alist)
+  "Merge the return values of preserve-properties when called with BEFORE-LIST
+and AFTER-LIST."
+  (iter
+    (for (key . before-value) in before-alist)
+    (for after-value = (aget key after-alist))
+    (collect
+        (cons key
+              (if (stringp before-value)
+                  (string+ before-value after-value)
+                  (append before-value after-value))))))

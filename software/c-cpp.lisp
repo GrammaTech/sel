@@ -49,16 +49,14 @@
         (:type
          (:class . :type-identifier)
          (:text . ,(text identifier)))
-        (:before-text . ,(before-text identifier))
-        (:after-text . ,(after-text identifier)))
+        ,@(preserve-properties identifier))
        (:value
         (:class . ,(if (typep operator '(or c/cpp-+ c/cpp--))
                        :unary-expression
                        :pointer-expression))
         (:argument . ,(c/cpp-right ast))
         (:operator . ,operator))
-       (:before-text . ,(before-text ast))
-       (:after-text . ,(after-text ast))))))
+       ,@(preserve-properties ast)))))
 
 (defmethod contextualize-ast ((software c/cpp)
                               (ast c/cpp-binary-expression)

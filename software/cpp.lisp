@@ -157,9 +157,8 @@
              (convert
               'cpp-ast
               `((:class . :identifier)
-                (:before-text . ,(before-text general-identifier))
-                (:after-text . ,(after-text general-identifier))
-                (:text . ,(text general-identifier)))))
+                (:text . ,(text general-identifier))
+                ,@(preserve-properties general-identifier))))
            (abstract-function-parameter->call-expression (parameter)
              "Convert PARAMETER to a call-expression."
              (let ((parameters (cpp-parameters (cpp-declarator parameter)))
@@ -167,25 +166,22 @@
                (convert
                 'cpp-ast
                 `((:class . :call-expression)
-                  (:before-text . ,(before-text parameter))
-                  (:after-text . ,(after-text parameter))
                   (:function
                    . ,(if (typep name 'cpp-template-type)
                           `((:class . :template-function)
                             (:cpp-arguments . ,(cpp-arguments name))
                             (:cpp-name . ,(general-identifier->identifier
                                            (cpp-name name)))
-                            (:before-text . ,(before-text name))
-                            (:after-text . ,(after-text name)))
+                            ,@(preserve-properties name))
                           (general-identifier->identifier name)))
                   (:arguments
                    (:class . :argument-list)
-                   (:before-text . ,(before-text (cpp-declarator parameter)))
-                   (:after-text . ,(after-text (cpp-declarator parameter)))
                    (:internal-asts-0 ,@(cpp-internal-asts-3 parameters))
                    (:children
                     ,@(mapcar #'convert-for-argument-list
-                              (direct-children parameters))))))))
+                              (direct-children parameters)))
+                   ,@(preserve-properties parameters))
+                  ,@(preserve-properties parameter)))))
            (optional-parameter-declaration->assignment-expression (parameter)
              "Convert PARAMETER into an assignment expression."
              (let ((lhs (cpp-type parameter))
@@ -196,53 +192,54 @@
                   (:left
                    (:class . :identifier)
                    (:text . ,(text lhs))
-                   (:before-text . ,(before-text lhs))
-                   (:after-text . ,(after-text lhs)))
+                   ,@(preserve-properties lhs))
                   (:operator (:class . :=))
                   (:right
                    (:class . :identifier)
                    (:text . ,(text rhs))
-                   (:before-text . ,(before-text rhs))
-                   (:after-text . ,(after-text rhs)))
-                  (:before-text . ,(before-text parameter))
-                  (:after-text . ,(after-text parameter))))))
+                   ,@(preserve-properties rhs))
+                  ,@(preserve-properties parameter)))))
            (parameter-declaration->identifier (parameter)
              "Convert PARAMETER into an identifier."
-             (let ((type-identifier (cpp-type parameter)))
+             (let* ((type-identifier (cpp-type parameter))
+                    (type-properties-grouping
+                      (preserve-properties type-identifier :group-by-position t))
+                    (parameter-properties-grouping
+                      (preserve-properties parameter :group-by-position t)))
                (convert
                 'cpp-ast
                 `((:class . :identifier)
-                  (:before-text . ,(string+ (before-text parameter)
-                                            (before-text type-identifier)))
-                  (:after-text . ,(string+ (after-text type-identifier)
-                                           (after-text parameter)))
-                  (:text . ,(text type-identifier))))))
+                  (:text . ,(text type-identifier))
+                  ,@(merge-preserved-properties
+                     (aget :before parameter-properties-grouping)
+                     (aget :before type-properties-grouping))
+                  ,@(merge-preserved-properties
+                     (aget :after type-properties-grouping)
+                     (aget :after parameter-properties-grouping))))))
            (convert-for-argument-list (target-ast)
              "Convert TARGET-AST to a type that is suited for an argument list."
              ;; TODO: this probably doesn't cover every case.
              (econd
-               ((abstract-function-parameter-p target-ast)
-                (abstract-function-parameter->call-expression target-ast))
-               ((typep target-ast 'cpp-optional-parameter-declaration)
-                (optional-parameter-declaration->assignment-expression
-                 target-ast))
-               ((typep target-ast 'cpp-parameter-declaration)
-                (parameter-declaration->identifier target-ast)))))
+              ((abstract-function-parameter-p target-ast)
+               (abstract-function-parameter->call-expression target-ast))
+              ((typep target-ast 'cpp-optional-parameter-declaration)
+               (optional-parameter-declaration->assignment-expression
+                target-ast))
+              ((typep target-ast 'cpp-parameter-declaration)
+               (parameter-declaration->identifier target-ast)))))
     (let ((parameters (cpp-parameters function-declarator)))
       (convert
        'cpp-ast
        `((:class . :init-declarator)
-         (:before-text . ,(before-text function-declarator))
-         (:after-text . ,(after-text function-declarator))
          (:declarator . ,(general-identifier->identifier
                           (cpp-declarator function-declarator)))
          (:value
           (:class . :argument-list)
-          (:before-text . ,(before-text parameters))
-          (:after-text . ,(after-text parameters))
           (:children
            ,@(mapcar #'convert-for-argument-list
-                     (direct-children parameters)))))))))
+                     (direct-children parameters)))
+          ,@(preserve-properties parameters))
+         ,@(preserve-properties function-declarator))))))
 
 (defun definitely-a-parameter-p (parameter)
   "Return T if AST is definitely a parameter AST."
