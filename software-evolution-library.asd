@@ -24,14 +24,21 @@ techniques."
                                        :eclector.reader))
 
 ;; This one needs a defsystem to ensure fare-quasiquote-extras is loaded.
-(defsystem "software-evolution-library/components/serapi-io"
+(defsystem "software-evolution-library/utility/fare-qq"
   :author "Eric Schulte and GrammaTech"
   :licence "GPL V3"
-  :description "Test the SOFTWARE-EVOLUTION-LIBRARY package."
+  :description "Workaround to load fare-quasiquote-extras."
   :version "0.0.0"
   ;; This is the reason for this whole defsystem.
-  :depends-on (fare-quasiquote-extras)
-  :components ((:file "components/serapi-io")))
+  :depends-on ("fare-quasiquote-extras")
+  ;; NB For this to work, the system name must be the same as the
+  ;; package name, but the file name must be different. This way, when
+  ;; the package-inferred-system search fails to match a file named
+  ;; utility/fare-qq.lisp, ASDF falls back to the explicit
+  ;; utility/fare-qq defsystem, which loads utility/qq.lisp, but the
+  ;; package-inferred system still finds the utility/fare-qq package
+  ;; it expects.
+  :components ((:file "utility/qq")))
 
 (defsystem "software-evolution-library/terminal"
   :author "Eric Schulte and GrammaTech"

@@ -35,11 +35,9 @@
   (:nicknames :sel/components/serapi-io :sel/cp/serapi-io)
   (:use
    :gt/full
-   :fare-quasiquote
    :software-evolution-library/software/sexp
-   :software-evolution-library/utility/debug)
-  (:shadowing-import-from :fare-quasiquote :quasiquote :unquote
-                          :unquote-splicing :unquote-nsplicing)
+   :software-evolution-library/utility/debug
+   :software-evolution-library/utility/fare-qq)
   (:shadowing-import-from :arrow-macros :-<>> :-<> :<>) ; FIXME: Remove.
   (:export :set-serapi-paths
            :insert-reset-point
