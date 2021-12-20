@@ -244,7 +244,7 @@
            ,@(mapcar #'convert-for-argument-list
                      (direct-children parameters)))))))))
 
-(defun definite-parameter-p (parameter)
+(defun definitely-a-parameter-p (parameter)
   "Return T if AST is definitely a parameter AST."
   (match parameter
     ((cpp-parameter-declaration
@@ -268,7 +268,7 @@
   ;;       Currently, it only checks if the parameters are valid types.
   ;;       Can probably check if parent is a function definition; on the other
   ;;       hand, this may be redundant.
-  (labels ((definite-type-p (parameter-ast)
+  (labels ((definitely-a-type-p (parameter-ast)
              "Return T if PARAMETER-AST definitely represents a type in
               context."
              (match parameter-ast
@@ -281,16 +281,16 @@
                ((cpp-optional-parameter-declaration
                  :cpp-type (and identifier (identifier-ast)))
                 (eql :type (get-context-for identifier context)))))
-           (definite-parameters-p (parameters)
+           (definitely-parameters-p (parameters)
              "Return T if PARAMETERS definitely contains a parameter."
-             (find-if «or #'definite-parameter-p #'definite-type-p»
+             (find-if «or #'definitely-a-parameter-p #'definitely-a-type-p»
                       (direct-children parameters))))
     (match ast
       ((cpp-function-declarator
         :cpp-declarator identifier
         :cpp-parameters parameters)
        (when (or (equal :function (get-context-for identifier context))
-                 (find-if #'definite-parameters-p parameters))
+                 (find-if #'definitely-parameters-p parameters))
          (function-declarator->init-declarator ast))))))
 
 (defmethod contextualize-ast ((software cpp)
@@ -320,12 +320,12 @@
              (when-let ((definition (find-if (of-type 'cpp-function-definition)
                                              parents)))
                (shares-path-of-p software ast (cpp-declarator definition))))
-           (definite-parameters-p (ast)
+           (definitely-parameters-p (ast)
              "Return T if PARAMETERS definitely contains a parameter."
              (match ast
                ((cpp-function-declarator
                  :cpp-parameters parameters)
-                (find-if #'definite-parameter-p (direct-children parameters)))))
+                (find-if #'definitely-a-parameter-p (direct-children parameters)))))
            (trailing-specifiers-p (ast)
              "Return non-NIL if AST has any trailing specifiers."
              (match ast
@@ -336,7 +336,7 @@
     (unless (or (header-file-p software)
                 (top-level-p parents)
                 (part-of-definition-p software ast parents)
-                (definite-parameters-p ast)
+                (definitely-parameters-p ast)
                 (trailing-specifiers-p ast))
       ;; NOTE: perform blanket transformation for now.
       (function-declarator->init-declarator ast))))
