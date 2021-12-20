@@ -298,12 +298,7 @@
                               context
                               &key (parents (get-parent-asts* software ast))
                               &allow-other-keys)
-  (labels ((header-file-p (software)
-             "Return T if SOFTWARE has probably originated from a header file."
-             ;; TODO: consider if the other checks work well enough without this.
-             (when-let ((path (namestring (or (original-path software) ""))))
-               (scan "^\\.(h|hpp)$" path)))
-           (top-level-p (parents)
+  (labels ((top-level-p (parents)
              "Return T if AST is likely a top-level form in SOFTWARE."
              (every (of-type '(or cpp-translation-unit
                                cpp-preproc-if cpp-preproc-ifdef
@@ -333,8 +328,7 @@
                  :cpp-children children)
                 children))))
     ;; NOTE: assume that function declarators are the intention in header files.
-    (unless (or (header-file-p software)
-                (top-level-p parents)
+    (unless (or (top-level-p parents)
                 (part-of-definition-p software ast parents)
                 (definitely-parameters-p ast)
                 (trailing-specifiers-p ast))

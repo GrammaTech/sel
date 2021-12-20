@@ -589,12 +589,9 @@ line, after a comment if there is one."
 ;;; Contextualize-ast Tests
 (defun contextualization-check (source target-ast-type
                                 &key result-type unexpected-type context-table
-                                  (target-ast-position 0)
-                                  (file-name ""))
+                                  (target-ast-position 0))
   (let* ((root (convert 'cpp-ast source))
-         (software (make-instance 'cpp
-                                  :genome root
-                                  :original-path file-name))
+         (software (make-instance 'cpp :genome root))
          (target-ast
            (nth
             target-ast-position
@@ -625,18 +622,6 @@ doesn't contain any abstract function parameters or type identifiers."
    :unexpected-type '(or cpp-abstract-function-declarator cpp-type-identifier)))
 
 (deftest cpp-contextualize-function-declarator-2 ()
-  "Contextualize-ast doesn't alter declarations in header files."
-  (contextualization-check
-   "void f () {
-  Obj object(a, X(b, Y<1,2>()), Y());
-}"
-   'cpp-function-declarator
-   :target-ast-position 1
-   :filename "header.h"
-   :result-type 'cpp-function-declarator
-   :unexpected-type 'cpp-init-declarator))
-
-(deftest cpp-contextualize-function-declarator-3 ()
   "Contextualize-ast doesn't alter declarations that are part of a function
 definition (excluding the body)."
   (contextualization-check
@@ -648,7 +633,7 @@ definition (excluding the body)."
    :result-type 'cpp-function-declarator
    :unexpected-type 'cpp-init-declarator))
 
-(deftest cpp-contextualize-function-declarator-4 ()
+(deftest cpp-contextualize-function-declarator-3 ()
   "Contextualize-ast doesn't alter declarations that have trailing specifiers."
   (contextualization-check
    "void f () {
@@ -659,7 +644,7 @@ definition (excluding the body)."
    :result-type 'cpp-function-declarator
    :unexpected-type 'cpp-init-declarator))
 
-(deftest cpp-contextualize-function-declarator-5 ()
+(deftest cpp-contextualize-function-declarator-4 ()
   "Contextualize-ast doesn't alter declarations that have a parameter with a type
 and an identifier."
   (contextualization-check
@@ -671,7 +656,7 @@ and an identifier."
    :result-type 'cpp-function-declarator
    :unexpected-type 'cpp-init-declarator))
 
-(deftest cpp-contextualize-function-declarator-6 ()
+(deftest cpp-contextualize-function-declarator-5 ()
   "Contextualize-ast doesn't alter declarations that have an optional parameter."
   (contextualization-check
    "void f () {
@@ -682,7 +667,7 @@ and an identifier."
    :result-type 'cpp-function-declarator
    :unexpected-type 'cpp-init-declarator))
 
-(deftest cpp-contextualize-function-declarator-7 ()
+(deftest cpp-contextualize-function-declarator-6 ()
   "Contextualize-ast doesn't alter declarations that have a parameter with
 specializers."
   (contextualization-check
@@ -694,7 +679,7 @@ specializers."
    :result-type 'cpp-function-declarator
    :unexpected-type 'cpp-init-declarator))
 
-(deftest cpp-contextualize-function-declarator-8 ()
+(deftest cpp-contextualize-function-declarator-7 ()
   "Contextualize-ast doesn't alter declarations that are in a class definition."
   (contextualization-check
    "class Obj {
