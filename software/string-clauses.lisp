@@ -192,7 +192,8 @@ in context."
   "Convert an AST into a trivia REPLACEMENT clause."
   (cond ((eql 'and (car clause))
          (third clause))
-        ((and (find-class (car clause)) (subclassp (find-class (car clause)) 'ast))
+        ((and (find-class (car clause) nil) ;E.g. the car might be list*.
+              (subclassp (find-class (car clause)) 'ast))
          (list* 'make-instance `',(car clause)
                 (mapcar (op (apply #'convert 'replace _ args))
                         (cdr clause))))
