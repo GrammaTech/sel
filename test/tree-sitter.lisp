@@ -16,7 +16,8 @@
                 :structured-text
                 :position-after-leading-newline
                 :inner-parent
-                :surrounding-text-transform))
+                :surrounding-text-transform
+                :preserve-properties))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -80,7 +81,7 @@
 (deftest test-inner-parent-children ()
   (is (null (children (make 'inner-parent :children '())))))
 
-(defclass simple-ast (structured-text functional-tree-ast)
+(defclass simple-ast (structured-text indentation functional-tree-ast)
   ((children
     :initform nil
     :initarg :children
@@ -126,6 +127,8 @@ do not have."
   (finishes (copy (make 'conflict-ast)))
   (finishes (copy (make 'text-fragment))))
 
+
+;;; Mutations
 #+ignore
 
 ((tree-sitter-replace . 1)
@@ -269,3 +272,48 @@ do not have."
             (result (is (null (search "int b = 2" source))
                               "old-ast not removed from result")))
     t))
+
+
+;;; Preserve Properties
+(deftest tree-sitter-preserve-properties-1 ()
+  "Preserve-properties returns the before and after slots and the
+indentation slots."
+  (let ((result (preserve-properties (make-instance 'simple-ast
+                                                    :before-text "x"
+                                                    :after-text "y"
+                                                    :indent-children 10
+                                                    :indent-adjustment 10)))
+        (expected-result
+          '((:before-text . "x")
+            (:after-text . "y")
+            (:before-asts) (:after-asts)
+            (:indent-children . 10)
+            (:indent-adjustment . 10))))
+    (iter
+      (for (key . value) in result)
+      (is (equal value (aget key expected-result))))))
+
+(deftest tree-sitter-preserve-properties-2 ()
+  "Preserve-properties returns the before and after slots and the
+indentation slots in :before and :after groupings."
+  (let ((result (preserve-properties
+                 (make-instance 'simple-ast
+                                :before-text "x"
+                                :after-text "y"
+                                :indent-children 10
+                                :indent-adjustment 10)
+                 :group-by-position t))
+        (expected-result
+          '((:before (:before-text . "x")
+             (:before-asts)
+             (:indent-children . 10)
+             (:indent-adjustment . 10))
+            (:after
+             (:after-text . "y")
+             (:after-asts)))))
+    (iter
+      (for (outer-key . outer-value) in result)
+      (for outer-expected-value = (aget outer-key expected-result))
+      (iter
+        (for (key . value) in outer-value)
+        (is (equal value (aget key outer-expected-value)))))))

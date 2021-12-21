@@ -8086,14 +8086,38 @@ to take CONTEXT into account."))
 
 
 ;;; Utility
+(eval-always
+  (define-method-combination append-groupings))
+
+(defun append-groupings (&rest args)
+  (labels ((groupingp (list)
+             "Return T if the caar of LIST is a cons. It would otherwise be
+              a keyword if it weren't grouped."
+             (consp (caar list)))
+           (merge-grouping (merged-groupings grouping &aux (key (car grouping)))
+             "Merge GROUPING into MERGED-GROUPINGS."
+             (areplace key
+                       (append (aget key merged-groupings) (cdr grouping))
+                       merged-groupings))
+           (merge-groupings (merged-groupings groupings)
+             "Merge GROUPINGS into MERGED-GROUPINGS."
+             (reduce #'merge-grouping groupings :initial-value merged-groupings))
+           (merge-results (results)
+             "Merge RESULTS into a single groupings list."
+             (reduce #'merge-groupings (cdr args) :initial-value (car args))))
+    (if (groupingp args)
+        (merge-results args)
+        args)))
+
 (defgeneric preserve-properties (ast &key group-by-position)
+  (:method-combination append-groupings)
   (:documentation
    "Return properties that should be preserved when creating a new AST.
 
 :GROUP-BY-POSITION groups the properties based on whether they occur before
   or after AST. This is useful when properties need to be split across
   two ASTs.")
-  (:method ((ast structured-text) &key group-by-position)
+  (:method append-groupings ((ast structured-text) &key group-by-position)
     (if group-by-position
         `((:before (:before-text . ,(before-text ast))
                    (:before-asts . ,(before-asts ast)))
@@ -8102,7 +8126,13 @@ to take CONTEXT into account."))
         `((:before-text . ,(before-text ast))
           (:before-asts . ,(before-asts ast))
           (:after-text . ,(after-text ast))
-          (:after-asts . ,(after-asts ast))))))
+          (:after-asts . ,(after-asts ast)))))
+  (:method append-groupings ((ast indentation) &key group-by-position)
+    (if group-by-position
+        `((:before (:indent-adjustment . ,(indent-adjustment ast))
+                   (:indent-children . ,(indent-children ast))))
+        `((:indent-adjustment . ,(indent-adjustment ast))
+          (:indent-children . ,(indent-children ast))))))
 
 (defun merge-preserved-properties (before-alist after-alist)
   "Merge the return values of preserve-properties when called with BEFORE-LIST
@@ -8112,6 +8142,14 @@ and AFTER-LIST."
     (for after-value = (aget key after-alist))
     (collect
         (cons key
-              (if (stringp before-value)
-                  (string+ before-value after-value)
-                  (append before-value after-value))))))
+              (cond
+                ((stringp before-value) (string+ before-value after-value))
+                ((every (of-type 'number) (list before-value after-value))
+                 ;; NOTE: this is almost certainly going to be incorrect.
+                 ;;       If this function gains usage, it may make sense to have
+                 ;;       a specialization which specifies how a keyword slot
+                 ;;       should be handled.
+                 (+ before-value after-value))
+                ((typep before-value 'number) before-value)
+                ((typep after-value 'number) after-value)
+                (t (append before-value after-value)))))))
