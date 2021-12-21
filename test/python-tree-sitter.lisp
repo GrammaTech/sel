@@ -8,6 +8,7 @@
    :software-evolution-library
    :software-evolution-library/software/parseable
    :software-evolution-library/software/tree-sitter
+   :software-evolution-library/software/string-clauses
    :software-evolution-library/software/python
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting
@@ -689,7 +690,7 @@ and keyword parameters with defaults."
      '(("1" . "a")
        ("2" . "required")
        ("3" . "b")
-       ("{\"d\":5,\"c\":4,}" . "args")))))
+       ("{\"d\":5,\"c\":4}" . "args")))))
 
 (deftest (test-python-source-ranges :long-running t) ()
   (let ((py-files (remove "empty" (expand-wildcard #p"python/*/*.py")
@@ -935,3 +936,8 @@ x"
             (#P"list.py" python-list)
             (#P"tuple.py" python-tuple)
             (#P"slice.py" python-subscript python-slice)))))
+
+(deftest test-shortest-parse-order ()
+  (is (equal "egcd(x, y)"
+             (source-text
+              (eval (convert 'replace (python "egcd(x, y)")))))))

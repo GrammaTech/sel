@@ -5403,22 +5403,43 @@ repeats.")
     (rule-matching-error () nil)))
 
 (defun change-to-subclass (ast subclasses)
-"Dynamically change the class until a subclass matches on a rule.
+  "Dynamically change the class until a subclass matches on a rule.
 This is only used when a superclass instance is manually created.
 Note that this won't always pick the correct subclass."
-  (iter
-    (iter:with superclass = (type-of ast))
-    (for subclass in subclasses)
-    (change-class ast subclass)
-    (for result = (handler-case (parse-order ast)
-                    (rule-matching-error ()
-                      (next-iteration))))
-    (return result)
-    (finally
-     (change-class ast superclass)
-     (error 'rule-matching-error
-            :rule-matching-error-rule (pruned-rule ast)
-            :rule-matching-error-ast ast))))
+  (flet ((count-trailing-nulls (result)
+           (let* ((rev (reverse result))
+                  (after-nulls (drop-while #'null (reverse result)))
+                  (trailing-nulls (ldiff rev after-nulls)))
+             (if (not (equal (first after-nulls) '(:end-repeat)))
+                 0
+                 (length trailing-nulls)))))
+    (iter
+     (iter:with superclass = (type-of ast))
+     (for subclass in subclasses)
+     (change-class ast subclass)
+     (for result = (handler-case (parse-order ast)
+                     (rule-matching-error ()
+                       (next-iteration))))
+     ;; The idea here is *almost* to take the first rule that
+     ;; matches. The special case: if multiple rules match, and all
+     ;; the matching rules end with a run of nils following a repeat,
+     ;; then we take the one with the least number of trailing nils.
+     ;; (This may prevent adding dangling commas.)
+     (let ((trailing-null-count (count-trailing-nulls result)))
+       (if (zerop trailing-null-count)
+           (leave result)
+           (finding subclass minimizing trailing-null-count
+                    into best)))
+     (finally
+      (if best
+          (progn
+            (change-class ast best)
+            (return result))
+          (progn
+            (change-class ast superclass)
+            (error 'rule-matching-error
+                   :rule-matching-error-rule (pruned-rule ast)
+                   :rule-matching-error-ast ast)))))))
 
 (defgeneric output-transformation
     (ast &rest rest &key &allow-other-keys)
