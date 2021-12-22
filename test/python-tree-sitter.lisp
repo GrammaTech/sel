@@ -938,6 +938,9 @@ x"
             (#P"slice.py" python-subscript python-slice)))))
 
 (deftest test-shortest-parse-order ()
+  "Test that when constructing a Python AST from scratch, we end up
+with the python-argument-list subclass that does not include an extra
+comma at the end."
   (is (equal "egcd(x, y)"
              (source-text
               (eval (convert 'replace (python "egcd(x, y)")))))))

@@ -5408,11 +5408,11 @@ This is only used when a superclass instance is manually created.
 Note that this won't always pick the correct subclass."
   (flet ((count-trailing-nulls (result)
            (let* ((rev (reverse result))
-                  (after-nulls (drop-while #'null (reverse result)))
+                  (after-nulls (drop-while #'null rev))
                   (trailing-nulls (ldiff rev after-nulls)))
-             (if (not (equal (first after-nulls) '(:end-repeat)))
-                 0
-                 (length trailing-nulls)))))
+             (if (equal (first after-nulls) '(:end-repeat))
+                 (length trailing-nulls)
+                 0))))
     (iter
      (iter:with superclass = (type-of ast))
      (for subclass in subclasses)
@@ -5431,15 +5431,14 @@ Note that this won't always pick the correct subclass."
            (finding subclass minimizing trailing-null-count
                     into best)))
      (finally
-      (if best
-          (progn
-            (change-class ast best)
-            (return result))
-          (progn
-            (change-class ast superclass)
-            (error 'rule-matching-error
-                   :rule-matching-error-rule (pruned-rule ast)
-                   :rule-matching-error-ast ast)))))))
+      (cond (best
+             (change-class ast best)
+             (return result))
+            (t
+             (change-class ast superclass)
+             (error 'rule-matching-error
+                    :rule-matching-error-rule (pruned-rule ast)
+                    :rule-matching-error-ast ast)))))))
 
 (defgeneric output-transformation
     (ast &rest rest &key &allow-other-keys)
