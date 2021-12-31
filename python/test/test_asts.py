@@ -466,3 +466,15 @@ class TypescriptTestDriver(unittest.TestCase):
         text = "let message: string = 'Hello World!'\nconsole.log(message)"
         root = AST.from_string(text, ASTLanguage.TypescriptTs)
         self.assertEqual(root.language, ASTLanguage.TypescriptTs)
+
+
+class InnerParentTestDriver(unittest.TestCase):
+    def test_inner_parent_asts(self):
+        text = """__all__ = [
+    "c", # first comment
+    # second comment
+]"""
+        root = AST.from_string(text, ASTLanguage.Python)
+        inner_parent = root.children[0].children[0].children[1].children[1]
+        self.assertIsInstance(inner_parent, InnerParent)
+        self.assertTrue(inner_parent.source_text.startswith(" # first comment"))

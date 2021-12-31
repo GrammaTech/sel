@@ -13,6 +13,7 @@
         :software-evolution-library/software/typescript
         :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library/command-line :alias-language)
+  (:import-from :software-evolution-library/software/tree-sitter :inner-parent)
   (:export :run-tree-sitter-py-generator))
 (in-package :software-evolution-library/python/lisp/tree-sitter-py-generator)
 (in-readtable :curry-compose-reader-macros)
@@ -27,6 +28,11 @@
        :documentation
        "comma-delimited source languages of the ASTs to dump"))))
 
+(define-constant +ast-classes-language-agnostic+ '(inner-parent)
+  :test #'equalp
+  :documentation "List of language-agnostic AST classes which should always
+be part of the python API.")
+
 (-> handle-languages-argument (string) list)
 (defun handle-languages-argument (languages)
   "Transform the input comma-delimited source languages into a list of
@@ -39,7 +45,8 @@ language-specific AST types."
 (-> ast-symbol-p (symbol &optional list) list)
 (defun ast-symbol-p (sym &optional (languages (list 'ast)))
   "Return non-NIL if SYM is an AST, optionally, of one of the given LANGUAGES."
-  (member sym languages :test #'subtypep))
+  (or (member sym languages :test #'subtypep)
+      (member sym +ast-classes-language-agnostic+ :test #'subtypep)))
 
 (-> remove-duplicates-from-end (list) list)
 (defun remove-duplicates-from-end (l)
