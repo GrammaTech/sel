@@ -6188,7 +6188,9 @@ If NODE is not a thing that has fields, return nil.")
 (defgeneric infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
-By default this first tries `expression-type', then invokes `extract-declaration-type' on the result of `get-declaration-ast'.")
+By default this first tries `expression-type', then invokes
+`extract-declaration-type-for' on the result of
+`get-declaration-ast'.")
   (:method ((software tree-sitter) (ast ast))
     (or (infer-expression-type software ast)
         (when-let (decl (get-declaration-ast software ast))
@@ -6216,7 +6218,8 @@ the type declared differs between declarands (e.g. `auto' declarations
 in C++, `auto x = 1, y = 2.0' effectively declares `x' as an integer
 but `y' as a float.
 
-By default calls `declaration-type' with DECL-AST.")
+By default simply calls `extract-declaration-type' with SOFTWARE and
+DECL-AST.")
   (:method ((software tree-sitter) (decl-ast ast) (ast ast))
     (extract-declaration-type software decl-ast)))
 

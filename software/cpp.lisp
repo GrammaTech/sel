@@ -559,6 +559,19 @@
               ((eql decl (cpp-declarator function))))
      (cpp-type function))))
 
+(defmethod extract-declaration-type-for ((obj cpp)
+                                         (decl cpp-ast)
+                                         (ast cpp-ast))
+  (let ((result (call-next-method)))
+    (eif (typep result 'cpp-auto)
+         (eif-let ((init
+                    (find-if (of-type 'c/cpp-init-declarator)
+                             (get-parent-asts obj ast))))
+           (or (infer-expression-type obj (rhs init))
+               result)
+           result)
+         result)))
+
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
 

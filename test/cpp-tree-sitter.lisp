@@ -539,14 +539,14 @@ configure(const boost::optional<std::string>& config = boost::none) {}")
 };"))
 
 (deftest test-extract-compound-literal-type ()
-  (let ((sw (from-string 'cpp "auto x = mytype{1};")))
-    (is (equal
-         (source-text
-          (infer-type
-           sw
-           (find-if (of-type 'cpp-compound-literal-expression)
-                    (genome sw))))
-         "mytype"))))
+  (let* ((sw (from-string 'cpp "auto x = mytype{1};"))
+         (ast (find-if (of-type 'cpp-compound-literal-expression) (genome sw))))
+    (is (equal (source-text (infer-type sw ast)) "mytype"))))
+
+(deftest test-cpp-auto-literal ()
+  (let* ((sw (from-string 'cpp "auto x = 1;"))
+         (ast (find-if (of-type 'identifier-ast) (genome sw))))
+    (is (equal (source-text (infer-type sw ast)) "int"))))
 
 ;;; TODO
 #+(or)
