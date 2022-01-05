@@ -533,6 +533,7 @@
            :infer-expression-type
            :expression-type
            :extract-declaration-type
+           :extract-declaration-type-for
            :declaration-type
            :find-enclosing
            :find-all-enclosing
@@ -6191,7 +6192,7 @@ By default this first tries `expression-type', then invokes `extract-declaration
   (:method ((software tree-sitter) (ast ast))
     (or (infer-expression-type software ast)
         (when-let (decl (get-declaration-ast software ast))
-          (extract-declaration-type software decl)))))
+          (extract-declaration-type-for software decl ast)))))
 
 (defgeneric infer-expression-type (software ast)
   (:method ((software tree-sitter) (ast ast))
@@ -6206,6 +6207,18 @@ By default this first tries `expression-type', then invokes `extract-declaration
 By default calls `declaration-type' with DECL-AST.")
   (:method ((software tree-sitter) (ast ast))
     (declaration-type ast)))
+
+(defgeneric extract-declaration-type-for (software decl-ast ast)
+  (:documentation "Return the type that DECL-AST in SOFTWARE specifies for AST, as an AST, or nil if it could not be determined.
+
+This differs from `extract-declaration-type-for' only in cases when
+the type declared differs between declarands (e.g. `auto' declarations
+in C++, `auto x = 1, y = 2.0' effectively declares `x' as an integer
+but `y' as a float.
+
+By default calls `declaration-type' with DECL-AST.")
+  (:method ((software tree-sitter) (decl-ast ast) (ast ast))
+    (extract-declaration-type software decl-ast)))
 
 (defgeneric declaration-type (declaration-ast)
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
