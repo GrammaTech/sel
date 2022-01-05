@@ -410,7 +410,8 @@ By default, sum the results of applying `evaluate' to each test-case using
                            :test 'equal :key 'program-args) ;track failed tests
                   (if (> (length (failed-tests test-suite)) *max-failed-tests*)
                       (setf (failed-tests test-suite)
-                            (butlast (failed-tests test-suite))))
+                            (subseq (failed-tests test-suite) 0
+                                    *max-failed-tests*)))
                   (return-from evaluate result))
                 result))
             (test-cases test-suite))
