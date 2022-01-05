@@ -476,6 +476,13 @@
   (append (canonicalize-declarator (car (direct-children declarator)))
           `((:reference))))
 
+(defmethod canonicalize-type :around ((declaration cpp-ast)
+                                      &key ast-type declarator)
+  (if ast-type
+      (call-next-method)
+      (call-next-method declaration :ast-type 'cpp-ast :declarator declarator)))
+
+
 
 ;;; Methods common to all software objects
 

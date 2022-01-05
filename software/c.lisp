@@ -200,6 +200,12 @@ field."
 (defmethod equal? ((a c-identifier) (b c-identifier))
   (equal (first (text a)) (first (text b))))
 
+(defmethod canonicalize-type :around ((declaration c-ast)
+                                      &key ast-type declarator)
+  (if ast-type
+      (call-next-method)
+      (call-next-method declaration :ast-type 'c-ast :declarator declarator)))
+
 
 ;;; Methods common to all software objects
 

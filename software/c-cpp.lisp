@@ -382,5 +382,43 @@ determined by looking at PARENT.")
   (append (canonicalize-declarator (c/cpp-declarator declarator))
           `((:function ,(c/cpp-parameters declarator)))))
 
+(defun get-specifier-list (ast-type declaration-ast &aux implicit-int-p)
+  (labels ((unwind-c/cpp-type (ast)
+             "Unwind certain ASTs such that there is a flat specifier list."
+             (typecase ast
+               (c/cpp-sized-type-specifier
+                (if-let ((type (c/cpp-type ast)))
+                  (append (c/cpp-modifiers ast) type)
+                  ;; NOTE: if type isn't present, an implicit int
+                  ;;       will be added during normalization.
+                  (and (setf implicit-int-p t)
+                       (c/cpp-modifiers ast))))
+               (c/cpp-declaration
+                (append (c/cpp-pre-specifiers ast)
+                        (c/cpp-post-specifiers ast)
+                        (unwind-c/cpp-type (c/cpp-type ast))))
+               (t (list ast))))
+           (ensure-type-specifier (specifier-list)
+             "Ensure that SPECIFIER-LIST has a type by adding an 'int' type
+              specifier if one isn't present."
+             (if implicit-int-p
+                 (cons (convert ast-type `((:class . :primitive-type)
+                                           (:text . "int")
+                                           (:before-text . " ")))
+                       specifier-list)
+                 specifier-list)))
+    ;; NOTE: there could be duplicate type qualifiers. These should probably
+    ;;       be removed if they become an issue.
+    (remove-if (of-type '(or c/cpp-signed null))
+               (ensure-type-specifier
+                (unwind-c/cpp-type declaration-ast)))))
+
+(defmethod canonicalize-type ((declaration c/cpp-declaration)
+                              &key ast-type declarator)
+  `((:specifier ,@ (get-specifier-list ast-type declaration))
+    (:declarator ,(canonicalize-declarator
+                   (or declarator
+                       (car (c/cpp-declarator declaration)))))
+    (:bitfield)))
 
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)

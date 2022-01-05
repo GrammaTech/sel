@@ -1032,9 +1032,11 @@ for the language.")
        (:c/cpp-preproc-params c-preproc-params)
        (:c/cpp-primitive-type c-primitive-type)
        (:c/cpp-return-statement c-return-statement)
+       (:c/cpp-signed c-signed)
        (:c/cpp-string-literal c-string-literal)
        (:c/cpp-struct-specifier c-struct-specifier)
        (:c/cpp-subscript-expression c-subscript-expression)
+       (:c/cpp-sized-type-specifier c-sized-type-specifier)
        (:c/cpp-sizeof-expression c-sizeof-expression)
        (:c/cpp-switch-statement c-switch-statement)
        (:c/cpp-type-definition c-type-definition)
@@ -1152,6 +1154,8 @@ for the language.")
        (:c/cpp-string-literal cpp-string-literal)
        (:c/cpp-struct-specifier cpp-struct-specifier)
        (:c/cpp-subscript-expression cpp-subscript-expression)
+       (:c/cpp-signed cpp-signed)
+       (:c/cpp-sized-type-specifier cpp-sized-type-specifier)
        (:c/cpp-sizeof-expression cpp-sizeof-expression)
        (:c/cpp-switch-statement cpp-switch-statement)
        (:c/cpp-type-definition cpp-type-definition)
@@ -6179,9 +6183,13 @@ Equivalent type descriptors should be equal under `equal?'.")
 (defmethod is-stmt-p ((ast statement-ast)) t)
 
 (defgeneric canonicalize-declarator (declarator)
-  (:documentation "Get a canonicalized form of DECLARATOR. This form can be
-used to determine whether two types are identical.")
+  (:documentation "Get a canonicalized form of DECLARATOR.")
   (:method (ast) nil))
+
+(defgeneric canonicalize-type (type &key)
+  (:documentation "Get a canonicalized form of TYPE. This form can be
+used to determine whether two types are identical")
+  (:method (ast &key) nil))
 
 
 ;;;; Structured text
