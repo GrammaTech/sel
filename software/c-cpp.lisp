@@ -393,7 +393,7 @@ determined by looking at PARENT.")
                   ;;       will be added during normalization.
                   (and (setf implicit-int-p t)
                        (c/cpp-modifiers ast))))
-               (c/cpp-declaration
+               ((or c/cpp-declaration c/cpp-field-declaration)
                 (append (c/cpp-pre-specifiers ast)
                         (c/cpp-post-specifiers ast)
                         (unwind-c/cpp-type (c/cpp-type ast))))
@@ -415,10 +415,19 @@ determined by looking at PARENT.")
 
 (defmethod canonicalize-type ((declaration c/cpp-declaration)
                               &key ast-type declarator)
-  `((:specifier ,@ (get-specifier-list ast-type declaration))
-    (:declarator ,(canonicalize-declarator
-                   (or declarator
-                       (car (c/cpp-declarator declaration)))))
+  `((:specifier ,@(get-specifier-list ast-type declaration))
+    (:declarator ,@(canonicalize-declarator
+                    (or declarator
+                        (car (c/cpp-declarator declaration)))))
     (:bitfield)))
+
+(defmethod canonicalize-type
+    ((declaration c/cpp-field-declaration)
+     &key ast-type (declarator (car (c/cpp-declarator declaration))))
+  `((:specifier ,@(get-specifier-list ast-type declaration))
+    (:declarator ,@(canonicalize-declarator declarator))
+    ;; NOTE: this isn't correct if there are multiple
+    ;;       declarators.
+    (:bitfield ,@(direct-children (car (direct-children declaration))))))
 
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)
