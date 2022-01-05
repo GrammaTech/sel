@@ -15,7 +15,8 @@
   (:import-from :software-evolution-library/software/tree-sitter
                 :inner-declarations
                 :outer-declarations
-                :contextualize-ast)
+                :contextualize-ast
+                :canonicalize-type)
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers)
   (:export :test-cpp-tree-sitter))
@@ -735,3 +736,62 @@ operator."
    :context-table (dict "Type" :type)
    :result-type 'cpp-cast-expression
    :unexpected-type '(or cpp-binary-expression cpp-parenthesized-expression)))
+
+
+;;; Canonicalize-type Tests
+(defmacro with-canonicalize-type-test
+    ((source &key (target-ast-type 'cpp-declaration))
+     &body body)
+  `(let* ((root (convert 'cpp-ast ,source))
+          (target-ast (find-if (of-type ',target-ast-type) root))
+          (result (canonicalize-type target-ast))
+          (declarator-list (aget :declarator result))
+          (specifier-list (aget :specifier result))
+          (bitfield-list (aget :bitfield result)))
+     (declare (ignorable declarator-list specifier-list bitfield-list))
+     (labels ((test-declarator-type (key type)
+                "Test that the value associated with KEY is of TYPE."
+                (is (equal (find-if (of-type type) root)
+                           (car (aget key declarator-list)))))
+              (test-bitfield-type (type)
+                "Test that the AST in the bitfield list is of TYPE."
+                (is (equal (find-if (of-type type) root)
+                           (car bitfield-list)))))
+       (declare (ignorable (function test-declarator-type)
+                           (function test-bitfield-type)))
+       ,@body)))
+
+(deftest cpp-canonicalize-type-1 ()
+  "Canonicalize-type returns the size in the alist of :declarator."
+  (with-canonicalize-type-test ("int x [100];")
+    (test-declarator-type :array 'cpp-number-literal)))
+
+(deftest cpp-canonicalize-type-2 ()
+  "Canonicalize-type returns the parameter list in the alist of :declarator."
+  (with-canonicalize-type-test ("int x (int, int);")
+    (test-declarator-type :function 'cpp-parameter-list)))
+
+(deftest cpp-canonicalize-type-3 ()
+  "Canonicalize-type returns the qualifiers in the alist of :declarator."
+  (with-canonicalize-type-test ("const int *x;")
+    (test-declarator-type :pointer 'cpp-const)))
+
+(deftest cpp-canonicalize-type-4 ()
+  "Canonicalize-type returns works on a field declaration."
+  (with-canonicalize-type-test ("struct s { const int x : 4; };"
+                                :target-ast-type cpp-field-declaration)
+    (test-bitfield-type 'cpp-number-literal)
+    (is (equal (source-text (car specifier-list))
+               "const"))))
+
+(deftest cpp-canonicalize-type-specifier-list-1 ()
+  "Canonicalize-type returns the implicit 'int' in the specifier list."
+  (with-canonicalize-type-test ("long long x;")
+    (is (equal (source-text (find-if (of-type 'cpp-primitive-type)
+                                     specifier-list))
+               "int"))))
+
+(deftest cpp-canonicalize-type-specifier-list-2 ()
+  "Canonicalize-type removes the 'signed' qualifier from the specifier list."
+  (with-canonicalize-type-test ("signed long long x;")
+    (is (not (find-if (of-type 'cpp-signed) specifier-list)))))
