@@ -559,6 +559,9 @@
               ((eql decl (cpp-declarator function))))
      (cpp-type function))))
 
+(defmethod expression-type ((ast cpp-compound-literal-expression))
+  (cpp-type ast))
+
 (defmethod expression-type ((ast cpp-call-expression))
   (match ast
     ;; Extract the type from a casting operator.
