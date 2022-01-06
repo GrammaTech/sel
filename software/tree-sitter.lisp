@@ -533,7 +533,7 @@
            :infer-expression-type
            :expression-type
            :extract-declaration-type
-           :extract-declaration-type-for
+           :resolve-declaration-type
            :declaration-type
            :find-enclosing
            :find-all-enclosing
@@ -6189,12 +6189,12 @@ If NODE is not a thing that has fields, return nil.")
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
 By default this first tries `expression-type', then invokes
-`extract-declaration-type-for' on the result of
+`resolve-declaration-type' on the result of
 `get-declaration-ast'.")
   (:method ((software tree-sitter) (ast ast))
     (or (infer-expression-type software ast)
         (when-let (decl (get-declaration-ast software ast))
-          (extract-declaration-type-for software decl ast)))))
+          (resolve-declaration-type software decl ast)))))
 
 (defgeneric infer-expression-type (software ast)
   (:method ((software tree-sitter) (ast ast))
@@ -6210,13 +6210,13 @@ By default calls `declaration-type' with DECL-AST.")
   (:method ((software tree-sitter) (ast ast))
     (declaration-type ast)))
 
-(defgeneric extract-declaration-type-for (software decl-ast ast)
+(defgeneric resolve-declaration-type (software decl-ast ast)
   (:documentation "Return the type that DECL-AST in SOFTWARE specifies for AST, as an AST, or nil if it could not be determined.
 
-This differs from `extract-declaration-type-for' only in cases when
+This differs from `extract-declaration-type' only in cases when
 the type declared differs between declarands (e.g. `auto' declarations
-in C++, `auto x = 1, y = 2.0' effectively declares `x' as an integer
-but `y' as a float.
+in C++; `auto x = 1, y = 2.0' effectively declares `x' as an integer
+but `y' as a float.)
 
 By default simply calls `extract-declaration-type' with SOFTWARE and
 DECL-AST.")

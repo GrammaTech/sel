@@ -559,7 +559,6 @@
               ((eql decl (cpp-declarator function))))
      (cpp-type function))))
 
-(defmethod extract-declaration-type-for ((obj cpp)
                                          (decl cpp-ast)
                                          (ast cpp-ast))
   (let ((result (call-next-method)))
@@ -571,6 +570,7 @@
                result)
            result)
          result)))
+(defmethod resolve-declaration-type ((obj cpp)
 
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
