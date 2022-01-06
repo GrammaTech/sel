@@ -6092,9 +6092,11 @@ Every element in the list has the following form:
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
 (defgeneric get-declaration-ast (obj ast)
-  (:documentation "Get the declaration AST associated with identifier.")
+  (:documentation "For an identifier, get the declaration AST.
+For a declaration AST, return AST unchanged.")
   ;; NB Not tree-sitter, since that would shadow normal-scope.
   (:method ((obj t) (ast ast)) nil)
+  (:method ((obj software) (ast variable-declaration-ast)) ast)
   (:method ((obj normal-scope) (identifier identifier-ast))
     (or
      ;; Check if this identifier is part of a declaration before
