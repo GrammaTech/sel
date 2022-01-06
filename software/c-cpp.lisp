@@ -190,6 +190,9 @@ pointer declarations which are nested on themselves."
 (defmethod field-name ((ast c/cpp-enumerator))
   (c/cpp-name ast))
 
+(defmethod get-declaration-ast ((obj cpp) (ast c/cpp-pointer-expression))
+  (get-declaration-ast obj (c/cpp-argument ast)))
+
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
   "Transform PARSE-TREE such that any specifiers are placed in relevants slots."

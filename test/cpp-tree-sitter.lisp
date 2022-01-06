@@ -557,6 +557,23 @@ auto y = x;~
     (is (string= "y" (source-text ast)))
     (is (equal "int" (source-text (infer-type sw ast))))))
 
+(deftest test-pointer-expression-declaration ()
+  (let* ((sw (from-string 'cpp (fmt "~
+int *x;
+x = malloc(sizeof(int));
+*x = 42;
+int y = *x;
+")))
+         (y (first (take -2 (collect-if (of-type 'identifier-ast) (genome sw))))))
+    (is (string= "y" (source-text y)))
+    (let ((ptr-expr
+           (rhs
+            (only-elt
+             (cpp-declarator
+              (get-declaration-ast sw y))))))
+      (is (equal (source-text (get-declaration-ast sw ptr-expr))
+                 "int *x;")))))
+
 ;;; TODO
 #+(or)
 (deftest test-cpp-stray-comma ()
