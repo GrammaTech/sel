@@ -801,3 +801,10 @@ operator."
   "Canonicalize-type removes the 'signed' qualifier from the specifier list."
   (with-canonicalize-type-test ("signed long long x;")
     (is (not (find-if (of-type 'cpp-signed) specifier-list)))))
+
+(deftest cpp-canonicalize-type-specifier-list-3 ()
+  "Canonicalize-type removes duplicate information from the specifier list."
+  (with-canonicalize-type-test
+      ("extern extern signed volatile volatile long long x;")
+    (is (= 1 (count-if (of-type 'cpp-type-qualifier) specifier-list)))
+    (is (= 1 (count-if (of-type 'cpp-storage-class-specifier) specifier-list)))))

@@ -430,12 +430,26 @@ of the four parts and `values' is the relevant information attached to the key."
                                            (:text . "int")
                                            (:before-text . " ")))
                        specifier-list)
-                 specifier-list)))
-    ;; NOTE: there could be duplicate type qualifiers. These should probably
-    ;;       be removed if they become an issue.
-    (remove-if (of-type '(or c/cpp-signed null))
-               (ensure-type-specifier
-                (unwind-c/cpp-type declaration-ast)))))
+                 specifier-list))
+           (qualifier= (qualifier1 qualifier2
+                        &aux (target-types
+                              '(c/cpp-type-qualifier
+                                c/cpp-storage-class-specifier)))
+             "Return T if QUALIFIER1 and QUALIFIER2 are equal."
+             (and (type= (type-of qualifier1) (type-of qualifier2))
+                  (member qualifier1 target-types :test #'typep)
+                  (equal (text qualifier1) (text qualifier2))))
+           (remove-duplicate-specifiers (specifier-list)
+             "Remove duplicate qualifiers from SPECIFIER-LIST. This is only
+              done for types where duplicates are redundant."
+             (remove-duplicates specifier-list :test #'qualifier=))
+           (remove-extraneous-specifiers (specifier-list)
+             "Remove specifiers which are unnecessary for analysis."
+             (remove-if (of-type '(or c/cpp-signed null)) specifier-list)))
+    (remove-duplicate-specifiers
+     (remove-extraneous-specifiers
+      (ensure-type-specifier
+       (unwind-c/cpp-type declaration-ast))))))
 
 (defclass c/cpp-canonical-type (canonical-type)
   ((specifier
