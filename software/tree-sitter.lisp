@@ -6199,8 +6199,7 @@ Equivalent type descriptors should be equal under `equal?'.")
   (:documentation "Get a canonicalized form of TYPE. This form can be
 used to determine whether two types are identical and should be an instance
 of CANONICAL-TYPE. This form should also be a normalized such that two types
-which are functionally equivalent are equivalent.")
-  (:method (ast &key &allow-other-keys) nil))
+which are functionally equivalent are equivalent."))
 
 
 ;;;; Structured text
