@@ -125,12 +125,16 @@
   (flatten
    (iter (for d in (c/cpp-declarator ast))
      (collect
-         (typecase d
-           (c/cpp-identifier d)
-           ((or c/cpp-array-declarator c/cpp-pointer-declarator)
+      (match d
+        ((type c/cpp-identifier) d)
+        ((type (or c/cpp-array-declarator c/cpp-pointer-declarator))
             (outer-declarations d))
+        ((c/cpp-init-declarator
+          (c/cpp-declarator
+           (and r (type cpp-reference-declarator))))
+         (only-elt (direct-children r)))
            ;; Special handling for uninitialized variables.
-           (t (c/cpp-declarator d)))))))
+        (otherwise (c/cpp-declarator d)))))))
 
 (defmethod inner-declarations ((ast c/cpp-compound-statement))
   (mappend #'outer-declarations (children ast)))

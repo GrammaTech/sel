@@ -557,6 +557,12 @@ auto y = x;~
     (is (string= "y" (source-text ast)))
     (is (equal "int" (source-text (infer-type sw ast))))))
 
+(deftest test-reference-outer-declarations ()
+  (let* ((sw (from-string 'cpp (fmt "int& y = x;")))
+         (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
+    (is (string= (source-text id) "y"))
+    (is (typep (get-declaration-ast sw id) 'cpp-declaration))))
+
 (deftest test-pointer-expression-declaration ()
   (let* ((sw (from-string 'cpp (fmt "~
 int *x;
