@@ -476,11 +476,19 @@
   (append (canonicalize-declarator (car (direct-children declarator)))
           `((:reference))))
 
+(defclass cpp-canonical-type (c/cpp-canonical-type)
+  ()
+  (:documentation "C++ representation of canonical types."))
+
 (defmethod canonicalize-type :around ((declaration cpp-ast)
-                                      &key ast-type declarator)
-  (if ast-type
-      (call-next-method)
-      (call-next-method declaration :ast-type 'cpp-ast :declarator declarator)))
+                                      &rest rest
+                                      &key ast-type canonical-type
+                                      &allow-other-keys)
+  (apply #'call-next-method
+         declaration
+         :ast-type (or ast-type 'cpp-ast)
+         :canonical-type (or canonical-type 'cpp-canonical-type)
+         rest))
 
 
 

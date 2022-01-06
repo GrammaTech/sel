@@ -745,10 +745,10 @@ operator."
   `(let* ((root (convert 'cpp-ast ,source))
           (target-ast (find-if (of-type ',target-ast-type) root))
           (result (canonicalize-type target-ast))
-          (declarator-list (aget :declarator result))
-          (specifier-list (aget :specifier result))
-          (bitfield-list (aget :bitfield result)))
-     (declare (ignorable declarator-list specifier-list bitfield-list))
+          (declarator-list (declarator result))
+          (specifier-list (specifier result))
+          (bitfield (bitfield result)))
+     (declare (ignorable declarator-list specifier-list bitfield))
      (labels ((test-declarator-type (key type)
                 "Test that the value associated with KEY is of TYPE."
                 (is (equal (find-if (of-type type) root)
@@ -756,7 +756,7 @@ operator."
               (test-bitfield-type (type)
                 "Test that the AST in the bitfield list is of TYPE."
                 (is (equal (find-if (of-type type) root)
-                           (car bitfield-list)))))
+                           bitfield))))
        (declare (ignorable (function test-declarator-type)
                            (function test-bitfield-type)))
        ,@body)))

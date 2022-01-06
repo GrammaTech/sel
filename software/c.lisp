@@ -200,11 +200,19 @@ field."
 (defmethod equal? ((a c-identifier) (b c-identifier))
   (equal (first (text a)) (first (text b))))
 
+(defclass c-canonical-type (c/cpp-canonical-type)
+  ()
+  (:documentation "C representation of canonical types."))
+
 (defmethod canonicalize-type :around ((declaration c-ast)
-                                      &key ast-type declarator)
-  (if ast-type
-      (call-next-method)
-      (call-next-method declaration :ast-type 'c-ast :declarator declarator)))
+                                      &rest rest
+                                      &key ast-type canonical-type
+                                      &allow-other-keys)
+  (apply #'call-next-method
+         declaration
+         :ast-type (or ast-type 'c-ast)
+         :canonical-type (or canonical-type 'c-canonical-type)
+         rest))
 
 
 ;;; Methods common to all software objects

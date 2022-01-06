@@ -413,21 +413,43 @@ determined by looking at PARENT.")
                (ensure-type-specifier
                 (unwind-c/cpp-type declaration-ast)))))
 
-(defmethod canonicalize-type ((declaration c/cpp-declaration)
-                              &key ast-type declarator)
-  `((:specifier ,@(get-specifier-list ast-type declaration))
-    (:declarator ,@(canonicalize-declarator
-                    (or declarator
-                        (car (c/cpp-declarator declaration)))))
-    (:bitfield)))
+(defclass c/cpp-canonical-type (canonical-type)
+  ((specifier
+    :accessor specifier
+    :initarg :specifier
+    :initform nil
+    :documentation "The specifier part of the canonical type. This generally
+includes the type and type qualifiers.")
+   (declarator
+    :accessor declarator
+    :initarg :declarator
+    :initform nil
+    :documentation "The declarator part of the canonical type. This includes
+array, function parameter, parens, and pointer information.")
+   (bitfield
+    :accessor bitfield
+    :initarg :bitfield
+    :initform nil
+    :documentation "The bitfield part of the canonical type."))
+  (:documentation "C/C++ representation of canonical types."))
+
+(defmethod canonicalize-type
+    ((declaration c/cpp-declaration)
+     &key ast-type canonical-type
+       (declarator (car (c/cpp-declarator declaration))))
+  (make-instance
+   canonical-type
+   :specifier (get-specifier-list ast-type declaration)
+   :declarator (canonicalize-declarator declarator)))
 
 (defmethod canonicalize-type
     ((declaration c/cpp-field-declaration)
-     &key ast-type (declarator (car (c/cpp-declarator declaration))))
-  `((:specifier ,@(get-specifier-list ast-type declaration))
-    (:declarator ,@(canonicalize-declarator declarator))
-    ;; NOTE: this isn't correct if there are multiple
-    ;;       declarators.
-    (:bitfield ,@(direct-children (car (direct-children declaration))))))
+     &key ast-type canonical-type
+       (declarator (car (c/cpp-declarator declaration))))
+  (make-instance
+   canonical-type
+   :specifier (get-specifier-list ast-type declaration)
+   :declarator (canonicalize-declarator declarator)
+   :bitfield (car (direct-children (car (direct-children declaration))))))
 
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)

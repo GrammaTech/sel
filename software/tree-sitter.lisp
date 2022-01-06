@@ -448,9 +448,16 @@
            ;; C
            :c-source-text-fragment
            :c-variadic-declaration
+           :c-canonical-type
            ;; Cpp
            :cpp-source-text-fragment
            :cpp-variadic-declaration
+           :cpp-canonical-type
+           ;; C/Cpp
+           :c/cpp-canonical-type
+           :specifier
+           :declarator
+           :bitfield
            ;; Cross-language Mix-ins
            :c/cpp
            :ecma
@@ -492,6 +499,7 @@
            :return-ast
            :goto-ast
            :terminal-symbol
+           :canonical-type
            ;; Generics
            ;; TODO: should this be in parseable?
            :collect-var-uses
@@ -548,6 +556,7 @@
            :text-fragment
            :choice-superclass
            :canonicalize-declarator
+           :canonicalize-type
            ;; Styles
            :c-style-indentation
            ;; string-clauses.lisp
@@ -6186,10 +6195,14 @@ Equivalent type descriptors should be equal under `equal?'.")
   (:documentation "Get a canonicalized form of DECLARATOR.")
   (:method (ast) nil))
 
+(defclass canonical-type ()
+  ()
+  (:documentation "A representation of canonical types."))
+
 (defgeneric canonicalize-type (type &key)
   (:documentation "Get a canonicalized form of TYPE. This form can be
 used to determine whether two types are identical")
-  (:method (ast &key) nil))
+  (:method (ast &key &allow-other-keys) nil))
 
 
 ;;;; Structured text
