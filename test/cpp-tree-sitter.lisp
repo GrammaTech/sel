@@ -784,6 +784,12 @@ operator."
     (is (equal (source-text (car specifier-list))
                "const"))))
 
+(deftest cpp-canonicalize-type-5 ()
+  "Canonicalize-type returns works on a function definition."
+  (with-canonicalize-type-test ("int x (int x, int y) { return x + y; }"
+                                :target-ast-type cpp-function-definition)
+    (test-declarator-type :function 'cpp-parameter-list)))
+
 (deftest cpp-canonicalize-type-specifier-list-1 ()
   "Canonicalize-type returns the implicit 'int' in the specifier list."
   (with-canonicalize-type-test ("long long x;")

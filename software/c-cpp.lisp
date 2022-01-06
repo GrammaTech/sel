@@ -393,6 +393,10 @@ determined by looking at PARENT.")
                   ;;       will be added during normalization.
                   (and (setf implicit-int-p t)
                        (c/cpp-modifiers ast))))
+               (c/cpp-function-definition
+                (append (c/cpp-pre-specifiers ast)
+                        (c/cpp-post-specifiers ast)
+                        (unwind-c/cpp-type (c/cpp-type ast))))
                ((or c/cpp-declaration c/cpp-field-declaration)
                 (append (c/cpp-pre-specifiers ast)
                         (c/cpp-post-specifiers ast)
@@ -451,5 +455,13 @@ array, function parameter, parens, and pointer information.")
    :specifier (get-specifier-list ast-type declaration)
    :declarator (canonicalize-declarator declarator)
    :bitfield (car (direct-children (car (direct-children declaration))))))
+
+(defmethod canonicalize-type
+    ((declaration c/cpp-function-definition)
+     &key ast-type canonical-type)
+  (make-instance
+   canonical-type
+   :specifier (get-specifier-list ast-type declaration)
+   :declarator (canonicalize-declarator (cpp-declarator declaration))))
 
  ) ; #+(or :tree-sitter-c :tree-sitter-cpp)
