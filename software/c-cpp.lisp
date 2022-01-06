@@ -365,6 +365,17 @@ determined by looking at PARENT.")
                                       (ast2 c/cpp-preproc-include))
   "")
 
+(defgeneric canonicalize-declarator (declarator)
+  (:documentation "Get a canonicalized form of DECLARATOR. This should be a
+list which is modeled after the representation presented at the following link:
+https://blog.robertelder.org/building-a-c-compiler-type-system-the-formidable-declarator/
+The canonical form consists of three fundamental  parts: function, pointer, and
+array. A fourth part is also used here--parens--but isn't of use aside from
+reproducing a, more or less, exact source text representation.
+The list will contain items of the form `(:key values)' where `:key' can be any
+of the four parts and `values' is the relevant information attached to the key.")
+  (:method (ast) nil))
+
 (defmethod canonicalize-declarator ((declarator c/cpp-array-declarator))
   (append (canonicalize-declarator (c/cpp-declarator declarator))
           `((:array ,(c/cpp-size declarator)))))
@@ -382,6 +393,15 @@ determined by looking at PARENT.")
   (append (canonicalize-declarator (c/cpp-declarator declarator))
           `((:function ,(c/cpp-parameters declarator)))))
 
+;;; The canonical type representation for c/cpp is based on the following link:
+;;; https://blog.robertelder.org/building-a-c-compiler-type-system-a-canonical-type-representation/
+;;;
+;;; The structure contains three parts: a specifier list, a canonical declarator,
+;;; and a bitfield part.
+;;; The specifier list contains all the information that isn't part of the
+;;; declarator. This includes the type qualifiers and the type.
+;;; The bitfield part contains the bitfield for field declarations.
+;;; The canonical declarator form is described above.
 (defun get-specifier-list (ast-type declaration-ast &aux implicit-int-p)
   (labels ((unwind-c/cpp-type (ast)
              "Unwind certain ASTs such that there is a flat specifier list."

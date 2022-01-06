@@ -6191,17 +6191,15 @@ Equivalent type descriptors should be equal under `equal?'.")
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
 
-(defgeneric canonicalize-declarator (declarator)
-  (:documentation "Get a canonicalized form of DECLARATOR.")
-  (:method (ast) nil))
-
 (defclass canonical-type ()
   ()
   (:documentation "A representation of canonical types."))
 
 (defgeneric canonicalize-type (type &key)
   (:documentation "Get a canonicalized form of TYPE. This form can be
-used to determine whether two types are identical")
+used to determine whether two types are identical and should be an instance
+of CANONICAL-TYPE. This form should also be a normalized such that two types
+which are functionally equivalent are equivalent.")
   (:method (ast &key &allow-other-keys) nil))
 
 
