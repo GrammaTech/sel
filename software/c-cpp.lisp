@@ -408,7 +408,7 @@ of the four parts and `values' is the relevant information attached to the key."
              (typecase ast
                (c/cpp-sized-type-specifier
                 (if-let ((type (c/cpp-type ast)))
-                  (append (c/cpp-modifiers ast) type)
+                  (append1 (c/cpp-modifiers ast) type)
                   ;; NOTE: if type isn't present, an implicit int
                   ;;       will be added during normalization.
                   (and (setf implicit-int-p t)
