@@ -204,15 +204,13 @@ field."
   ()
   (:documentation "C representation of canonical types."))
 
-(defmethod canonicalize-type :around ((declaration c-ast)
-                                      &rest rest
-                                      &key ast-type canonical-type
-                                      &allow-other-keys)
-  (apply #'call-next-method
-         declaration
-         :ast-type (or ast-type 'c-ast)
-         :canonical-type (or canonical-type 'c-canonical-type)
-         rest))
+(defmethod canonicalize-type :around ((declaration c-ast) &rest rest
+                                      &key &allow-other-keys)
+  (multiple-value-call #'call-next-method
+    declaration
+    (values-list rest)
+    :ast-type 'c-ast
+    :canonical-type 'c-canonical-type))
 
 
 ;;; Methods common to all software objects

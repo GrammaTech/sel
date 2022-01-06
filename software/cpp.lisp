@@ -480,15 +480,13 @@
   ()
   (:documentation "C++ representation of canonical types."))
 
-(defmethod canonicalize-type :around ((declaration cpp-ast)
-                                      &rest rest
-                                      &key ast-type canonical-type
-                                      &allow-other-keys)
-  (apply #'call-next-method
-         declaration
-         :ast-type (or ast-type 'cpp-ast)
-         :canonical-type (or canonical-type 'cpp-canonical-type)
-         rest))
+(defmethod canonicalize-type :around ((declaration cpp-ast) &rest rest
+                                      &key &allow-other-keys)
+  (multiple-value-call #'call-next-method
+    declaration
+    (values-list rest)
+    :ast-type 'cpp-ast
+    :canonical-type 'cpp-canonical-type))
 
 
 
