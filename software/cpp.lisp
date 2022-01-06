@@ -559,18 +559,23 @@
               ((eql decl (cpp-declarator function))))
      (cpp-type function))))
 
-                                         (decl cpp-ast)
-                                         (ast cpp-ast))
-  (let ((result (call-next-method)))
-    (eif (typep result 'cpp-auto)
-         (eif-let ((init
-                    (find-if (of-type 'c/cpp-init-declarator)
-                             (get-parent-asts obj ast))))
-           (or (infer-expression-type obj (rhs init))
-               result)
-           result)
-         result)))
 (defmethod resolve-declaration-type ((obj cpp)
+                                     (decl cpp-ast)
+                                     (ast cpp-ast))
+  (when-let (first-try (call-next-method))
+    (or
+     ;; If the first try is not auto, just return it.
+     (unless (typep first-try 'cpp-auto)
+       first-try)
+     ;; If there is a surrounding init declarator, infer the type from
+     ;; its RHS.
+     (when-let (init
+                (find-if (of-type 'c/cpp-init-declarator)
+                         (get-parent-asts obj ast)))
+       (when (eql ast (lhs init))
+         (infer-type obj (rhs init))))
+     ;; Go with the original result.
+     first-try)))
 
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))

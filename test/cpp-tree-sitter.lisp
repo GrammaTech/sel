@@ -548,6 +548,15 @@ configure(const boost::optional<std::string>& config = boost::none) {}")
          (ast (find-if (of-type 'identifier-ast) (genome sw))))
     (is (equal (source-text (infer-type sw ast)) "int"))))
 
+(deftest test-cpp-auto-rhs-type ()
+  (let* ((sw (from-string 'cpp (fmt "~
+int x = 1;
+auto y = x;~
+")))
+         (ast (second (collect-if (of-type 'cpp-identifier) (genome sw)))))
+    (is (string= "y" (source-text ast)))
+    (is (equal "int" (source-text (infer-type sw ast))))))
+
 ;;; TODO
 #+(or)
 (deftest test-cpp-stray-comma ()
