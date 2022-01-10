@@ -510,4 +510,81 @@ array, function parameter, parens, and pointer information.")
    :specifier (get-specifier-list ast-type declaration)
    :declarator (canonicalize-declarator (cpp-declarator declaration))))
 
- ) ; #+(or :tree-sitter-c :tree-sitter-cpp)
+(defmethod canonicalize-type
+    ((declaration c/cpp-parameter-declaration)
+     &key ast-type canonical-type)
+  (make-instance
+   canonical-type
+   :specifier (get-specifier-list ast-type declaration)
+   :declarator (canonicalize-declarator (cpp-declarator declaration))))
+
+(defmethod canonical-type= ((canonical-type-1 c/cpp-canonical-type)
+                            (canonical-type-2 c/cpp-canonical-type)
+                            &key symbol-table)
+  (declare (ignore symbol-table))
+  (labels ((specifier= (specifier1 specifier2)
+             "Return T if SPECIFIER1 and SPECIFIER2 contain the same items in
+              any order."
+             (set-equal specifier1 specifier2
+                        :test (op (equal (source-text _)
+                                         (source-text _)))))
+           (bitfield= (bitfield1 bitfield2)
+             "Return T if BITFIELD1 and BITFIELD2 contain the same text."
+             ;; NOTE: this can potentially be incorrect in the presence of
+             ;;       macros.
+             (cond
+               ((not (or bitfield1 bitfield2)) t)
+               ((and bitfield1 bitfield2)
+                ;; TODO: bitfields can be specified in decimal, hex, etc.
+                ;;       There should be a numerical equivalence function that
+                ;;       already exists somewhere.
+                (equal (source-text bitfield1)
+                       (source-text bitfield2)))))
+           (declarator-function= (function-part1 function-part2)
+             "Return T if the declarator function parts are equal."
+             (let ((parameters1 (direct-children (car function-part1)))
+                   (parameters2 (direct-children (car function-part2))))
+               (when (length= parameters1 parameters2)
+                 (iter
+                   (for parameter1 in parameters1)
+                   (for parameter2 in parameters2)
+                   (always
+                    (canonical-type= (canonicalize-type parameter1)
+                                     (canonicalize-type parameter2)))))))
+           (declarator-pointer= (pointer-part1 pointer-part2)
+             "Return T if the declarator pointer parts are equal."
+             (specifier= pointer-part1 pointer-part2))
+           (declarator-array= (array-part1 array-part2)
+             "Return T if the CDRs in the declarator array parts are equal."
+             ;; NOTE: this may need to account for identifiers at some point
+             ;;       when a symbol table is available. Just reuse bitfield= for
+             ;;       now.
+             (bitfield= (car array-part1) (car array-part2)))
+           (declarator=* (declarator1 declarator2)
+             "Return T if the declarator array parts are equal."
+             (iter
+               (for part1 in declarator1)
+               (for part2 in declarator2)
+               (for key = (car part1))
+               (unless (eql key (car part2))
+                 (return))
+               (for value1 = (cdr part1))
+               (for value2 = (cdr part2))
+               (always
+                (case key
+                  (:function (declarator-function= value1 value2))
+                  (:pointer (declarator-pointer= value1 value2))
+                  (:array (declarator-array= value1 value2))))))
+           (declarator= (declarator1 declarator2)
+             "Return T if the declarator array parts have the same lengths and
+              are equal."
+             (when (length= declarator1 declarator2)
+               (declarator=* declarator1 declarator2))))
+    (and (specifier= (specifier canonical-type-1)
+                     (specifier canonical-type-2))
+         (declarator= (declarator canonical-type-1)
+                      (declarator canonical-type-2))
+         (bitfield= (bitfield canonical-type-1)
+                    (bitfield canonical-type-2)))))
+
+) ; #+(or :tree-sitter-c :tree-sitter-cpp)

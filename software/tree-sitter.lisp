@@ -6211,6 +6211,12 @@ used to determine whether two types are identical and should be an instance
 of CANONICAL-TYPE. This form should also be a normalized such that two types
 which are functionally equivalent are equivalent."))
 
+(defgeneric canonical-type= (type1 type2 &key)
+  (:documentation "Compare TYPE 1 and TYPE2 which are canonical types, and
+return whether they are equal.")
+  (:method ((type1 canonical-type) (type2 canonical-type) &key)
+    (eql type1 type2)))
+
 
 ;;;; Structured text
 ;;; TODO: remove this; it's for debugging.

@@ -16,7 +16,8 @@
                 :inner-declarations
                 :outer-declarations
                 :contextualize-ast
-                :canonicalize-type)
+                :canonicalize-type
+                :canonical-type=)
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers)
   (:export :test-cpp-tree-sitter))
@@ -738,7 +739,7 @@ operator."
    :unexpected-type '(or cpp-binary-expression cpp-parenthesized-expression)))
 
 
-;;; Canonicalize-type Tests
+;;; Canonical-type Tests
 (defmacro with-canonicalize-type-test
     ((source &key (target-ast-type 'cpp-declaration))
      &body body)
@@ -814,3 +815,67 @@ operator."
       ("extern extern signed volatile volatile long long x;")
     (is (= 1 (count-if (of-type 'cpp-type-qualifier) specifier-list)))
     (is (= 1 (count-if (of-type 'cpp-storage-class-specifier) specifier-list)))))
+
+(defun is-canonical-type= (ast1 ast2)
+  "Test whether AST1 and AST2 are canonical-type=."
+  (is (canonical-type= (canonicalize-type ast1) (canonicalize-type ast2))))
+
+(defun is-not-canonical-type= (ast1 ast2)
+  "Test whether AST1 and AST2 are not canonical-type=."
+  (is (not (canonical-type= (canonicalize-type ast1) (canonicalize-type ast2)))))
+
+(defmacro with-canonical-type=-test
+    ((source1 source2 &key (target-type ''cpp-declaration)) &body body)
+  `(let* ((type-predicate (of-type ,target-type))
+          (target-ast1 (find-if type-predicate (convert 'cpp-ast ,source1)))
+          (target-ast2 (find-if type-predicate (convert 'cpp-ast ,source2))))
+     (declare (ignorable target-ast1 target-ast2))
+     ,@body))
+
+(defun canonicalize-type=-test (source1 source2
+                                &key (target-type 'cpp-declaration))
+  "Test that SOURCE1 is canonical-type= to itself and that SOURCE2 is not
+canonical-type= to SOURCE1."
+  (with-canonical-type=-test (source1 source2 :target-type target-type)
+    (is-canonical-type= target-ast1 target-ast1)
+    (is-not-canonical-type= target-ast1 target-ast2)))
+
+(deftest cpp-canonical-type=-1 ()
+  "Canonical-type= compares function types."
+  (canonicalize-type=-test "int x (double, float);"
+                           "int x (double, double);"))
+
+(deftest cpp-canonical-type=-2 ()
+  "Canonical-type= compares array types."
+  (canonicalize-type=-test "int x [100];"
+                           "int x [10];"))
+
+(deftest cpp-canonical-type=-3 ()
+  "Canonical-type= compares pointer types."
+  (canonicalize-type=-test "const int *x;"
+                           "const int **x;"))
+
+(deftest cpp-canonical-type=-4 ()
+  "Canonical-type= compares a combination of array, pointer, and function
+parts in types."
+  (canonicalize-type=-test "const int *x [3](int a, float y);"
+                           "const int **x [10](short a, double y);"))
+
+(deftest cpp-canonical-type=-5 ()
+  "Canonical-type= correctly compares specifier lists that have
+different orders."
+  (with-canonical-type=-test ("const long long int x;"
+                              "long long const x;")
+    (is-canonical-type= target-ast1 target-ast2)))
+
+(deftest cpp-canonical-type=-6 ()
+  "Canonical-type= compares the bitfields of declarations."
+  (canonicalize-type=-test "struct x { int x : 4; };"
+                           "struct y { int f : 5; };"
+                           :target-type 'cpp-field-declaration))
+
+(deftest cpp-canonical-type=-7 ()
+  "Canonical-type= compares nested function types."
+  (with-canonical-type=-test ("void f1 (int g1(float, double), h1(int(x, y)));"
+                              "void f2 (int g2(float, double), h1(int(x, y)));")
+    (is-canonical-type= target-ast1 target-ast2)))
