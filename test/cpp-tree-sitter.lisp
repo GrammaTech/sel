@@ -58,7 +58,7 @@ int main () {
                           :key {assocdr :name})))
     (is x-binding)
     (is z-binding)
-    (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))
+    (is (is (string$= "= 1" (source-text (assocdr :decl x-binding)))))))
 
 (deftest test-cpp-function-name ()
   (is (equal "trim_front"
@@ -614,6 +614,12 @@ auto y = x;~
          (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
     (is (string= (source-text id) "y"))
     (is (typep (get-declaration-ast sw id) 'cpp-declaration))))
+
+(deftest test-pointer-outer-declarations ()
+  (let* ((sw (from-string 'cpp (fmt "int* y = x;")))
+         (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
+    (is (string= (source-text id) "y"))
+    (is (typep (get-declaration-ast sw id) 'c/cpp-pointer-declarator))))
 
 (deftest test-pointer-expression-declaration ()
   (let* ((sw (from-string 'cpp (fmt "~

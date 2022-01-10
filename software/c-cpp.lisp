@@ -133,6 +133,10 @@
           (c/cpp-declarator
            (and r (type cpp-reference-declarator))))
          (only-elt (direct-children r)))
+        ((c/cpp-init-declarator
+          (c/cpp-declarator
+           (and p (type c/cpp-pointer-declarator))))
+         (cpp-declarator p))
            ;; Special handling for uninitialized variables.
         (otherwise (c/cpp-declarator d)))))))
 
@@ -194,8 +198,20 @@ pointer declarations which are nested on themselves."
 (defmethod field-name ((ast c/cpp-enumerator))
   (c/cpp-name ast))
 
-(defmethod get-declaration-ast ((obj cpp) (ast c/cpp-pointer-expression))
-  (get-declaration-ast obj (c/cpp-argument ast)))
+(defmethod get-declaration-id ((obj c/cpp) (id identifier-ast))
+  (when-let (declaration (get-declaration-ast obj id))
+    (let ((id-text (source-text id)))
+      (iter search
+            (for ast1 in-tree declaration)
+            (for subtree =
+                 (typecase ast1
+                   (c/cpp-init-declarator (lhs ast1))
+                   (otherwise ast1)))
+            (thereis
+             (iter (for ast2 in-tree subtree)
+                   (finding ast2 such-that
+                            (and (typep ast2 'identifier-ast)
+                                 (equal (source-text ast2) id-text)))))))))
 
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))

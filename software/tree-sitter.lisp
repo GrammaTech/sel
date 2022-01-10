@@ -505,6 +505,8 @@
            ;; TODO: should this be in parseable?
            :collect-var-uses
            :get-declaration-ast
+           :get-initialization-ast
+           :get-declaration-id
            :variable-use-p
            :patch-whitespace
            :prettify-software
@@ -967,7 +969,7 @@ for the language.")
        (:while-ast c-while-statement)
        (:loop-ast c-while-statement c-for-statement c-do-statement)
        (:parse-error-ast c-error)
-       (:variable-declaration-ast c-init-declarator c-assignment-expression)
+       (:variable-initialization-ast c-init-declarator c-assignment-expression)
        (:function-ast c-function-definition)
        (:identifier-ast c-identifier)
        (:field-ast c-field-expression)
@@ -1086,7 +1088,8 @@ for the language.")
        (:call-ast cpp-call-expression)
        (:boolean-true-ast cpp-true)
        (:boolean-false-ast cpp-false)
-       (:variable-declaration-ast cpp-assignment-expression cpp-init-declarator cpp-parameter-declaration cpp-declaration)
+       (:variable-declaration-ast cpp-parameter-declaration cpp-declaration)
+       (:variable-initialization-ast cpp-assignment-expression cpp-init-declarator)
        (:function-ast cpp-function-definition)
        (:unary-ast cpp-unary-expression)
        (:binary-ast cpp-binary-expression)
@@ -2783,8 +2786,11 @@ Superclass of every generated LANGUAGE-error class."))
  (defclass parameter-ast (ast) ()
    (:documentation "Mix-in for AST classes that are individual parameters."))
 
-  (defclass variable-declaration-ast (ast) ()
+ (defclass variable-declaration-ast (ast) ()
     (:documentation "Mix-in for AST classes that are variable declarations."))
+
+ (defclass variable-initialization-ast (variable-declaration-ast) ()
+   (:documentation "Mix-in for AST classes that are variable initializers."))
 
   (defclass identifier-ast (ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
@@ -6114,6 +6120,32 @@ For a declaration AST, return AST unchanged.")
             {equal (source-text identifier)}
             (scopes obj identifier)
             :key {aget :name})))))
+
+(defgeneric get-initialization-ast (obj ast)
+  (:documentation "Find where AST is initialized.
+
+This is useful when languages allow a single declaration to initialize
+more than one variable, and for languages that allow declaration and
+initialization to be separate.")
+  (:method ((obj t) (ast t))
+    (when-let (id (get-declaration-id obj ast))
+      (find-enclosing 'variable-initialization-ast
+                      obj
+                      id))))
+
+(defgeneric get-declaration-id (obj ast)
+  (:documentation "Find AST's declaration (using `get-declaration-ast') and extract the corresponding identifier.
+
+This is important because a single declaration may define multiple
+variables, e.g. in C/C++ declaration syntax or in languages that
+support destructuring.")
+  (:method ((obj t) (id identifier-ast))
+    (let ((id-text (source-text id)))
+      (find-if (lambda (ast)
+                 (and (typep ast 'identifier-ast)
+                      (equal (source-text ast)
+                             id-text)))
+               (get-declaration-ast obj id)))))
 
 (defgeneric collect-var-uses (obj identifier &key &allow-other-keys)
   (:documentation "Collect uses of IDENTIFIER in OBJ.")
