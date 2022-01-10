@@ -413,11 +413,8 @@ of the four parts and `values' is the relevant information attached to the key."
                   ;;       will be added during normalization.
                   (and (setf implicit-int-p t)
                        (c/cpp-modifiers ast))))
-               (c/cpp-function-definition
-                (append (c/cpp-pre-specifiers ast)
-                        (c/cpp-post-specifiers ast)
-                        (unwind-c/cpp-type (c/cpp-type ast))))
-               ((or c/cpp-declaration c/cpp-field-declaration)
+               ((or c/cpp-declaration c/cpp-field-declaration
+                    c/cpp-parameter-declaration c/cpp-function-definition)
                 (append (c/cpp-pre-specifiers ast)
                         (c/cpp-post-specifiers ast)
                         (unwind-c/cpp-type (c/cpp-type ast))))
