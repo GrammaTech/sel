@@ -380,6 +380,10 @@ of the four parts and `values' is the relevant information attached to the key."
   (append (canonicalize-declarator (c/cpp-declarator declarator))
           `((:array ,(c/cpp-size declarator)))))
 
+(defmethod canonicalize-declarator ((declarator c/cpp-abstract-array-declarator))
+  (append (canonicalize-declarator (c/cpp-declarator declarator))
+          `((:array ,(c/cpp-size declarator)))))
+
 (defmethod canonicalize-declarator ((declarator c/cpp-parenthesized-declarator))
   (append (canonicalize-declarator (car (direct-children declarator)))
           `((:paren))))
@@ -389,7 +393,18 @@ of the four parts and `values' is the relevant information attached to the key."
           ;; NOTE: direct children should contain the type qualifiers.
           `((:pointer ,@(direct-children declarator)))))
 
+(defmethod canonicalize-declarator
+    ((declarator c/cpp-abstract-pointer-declarator))
+  (append (canonicalize-declarator (c/cpp-declarator declarator))
+          ;; NOTE: direct children should contain the type qualifiers.
+          `((:pointer ,@(direct-children declarator)))))
+
 (defmethod canonicalize-declarator ((declarator c/cpp-function-declarator))
+  (append (canonicalize-declarator (c/cpp-declarator declarator))
+          `((:function ,(c/cpp-parameters declarator)))))
+
+(defmethod canonicalize-declarator
+    ((declarator c/cpp-abstract-function-declarator))
   (append (canonicalize-declarator (c/cpp-declarator declarator))
           `((:function ,(c/cpp-parameters declarator)))))
 

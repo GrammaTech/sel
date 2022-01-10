@@ -790,6 +790,12 @@ operator."
                                 :target-ast-type cpp-function-definition)
     (test-declarator-type :function 'cpp-parameter-list)))
 
+(deftest cpp-canonicalize-type-6 ()
+  "Canonicalize-type returns works on a parameter declaration."
+  (with-canonicalize-type-test ("int x (const int *x) { return x + y; }"
+                                :target-ast-type cpp-parameter-declaration)
+    (test-declarator-type :pointer 'cpp-const)))
+
 (deftest cpp-canonicalize-type-specifier-list-1 ()
   "Canonicalize-type returns the implicit 'int' in the specifier list."
   (with-canonicalize-type-test ("long long x;")
