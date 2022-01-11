@@ -949,13 +949,16 @@ Default selection function for `tournament'."
           (while (< (length variants) count))
           (finally (return (values variants infos))))))
 
-(defmacro -search (specs step &rest body)
+(defun -search (test step body-fn
+                &key max-evals max-time period period-fn every-pre-fn
+                  every-post-fn filter analyze-mutation-fn)
   "Perform a search loop with early termination.
 
 SPECS should be a list of the following elements.
 
-  (VARIANT MUT-INFO) -- Symbols for variant and mut-info resulting from STEP
   TEST ---------------- Test function used to `evaluate' every VARIANT.
+  STEP ---------------- ...
+  BODY-FN ------------- ...
   MAX-EVALS ----------- Maximum number of evaluations to perform.
   MAX-TIME ------------ Maximum time to run.
   PERIOD -------------- Period (in evals) at which to call PERIOD-FN.
@@ -970,120 +973,122 @@ and should be dynamically bound to perform multiple different
 simultaneous searches, `*running*', `*start-time*', `*fitness-evals*'.
 The global variable `*target-fitness-p*' implicitly defines a stopping
 criteria for this search."
-  (destructuring-bind (variant mutation-info) (car specs)
-    ;; Outside the returned code let-bind unevaluated elements of SPECS.
-    (with-gensyms ((test test)
-                   (max-evals max-evals)
-                   (max-time max-time)
-                   (period period)
-                   (period-fn period-fn)
-                   (every-pre-fn every-pre-fn)
-                   (every-post-fn every-post-fn)
-                   (filter filter)
-                   (analyze-mutation-fn analyze-mutation-fn)
-                   (variants variants)
-                   (mutation-infos mutation-infos))
-      ;; Inside the returned code let-bind evaluated elements of SPECS.
-      `(let ((,test ,(nth 1 specs))
-             (,max-evals ,(nth 2 specs))
-             (,max-time ,(nth 3 specs))
-             (,period ,(nth 4 specs))
-             (,period-fn ,(nth 5 specs))
-             (,every-pre-fn ,(nth 6 specs))
-             (,every-post-fn ,(nth 7 specs))
-             (,filter ,(nth 8 specs))
-             (,analyze-mutation-fn ,(nth 9 specs)))
-         (block search-target-reached
-           (unless *start-time* (setq *start-time* (get-internal-real-time)))
-           (setq *running* t)
-           (loop :until (or (not *running*)
-                            (and ,max-evals
-                                 (> *fitness-evals* ,max-evals))
-                            (and ,max-time
-                                 (> (/ (- (get-internal-real-time) *start-time*)
-                                       internal-time-units-per-second)
-                                    ,max-time))) :do
-              (restart-case
-                  (multiple-value-bind (,variants ,mutation-infos)
-                      (funcall ,step)
-                    (when ,every-pre-fn
-                      (mapc ,every-pre-fn ,variants))
-                    (if (cdr ,variants)
-                        ;; Multiple variants. Combine into super-mutant.
-                        ;;
-                        ;; FIXME: We should split the use of
-                        ;;        super-mutants into a separate
-                        ;;        variable instead of using the number
-                        ;;        of individuals returned by
-                        ;;        new-individual.
-                        (let ((super (create-and-populate-super ,variants)))
-                          (genome super)
-                          (evaluate ,test super))
-                        ;; Single variant. Evaluate directly.
-                        (evaluate ,test (car ,variants)))
-                    (when ,analyze-mutation-fn
-                      (mapc (lambda (variant info)
-                              (funcall ,analyze-mutation-fn variant info ,test))
-                            ,variants
-                            ,mutation-infos))
-                    (when ,every-post-fn
-                      (mapc ,every-post-fn ,variants))
-                    (dotimes (_ (length ,variants))
-                      (incf *fitness-evals*)
-                      (when (and ,period ,period-fn
-                                 (zerop (mod *fitness-evals* ,period)))
-                        (funcall ,period-fn)))
-                    ;; support for *elitism*
-                    (assert (and (typep *elitism* '(integer 0 *))
-                                 (< *elitism* (length *population*)))
-                            (*elitism*)
-                            "*ELITISM* is out of range--must be an integer >0 ~
+  (labels ((initialize-loop ()
+             (unless *start-time*
+               (setq *start-time* (get-internal-real-time)))
+             (setq *running* t))
+           (iteration-finished-p ()
+             "Return T if one of the following conditions are met and
+                  iteration is finished:
+                    - *running* is nil.
+                    - Maximum number of evaluations has been reached.
+                    - Maximum time has been reached."
+             (or (not *running*)
+                 (and max-evals
+                      (> *fitness-evals* max-evals))
+                 (and max-time
+                      (> (/ (- (get-internal-real-time) *start-time*)
+                            internal-time-units-per-second)
+                         max-time))))
+           (evaluate-variants (variants)
+             "Evaluate the fitness of VARIANTS."
+             (if (cdr variants)
+                 ;; Multiple variants. Combine into super-mutant.
+                 ;;
+                 ;; FIXME: We should split the use of
+                 ;;        super-mutants into a separate
+                 ;;        variable instead of using the number
+                 ;;        of individuals returned by
+                 ;;        new-individual.
+                 (let ((super (create-and-populate-super variants)))
+                   (genome super)
+                   (evaluate test super))
+                 ;; Single variant. Evaluate directly.
+                 (evaluate test (car variants))))
+           (remove-elite-individuals ()
+             "Remove *ELITISM* individuals from population and return them."
+             (assert (and (typep *elitism* '(integer 0 *))
+                          (< *elitism* (length *population*)))
+               (*elitism*)
+               "*ELITISM* is out of range--must be an integer >0 ~
                             and < (length *POPULATION*)")
-                    (let* ((sorted-population
-                            (and (> *elitism* 0)
-                                 (stable-sort (copy-list *population*)
-                                              'fitness-better-p
-                                              :key 'fitness)))
-                           ;; capture elite individuals
-                           (elite-individuals
-                            (and sorted-population
-                                 (subseq sorted-population 0 *elitism*))))
-                      ;; remove elite individuals from *population*
-                      (when elite-individuals
-                        (setf *population*
-                              (subseq sorted-population *elitism*)))
-                      ;; temporarily reduce *max-population-size* by *elitism*
-                      ;; Since *elitism* range is 1..(- *max-population-size* 1)
-                      ;; this should ensure *max-population-size is always at
-                      ;; at least 1.
-                      (let ((*max-population-size*
-                             (if (integerp *max-population-size*)
-                                 (- *max-population-size* *elitism*))))
-                        (mapc (lambda (,variant ,mutation-info)
-                                (declare (ignorable ,mutation-info))
-                                (assert (fitness ,variant) (,variant)
-                                        "Variant with no fitness")
-                                (when (or (not ,filter)
-                                          (funcall ,filter ,variant))
-                                  ,@body)
-                                (when (and *target-fitness-p*
-                                           (funcall *target-fitness-p*
-                                                    ,variant))
-                                  (return-from search-target-reached ,variant)))
-                              ,variants
-                              ,mutation-infos))
-                      ;; add elite-individuals to *population*
-                      (when elite-individuals
-                        (setf *population*
-                              (concatenate 'list elite-individuals
-                                           *population*)))))
-                (ignore-failed-mutation ()
-                  :report
-                  "Ignore failed mutation and continue evolution"))))
-         (setq *running* nil)))))
+             (when-let* ((sorted-population
+                          (and (> *elitism* 0)
+                               (stable-sort (copy-list *population*)
+                                            'fitness-better-p
+                                            :key 'fitness))))
+               (prog1
+                   ;; return elite individuals
+                   (subseq sorted-population 0 *elitism*)
+                 ;; remove elite individuals from *population*
+                 (setf *population* (subseq sorted-population *elitism*)))))
+           (add-elite-individuals (elite-individuals)
+             "Add ELITE-INDIVIDUALS to the population."
+             (when elite-individuals
+               (setf *population*
+                     (concatenate 'list elite-individuals
+                                  *population*))))
+           ;; TODO: find better name. What is body-fn for?
+           (call-body-fn (variants mutation-infos)
+             "Call the filter function on every variant in VARIANTS."
+             (mapc (lambda (variant mutation-info)
+                     (assert (fitness variant) (variant)
+                       "Variant with no fitness")
+                     (when (or (not filter)
+                               (funcall filter variant))
+                       (funcall body-fn variant mutation-info))
+                     (when (and *target-fitness-p*
+                                (funcall *target-fitness-p*
+                                         variant))
+                       (return-from -search variant)))
+                   variants
+                   mutation-infos))
+           (handle-elitism-and-body-fn (variants mutation-infos)
+             "Handle elitism if it is being used and execute the body-fn
+              with the population."
+             (let ((elite-individuals (remove-elite-individuals)))
+               ;; temporarily reduce *max-population-size* by *elitism*
+               ;; Since *elitism* range is 1..(- *max-population-size* 1)
+               ;; this should ensure *max-population-size is always at
+               ;; at least 1.
+               (let ((*max-population-size*
+                       (if (integerp *max-population-size*)
+                           (- *max-population-size* *elitism*))))
+                 (call-body-fn variants mutation-infos))
+               (add-elite-individuals elite-individuals))))
+    (loop
+      :initially (initialize-loop)
+      :until (iteration-finished-p)
+      :do (restart-case
+              (multiple-value-bind (variants mutation-infos)
+                  (funcall step)
+                (when every-pre-fn
+                  (mapc every-pre-fn variants))
+                (evaluate-variants variants)
+                (when analyze-mutation-fn
+                  (mapc (lambda (variant info)
+                          (funcall analyze-mutation-fn variant info test))
+                        variants
+                        mutation-infos))
+                (when every-post-fn
+                  (mapc every-post-fn variants))
+                (dotimes (_ (length variants))
+                  (incf *fitness-evals*)
+                  (when (and period period-fn
+                             (zerop (mod *fitness-evals* period)))
+                    (funcall period-fn)))
+                (handle-elitism-and-body-fn variants mutation-infos))
+            (ignore-failed-mutation ()
+              :report
+              "Ignore failed mutation and continue evolution"))
+      :finally (setf *running* nil))))
 
 (defmacro mcmc (original test
+                &rest rest
                 &key
+                  ;; TODO: remove these since they aren't being used
+                  ;;       or call them directly. Removing them would
+                  ;;       result in lost information in the macro signature.
                   accept-fn max-evals max-time period period-fn
                   every-pre-fn every-post-fn filter analyze-mutation-fn)
   "MCMC search from ORIGINAL using `mcmc-step' and TEST.
@@ -1095,13 +1100,12 @@ Other keyword arguments are used as defined in the `-search' function."
   (let* ((curr (gensym))
          (body
           `(let ((,curr ,original))
-             (-search ((new mut-info)
-                       ,test ,max-evals ,max-time ,period ,period-fn
-                       ,every-pre-fn ,every-post-fn
-                       ,filter ,analyze-mutation-fn)
-                      (mcmc-step ,curr)
-                      (when (funcall accept-fn (fitness ,curr) (fitness new))
-                        (setf ,curr new))))))
+             (-search ,test
+                      (op (mcmc-step ,curr))
+                      (lambda (new mut-info)
+                        (when (funcall accept-fn (fitness ,curr) (fitness new))
+                          (setf ,curr new)))
+                      ,@rest))))
     (if accept-fn
         body
         `(let ((accept-fn
@@ -1112,7 +1116,11 @@ Other keyword arguments are used as defined in the `-search' function."
            ,body))))
 
 (defmacro evolve (test
+                  &rest rest
                   &key
+                    ;; TODO: remove these since they aren't being used
+                    ;;       or call them directly. Removing them would
+                    ;;       result in lost information in the macro signature.
                     max-evals max-time period period-fn
                     every-pre-fn every-post-fn filter analyze-mutation-fn
                     (super-mutant-count 1))
@@ -1123,11 +1131,13 @@ Other keyword arguments are used as defined in the `-search' function."
 
 Other keyword arguments are used as defined in the `-search' function.
 "
-  `(-search ((new mut-info)
-             ,test ,max-evals ,max-time ,period ,period-fn
-             ,every-pre-fn ,every-post-fn ,filter ,analyze-mutation-fn)
-            {new-individuals (- ,super-mutant-count *elitism*)}
-            (incorporate new)))
+  `(-search
+    ,test
+    {new-individuals (- ,super-mutant-count *elitism*)}
+    (lambda (new mut-info)
+      (declare (ignore mut-info))
+      (incorporate new))
+    ,@(remove-from-plist rest :super-mutant-count)))
 
 (defun generational-evolve
     (reproduce evaluate-pop select
