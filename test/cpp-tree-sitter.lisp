@@ -189,7 +189,8 @@ int main () {
     ("p2" . "auto")
     ("segdist" . "double")
     ("frac" . "double")
-    ("midpoint" . "auto"))
+    ("midpoint" . "auto")
+    ("next_point" . "Point"))
   "The types extracted from the trim_front example.")
 
 (deftest test-trim-front-scopes ()
@@ -287,6 +288,54 @@ int main () {
                                                (equal (source-text ast)
                                                       "(dist - d) / segdist")))
                                         (genome *soft*))))))))
+
+(deftest test-aliasee-1 ()
+  (with-fixture trim-front
+    (let* ((sw *soft*)
+           (next-point
+            (find-if (op (equal (source-text _) "next_point"))
+                     (genome sw))))
+      (is (typep next-point 'identifier-ast))
+      (let ((aliasee (aliasee sw next-point)))
+        (is (typep aliasee 'identifier-ast))
+        (is (string= "p2" (source-text aliasee)))
+        (let ((alias-set (alias-set sw aliasee)))
+          (is (member next-point alias-set)))))))
+
+(def +alias-fragment+
+  (from-string 'cpp (fmt "~
+{
+  int pl = 10;
+  int& r = pl;
+  int* p = &pl;
+  int* q = p;
+  int *s;
+  s = p;
+}")))
+
+(deftest test-aliasee-2 ()
+  (let* ((sw +alias-fragment+)
+         (pl (find-if (op (equal (source-text _) "pl"))
+                      (genome sw))))
+    (flet ((test-var (name)
+             (let* ((sw +alias-fragment+)
+                    (var (find-if (op (equal (source-text _) name))
+                                  (genome sw))))
+               (is (typep var 'identifier-ast))
+               (get-initialization-ast sw var)
+               (is (eql pl (aliasee sw var))))))
+      (test-var "r")
+      (test-var "p")
+      (test-var "q")
+      (test-var "s"))))
+
+(deftest test-alias-set ()
+  (let* ((sw +alias-fragment+)
+         (pl (find-if (op (equal (source-text _) "pl"))
+                      (genome sw))))
+    (is (typep pl 'identifier-ast))
+    (get-initialization-ast sw pl)
+    (is (length= 4 (alias-set sw pl)))))
 
 
 ;;; Parsing tests

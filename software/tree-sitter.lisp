@@ -548,6 +548,8 @@
            :imports
            :provided-by
            :comparisonp
+           :aliasee
+           :alias-set
            :c-functions
            :c
            :cpp
@@ -6286,6 +6288,14 @@ which are functionally equivalent are equivalent."))
 return whether they are equal.")
   (:method ((type1 canonical-type) (type2 canonical-type) &key)
     (eql type1 type2)))
+
+(defgeneric aliasee (software pointer-var)
+  (:documentation
+   "If POINTER-VAR holds a pointer, resolve the plain variable it points to."))
+
+(defgeneric alias-set (software plain-var)
+  (:documentation
+   "Get the declarations (as identifiers), as in `get-declaration-id' of variables in SOFTWARE that are aliases (pointers or referenes) for PLAIN-VAR."))
 
 
 ;;;; Structured text

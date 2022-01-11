@@ -763,6 +763,16 @@ Then if we cannot infer the type of y per se we infer its type to be int."
                  (scope-tree obj))))
           (aget :decl scope)))))
 
+(defmethod initializer-aliasee ((sw cpp)
+                                (lhs cpp-reference-declarator)
+                                (rhs cpp-pointer-expression))
+  (if (typep (cpp-operator rhs) 'cpp-*)
+      (aliasee sw (cpp-argument rhs))
+      (call-next-method)))
+
+(defmethod initializer-aliasee ((sw cpp) (lhs cpp-reference-declarator) rhs)
+  (aliasee sw rhs))
+
 
 ;;; Whitespace rules
 

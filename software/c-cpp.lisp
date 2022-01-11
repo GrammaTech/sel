@@ -230,7 +230,7 @@ pointer declarations which are nested on themselves."
                    (find-enclosing 'variable-declaration-ast obj id)))
         (let ((id-text (source-text id)))
           (block match
-            (find-following-if
+            (find-following
              (lambda (ast)
                (when-let (assignment
                           (find-if (of-type 'c/cpp-assignment-expression)
@@ -360,6 +360,45 @@ determined by looking at PARENT.")
      c/cpp-assignment-expression)
   t)
 
+(defgeneric initializer-aliasee (sw lhs rhs)
+  (:documentation "Resolve the aliasee of a initializer.
+Should return `:failure' in the base case.")
+  (:method (sw lhs rhs) :failure)
+  ;; Methods for pointers apply to C and C++; methods for references
+  ;; are defined in cpp.lisp.
+  (:method ((sw c/cpp)
+            (lhs c/cpp-pointer-declarator)
+            (rhs c/cpp-pointer-expression))
+    (if (typep (c/cpp-operator rhs) 'cpp-&)
+        (aliasee sw (c/cpp-argument rhs))
+        (call-next-method)))
+  (:method ((sw c/cpp)
+            (lhs c/cpp-pointer-declarator)
+            (rhs identifier-ast))
+    ;; Assigning a pointer variable to a pointer variable.
+    (let ((aliasee (aliasee sw rhs)))
+      (if (not (eql aliasee (get-declaration-id sw rhs)))
+          aliasee
+          (call-next-method)))))
+
+(defmethod aliasee ((sw c/cpp) (id identifier-ast))
+  (ematch (get-initialization-ast sw id)
+    ((c/cpp-init-declarator (lhs lhs) (rhs rhs))
+     (let ((result (initializer-aliasee sw lhs rhs)))
+       (if (eql result :failure)
+           (get-declaration-id sw id)
+           result)))
+    ((c/cpp-assignment-expression (rhs rhs))
+     (aliasee sw rhs))
+    (otherwise nil)))
+
+(defmethod alias-set ((sw c/cpp) (plain-var c/cpp-ast))
+  (when-let (id (get-declaration-id sw plain-var))
+    (iter (for ast in-tree (genome sw))
+          (when (and (typep ast 'identifier-ast)
+                     (eql (aliasee sw ast) id))
+            (set-collect (get-declaration-id sw ast) into set))
+          (finally (return (convert 'list (less set plain-var)))))))
 
 
 ;;;; Whitespace

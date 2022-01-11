@@ -37,10 +37,11 @@ std::list<Point> trim_front(std::list<Point>& pts, const float dist) {
   result.push_back(pts.front());
   double d = 0.0f;
   for (auto p1 = pts.begin(), p2 = std::next(pts.begin()); p2 != pts.end(); ++p1, ++p2) {
-    double segdist = p1->Distance(*p2);
+    Point& next_point = *p2;
+    double segdist = p1->Distance(next_point);
     if ((d + segdist) > dist) {
       double frac = (dist - d) / segdist;
-      auto midpoint = p1->PointAlongSegment(*p2, frac);
+      auto midpoint = p1->PointAlongSegment(next_point, frac);
       result.push_back(midpoint);
 
       // Remove used part of polyline
