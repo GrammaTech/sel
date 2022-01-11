@@ -222,6 +222,25 @@ pointer declarations which are nested on themselves."
                             (and (typep ast2 'identifier-ast)
                                  (equal (source-text ast2) id-text)))))))))
 
+(defmethod get-initialization-ast ((obj cpp) (ast ast))
+  "Find the assignment for an unitialized variable."
+  (or (call-next-method)
+      (when-let* ((id (get-declaration-id obj ast))
+                  (decl
+                   (find-enclosing 'variable-declaration-ast obj id)))
+        (let ((id-text (source-text id)))
+          (block match
+            (find-following-if
+             (lambda (ast)
+               (when-let (assignment
+                          (find-if (of-type 'c/cpp-assignment-expression)
+                                   ast))
+                 (and (typep (lhs assignment) 'identifier-ast)
+                      (equal (source-text (lhs assignment)) id-text))
+                 (return-from match assignment)))
+             obj
+             decl))))))
+
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
   "Transform PARSE-TREE such that any specifiers are placed in relevants slots."
