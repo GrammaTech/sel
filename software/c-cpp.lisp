@@ -198,6 +198,15 @@ pointer declarations which are nested on themselves."
 (defmethod field-name ((ast c/cpp-enumerator))
   (c/cpp-name ast))
 
+(defmethod get-declaration-id ((obj c/cpp) (ast c/cpp-pointer-expression))
+  (get-declaration-id obj (cpp-argument ast)))
+
+(defmethod get-initialization-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
+  (get-initialization-ast obj (cpp-argument ast)))
+
+(defmethod get-declaration-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
+  (get-declaration-ast obj (cpp-argument ast)))
+
 (defmethod get-declaration-id ((obj c/cpp) (id identifier-ast))
   (when-let (declaration (get-declaration-ast obj id))
     (let ((id-text (source-text id)))
