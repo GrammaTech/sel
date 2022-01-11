@@ -289,6 +289,54 @@ int main () {
                                                       "(dist - d) / segdist")))
                                         (genome *soft*))))))))
 
+(deftest test-extract-compound-literal-type ()
+  (let* ((sw (from-string 'cpp "auto x = mytype{1};"))
+         (ast (find-if (of-type 'cpp-compound-literal-expression) (genome sw))))
+    (is (equal (source-text (infer-type sw ast)) "mytype"))))
+
+(deftest test-cpp-auto-literal ()
+  (let* ((sw (from-string 'cpp "auto x = 1;"))
+         (ast (find-if (of-type 'identifier-ast) (genome sw))))
+    (is (equal (source-text (infer-type sw ast)) "int"))))
+
+(deftest test-cpp-auto-rhs-type ()
+  (let* ((sw (from-string 'cpp (fmt "~
+int x = 1;
+auto y = x;~
+")))
+         (ast (second (collect-if (of-type 'cpp-identifier) (genome sw)))))
+    (is (string= "y" (source-text ast)))
+    (is (equal "int" (source-text (infer-type sw ast))))))
+
+(deftest test-reference-outer-declarations ()
+  (let* ((sw (from-string 'cpp (fmt "int& y = x;")))
+         (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
+    (is (string= (source-text id) "y"))
+    (is (typep (get-declaration-ast sw id) 'cpp-declaration))))
+
+(deftest test-pointer-outer-declarations ()
+  (let* ((sw (from-string 'cpp (fmt "int* y = x;")))
+         (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
+    (is (string= (source-text id) "y"))
+    (is (typep (get-declaration-ast sw id) 'c/cpp-pointer-declarator))))
+
+(deftest test-pointer-expression-declaration ()
+  (let* ((sw (from-string 'cpp (fmt "~
+int *x;
+x = malloc(sizeof(int));
+*x = 42;
+int y = *x;
+")))
+         (y (first (take -2 (collect-if (of-type 'identifier-ast) (genome sw))))))
+    (is (string= "y" (source-text y)))
+    (let ((ptr-expr
+           (rhs
+            (only-elt
+             (cpp-declarator
+              (get-declaration-ast sw y))))))
+      (is (equal (source-text (get-declaration-ast sw ptr-expr))
+                 "int *x;")))))
+
 (deftest test-aliasee-1 ()
   (with-fixture trim-front
     (let* ((sw *soft*)
@@ -635,57 +683,6 @@ line, after a comment if there is one."
 
   return OpenLR::LocationReferencePoint::OTHER;
 }"))
-
-
-;;; Static analysis tests
-
-(deftest test-extract-compound-literal-type ()
-  (let* ((sw (from-string 'cpp "auto x = mytype{1};"))
-         (ast (find-if (of-type 'cpp-compound-literal-expression) (genome sw))))
-    (is (equal (source-text (infer-type sw ast)) "mytype"))))
-
-(deftest test-cpp-auto-literal ()
-  (let* ((sw (from-string 'cpp "auto x = 1;"))
-         (ast (find-if (of-type 'identifier-ast) (genome sw))))
-    (is (equal (source-text (infer-type sw ast)) "int"))))
-
-(deftest test-cpp-auto-rhs-type ()
-  (let* ((sw (from-string 'cpp (fmt "~
-int x = 1;
-auto y = x;~
-")))
-         (ast (second (collect-if (of-type 'cpp-identifier) (genome sw)))))
-    (is (string= "y" (source-text ast)))
-    (is (equal "int" (source-text (infer-type sw ast))))))
-
-(deftest test-reference-outer-declarations ()
-  (let* ((sw (from-string 'cpp (fmt "int& y = x;")))
-         (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
-    (is (string= (source-text id) "y"))
-    (is (typep (get-declaration-ast sw id) 'cpp-declaration))))
-
-(deftest test-pointer-outer-declarations ()
-  (let* ((sw (from-string 'cpp (fmt "int* y = x;")))
-         (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
-    (is (string= (source-text id) "y"))
-    (is (typep (get-declaration-ast sw id) 'c/cpp-pointer-declarator))))
-
-(deftest test-pointer-expression-declaration ()
-  (let* ((sw (from-string 'cpp (fmt "~
-int *x;
-x = malloc(sizeof(int));
-*x = 42;
-int y = *x;
-")))
-         (y (first (take -2 (collect-if (of-type 'identifier-ast) (genome sw))))))
-    (is (string= "y" (source-text y)))
-    (let ((ptr-expr
-           (rhs
-            (only-elt
-             (cpp-declarator
-              (get-declaration-ast sw y))))))
-      (is (equal (source-text (get-declaration-ast sw ptr-expr))
-                 "int *x;")))))
 
 
 ;;; Contextualize-ast Tests
