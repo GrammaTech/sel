@@ -236,9 +236,9 @@ pointer declarations which are nested on themselves."
                         (find-if (of-type 'c/cpp-assignment-expression)
                                  ast))
                (and (typep (lhs assignment) 'identifier-ast)
-                    (equal (source-text (lhs assignment)) id-text))
-               (return-from get-initialization-ast
-                 assignment)))
+                    (equal (source-text (lhs assignment)) id-text)
+                    (return-from get-initialization-ast
+                      assignment))))
            obj
            decl)))))
 

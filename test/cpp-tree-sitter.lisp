@@ -337,6 +337,20 @@ int y = *x;
       (is (equal (source-text (get-declaration-ast sw ptr-expr))
                  "int *x;")))))
 
+(deftest test-get-initialization-ast/assignment ()
+  "Test that we get the correct assignment for the initialization AST
+of a variable (not just the first succeeding assignment)."
+  (let* ((sw (from-string 'cpp (fmt "~
+int x;
+int y;
+x = 1;
+y = 2;")))
+         (y (lastcar (collect-if (lambda (ast)
+                                   (and (typep ast 'identifier-ast)
+                                        (equal (source-text ast) "y")))
+                                 (genome sw)))))
+    (is (equal "y = 2" (source-text (get-initialization-ast sw y))))))
+
 (deftest test-reference-pointer-expression-aliasee ()
   "Test that we get the aliasee for a reference initialized with a
 dereferenced pointer."
