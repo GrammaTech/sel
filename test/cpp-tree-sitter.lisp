@@ -289,17 +289,17 @@ int main () {
                                                       "(dist - d) / segdist")))
                                         (genome *soft*))))))))
 
-(deftest test-extract-compound-literal-type ()
+(deftest test-cpp-infer-type/compound-literal ()
   (let* ((sw (from-string 'cpp "auto x = mytype{1};"))
          (ast (find-if (of-type 'cpp-compound-literal-expression) (genome sw))))
     (is (equal (source-text (infer-type sw ast)) "mytype"))))
 
-(deftest test-cpp-auto-literal ()
+(deftest test-cpp-infer-type/auto-literal ()
   (let* ((sw (from-string 'cpp "auto x = 1;"))
          (ast (find-if (of-type 'identifier-ast) (genome sw))))
     (is (equal (source-text (infer-type sw ast)) "int"))))
 
-(deftest test-cpp-auto-rhs-infer-type ()
+(deftest test-cpp-infer-type/auto-rhs ()
   (let* ((sw (from-string 'cpp (fmt "~
 int x = 1;
 auto y = x;~
@@ -308,13 +308,13 @@ auto y = x;~
     (is (string= "y" (source-text ast)))
     (is (equal "int" (source-text (infer-type sw ast))))))
 
-(deftest test-reference-outer-declarations ()
+(deftest test-get-declaration-ast/reference ()
   (let* ((sw (from-string 'cpp (fmt "int& y = x;")))
          (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
     (is (string= (source-text id) "y"))
     (is (typep (get-declaration-ast sw id) 'cpp-declaration))))
 
-(deftest test-pointer-outer-declarations ()
+(deftest test-get-declaration-ast/pointer ()
   (let* ((sw (from-string 'cpp (fmt "int* y = x;")))
          (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
     (is (string= (source-text id) "y"))
