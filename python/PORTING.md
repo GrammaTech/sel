@@ -136,7 +136,7 @@ This aids in reproducibility/tracing of issues in older releases.
 | tree-sitter-typescript | 5f904154 |
 | tree-sitter-python     | 8600d7fa |
 
-## v0.4.3
+## v0.4.3 -> Latest
 
 | Repository             | Revision |
 |------------------------|----------|
