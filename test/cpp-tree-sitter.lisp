@@ -299,7 +299,7 @@ int main () {
          (ast (find-if (of-type 'identifier-ast) (genome sw))))
     (is (equal (source-text (infer-type sw ast)) "int"))))
 
-(deftest test-cpp-auto-rhs-type ()
+(deftest test-cpp-auto-rhs-infer-type ()
   (let* ((sw (from-string 'cpp (fmt "~
 int x = 1;
 auto y = x;~
@@ -320,7 +320,7 @@ auto y = x;~
     (is (string= (source-text id) "y"))
     (is (typep (get-declaration-ast sw id) 'c/cpp-pointer-declarator))))
 
-(deftest test-pointer-expression-declaration ()
+(deftest test-get-declaration-ast/pointer-expression ()
   (let* ((sw (from-string 'cpp (fmt "~
 int *x;
 x = malloc(sizeof(int));
@@ -337,7 +337,9 @@ int y = *x;
       (is (equal (source-text (get-declaration-ast sw ptr-expr))
                  "int *x;")))))
 
-(deftest test-aliasee-1 ()
+(deftest test-reference-pointer-expression-aliasee ()
+  "Test that we get the aliasee for a reference initialized with a
+dereferenced pointer."
   (with-fixture trim-front
     (let* ((sw *soft*)
            (next-point
@@ -361,21 +363,28 @@ int y = *x;
   s = p;
 }")))
 
-(deftest test-aliasee-2 ()
+(defun test-aliasee-is-plain-var (alias-name)
   (let* ((sw +alias-fragment+)
          (pl (find-if (op (equal (source-text _) "pl"))
-                      (genome sw))))
-    (flet ((test-var (name)
-             (let* ((sw +alias-fragment+)
-                    (var (find-if (op (equal (source-text _) name))
-                                  (genome sw))))
-               (is (typep var 'identifier-ast))
-               (get-initialization-ast sw var)
-               (is (eql pl (aliasee sw var))))))
-      (test-var "r")
-      (test-var "p")
-      (test-var "q")
-      (test-var "s"))))
+                      (genome sw)))
+         (alias (find-if (op (equal (source-text _) alias-name))
+                         (genome sw))))
+    (is (typep alias 'identifier-ast))
+    (finishes
+     (get-initialization-ast sw alias))
+    (is (eql pl (aliasee sw alias)))))
+
+(deftest test-reference-aliasee ()
+  (test-aliasee-is-plain-var "r"))
+
+(deftest test-initialized-pointer-aliasee ()
+  (test-aliasee-is-plain-var "p"))
+
+(deftest test-pointer-initialized-pointer-aliasee ()
+  (test-aliasee-is-plain-var "q"))
+
+(deftest test-unitialized-pointer-aliasee ()
+  (test-aliasee-is-plain-var "q"))
 
 (deftest test-alias-set ()
   (let* ((sw +alias-fragment+)

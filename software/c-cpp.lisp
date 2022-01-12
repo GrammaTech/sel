@@ -128,15 +128,17 @@
       (match d
         ((type c/cpp-identifier) d)
         ((type (or c/cpp-array-declarator c/cpp-pointer-declarator))
-            (outer-declarations d))
+         (outer-declarations d))
         ((c/cpp-init-declarator
           (c/cpp-declarator
-           (and r (type cpp-reference-declarator))))
-         (only-elt (direct-children r)))
+           (cpp-reference-declarator
+            (direct-children (list r)))))
+         r)
         ((c/cpp-init-declarator
           (c/cpp-declarator
-           (and p (type c/cpp-pointer-declarator))))
-         (cpp-declarator p))
+           (c/cpp-pointer-declarator
+            (c/cpp-declarator d))))
+         d)
            ;; Special handling for uninitialized variables.
         (otherwise (c/cpp-declarator d)))))))
 
@@ -199,19 +201,18 @@ pointer declarations which are nested on themselves."
   (c/cpp-name ast))
 
 (defmethod get-declaration-id ((obj c/cpp) (ast c/cpp-pointer-expression))
-  (get-declaration-id obj (cpp-argument ast)))
+  (get-declaration-id obj (c/cpp-argument ast)))
 
 (defmethod get-initialization-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
-  (get-initialization-ast obj (cpp-argument ast)))
+  (get-initialization-ast obj (c/cpp-argument ast)))
 
 (defmethod get-declaration-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
-  (get-declaration-ast obj (cpp-argument ast)))
+  (get-declaration-ast obj (c/cpp-argument ast)))
 
 (defmethod get-declaration-id ((obj c/cpp) (id identifier-ast))
   (when-let (declaration (get-declaration-ast obj id))
     (let ((id-text (source-text id)))
-      (iter search
-            (for ast1 in-tree declaration)
+      (iter (for ast1 in-tree declaration)
             (for subtree =
                  (typecase ast1
                    (c/cpp-init-declarator (lhs ast1))
@@ -229,17 +230,17 @@ pointer declarations which are nested on themselves."
                   (decl
                    (find-enclosing 'variable-declaration-ast obj id)))
         (let ((id-text (source-text id)))
-          (block match
-            (find-following
-             (lambda (ast)
-               (when-let (assignment
-                          (find-if (of-type 'c/cpp-assignment-expression)
-                                   ast))
-                 (and (typep (lhs assignment) 'identifier-ast)
-                      (equal (source-text (lhs assignment)) id-text))
-                 (return-from match assignment)))
-             obj
-             decl))))))
+          (find-following
+           (lambda (ast)
+             (when-let (assignment
+                        (find-if (of-type 'c/cpp-assignment-expression)
+                                 ast))
+               (and (typep (lhs assignment) 'identifier-ast)
+                    (equal (source-text (lhs assignment)) id-text))
+               (return-from get-initialization-ast
+                 assignment)))
+           obj
+           decl)))))
 
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
@@ -361,7 +362,7 @@ determined by looking at PARENT.")
   t)
 
 (defgeneric initializer-aliasee (sw lhs rhs)
-  (:documentation "Resolve the aliasee of a initializer.
+  (:documentation "Resolve the aliasee of an initializer.
 Should return `:failure' in the base case.")
   (:method (sw lhs rhs) :failure)
   ;; Methods for pointers apply to C and C++; methods for references
