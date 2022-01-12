@@ -6320,59 +6320,65 @@ which slots are expected to be used."
   ;;       be the case if a rule is a subtype of another.
   ;; NOTE: esrap or smug may be useful if needed in the future.
 
-  ;; TODO:
-  ;;     Paul R.'s suggestion:
-  ;;     I think FSet maps would be a good match for what you're doing here.
-  ;;     Possibly in concert with box if you don't want to be bothered passing
-  ;;     the map around.
-  (labels ((conflict-ast-substitution (conflict-ast)
+  (labels ((get* (key box)
+             (lookup (unbox box) (assure symbol key)))
+           (ensure-get* (key table value)
+             (multiple-value-bind (old old?) (get* key table)
+               (if old? (values old old?)
+                   (values (setf (get* key table) value)
+                           nil))))
+           ((setf get*) (value key box)
+             (withf (unbox box) (assure symbol key) value)
+             value)
+           (copy-table (table)
+             (box (unbox table)))
+           (conflict-ast-substitution (conflict-ast)
              "Retrieve a value from CONFLICT-AST which can be used to match on."
-              (some #'cadr (conflict-ast-child-alist conflict-ast)))
+             (some #'cadr (conflict-ast-child-alist conflict-ast)))
            (get-matchable-value (value)
              "Get a value that can be matched on by the tree-sitter rules."
              (if (typep value 'conflict-ast)
                  (conflict-ast-substitution value)
                  value))
            (populate-slot->stack ()
-             "Create a hash table that maps a slot name to its
+             "Create a table that maps a slot name to its
               corresponding stack."
-             (alist-hash-table
-              (mapcar
-               (lambda (slot)
-                 (let* ((slot-value (slot-value ast slot)))
-                   (cons slot (and slot-value (ensure-cons slot-value)))))
-                 slots)))
+             (lret ((table (box (empty-map))))
+               (iter (for slot in slots)
+                     (let ((slot-value (slot-value ast slot)))
+                       (ensure-get* slot table
+                                    (and slot-value (ensure-cons slot-value)))))))
            (identical-slot-stacks-p (slot->stack1 slot->stack2)
              "Return T if the slot stacks in slot->stack are identical
               except the child stack."
              (iter
-               (for (slot stack) in-hashtable slot->stack1)
+              (for (slot stack) in-map (unbox slot->stack1))
                (always (or (eql slot child-stack-key)
-                           (eq stack (gethash slot slot->stack2))))))
+                           (eq stack (get* slot slot->stack2))))))
            (push-child-stack (value slot->stack)
              "Push VALUE onto the child stack in SLOT->STACK."
-             (push value (gethash child-stack-key slot->stack)))
+             (push value (get* child-stack-key slot->stack)))
            (trim-slot-stack (slot slot->stack)
              "Removes one item from SLOT's stack in SLOT->STACK and returns
               a copy of SLOT->STACK with this change."
-             (let ((copy (copy-hash-table slot->stack)))
-               (symbol-macrolet ((slot-hash (gethash slot copy)))
+             (let ((copy (copy-table slot->stack)))
+               (symbol-macrolet ((slot-hash (get* slot copy)))
                  (push-child-stack (car slot-hash) copy)
                  (setf slot-hash (cdr slot-hash))
                  copy)))
            (handle-child (rule slot->stack)
              (when (typep (get-matchable-value
-                           (car (gethash 'children slot->stack)))
+                           (car (get* 'children slot->stack)))
                           ;; Treat source-text-fragment as a wild card.
                           (append '(or source-text-fragment) (cdr rule)))
                (trim-slot-stack 'children slot->stack)))
            (handle-field (rule slot->stack &aux (slot (cadr rule)))
              (when (typep (get-matchable-value
-                           (car (gethash slot slot->stack)))
+                           (car (get* slot slot->stack)))
                           (append '(or source-text-fragment) (cddr rule)))
                (trim-slot-stack slot slot->stack)))
            (handle-slot (rule slot->stack &aux (slot (cadr rule)))
-             (ensure-gethash slot slot->stack (slot-value ast slot))
+             (ensure-get* slot slot->stack (slot-value ast slot))
              (trim-slot-stack slot slot->stack))
            (handle-choice (rule slot->stack)
              ;; NOTE: since this doesn't back track it won't work on certain
@@ -6383,7 +6389,7 @@ which slots are expected to be used."
              ;;       list of (:choice branch-num) into the children list.
              (if (every #'null (cdr rule))
                  ;; If every branch is nil, assume a match on the first one.
-                 (lret ((copy (copy-hash-table slot->stack)))
+                 (lret ((copy (copy-table slot->stack)))
                    (push-child-stack `(:choice 0) copy))
                  (iter
                    (iter:with empty-match?)
@@ -6391,7 +6397,7 @@ which slots are expected to be used."
                    (for i upfrom 0)
                    (cond
                      (branch
-                      (for copy = (copy-hash-table slot->stack))
+                      (for copy = (copy-table slot->stack))
                       (push-child-stack `(:choice ,i) copy)
                       (when-let ((matched? (rule-handler branch copy)))
                         (leave matched?)))
@@ -6400,13 +6406,13 @@ which slots are expected to be used."
                     (return
                       ;; Handles the case where it matched on an empty branch.
                       (when-let ((copy (and empty-match?
-                                            (copy-hash-table slot->stack))))
+                                            (copy-table slot->stack))))
                         (push-child-stack `(:choice ,empty-match?)
                                           copy)
                         copy))))))
            (handle-repeat (rule slot->stack
                            &optional continuation?
-                           &aux (copy (copy-hash-table slot->stack)))
+                           &aux (copy (copy-table slot->stack)))
              ;; NOTE: since this doesn't back track it won't work on certain
              ;;       rules. Currently, I'm not aware of any rules that
              ;;       need back tracking, so I'm ignoring this for now.
@@ -6456,15 +6462,13 @@ which slots are expected to be used."
            (slot-stacks-empty-p (slot->stack)
              "Return T if SLOT->STACK doesn't have any slots that
               map to a non-empty stack."
-             (every #'null
-                    (maphash-return
-                     (lambda (slot stack)
-                       (unless (eq slot child-stack-key)
-                         stack))
-                     slot->stack))))
+             (iter (for (slot stack) in-map (unbox slot->stack))
+                   (never
+                    (unless (eq slot child-stack-key)
+                      stack)))))
     (let ((slot->stack (rule-handler pruned-rule (populate-slot->stack))))
       (if (and slot->stack (slot-stacks-empty-p slot->stack))
-          (reverse (gethash child-stack-key slot->stack))
+          (reverse (get* child-stack-key slot->stack))
           (error 'rule-matching-error
                  :rule-matching-error-rule pruned-rule
                  :rule-matching-error-ast ast)))))
