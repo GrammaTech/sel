@@ -503,6 +503,8 @@
            :canonical-type
            ;; Generics
            ;; TODO: should this be in parseable?
+           :with-symbol-table
+           :make-symbol-table
            :collect-var-uses
            :get-declaration-ast
            :get-initialization-ast
@@ -6099,10 +6101,72 @@ Every element in the list has the following form:
 (defgeneric variable-use-p (obj identifier &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
+;;; Use a distinct type for symbol tables so we keep our options open
+;;; for changing the implementation later.
+(defstruct-read-only symbol-table
+  "A symbol table."
+  (table (dict) :type hash-table))
+
+(declaim (type symbol-table *symbol-table*))
+(defvar-unbound *symbol-table*
+  "Holds cached analyses.")
+
+(defun call/cached-analysis (fn key &rest args)
+  "If `*symbol-table*` is bound, use it to memoize FN, a function of
+no arguments, storing results under KEY and ARGS."
+  (if (boundp '*symbol-table*)
+      (let ((key (cons key args))
+            (table *symbol-table*))
+        (symbol-macrolet ((store (gethash key (symbol-table-table table))))
+          (multiple-value-bind (result result?) store
+            (if result?
+                (values-list result)
+                (let ((result (multiple-value-list (funcall fn))))
+                  (setf store result)
+                  (values-list result))))))
+      (funcall fn)))
+
+(defmacro with-analysis-memoization ((&rest args) &body body)
+  "When `*symbol-table*' is bound, use it to memoize BODY.
+A unique key is implicitly generated for each use of the macro, so
+separate uses will not interfere with each other."
+  (with-thunk (body)
+    `(call/cached-analysis
+      ,body
+      ;; NB SBCL can have issues with preserving identity for
+      ;; compile-time embedded gensyms.
+      (load-time-value (gensym) t)
+      ,@args)))
+
+(defun call/symbol-table (fn &key (symbol-table (make-symbol-table)))
+  (assert (typep symbol-table 'symbol-table))
+  (if (boundp '*symbol-table*)
+      (funcall fn)
+      (let ((*symbol-table* symbol-table))
+        (funcall fn))))
+
+(defmacro with-symbol-table ((&key (symbol-table '(make-symbol-table))) &body body)
+  "Invoke BODY with memoization of analyses.
+This should only be used when BODY does not mutate the software being
+analyzed.
+
+If you want a persistent symbol table to use across multiple analyses,
+you can allocate one with `make-symbol-table' and pass it as the
+symbol table argument to `with-symbol-table':
+
+    (with-symbol-table (:symbol-table my-table)
+      ...)"
+  (with-thunk (body)
+    `(call/symbol-table ,body :symbol-table ,symbol-table)))
+
 (defgeneric get-declaration-ast (obj ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.")
   ;; NB Not tree-sitter, since that would shadow normal-scope.
+  (:method-combination standard/context)
+  (:method :context (obj ast)
+    (with-analysis-memoization (obj ast)
+      (call-next-method)))
   (:method ((obj t) (ast ast)) nil)
   (:method ((obj software) (ast variable-declaration-ast)) ast)
   (:method ((obj normal-scope) (identifier identifier-ast))
@@ -6129,6 +6193,10 @@ For a declaration AST, return AST unchanged.")
 This is useful when languages allow a single declaration to initialize
 more than one variable, and for languages that allow declaration and
 initialization to be separate.")
+  (:method-combination standard/context)
+  (:method :context (obj ast)
+    (with-analysis-memoization (obj ast)
+      (call-next-method)))
   (:method ((obj t) (ast t))
     (when-let (id (get-declaration-id obj ast))
       (find-enclosing 'variable-initialization-ast
@@ -6141,6 +6209,10 @@ initialization to be separate.")
 This is important because a single declaration may define multiple
 variables, e.g. in C/C++ declaration syntax or in languages that
 support destructuring.")
+  (:method-combination standard/context)
+  (:method :context (obj ast)
+    (with-analysis-memoization (obj ast)
+      (call-next-method)))
   (:method ((obj t) (id identifier-ast))
     (let ((id-text (source-text id)))
       (find-if (lambda (ast)
@@ -6151,6 +6223,10 @@ support destructuring.")
 
 (defgeneric collect-var-uses (obj identifier &key &allow-other-keys)
   (:documentation "Collect uses of IDENTIFIER in OBJ.")
+  (:method-combination standard/context)
+  (:method :context (obj id &rest args &key &allow-other-keys)
+    (with-analysis-memoization (obj id args)
+      (call-next-method)))
   (:method ((obj normal-scope) (identifier identifier-ast)
             &key &aux after-decl-flag)
     (labels ((initial-declaration-p ()
@@ -6227,22 +6303,39 @@ If NODE is not a thing that has fields, return nil.")
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
+  (:method-combination standard/context)
+  (:method :context (obj ast)
+    (with-analysis-memoization (obj ast)
+      (call-next-method)))
   (:method ((software tree-sitter) (ast ast))
-    (or (infer-expression-type software ast)
-        (when-let (decl (get-declaration-ast software ast))
-          (resolve-declaration-type software decl ast)))))
+    (with-analysis-memoization (software ast)
+      (or (infer-expression-type software ast)
+          (when-let (decl (get-declaration-ast software ast))
+            (resolve-declaration-type software decl ast))))))
 
 (defgeneric infer-expression-type (software ast)
+  (:method-combination standard/context)
+  (:method :context (obj ast)
+    (with-analysis-memoization (obj ast)
+      (call-next-method)))
   (:method ((software tree-sitter) (ast ast))
     (expression-type ast)))
 
 (defgeneric expression-type (ast)
+  (:method-combination standard/context)
+  (:method :context (ast)
+    (with-analysis-memoization (ast)
+      (call-next-method)))
   (:method ((ast ast)) nil))
 
 (defgeneric extract-declaration-type (software decl-ast)
   (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
 
 By default calls `declaration-type' with DECL-AST.")
+  (:method-combination standard/context)
+  (:method :context (obj ast)
+    (with-analysis-memoization (obj ast)
+      (call-next-method)))
   (:method ((software tree-sitter) (ast ast))
     (declaration-type ast)))
 
@@ -6256,13 +6349,23 @@ but `y' as a float.)
 
 By default simply calls `extract-declaration-type' with SOFTWARE and
 DECL-AST.")
+  (:method-combination standard/context)
+  (:method :context (obj decl ast)
+    (with-analysis-memoization (obj decl ast)
+      (call-next-method)))
   (:method ((software tree-sitter) (decl-ast ast) (ast ast))
-    (extract-declaration-type software decl-ast)))
+    (with-analysis-memoization (software decl-ast ast)
+      (extract-declaration-type software decl-ast))))
 
 (defgeneric declaration-type (declaration-ast)
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
+  (:method-combination standard/context)
+  (:method :context (ast)
+    (with-analysis-memoization (ast)
+      (call-next-method)))
   (:method ((ast ast)) nil))
 
+;;; TODO Replace with canonicalize-type.
 (defgeneric type-descriptor (type-ast)
   (:documentation "Return the type denoted by AST in some canonical form.
 Equivalent type descriptors should be equal under `equal?'.")
@@ -6291,11 +6394,19 @@ return whether they are equal.")
 
 (defgeneric aliasee (software pointer-var)
   (:documentation
-   "If POINTER-VAR holds a pointer, resolve the plain variable it points to."))
+   "If POINTER-VAR holds a pointer, resolve the plain variable it points to.")
+  (:method-combination standard/context)
+  (:method :context (software pointer-var)
+    (with-analysis-memoization (software pointer-var)
+      (call-next-method))))
 
 (defgeneric alias-set (software plain-var)
   (:documentation
-   "Get the declarations (as identifiers), as in `get-declaration-id' of variables in SOFTWARE that are aliases (pointers or referenes) for PLAIN-VAR."))
+   "Get the declarations (as identifiers), as in `get-declaration-id' of variables in SOFTWARE that are aliases (pointers or referenes) for PLAIN-VAR.")
+  (:method-combination standard/context)
+  (:method :context (software plain-var)
+    (with-analysis-memoization (software plain-var)
+      (call-next-method))))
 
 
 ;;;; Structured text
