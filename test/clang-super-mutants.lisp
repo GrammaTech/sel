@@ -302,6 +302,7 @@
   (let* ((obj (from-string (make-instance 'mutation-failure-tester)
                            "int main() { return 0; }"))
          (*population* (list obj))
+         (*max-population-size* 10)
          (*fitness-evals* 0)
          (*cross-chance* 0)
          (*target-fitness-p* (lambda (fit) (declare (ignorable fit)) t)))
