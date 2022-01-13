@@ -6138,11 +6138,11 @@ separate uses will not interfere with each other."
       (load-time-value (gensym) t)
       ,@args)))
 
-(defun call/analysis-cache (fn &key (analysis-cache (make-analysis-cache)))
-  (assert (typep analysis-cache 'analysis-cache))
+(defun call/analysis-cache (fn &key analysis-cache)
   (if (boundp '*analysis-cache*)
       (funcall fn)
-      (let ((*analysis-cache* analysis-cache))
+      (let ((*analysis-cache* (or analysis-cache
+                                  (make-analysis-cache))))
         (funcall fn))))
 
 (defmacro with-analysis-cache ((&key (analysis-cache '(make-analysis-cache))) &body body)
