@@ -482,6 +482,8 @@
            :function-ast
            :parameters-ast
            :variable-declaration-ast
+           :variable-initialization-ast
+           :assignment-ast
            :identifier-ast
            :lambda-ast
            :literal-ast
@@ -876,7 +878,16 @@ for the language.")
         (cpp-alternative :initarg :alternative :reader alternative)))
       (:javascript
        (javascript-switch-case
-        (javascript-body :reader body)))
+        (javascript-body :reader body))
+       (javascript-assignment-expression
+        (javascript-left :reader lhs)
+        (javascript-right :reader rhs))
+       (javascript-augmented-assignment-expression
+        (javascript-left :reader lhs)
+        (javascript-right :reader rhs))
+       (javascript-assignment-pattern
+        (javascript-left :reader lhs)
+        (javascript-right :reader rhs)))
       (:python
        (python-call
         (python-function :reader call-function)
@@ -951,7 +962,19 @@ for the language.")
          :reader parameter-type))
        (typescript-tsx-required-parameter
         (typescript-tsx-type
-         :reader parameter-type))))
+         :reader parameter-type))
+       (typescript-ts-assignment-expression
+        (typescript-ts-left :reader lhs)
+        (typescript-ts-right :reader rhs))
+       (typescript-tsx-assignment-expression
+        (typescript-tsx-left :reader lhs)
+        (typescript-tsx-right :reader rhs))
+       (typescript-ts-assignment-pattern
+        (typescript-ts-left :reader lhs)
+        (typescript-ts-right :reader rhs))
+       (typescript-tsx-assignment-pattern
+        (typescript-tsx-left :reader lhs)
+        (typescript-tsx-right :reader rhs))))
     "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
@@ -972,6 +995,7 @@ for the language.")
        (:loop-ast c-while-statement c-for-statement c-do-statement)
        (:parse-error-ast c-error)
        (:variable-initialization-ast c-init-declarator c-assignment-expression)
+       (:assignment-ast c-assignment-expression)
        (:function-ast c-function-definition)
        (:identifier-ast c-identifier)
        (:field-ast c-field-expression)
@@ -1092,6 +1116,7 @@ for the language.")
        (:boolean-false-ast cpp-false)
        (:variable-declaration-ast cpp-parameter-declaration cpp-declaration)
        (:variable-initialization-ast cpp-assignment-expression cpp-init-declarator)
+       (:assignment-ast cpp-assignment-expression)
        (:function-ast cpp-function-definition)
        (:unary-ast cpp-unary-expression)
        (:binary-ast cpp-binary-expression)
@@ -1257,14 +1282,24 @@ for the language.")
         javascript-assignment-expression
         typescript-ts-assignment-expression
         typescript-tsx-assignment-expression)
-       (:ecma-rest-pattern
-        javascript-rest-pattern
-        typescript-ts-rest-pattern
-        typescript-tsx-rest-pattern)
        (:ecma-assignment-pattern
         javascript-assignment-pattern
         typescript-ts-assignment-pattern
         typescript-tsx-assignment-pattern)
+       (:assignment-ast
+        javascript-assignment-expression
+        javascript-augmented-assignment-expression
+        javascript-assignment-pattern
+        typescript-ts-assignment-expression
+        typescript-ts-augmented-assignment-expression
+        typescript-ts-assignment-pattern
+        typescript-tsx-assignment-expression
+        typescript-tsx-augmented-assignment-expression
+        typescript-tsx-assignment-pattern)
+       (:ecma-rest-pattern
+        javascript-rest-pattern
+        typescript-ts-rest-pattern
+        typescript-tsx-rest-pattern)
        (:ecma-call-expression
         javascript-call-expression
         typescript-ts-call-expression
@@ -1312,6 +1347,7 @@ for the language.")
        (:binary-ast python-binary-operator python-boolean-operator)
        (:return-ast python-return-statement)
        (:variable-declaration-ast python-assignment python-keyword-argument)
+       (:assignment-ast python-assignment python-augmented-assignment)
        (:catch-ast python-except-clause))
       ((:typescript-ts :typescript-tsx)
        (:root-ast
@@ -2793,6 +2829,9 @@ Superclass of every generated LANGUAGE-error class."))
 
  (defclass variable-initialization-ast (variable-declaration-ast) ()
    (:documentation "Mix-in for AST classes that are variable initializers."))
+
+ (defclass assignment-ast (ast) ()
+   (:documentation "Mix-in for AST classes that are assignments."))
 
   (defclass identifier-ast (ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
