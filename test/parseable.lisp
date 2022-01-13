@@ -90,3 +90,20 @@
               (new-a (crossover soft1 soft2))
               (pos (search "case 2:" (source-text (genome new-a)))))
     (is (integerp pos))))
+
+(defvar *counter*)
+
+(define-generic-analysis inc-counter (n)
+  (:method (n)
+    (finc *counter* n)))
+
+(deftest test-with-analysis-cache ()
+  (let ((*counter* 0))
+    (is (zerop (inc-counter 1)))
+    (is (= 1 (inc-counter 1)))
+    (is (= 2 *counter*)))
+  (let ((*counter* 0))
+    (with-analysis-cache ()
+      (is (zerop (inc-counter 1)))
+      (is (zerop (inc-counter 1)))
+      (is (= 1 *counter*)))))
