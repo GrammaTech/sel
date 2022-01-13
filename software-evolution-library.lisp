@@ -949,16 +949,18 @@ Default selection function for `tournament'."
           (while (< (length variants) count))
           (finally (return (values variants infos))))))
 
-(defun -search (test step body-fn
-                &key max-evals max-time period period-fn every-pre-fn
-                  every-post-fn filter analyze-mutation-fn)
+(defun -search (evaluate-fn reproduce actions
+                &key max-evals max-time period period-fn
+                  every-pre-fn every-post-fn filter analyze-mutation-fn)
   "Perform a search loop with early termination.
 
-SPECS should be a list of the following elements.
-
-  TEST ---------------- Test function used to `evaluate' every VARIANT.
-  STEP ---------------- ...
-  BODY-FN ------------- ...
+Required arguments are as follows:
+  EVALUATE-FN --------- Test function used to `evaluate' every VARIANT.
+  REPRODUCE ----------- Function to call on every iteration to get the variants
+                         and mutation info as values from the current population.
+  ACTIONS ------------- Actions to be performed in the core search loop after
+                         the new individuals have been bound.
+Keyword arguments are as follows:
   MAX-EVALS ----------- Maximum number of evaluations to perform.
   MAX-TIME ------------ Maximum time to run.
   PERIOD -------------- Period (in evals) at which to call PERIOD-FN.
@@ -973,23 +975,32 @@ and should be dynamically bound to perform multiple different
 simultaneous searches, `*running*', `*start-time*', `*fitness-evals*'.
 The global variable `*target-fitness-p*' implicitly defines a stopping
 criteria for this search."
-  (labels ((initialize-loop ()
+  (labels ((validate-parameters ()
+             (when *target-fitness-p*
+               (assert (functionp *target-fitness-p*) (*target-fitness-p*)
+                 "`*target-fitness-p*' must be a function"))
+             (assert (typep *max-population-size* '(integer 0 *))
+               (*max-population-size*)
+               "*MAX-POPULATION-SIZE* should be an integer >= 0"))
+           (initialize-loop ()
              (unless *start-time*
                (setq *start-time* (get-internal-real-time)))
-             (setq *running* t))
-           (iteration-finished-p ()
-             "Return T if one of the following conditions are met and
-                  iteration is finished:
-                    - *running* is nil.
-                    - Maximum number of evaluations has been reached.
-                    - Maximum time has been reached."
-             (or (not *running*)
-                 (and max-evals
-                      (> *fitness-evals* max-evals))
-                 (and max-time
-                      (> (/ (- (get-internal-real-time) *start-time*)
-                            internal-time-units-per-second)
-                         max-time))))
+             (setq *running* t)
+             (validate-parameters))
+           (terminate-loop ()
+             (setf *running* nil))
+           (below-maximum-p (current max)
+             "Return T if MAX exists and CURRENT is it."
+             (or (not max) (not current) (< current max)))
+           (continue-p ()
+             "Return T if all of the following conditions are met:
+                - *running* is t.
+                - Maximum number of evaluations has not been reached.
+                - Maximum time has not been reached.
+                - Maximum generations has not been reached."
+             (and *running*
+                  (below-maximum-p *fitness-evals* max-evals)
+                  (below-maximum-p (elapsed-time) max-time)))
            (evaluate-variants (variants)
              "Evaluate the fitness of VARIANTS."
              (if (cdr variants)
@@ -1002,9 +1013,9 @@ criteria for this search."
                  ;;        new-individual.
                  (let ((super (create-and-populate-super variants)))
                    (genome super)
-                   (evaluate test super))
+                   (evaluate evaluate-fn super))
                  ;; Single variant. Evaluate directly.
-                 (evaluate test (car variants))))
+                 (evaluate evaluate-fn (car variants))))
            (remove-elite-individuals ()
              "Remove *ELITISM* individuals from population and return them."
              (assert (and (typep *elitism* '(integer 0 *))
@@ -1012,6 +1023,7 @@ criteria for this search."
                (*elitism*)
                "*ELITISM* is out of range--must be an integer >0 ~
                             and < (length *POPULATION*)")
+             ;; TODO: make this thread-safe.
              (when-let* ((sorted-population
                           (and (> *elitism* 0)
                                (stable-sort (copy-list *population*)
@@ -1024,27 +1036,46 @@ criteria for this search."
                  (setf *population* (subseq sorted-population *elitism*)))))
            (add-elite-individuals (elite-individuals)
              "Add ELITE-INDIVIDUALS to the population."
+             ;; TODO: make this thread-safe.
              (when elite-individuals
                (setf *population*
                      (concatenate 'list elite-individuals
                                   *population*))))
-           ;; TODO: find better name. What is body-fn for?
-           (call-body-fn (variants mutation-infos)
-             "Call the filter function on every variant in VARIANTS."
+           (call-actions (variants mutation-infos)
+             "Call the core operations on any variant which isn't filtered."
              (mapc (lambda (variant mutation-info)
                      (assert (fitness variant) (variant)
                        "Variant with no fitness")
-                     (when (or (not filter)
+                    (when (or (not filter)
                                (funcall filter variant))
-                       (funcall body-fn variant mutation-info))
+                       (funcall actions variant mutation-info))
                      (when (and *target-fitness-p*
                                 (funcall *target-fitness-p*
                                          variant))
                        (return-from -search variant)))
                    variants
                    mutation-infos))
-           (handle-elitism-and-body-fn (variants mutation-infos)
-             "Handle elitism if it is being used and execute the body-fn
+           (call-period-fn (fitness-evals variants-length)
+             "Call the period-fn if needed. This is based on the updated
+              FITNESS-EVALS and the VARIANTS-LENGTH that was used to
+              update it."
+             (when-let ((n-period-calls
+                         (and period period-fn
+                              ;; floor(Current evals / period) -
+                              ;; floor(previous evals / period)
+                              (- (floor fitness-evals period)
+                                 (floor (- fitness-evals variants-length)
+                                        period)))))
+               (dotimes (_ n-period-calls)
+                 (funcall period-fn))))
+           (update-evals-and-call-period-fn (variants)
+             (let ((variants-length (length variants)))
+               ;; TODO: move to an atomic incf or thread-safe incf at some point.
+               (call-period-fn
+                (incf *fitness-evals* variants-length)
+                variants-length)))
+           (handle-elitism-and-actions (variants mutation-infos)
+             "Handle elitism if it is being used and execute the actions
               with the population."
              (let ((elite-individuals (remove-elite-individuals)))
                ;; temporarily reduce *max-population-size* by *elitism*
@@ -1054,43 +1085,35 @@ criteria for this search."
                (let ((*max-population-size*
                        (if (integerp *max-population-size*)
                            (- *max-population-size* *elitism*))))
-                 (call-body-fn variants mutation-infos))
+                 (call-actions variants mutation-infos))
                (add-elite-individuals elite-individuals))))
     (loop
       :initially (initialize-loop)
-      :until (iteration-finished-p)
-      :do (restart-case
-              (multiple-value-bind (variants mutation-infos)
-                  (funcall step)
-                (when every-pre-fn
-                  (mapc every-pre-fn variants))
-                (evaluate-variants variants)
-                (when analyze-mutation-fn
-                  (mapc (lambda (variant info)
-                          (funcall analyze-mutation-fn variant info test))
-                        variants
-                        mutation-infos))
-                (when every-post-fn
-                  (mapc every-post-fn variants))
-                (dotimes (_ (length variants))
-                  (incf *fitness-evals*)
-                  (when (and period period-fn
-                             (zerop (mod *fitness-evals* period)))
-                    (funcall period-fn)))
-                (handle-elitism-and-body-fn variants mutation-infos))
-            (ignore-failed-mutation ()
-              :report
-              "Ignore failed mutation and continue evolution"))
-      :finally (setf *running* nil))))
+      :while (continue-p)
+      :do
+         (restart-case
+             (multiple-value-bind (variants mutation-infos)
+                 ;; TODO: generational evolve expects *population* to be passed
+                 ;;       in to the reproduce funcall.
+                 (funcall reproduce)
+               (when every-pre-fn
+                 (mapc every-pre-fn variants))
+               (evaluate-variants variants)
+               (when analyze-mutation-fn
+                 (mapc (lambda (variant info)
+                         (funcall analyze-mutation-fn variant info evaluate-fn))
+                       variants
+                       mutation-infos))
+               (when every-post-fn
+                 (mapc every-post-fn variants))
+               (update-evals-and-call-period-fn variants)
+               (handle-elitism-and-actions variants mutation-infos))
+           (ignore-failed-mutation ()
+             :report
+             "Ignore failed mutation and continue evolution"))
+      :finally (terminate-loop))))
 
-(defmacro mcmc (original test
-                &rest rest
-                &key
-                  ;; TODO: remove these since they aren't being used
-                  ;;       or call them directly. Removing them would
-                  ;;       result in lost information in the macro signature.
-                  accept-fn max-evals max-time period period-fn
-                  every-pre-fn every-post-fn filter analyze-mutation-fn)
+(defmacro mcmc (original test &rest rest &key accept-fn &allow-other-keys)
   "MCMC search from ORIGINAL using `mcmc-step' and TEST.
 If keyword argument ACCEPT-FN is given it is used to determine when a
 newly found candidate replaces the current candidate.  If ACCEPT-FN is
@@ -1105,7 +1128,7 @@ Other keyword arguments are used as defined in the `-search' function."
                       (lambda (new mut-info)
                         (when (funcall accept-fn (fitness ,curr) (fitness new))
                           (setf ,curr new)))
-                      ,@rest))))
+                      ,@(remove-from-plist rest :super-mutant-count)))))
     (if accept-fn
         body
         `(let ((accept-fn
@@ -1115,15 +1138,8 @@ Other keyword arguments are used as defined in the `-search' function."
                          (if (> new curr) (/ curr new) (/ new curr)))))))
            ,body))))
 
-(defmacro evolve (test
-                  &rest rest
-                  &key
-                    ;; TODO: remove these since they aren't being used
-                    ;;       or call them directly. Removing them would
-                    ;;       result in lost information in the macro signature.
-                    max-evals max-time period period-fn
-                    every-pre-fn every-post-fn filter analyze-mutation-fn
-                    (super-mutant-count 1))
+;;; Steady State Evolve
+(defmacro evolve (test &rest rest &key (super-mutant-count 1) &allow-other-keys)
   "Evolves `*population*' using `new-individual' and TEST.
 
 * SUPER-MUTANT-COUNT evaluate this number of mutants at once in a
