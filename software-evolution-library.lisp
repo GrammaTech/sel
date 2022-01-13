@@ -799,6 +799,9 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
 
 
 ;;; Evolution
+;;; TODO: *population* accesses are currently not thread-safe.
+;;;       A mutex should be created for it, and modifications should
+;;;       be wrapped in a with-mutex.
 (defvar *population* nil
   "Holds the variant programs to be evolved.
 This variable may be read to inspect a running search process, or
@@ -949,6 +952,87 @@ Default selection function for `tournament'."
           (while (< (length variants) count))
           (finally (return (values variants infos))))))
 
+(defun validate-evolution-parameters ()
+  "Validate special variables that are used during the evolutionary loop."
+  (when *target-fitness-p*
+    (assert (functionp *target-fitness-p*) (*target-fitness-p*)
+      "`*target-fitness-p*' must be a function"))
+  (assert (typep *max-population-size* '(integer 0 *))
+    (*max-population-size*)
+    "*MAX-POPULATION-SIZE* should be an integer >= 0"))
+
+(defun initialize-evolutionary-loop (&key generations)
+  "Initialize common special variables used by the evolutionary loop and
+assert their validity."
+  ;; NOTE: there are technically race conditions here, but they are likely
+  ;;       not much of an issue.
+  (when generations
+    (setf *generations* 0))
+  (unless *start-time*
+    (setf *start-time* (get-internal-real-time)))
+  (setf *running* t)
+  (validate-evolution-parameters))
+
+(defun deinitialize-evolutionary-loop ()
+  "Deinitialize common special variables used by the evolutionary loop."
+  (setf *running* nil))
+
+(defun continue-evolutionary-loop-p (&key max-time max-evals max-generations)
+  "Return T if all of the common conditions are met for continuing the
+evolutionary loop:
+
+ - *running* is t.
+ - Maximum number of evaluations has not been reached.
+ - Maximum time has not been reached.
+ - Maximum generations has not been reached."
+  (labels ((below-maximum-p (current max)
+             "Return T if MAX exists and CURRENT is it."
+             (or (not max) (not current) (< current max))))
+    (and *running*
+         (below-maximum-p *fitness-evals* max-evals)
+         (below-maximum-p (elapsed-time) max-time)
+         (below-maximum-p *generations* max-generations))))
+
+(defun remove-elite-individuals ()
+  "Remove *ELITISM* individuals from population and return them."
+  (assert (and (typep *elitism* '(integer 0 *))
+               (< *elitism* (length *population*)))
+    (*elitism*)
+    "*ELITISM* is out of range--must be an integer >0 ~
+                            and < (length *POPULATION*)")
+  ;; TODO: make the *population* access and modification thread-safe.
+  (when-let* ((sorted-population
+               (and (> *elitism* 0)
+                    (stable-sort (copy-list *population*)
+                                 'fitness-better-p
+                                 :key 'fitness))))
+    (prog1
+        ;; return elite individuals
+        (subseq sorted-population 0 *elitism*)
+      ;; remove elite individuals from *population*
+      (setf *population* (subseq sorted-population *elitism*)))))
+
+(defun add-elite-individuals (elite-individuals)
+  "Add ELITE-INDIVIDUALS to the population.
+NEW-POPULATION can be used if *POPULATION* doesn't contain the current value."
+  ;; TODO: make the *population* access and modification thread-safe.
+  (when elite-individuals
+    (setf *population*
+          (concatenate 'list elite-individuals *population*))))
+
+(defun call-period-fn (period-fn period current-evals evals-delta)
+  "Call the period-fn if needed. This is based on the updated CURRENT-EVALS and
+ the EVALS-DELTA that was used to update it."
+  (when-let ((n-period-calls
+              (and period period-fn
+                   ;; floor(Current evals / period) -
+                   ;; floor(previous evals / period)
+                   (- (floor current-evals period)
+                      (floor (- current-evals evals-delta)
+                             period)))))
+    (dotimes (_ n-period-calls)
+      (funcall period-fn))))
+
 (defun -search (evaluate-fn reproduce actions
                 &key max-evals max-time period period-fn
                   every-pre-fn every-post-fn filter analyze-mutation-fn)
@@ -975,33 +1059,7 @@ and should be dynamically bound to perform multiple different
 simultaneous searches, `*running*', `*start-time*', `*fitness-evals*'.
 The global variable `*target-fitness-p*' implicitly defines a stopping
 criteria for this search."
-  (labels ((validate-parameters ()
-             (when *target-fitness-p*
-               (assert (functionp *target-fitness-p*) (*target-fitness-p*)
-                 "`*target-fitness-p*' must be a function"))
-             (assert (typep *max-population-size* '(integer 0 *))
-               (*max-population-size*)
-               "*MAX-POPULATION-SIZE* should be an integer >= 0"))
-           (initialize-loop ()
-             (unless *start-time*
-               (setq *start-time* (get-internal-real-time)))
-             (setq *running* t)
-             (validate-parameters))
-           (terminate-loop ()
-             (setf *running* nil))
-           (below-maximum-p (current max)
-             "Return T if MAX exists and CURRENT is it."
-             (or (not max) (not current) (< current max)))
-           (continue-p ()
-             "Return T if all of the following conditions are met:
-                - *running* is t.
-                - Maximum number of evaluations has not been reached.
-                - Maximum time has not been reached.
-                - Maximum generations has not been reached."
-             (and *running*
-                  (below-maximum-p *fitness-evals* max-evals)
-                  (below-maximum-p (elapsed-time) max-time)))
-           (evaluate-variants (variants)
+  (labels ((evaluate-variants (variants)
              "Evaluate the fitness of VARIANTS."
              (if (cdr variants)
                  ;; Multiple variants. Combine into super-mutant.
@@ -1016,31 +1074,6 @@ criteria for this search."
                    (evaluate evaluate-fn super))
                  ;; Single variant. Evaluate directly.
                  (evaluate evaluate-fn (car variants))))
-           (remove-elite-individuals ()
-             "Remove *ELITISM* individuals from population and return them."
-             (assert (and (typep *elitism* '(integer 0 *))
-                          (< *elitism* (length *population*)))
-               (*elitism*)
-               "*ELITISM* is out of range--must be an integer >0 ~
-                            and < (length *POPULATION*)")
-             ;; TODO: make this thread-safe.
-             (when-let* ((sorted-population
-                          (and (> *elitism* 0)
-                               (stable-sort (copy-list *population*)
-                                            'fitness-better-p
-                                            :key 'fitness))))
-               (prog1
-                   ;; return elite individuals
-                   (subseq sorted-population 0 *elitism*)
-                 ;; remove elite individuals from *population*
-                 (setf *population* (subseq sorted-population *elitism*)))))
-           (add-elite-individuals (elite-individuals)
-             "Add ELITE-INDIVIDUALS to the population."
-             ;; TODO: make this thread-safe.
-             (when elite-individuals
-               (setf *population*
-                     (concatenate 'list elite-individuals
-                                  *population*))))
            (call-actions (variants mutation-infos)
              "Call the core operations on any variant which isn't filtered."
              (mapc (lambda (variant mutation-info)
@@ -1055,23 +1088,15 @@ criteria for this search."
                        (return-from -search variant)))
                    variants
                    mutation-infos))
-           (call-period-fn (fitness-evals variants-length)
-             "Call the period-fn if needed. This is based on the updated
-              FITNESS-EVALS and the VARIANTS-LENGTH that was used to
-              update it."
-             (when-let ((n-period-calls
-                         (and period period-fn
-                              ;; floor(Current evals / period) -
-                              ;; floor(previous evals / period)
-                              (- (floor fitness-evals period)
-                                 (floor (- fitness-evals variants-length)
-                                        period)))))
-               (dotimes (_ n-period-calls)
-                 (funcall period-fn))))
            (update-evals-and-call-period-fn (variants)
              (let ((variants-length (length variants)))
-               ;; TODO: move to an atomic incf or thread-safe incf at some point.
                (call-period-fn
+                period-fn
+                period
+                ;; NOTE: there is a race condition with incf. It's not a major
+                ;;       issue in regards to performing the evolutionary loop as
+                ;;       it can only increase the run time if it would terminate
+                ;;       on a max fitness evals check.
                 (incf *fitness-evals* variants-length)
                 variants-length)))
            (handle-elitism-and-actions (variants mutation-infos)
@@ -1088,13 +1113,12 @@ criteria for this search."
                  (call-actions variants mutation-infos))
                (add-elite-individuals elite-individuals))))
     (loop
-      :initially (initialize-loop)
-      :while (continue-p)
+      :initially (initialize-evolutionary-loop)
+      :while (continue-evolutionary-loop-p :max-time max-time
+                                           :max-evals max-evals)
       :do
          (restart-case
              (multiple-value-bind (variants mutation-infos)
-                 ;; TODO: generational evolve expects *population* to be passed
-                 ;;       in to the reproduce funcall.
                  (funcall reproduce)
                (when every-pre-fn
                  (mapc every-pre-fn variants))
@@ -1111,7 +1135,7 @@ criteria for this search."
            (ignore-failed-mutation ()
              :report
              "Ignore failed mutation and continue evolution"))
-      :finally (terminate-loop))))
+      :finally (deinitialize-evolutionary-loop))))
 
 (defmacro mcmc (original test &rest rest &key accept-fn &allow-other-keys)
   "MCMC search from ORIGINAL using `mcmc-step' and TEST.
@@ -1176,25 +1200,20 @@ Keyword arguments are as follows:
   EVERY-POST-FN ------- function to run on each new individual after evaluation
   ANALYZE-MUTATION-FN - function to call to analyze mutation results
   TEST ---------------- fitness test function for mutation statistics
-  FILTER -------------- remove individuals for which FILTER returns false"
+  FILTER -------------- remove individuals for which FILTER returns false
 
-  (setq *running* t)
-  (setq *generations* 0)
-  (setq *start-time* (get-internal-real-time))
-  (when *target-fitness-p*
-    (assert (functionp *target-fitness-p*) (*target-fitness-p*)
-            "`*target-fitness-p*' must be a function"))
-  (assert (typep *max-population-size* '(integer 0 *))
-          (*max-population-size*)
-          "*MAX-POPULATION-SIZE* should be an integer >= 0")
-  (flet
-      ((check-max (current max)
-         (or (not max) (not current) (< current max))))
-    (prog1
-        (loop :while (and *running*
-                          (check-max *generations* max-generations)
-                          (check-max *fitness-evals* max-evals)
-                          (check-max (elapsed-time) max-time)) :do
+Note that REPRODUCE should handle any errors that occur from failed mutations.
+This differs from how evolve works."
+
+  (prog1
+      (loop
+        :initially (initialize-evolutionary-loop :generations t)
+        :while (continue-evolutionary-loop-p
+                :max-time max-time
+                ;; TODO: fitness evals isn't incremented in this loop.
+                :max-evals max-evals
+                :max-generations max-generations)
+        :do
            (incf *generations*)
            (multiple-value-bind (children mutation-info)
                (funcall reproduce *population*)
@@ -1205,42 +1224,23 @@ Keyword arguments are as follows:
                            (funcall analyze-mutation-fn c info test))
                          children mutation-info))
              (if every-post-fn (mapc {funcall every-post-fn} children))
-             (if filter (setq children (delete-if-not filter children)))
-
-             ;; support for *elitism*
-             (assert (and (typep *elitism* '(integer 0 *))
-                          (< *elitism* (length *population*)))
-                     (*elitism*)
-                     "*ELITISM* is out of range--must be an integer >0 ~
-                            and < (length *POPULATION*)")
-             (let* ((sorted-population
-                     (and (> *elitism* 0)
-                          (stable-sort (copy-list *population*)
-                                       'fitness-better-p
-                                       :key 'fitness)))
-                    ;; capture elite individuals
-                    (elite-individuals
-                     (and sorted-population
-                          (subseq sorted-population 0 *elitism*))))
-               ;; remove elite individuals from *population*
-               (when elite-individuals
-                 (setf *population*
-                       (subseq sorted-population *elitism*)))
-
-             (setq *population* (append children *population*))
-             (loop :for child :in children
-                :when (funcall *target-fitness-p* child) :do
-                (setf *running* nil)
-                  (return-from generational-evolve child))
-             ;; re-insert elite individuals at the beginning of list
-             (setq *population*
-                   (append elite-individuals
-                           (funcall select *population*
-                                    (- *max-population-size* *elitism*))))
-             (assert (<= (length *population*) *max-population-size*))))
+             (if filter (setf children (delete-if-not filter children)))
+             (let ((elite-individuals (remove-elite-individuals)))
+               (setf *population* (append children *population*))
+               (loop :for child :in children
+                     :when (funcall *target-fitness-p* child) :do
+                       (setf *running* nil)
+                       (return-from generational-evolve child))
+               (setf *population*
+                     (funcall select *population*
+                              ;; leave room for the elite individuals
+                              ;; after the select operation.
+                              (- *max-population-size* *elitism*)))
+               (add-elite-individuals elite-individuals)
+               (assert (<= (length *population*) *max-population-size*))))
            (if (and period period-fn (zerop (mod *generations* period)))
-               (funcall period-fn)))
-      (setq *running* nil))))
+               (funcall period-fn))
+        :finally (deinitialize-evolutionary-loop))))
 
 (defun simple-reproduce (population &aux children mutations)
   "Reproduce using every individual in POPULATION.
