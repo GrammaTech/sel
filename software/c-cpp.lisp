@@ -574,6 +574,15 @@ array, function parameter, parens, and pointer information.")
     :documentation "The bitfield part of the canonical type."))
   (:documentation "C/C++ representation of canonical types."))
 
+(defmethod print-object ((self c/cpp-canonical-type) stream)
+  (print-unreadable-object (self stream :type t)
+    (with-slots (specifier declarator bitfield) self
+      (format stream "~a ~a ~a"
+              specifier
+              declarator
+              bitfield)))
+  self)
+
 (defmethod canonicalize-type
     ((declaration c/cpp-declaration)
      &key ast-type canonical-type
