@@ -939,6 +939,13 @@ operator."
     (is (= 1 (count-if (of-type 'cpp-type-qualifier) specifier-list)))
     (is (= 1 (count-if (of-type 'cpp-storage-class-specifier) specifier-list)))))
 
+(deftest cpp-canonicalize-type-bitfield-1 ()
+  "Canonicalize-type handles a null bitfield in a field declaration."
+  (with-canonicalize-type-test
+      ("struct Point {
+  Point PointAlongSegment(const Point&, double);
+};" :target-ast-type cpp-field-declaration)))
+
 (defun is-canonical-type= (ast1 ast2)
   "Test whether AST1 and AST2 are canonical-type=."
   (is (canonical-type= (canonicalize-type ast1) (canonicalize-type ast2))))

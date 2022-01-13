@@ -591,7 +591,8 @@ array, function parameter, parens, and pointer information.")
    canonical-type
    :specifier (get-specifier-list ast-type declaration)
    :declarator (canonicalize-declarator declarator)
-   :bitfield (car (direct-children (car (direct-children declaration))))))
+   :bitfield (when-let (declaration-children (direct-children declaration))
+               (car (direct-children (car declaration-children))))))
 
 (defmethod canonicalize-type
     ((declaration c/cpp-function-definition)
