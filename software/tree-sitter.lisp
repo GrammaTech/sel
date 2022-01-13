@@ -424,8 +424,6 @@
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:shadowing-import-from :cl-tree-sitter :parse-string)
         (values))
-  (:import-from :software-evolution-library/software/parseable
-                :with-analysis-memoization) ;Not public.
   (:export :tree-sitter-ast
            :tree-sitter
            :*tree-sitter-language-directories*
@@ -5835,7 +5833,7 @@ should be rebound.")
                  value))
     (list value)))
 
-(defgeneric statements-in-scope (obj scope ast)
+(define-generic-analysis statements-in-scope (obj scope ast)
   (:documentation "Return all child statements of SCOPE prior to AST.")
   (:method (obj (scope ast) (ast ast))
     (iter (for c in (remove nil (children scope)))
@@ -6033,12 +6031,12 @@ Return NIL on the empty list.")
   (:documentation "Find the enclosing definition AST in which AST resides,
 or NIL if none."))
 
-(defgeneric imports (software ast &key)
+(define-generic-analysis imports (software ast &key)
   (:documentation "Return a list of the imports available in SOFTWARE at AST.
 Every element in the list has the following form:
     (full-name alias/nickname named-imports)"))
 
-(defgeneric provided-by (software ast)
+(define-generic-analysis provided-by (software ast)
   (:documentation
    "Return the library, package, or system in SOFTWARE providing AST."))
 
@@ -6098,17 +6096,13 @@ Every element in the list has the following form:
         (list ast)
         (get-unbound-children))))
 
-(defgeneric variable-use-p (obj identifier &key &allow-other-keys)
+(define-generic-analysis variable-use-p (obj identifier &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
-(defgeneric get-declaration-ast (obj ast)
+(define-generic-analysis get-declaration-ast (obj ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.")
   ;; NB Not tree-sitter, since that would shadow normal-scope.
-  (:method-combination standard/context)
-  (:method :context (obj ast)
-    (with-analysis-memoization (obj ast)
-      (call-next-method)))
   (:method ((obj t) (ast ast)) nil)
   (:method ((obj software) (ast variable-declaration-ast)) ast)
   (:method ((obj normal-scope) (identifier identifier-ast))
@@ -6129,32 +6123,24 @@ For a declaration AST, return AST unchanged.")
             (scopes obj identifier)
             :key {aget :name})))))
 
-(defgeneric get-initialization-ast (obj ast)
+(define-generic-analysis get-initialization-ast (obj ast)
   (:documentation "Find where AST is initialized.
 
 This is useful when languages allow a single declaration to initialize
 more than one variable, and for languages that allow declaration and
 initialization to be separate.")
-  (:method-combination standard/context)
-  (:method :context (obj ast)
-    (with-analysis-memoization (obj ast)
-      (call-next-method)))
   (:method ((obj t) (ast t))
     (when-let (id (get-declaration-id obj ast))
       (find-enclosing 'variable-initialization-ast
                       obj
                       id))))
 
-(defgeneric get-declaration-id (obj ast)
+(define-generic-analysis get-declaration-id (obj ast)
   (:documentation "Find AST's declaration (using `get-declaration-ast') and extract the corresponding identifier.
 
 This is important because a single declaration may define multiple
 variables, e.g. in C/C++ declaration syntax or in languages that
 support destructuring.")
-  (:method-combination standard/context)
-  (:method :context (obj ast)
-    (with-analysis-memoization (obj ast)
-      (call-next-method)))
   (:method ((obj t) (id identifier-ast))
     (let ((id-text (source-text id)))
       (find-if (lambda (ast)
@@ -6163,12 +6149,8 @@ support destructuring.")
                              id-text)))
                (get-declaration-ast obj id)))))
 
-(defgeneric collect-var-uses (obj identifier &key &allow-other-keys)
+(define-generic-analysis collect-var-uses (obj identifier &key &allow-other-keys)
   (:documentation "Collect uses of IDENTIFIER in OBJ.")
-  (:method-combination standard/context)
-  (:method :context (obj id &rest args &key &allow-other-keys)
-    (with-analysis-memoization (obj id args)
-      (call-next-method)))
   (:method ((obj normal-scope) (identifier identifier-ast)
             &key &aux after-decl-flag)
     (labels ((initial-declaration-p ()
@@ -6239,49 +6221,32 @@ If NODE is not a thing that has fields, return nil.")
           (source-text result)
           result))))
 
-(defgeneric infer-type (software ast)
+(define-generic-analysis infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
-  (:method-combination standard/context)
-  (:method :context (obj ast)
-    (with-analysis-memoization (obj ast)
-      (call-next-method)))
   (:method ((software tree-sitter) (ast ast))
-    (with-analysis-memoization (software ast)
-      (or (infer-expression-type software ast)
-          (when-let (decl (get-declaration-ast software ast))
-            (resolve-declaration-type software decl ast))))))
+    (or (infer-expression-type software ast)
+        (when-let (decl (get-declaration-ast software ast))
+          (resolve-declaration-type software decl ast)))))
 
-(defgeneric infer-expression-type (software ast)
-  (:method-combination standard/context)
-  (:method :context (obj ast)
-    (with-analysis-memoization (obj ast)
-      (call-next-method)))
+(define-generic-analysis infer-expression-type (software ast)
   (:method ((software tree-sitter) (ast ast))
     (expression-type ast)))
 
-(defgeneric expression-type (ast)
-  (:method-combination standard/context)
-  (:method :context (ast)
-    (with-analysis-memoization (ast)
-      (call-next-method)))
+(define-generic-analysis expression-type (ast)
   (:method ((ast ast)) nil))
 
-(defgeneric extract-declaration-type (software decl-ast)
+(define-generic-analysis extract-declaration-type (software decl-ast)
   (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
 
 By default calls `declaration-type' with DECL-AST.")
-  (:method-combination standard/context)
-  (:method :context (obj ast)
-    (with-analysis-memoization (obj ast)
-      (call-next-method)))
   (:method ((software tree-sitter) (ast ast))
     (declaration-type ast)))
 
-(defgeneric resolve-declaration-type (software decl-ast ast)
+(define-generic-analysis resolve-declaration-type (software decl-ast ast)
   (:documentation "Return the type that DECL-AST in SOFTWARE specifies for AST, as an AST, or nil if it could not be determined.
 
 This differs from `extract-declaration-type' only in cases when
@@ -6291,20 +6256,11 @@ but `y' as a float.)
 
 By default simply calls `extract-declaration-type' with SOFTWARE and
 DECL-AST.")
-  (:method-combination standard/context)
-  (:method :context (obj decl ast)
-    (with-analysis-memoization (obj decl ast)
-      (call-next-method)))
   (:method ((software tree-sitter) (decl-ast ast) (ast ast))
-    (with-analysis-memoization (software decl-ast ast)
-      (extract-declaration-type software decl-ast))))
+    (extract-declaration-type software decl-ast)))
 
-(defgeneric declaration-type (declaration-ast)
+(define-generic-analysis declaration-type (declaration-ast)
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
-  (:method-combination standard/context)
-  (:method :context (ast)
-    (with-analysis-memoization (ast)
-      (call-next-method)))
   (:method ((ast ast)) nil))
 
 ;;; TODO Replace with canonicalize-type.
@@ -6334,21 +6290,13 @@ return whether they are equal.")
   (:method ((type1 canonical-type) (type2 canonical-type) &key)
     (eql type1 type2)))
 
-(defgeneric aliasee (software pointer-var)
+(define-generic-analysis aliasee (software pointer-var)
   (:documentation
-   "If POINTER-VAR holds a pointer, resolve the plain variable it points to.")
-  (:method-combination standard/context)
-  (:method :context (software pointer-var)
-    (with-analysis-memoization (software pointer-var)
-      (call-next-method))))
+   "If POINTER-VAR holds a pointer, resolve the plain variable it points to."))
 
-(defgeneric alias-set (software plain-var)
+(define-generic-analysis alias-set (software plain-var)
   (:documentation
-   "Get the declarations (as identifiers), as in `get-declaration-id' of variables in SOFTWARE that are aliases (pointers or referenes) for PLAIN-VAR.")
-  (:method-combination standard/context)
-  (:method :context (software plain-var)
-    (with-analysis-memoization (software plain-var)
-      (call-next-method))))
+   "Get the declarations (as identifiers), as in `get-declaration-id' of variables in SOFTWARE that are aliases (pointers or referenes) for PLAIN-VAR."))
 
 
 ;;;; Structured text

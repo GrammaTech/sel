@@ -48,6 +48,7 @@
            ;; Static analysis.
            :with-analysis-cache
            :make-analysis-cache
+           :define-generic-analysis
            ;; Generic functions.
            :roots
            :interleaved-text
@@ -663,6 +664,28 @@ symbol table argument to `with-analysis-cache':
   (with-thunk (body)
     `(call/analysis-cache ,body :analysis-cache ,analysis-cache)))
 
+(defmacro define-generic-analysis (name lambda-list &body clauses)
+  "Define a generic analysis.
+This has the same syntax as `defgeneric', but within the dynamic
+extent of a `with-analysis-cache` form, the function will be
+implicitly memoized based on its required, &optional, and &rest (but
+not &key) parameters."
+  (when (assoc :method-combination clauses)
+    (error "Cannot specify a method combination for a generic analysis."))
+  (multiple-value-bind (req opt rest keys)
+      (parse-ordinary-lambda-list lambda-list)
+    (unless req
+      (error "A generic analysis must have required arguments."))
+    `(defgeneric ,name ,lambda-list
+       (:method-combination standard/context)
+       (:method :context ,lambda-list
+         (declare (ignore ,@(mapcar #'caar keys)))
+         (with-analysis-memoization (,@req
+                                     ,@(mapcar #'car opt)
+                                     ,@(ensure-list rest))
+           (call-next-method)))
+       ,@clauses)))
+
 
 ;;; parseable software objects
 (defgeneric roots (obj)
@@ -752,7 +775,7 @@ satisfies PREDICATE.")
 (defgeneric built-ins (software)
   (:documentation "Return a list of built-in identifiers available in SOFTWARE."))
 
-(defgeneric scopes (software ast)
+(define-generic-analysis scopes (software ast)
   (:documentation "Return lists of variables in each enclosing scope.
 Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
 and :SCOPE.
@@ -798,7 +821,7 @@ tree that preserves how scopes are nested, use `scope-tree'.")
           (find-if predicate scope :key key))
         scopes))
 
-(defgeneric get-vars-in-scope (software ast &optional keep-globals)
+(define-generic-analysis get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 
 (defgeneric parse-asts (software &optional source-text)
