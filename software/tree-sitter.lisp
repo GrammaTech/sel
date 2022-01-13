@@ -6133,9 +6133,7 @@ separate uses will not interfere with each other."
   (with-thunk (body)
     `(call/cached-analysis
       ,body
-      ;; NB SBCL can have issues with preserving identity for
-      ;; compile-time embedded gensyms.
-      (load-time-value (gensym) t)
+      ',(gensym)
       ,@args)))
 
 (defun call/analysis-cache (fn &key analysis-cache)
