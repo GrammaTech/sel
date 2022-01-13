@@ -354,7 +354,7 @@ y = 2;")))
 (deftest test-reference-pointer-expression-aliasee ()
   "Test that we get the aliasee for a reference initialized with a
 dereferenced pointer."
-  (with-symbol-table ()
+  (with-analysis-cache ()
     (with-fixture trim-front
       (let* ((sw *soft*)
              (next-point
@@ -379,7 +379,7 @@ dereferenced pointer."
 }")))
 
 (defun test-aliasee-is-plain-var (alias-name)
-  (with-symbol-table ()
+  (with-analysis-cache ()
     (let* ((sw +alias-fragment+)
            (pl (find-if (op (equal (source-text _) "pl"))
                         (genome sw)))
@@ -403,7 +403,7 @@ dereferenced pointer."
   (test-aliasee-is-plain-var "q"))
 
 (deftest test-alias-set ()
-  (with-symbol-table ()
+  (with-analysis-cache ()
     (let* ((sw +alias-fragment+)
            (pl (find-if (op (equal (source-text _) "pl"))
                         (genome sw))))

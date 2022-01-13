@@ -503,8 +503,8 @@
            :canonical-type
            ;; Generics
            ;; TODO: should this be in parseable?
-           :with-symbol-table
-           :make-symbol-table
+           :with-analysis-cache
+           :make-analysis-cache
            :collect-var-uses
            :get-declaration-ast
            :get-initialization-ast
@@ -6103,21 +6103,21 @@ Every element in the list has the following form:
 
 ;;; Use a distinct type for symbol tables so we keep our options open
 ;;; for changing the implementation later.
-(defstruct-read-only symbol-table
+(defstruct-read-only analysis-cache
   "A symbol table."
   (table (dict) :type hash-table))
 
-(declaim (type symbol-table *symbol-table*))
-(defvar-unbound *symbol-table*
+(declaim (type analysis-cache *analysis-cache*))
+(defvar-unbound *analysis-cache*
   "Holds cached analyses.")
 
 (defun call/cached-analysis (fn key &rest args)
-  "If `*symbol-table*` is bound, use it to memoize FN, a function of
+  "If `*analysis-cache*` is bound, use it to memoize FN, a function of
 no arguments, storing results under KEY and ARGS."
-  (if (boundp '*symbol-table*)
+  (if (boundp '*analysis-cache*)
       (let ((key (cons key args))
-            (table *symbol-table*))
-        (symbol-macrolet ((store (gethash key (symbol-table-table table))))
+            (table *analysis-cache*))
+        (symbol-macrolet ((store (gethash key (analysis-cache-table table))))
           (multiple-value-bind (result result?) store
             (if result?
                 (values-list result)
@@ -6127,7 +6127,7 @@ no arguments, storing results under KEY and ARGS."
       (funcall fn)))
 
 (defmacro with-analysis-memoization ((&rest args) &body body)
-  "When `*symbol-table*' is bound, use it to memoize BODY.
+  "When `*analysis-cache*' is bound, use it to memoize BODY.
 A unique key is implicitly generated for each use of the macro, so
 separate uses will not interfere with each other."
   (with-thunk (body)
@@ -6138,26 +6138,26 @@ separate uses will not interfere with each other."
       (load-time-value (gensym) t)
       ,@args)))
 
-(defun call/symbol-table (fn &key (symbol-table (make-symbol-table)))
-  (assert (typep symbol-table 'symbol-table))
-  (if (boundp '*symbol-table*)
+(defun call/analysis-cache (fn &key (analysis-cache (make-analysis-cache)))
+  (assert (typep analysis-cache 'analysis-cache))
+  (if (boundp '*analysis-cache*)
       (funcall fn)
-      (let ((*symbol-table* symbol-table))
+      (let ((*analysis-cache* analysis-cache))
         (funcall fn))))
 
-(defmacro with-symbol-table ((&key (symbol-table '(make-symbol-table))) &body body)
+(defmacro with-analysis-cache ((&key (analysis-cache '(make-analysis-cache))) &body body)
   "Invoke BODY with memoization of analyses.
 This should only be used when BODY does not mutate the software being
 analyzed.
 
 If you want a persistent symbol table to use across multiple analyses,
-you can allocate one with `make-symbol-table' and pass it as the
-symbol table argument to `with-symbol-table':
+you can allocate one with `make-analysis-cache' and pass it as the
+symbol table argument to `with-analysis-cache':
 
-    (with-symbol-table (:symbol-table my-table)
+    (with-analysis-cache (:analysis-cache my-table)
       ...)"
   (with-thunk (body)
-    `(call/symbol-table ,body :symbol-table ,symbol-table)))
+    `(call/analysis-cache ,body :analysis-cache ,analysis-cache)))
 
 (defgeneric get-declaration-ast (obj ast)
   (:documentation "For an identifier, get the declaration AST.
