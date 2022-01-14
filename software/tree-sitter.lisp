@@ -481,6 +481,7 @@
            :scope-ast-p
            :function-ast
            :parameters-ast
+           :type-defintion-ast
            :variable-declaration-ast
            :variable-initialization-ast
            :assignment-ast
@@ -992,6 +993,8 @@ for the language.")
        (:definition-ast c-type-definition c-struct-specifier c-union-specifier
         c-field-declaration c-enum-specifier c-preproc-def
         c-preproc-function-def)
+       (:type-definition-ast c-type-definition c-struct-specifier
+        c-union-specifier c-enum-specifier)
        (:statement-ast c--statement c-function-definition c-declaration)
        (:expression-statement-ast c-expression-statement)
        (:expression-ast c--expression)
@@ -1114,6 +1117,9 @@ for the language.")
         cpp-enum-specifier cpp-preproc-def
         cpp-preproc-function-def
         cpp-namespace-definition)
+       (:type-definition-ast cpp-type-definition cpp-struct-specifier
+        cpp-union-specifier
+        cpp-enum-specifier)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
        (:statement-ast cpp--statement cpp-function-definition cpp-declaration)
        (:expression-statement-ast cpp-expression-statement)
@@ -2785,6 +2791,9 @@ between the same two terminal tokens."))
   (defclass definition-ast (ast) ()
     (:documentation "AST for something that associates a name with a thing.
 The name string is obtained by by DEFINITION-NAME"))
+
+ (defclass type-definition-ast (definition-ast) ()
+   (:documentation "AST for something that associates a name with a type."))
 
   (defclass comment-ast (ast) ()
     (:documentation "Mix-in for AST classes that are comments.
