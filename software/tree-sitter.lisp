@@ -917,6 +917,13 @@ for the language.")
         (python-operator :initarg :operator :reader operator))
        (python-while-statement
         (python-body :reader body)))
+      (:rust
+       (rust-assignment-expression
+        (rust-left :reader lhs)
+        (rust-right :reader rhs))
+       (rust-compound-assignment-expr
+        (rust-left :reader lhs)
+        (rust-right :reader rhs)))
       ((:typescript-ts :typescript-tsx)
        ;; Anonymous function (function keyword).
        (typescript-ts-function
@@ -1350,6 +1357,9 @@ for the language.")
        (:variable-declaration-ast python-assignment python-keyword-argument)
        (:assignment-ast python-assignment python-augmented-assignment)
        (:catch-ast python-except-clause))
+      (:rust
+       (:assignment-ast
+        rust-assignment-expression rust-compound-assignment-expr))
       ((:typescript-ts :typescript-tsx)
        (:root-ast
         typescript-ts-program
