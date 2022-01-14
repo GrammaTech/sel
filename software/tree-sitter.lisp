@@ -1142,6 +1142,7 @@ for the language.")
         cpp-qualified-identifier
         cpp-type-identifier
         cpp-primitive-type)
+       (:type-identifier-ast cpp-type-identifier)
        (:field-ast cpp-field-expression)
        (:subscript-ast cpp-subscript-expression)
        (:catch-ast cpp-catch-clause)
@@ -1476,6 +1477,9 @@ for the language.")
         typescript-ts-union-type
         typescript-tsx-union-type)
        (:typescript-type-identifier
+        typescript-ts-type-identifier
+        typescript-tsx-type-identifier)
+       (:type-identifier-ast
         typescript-ts-type-identifier
         typescript-tsx-type-identifier)
        (:typescript-generic-type
@@ -2866,6 +2870,9 @@ Superclass of every generated LANGUAGE-error class."))
 
   (defclass identifier-ast (ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
+
+ (defclass type-identifier-ast (ast) ()
+   (:documentation "Mix-in for AST classes that are type identifiers."))
 
   (defclass field-ast (ast) ()
     (:documentation "Mix-in for AST classes that are fields."))
@@ -6175,7 +6182,7 @@ For a declaration AST, return AST unchanged.")
   ;; NB Not tree-sitter, since that would shadow normal-scope.
   (:method ((obj t) (ast ast)) nil)
   (:method ((obj software) (ast variable-declaration-ast)) ast)
-  (:method ((obj normal-scope) (identifier identifier-ast))
+  (:method :around ((obj normal-scope) (identifier identifier-ast))
     (or
      ;; Check if this identifier is part of a declaration before
      ;; checking scopes to avoid returning a shadowed variable.
@@ -6187,11 +6194,28 @@ For a declaration AST, return AST unchanged.")
                     ;; Looking for the exact AST.
                     :test #'eq)
         (return parent)))
-     (aget :decl
-           (find-if-in-scopes
-            {equal (source-text identifier)}
-            (scopes obj identifier)
-            :key {aget :name})))))
+     (call-next-method)))
+  (:method ((obj normal-scope) (identifier identifier-ast))
+    (aget :decl
+          (find-if-in-scopes
+           (let ((id-text (source-text identifier)))
+             (lambda (scope)
+               (and (typep (aget :decl scope)
+                           '(not type-definition-ast))
+                    (equal id-text (aget :name scope)))))
+           (scopes obj identifier))))
+  ;; TODO Not every language has a separate class for type
+  ;; identifiers. E.g. Python just has Python identifiers inside
+  ;; Python types.
+  (:method ((obj normal-scope) (identifier type-identifier-ast))
+    (aget :decl
+          (find-if-in-scopes
+           (let ((id-text (source-text identifier)))
+             (lambda (scope)
+               (and (typep (aget :decl scope)
+                           'type-definition-ast)
+                    (equal id-text (aget :name scope)))))
+           (scopes obj identifier)))))
 
 (define-generic-analysis get-initialization-ast (obj ast)
   (:documentation "Find where AST is initialized.
