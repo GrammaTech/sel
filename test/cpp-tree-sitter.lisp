@@ -944,7 +944,9 @@ operator."
   (with-canonicalize-type-test
       ("struct Point {
   Point PointAlongSegment(const Point&, double);
-};" :target-ast-type cpp-field-declaration)))
+};" :target-ast-type cpp-field-declaration)
+    ;; The first test is that we get here without an error.
+    (is (null bitfield))))
 
 (defun is-canonical-type= (ast1 ast2)
   "Test whether AST1 and AST2 are canonical-type=."
