@@ -162,6 +162,18 @@ pointer declarations which are nested on themselves."
 (defmethod outer-declarations ((ast c/cpp-pointer-declarator))
   (get-nested-declaration ast))
 
+(defmethod outer-declarations ((ast c/cpp-struct-specifier))
+  (list (c/cpp-name ast)))
+
+(defmethod outer-declarations ((ast c/cpp-enum-specifier))
+  (match ast
+    ((c/cpp-enum-specifier
+      (c/cpp-name name)
+      (c/cpp-body
+       (c/cpp-enumerator-list
+        (direct-children enumerators))))
+     (cons name (mapcar #'c/cpp-name enumerators)))))
+
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
   (find-enclosing '(or definition-ast cpp-class-specifier
                     c/cpp-primitive-type)

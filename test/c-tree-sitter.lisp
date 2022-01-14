@@ -585,6 +585,26 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
 
+(deftest c-scopes-enums ()
+  (let* ((software (from-string 'c (fmt "~
+enum boolean { NO = 0, YES };
+x;")))
+         (scopes
+          (scopes software (find-if (of-type 'c-expression-statement)
+                                    (genome software)))))
+    (is (scopes-contains-string-p scopes "boolean"))
+    (is (scopes-contains-string-p scopes "NO"))
+    (is (scopes-contains-string-p scopes "YES"))))
+
+(deftest c-scopes-struct ()
+  (let* ((software (from-string 'c (fmt "~
+struct point { int x; int y; };
+x;")))
+         (scopes
+          (scopes software (find-if (of-type 'c-expression-statement)
+                                    (genome software)))))
+    (is (scopes-contains-string-p scopes "point"))))
+
 
 ;;;; Equality tests
 (deftest c-equal?-surrounding-text ()
