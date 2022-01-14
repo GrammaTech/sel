@@ -221,6 +221,12 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
   (get-declaration-ast obj (c/cpp-argument ast)))
 
+(defmethod get-declaration-ast ((obj software) (ast c/cpp-field-expression))
+  (ematch ast
+    ((c/cpp-field-expression
+      (c/cpp-argument arg))
+     (get-declaration-ast obj arg))))
+
 (defmethod get-declaration-id ((obj c/cpp) (id identifier-ast))
   (when-let (declaration (get-declaration-ast obj id))
     (let ((id-text (source-text id)))
