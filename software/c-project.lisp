@@ -34,12 +34,17 @@
     (walk-directory
      (project-dir project)
      (lambda (file)
-       (push (cons (pathname-relativize (project-dir project) file)
-                   (from-file (make-instance (component-class project)
-                                             :compiler (compiler project)
-                                             :flags (flags project))
-                              file))
-             result))
+       (handler-case
+           (push (cons (pathname-relativize (project-dir project) file)
+                       (from-file (make-instance (component-class project)
+                                                 :compiler (compiler project)
+                                                 :flags (flags project))
+                                  file))
+                 result)
+         ;; A file error can occur if the file is unreadable, or if
+         ;; it's a symlink to a nonexistent target.  Do not include the
+         ;; file in that case.
+         (file-error () nil)))
      :test (lambda (file)
              ;; Heuristics for identifying files in the project:
              ;; 1) The file is not in an ignored directory.
