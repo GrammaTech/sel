@@ -190,7 +190,7 @@ to advance to the next file."
         (apply #'test-project-parsing class dir files
                :allow-other-keys t args))))))
 
-(defun problematic-classes-in-project (dir extension &rest args
+(defun problematic-classes-in-project (type dir extension &rest args
                                        &key &allow-other-keys)
   (let* ((files (split-sequence #\Null
                                 (cmd:$cmd "find" dir
@@ -199,7 +199,7 @@ to advance to the next file."
                                           "-type f"
                                           "-print0")
                                 :remove-empty-subseqs t)))
-    (apply #'problematic-classes 'cpp dir files args)))
+    (apply #'problematic-classes type dir files args)))
 
 (defun summarize-ast (ast &key (stream t) (indent 2))
   "Print a quick summary of an AST as a tree."

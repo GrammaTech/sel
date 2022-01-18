@@ -1230,6 +1230,14 @@ for the language.")
        (:c/cpp-union-specifier cpp-union-specifier)
        (:c/cpp-update-expression cpp-update-expression)
        (:c/cpp-while-statement cpp-while-statement))
+      (:cl
+       (:literal-ast cl-char-lit cl-kwd-lit cl-list-lit cl-map-lit
+        cl-package-lit cl-path-lit cl-quoting-lit cl-read-cond-lit
+        cl-sym-lit cl-syn-quoting-lit cl-unquote-splicing-lit cl-unquoting-lit
+        cl-var-quoting-lit cl-vec-lit)
+       (:string-ast cl-str-lit)
+       (:loop-ast cl-loop-macro)
+       (:number-ast cl-num-lit cl-complex-num-lit cl-imaginary))
       (:golang
        (:comment-ast golang-comment))
       (:java
@@ -2584,6 +2592,7 @@ stored on the AST or external rules.")
               (string-case name
                 ("GO" "GOLANG")
                 ("TYPESCRIPT-TYPESCRIPT" "TYPESCRIPT-TS")
+                ("COMMONLISP" "CL")
                 (t name)))))
      (let* ((path-name (replace-all name "/" "-"))
             (class-name (alternate-class-name (string-upcase path-name)))
