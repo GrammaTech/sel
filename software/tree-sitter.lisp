@@ -519,6 +519,7 @@
            :body
            :lhs
            :rhs
+           :assignee
            :operator
            :control-flow-condition
            :end-of-parameter-list
@@ -843,7 +844,7 @@ for the language.")
         (c-declarator :initarg :lhs :reader lhs)
         (c-value :initarg :rhs :reader rhs))
        (c-assignment-expression
-        (c-left :initarg :lhs :reader lhs)
+        (c-left :initarg :lhs :reader lhs :reader assignee)
         (c-right :initarg :rhs :reader rhs))
        (c-call-expression
         (c-function :reader call-function)
@@ -856,13 +857,15 @@ for the language.")
         (c-body :reader body :initarg :body))
        (c-if-statement
         (c-consequence :initarg :consequence :reader consequence)
-        (c-alternative :initarg :alternative :reader alternative)))
+        (c-alternative :initarg :alternative :reader alternative))
+       (c-update-expression
+        (c-argument :reader assignee)))
       (:cpp
        (cpp-init-declarator
         (cpp-declarator :initarg :lhs :reader lhs)
         (cpp-value :initarg :rhs :reader rhs))
        (cpp-assignment-expression
-        (cpp-left :initarg :lhs :reader lhs)
+        (cpp-left :initarg :lhs :reader lhs :reader assignee)
         (cpp-right :initarg :rhs :reader rhs))
        (cpp-call-expression
         (cpp-function :reader call-function)
@@ -877,19 +880,23 @@ for the language.")
         (cpp-body :reader body :initarg :body))
        (cpp-if-statement
         (cpp-consequence :initarg :consequence :reader consequence)
-        (cpp-alternative :initarg :alternative :reader alternative)))
+        (cpp-alternative :initarg :alternative :reader alternative))
+       (cpp-update-expression
+        (cpp-argument :reader assignee)))
       (:javascript
        (javascript-switch-case
         (javascript-body :reader body))
        (javascript-assignment-expression
-        (javascript-left :reader lhs)
+        (javascript-left :reader lhs :reader assignee)
         (javascript-right :reader rhs))
        (javascript-augmented-assignment-expression
-        (javascript-left :reader lhs)
+        (javascript-left :reader lhs :reader assignee)
         (javascript-right :reader rhs))
        (javascript-assignment-pattern
-        (javascript-left :reader lhs)
-        (javascript-right :reader rhs)))
+        (javascript-left :reader lhs :reader assignee)
+        (javascript-right :reader rhs))
+       (javascript-update-expression
+        (javascript-argument :reader assignee)))
       (:python
        (python-call
         (python-function :reader call-function)
@@ -973,17 +980,21 @@ for the language.")
         (typescript-tsx-type
          :reader parameter-type))
        (typescript-ts-assignment-expression
-        (typescript-ts-left :reader lhs)
+        (typescript-ts-left :reader lhs :reader assignee)
         (typescript-ts-right :reader rhs))
        (typescript-tsx-assignment-expression
-        (typescript-tsx-left :reader lhs)
+        (typescript-tsx-left :reader lhs :reader assignee)
         (typescript-tsx-right :reader rhs))
        (typescript-ts-assignment-pattern
-        (typescript-ts-left :reader lhs)
+        (typescript-ts-left :reader lhs :reader assignee)
         (typescript-ts-right :reader rhs))
        (typescript-tsx-assignment-pattern
-        (typescript-tsx-left :reader lhs)
-        (typescript-tsx-right :reader rhs))))
+        (typescript-tsx-left :reader lhs :reader assignee)
+        (typescript-tsx-right :reader rhs))
+       (typescript-ts-update-expression
+        (typescript-ts-argument :reader assignee))
+       (typescript-tsx-update-expression
+        (typescript-tsx-argument :reader assignee))))
     "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
@@ -1006,7 +1017,7 @@ for the language.")
        (:loop-ast c-while-statement c-for-statement c-do-statement)
        (:parse-error-ast c-error)
        (:variable-initialization-ast c-init-declarator c-assignment-expression)
-       (:assignment-ast c-assignment-expression)
+       (:assignment-ast c-assignment-expression c-update-expression)
        (:function-ast c-function-definition)
        (:identifier-ast c-identifier)
        (:field-ast c-field-expression)
@@ -1131,7 +1142,7 @@ for the language.")
        (:boolean-false-ast cpp-false)
        (:variable-declaration-ast cpp-parameter-declaration cpp-declaration)
        (:variable-initialization-ast cpp-assignment-expression cpp-init-declarator)
-       (:assignment-ast cpp-assignment-expression)
+       (:assignment-ast cpp-assignment-expression cpp-update-expression)
        (:function-ast cpp-function-definition)
        (:unary-ast cpp-unary-expression)
        (:binary-ast cpp-binary-expression)
@@ -1315,12 +1326,15 @@ for the language.")
         javascript-assignment-expression
         javascript-augmented-assignment-expression
         javascript-assignment-pattern
+        javascript-update-expression
         typescript-ts-assignment-expression
         typescript-ts-augmented-assignment-expression
         typescript-ts-assignment-pattern
+        typescript-ts-update-expression
         typescript-tsx-assignment-expression
         typescript-tsx-augmented-assignment-expression
-        typescript-tsx-assignment-pattern)
+        typescript-tsx-assignment-pattern
+        typescript-tsx-update-expression)
        (:ecma-rest-pattern
         javascript-rest-pattern
         typescript-ts-rest-pattern
@@ -5989,6 +6003,10 @@ argument destructuring (e.g. ECMAScript).")
 
 (defgeneric lhs (ast)
   (:documentation "Return the left-hand side of an AST."))
+
+(defgeneric assignee (ast)
+  (:documentation "Return the (possibly structured) binding that AST assigns to.")
+  (:method ((ast ast)) nil))
 
 (defgeneric rhs (ast)
   (:documentation "Return the right-hand side of an AST."))
