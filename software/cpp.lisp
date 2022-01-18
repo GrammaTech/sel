@@ -565,7 +565,7 @@
   (when-let (first-try (call-next-method))
     (or
      ;; If the first try is not auto, just return it.
-     (unless (typep first-try 'cpp-auto)
+     (unless (typep first-try 'cpp-placeholder-type-specifier)
        first-try)
      ;; If there is a surrounding init declarator, infer the type from
      ;; its RHS.
