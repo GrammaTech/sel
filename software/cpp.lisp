@@ -734,6 +734,8 @@ Then if we cannot infer the type of y per se we infer its type to be int."
   (:documentation "Remove namespace qualifications from NAME.")
   (:method ((ast cpp-identifier))
     ast)
+  (:method ((ast cpp-type-identifier))
+    ast)
   (:method ((ast cpp-template-type))
     ast)
   (:method ((ast cpp-qualified-identifier))
