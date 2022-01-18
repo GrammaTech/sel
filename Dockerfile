@@ -81,6 +81,12 @@ RUN for language in bash c cpp css go html java javascript jsdoc json python reg
         cp grammar.json node-types.json /usr/share/tree-sitter/${language};                                                     \
         cd -;                                                                                                                   \
     done
+RUN git clone --depth=1 https://github.com/theHamsta/tree-sitter-commonlisp.git \
+    && cd tree-sitter-commonlisp/src \
+    && clang -std=c99 -fPIC parser.c -c \
+    && clang -shared parser.o -o /usr/lib/tree-sitter-commonlisp.so \
+    && mkdir -p /usr/share/tree-sitter/commonlisp/ \
+    && cp -f grammar.json node-types.json /usr/share/tree-sitter/commonlisp
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
