@@ -32,6 +32,7 @@
            :combine-conflict-asts
            :combine-conflict-asts-in-list
            :source-text
+           :source-text=
            :rebind-vars
            :collect-if
            ;; Parseable software object.
@@ -577,6 +578,15 @@ optionally writing to STREAM.")
     (mapc (lambda (ast)
             (apply #'source-text ast args))
           (children ast))))
+
+(defgeneric source-text= (x y)
+  (:documentation "Return T if X and Y have the same source text under `string='.")
+  (:method-combination standard/context)
+  (:method :context (x y)
+    (or (eql x y)
+        (call-next-method)))
+  (:method (x y)
+    (string= (source-text x) (source-text y))))
 
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation
