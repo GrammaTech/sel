@@ -510,6 +510,8 @@
            :get-declaration-ast
            :get-initialization-ast
            :get-declaration-id
+           :same-variable-p
+           :same-place-p
            :variable-use-p
            :patch-whitespace
            :prettify-software
@@ -6260,6 +6262,31 @@ support destructuring.")
                       (equal (source-text ast)
                              id-text)))
                (get-declaration-ast obj id)))))
+
+(define-generic-analysis same-variable-p (obj ast1 ast2)
+  (:documentation "T if AST1 and AST2 resolve to the same declaration.
+Returns a second value to represent certainty; returning NIL, T means
+they are definitely not the same; returning NIL, NIL means
+uncertainty.")
+  (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
+    (let ((decl1 (get-declaration-id obj id1))
+          (decl2 (get-declaration-id obj id2)))
+      (cond ((not (and decl1 decl2))
+             (values nil nil))
+            ((eql decl1 decl2)
+             (values t t))
+            (t
+             (values nil t))))))
+
+(define-generic-analysis same-place-p (obj ast1 ast2)
+  (:documentation "T if AST1 and AST2 share the same storage.
+
+Differs from `same-variable-p' in that it takes references and
+pointers into account in languages that support them.")
+  (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
+    (let ((aliasee1 (or (aliasee obj id1) id1))
+          (aliasee2 (or (aliasee obj id2) id2)))
+      (same-variable-p obj aliasee1 aliasee2))))
 
 (define-generic-analysis collect-var-uses (obj identifier &key &allow-other-keys)
   (:documentation "Collect uses of IDENTIFIER in OBJ.")
