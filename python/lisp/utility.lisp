@@ -155,6 +155,7 @@ the trailing characters of the symbol string SYMNAME."
                           ("[]" . "empty-capture-clause")
                           ("()" . "call-operator")
                           ("::" . "scope-resolution")
+                          ("<=>" . "spaceship")
                           ("l'" . "wchar-single-quote")
                           ("l\"" . "wchar-double-quote")
                           ("u\'-terminal" . "unsigned-terminal-single-quote")
