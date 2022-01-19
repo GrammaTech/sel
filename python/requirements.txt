@@ -1,1 +1,3 @@
--e .
+backports.cached_property
+pygments
+typing-extensions

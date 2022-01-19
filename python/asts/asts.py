@@ -11,7 +11,6 @@ import time
 
 import pygments.lexers
 
-from functools import cached_property
 from pathlib import Path
 from typing import (
     Any,
@@ -19,13 +18,14 @@ from typing import (
     ClassVar,
     ByteString,
     Dict,
-    Final,
     Generator,
     List,
     Optional,
     Tuple,
     Union,
 )
+from backports.cached_property import cached_property
+from typing_extensions import Final
 from .utility import add_method, generate_types_file
 
 LiteralOrAST = Union[int, float, str, "AST"]
