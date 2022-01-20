@@ -689,7 +689,7 @@ not &key) parameters."
     `(defgeneric ,name ,lambda-list
        (:method-combination standard/context)
        (:method :context ,lambda-list
-         (declare (ignore ,@(mapcar #'caar keys)))
+         (declare (ignore ,@(mapcar #'cadar keys)))
          (with-analysis-memoization (,@req
                                      ,@(mapcar #'car opt)
                                      ,@(ensure-list rest))
