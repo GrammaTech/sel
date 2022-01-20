@@ -450,6 +450,22 @@ the current state of the AST."
 int f () {}"))
     (is (equal source (source-text (convert 'c-ast source))))))
 
+(deftest c-errors-in-named-slots ()
+  "Errors which occur in named slots don't cause an error when source-text is
+called."
+  (let ((source "
+int fun(int x) {
+  switch(x) {
+  case COMPILER$VAR:
+    return -1;
+  default:
+    return 0;
+  }
+}
+"))
+    (is (equal (source-text (convert 'c-ast source))
+               source))))
+
 
 ;;;; SCOPES tests
 

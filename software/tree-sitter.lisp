@@ -8241,18 +8241,32 @@ Otherwise, returns PARSE-TREE."
            (zero-width-p (subtree &aux (range (cadr subtree)))
              (when (listp range)
                (equal (car range) (cadr range))))
-           (problematic-p (tree)
+           (error-in-named-slot-p (subtree)
+             ;; NOTE: errors in named slots are caused by parse tree transforms
+             ;;       on the lisp side and do not occur in trees retrieved from
+             ;;       tree-sitter. They are patched out here because most of the
+             ;;       code assumes that they will not happen.
+             (iter
+               (for child in (caddr subtree))
+               (for slot/type = (car child))
+               (thereis (and (listp slot/type)
+                             (eql (cadr slot/type) :error)))))
+           (problematicp (subtree)
+             (and (listp subtree)
+                  (or (zero-width-p subtree)
+                      (error-in-named-slot-p subtree))))
+           (problematic-subtree-p (tree)
              (if recursive
                  (walk-parse-tree
                   (lambda (subtree)
-                    (when (and (listp subtree) (zero-width-p subtree))
-                      (return-from problematic-p t)))
+                    (when (problematicp subtree)
+                      (return-from problematic-subtree-p t)))
                   tree)
                  (find-if
                   (lambda (subtree)
-                    (and (listp subtree) (zero-width-p subtree)))
+                    (problematicp subtree))
                   (caddr tree)))))
-    (if (problematic-p parse-tree)
+    (if (problematic-subtree-p parse-tree)
         `(,(if (consp (car parse-tree))
                (list (caar parse-tree) :source-text-fragment)
                :source-text-fragment)
