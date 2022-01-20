@@ -482,7 +482,10 @@
            :function-ast
            :parameters-ast
            :type-defintion-ast
+           :declaration-ast
            :variable-declaration-ast
+           :function-declaration-ast
+           :type-declaration-ast
            :variable-initialization-ast
            :assignment-ast
            :identifier-ast
@@ -2851,7 +2854,10 @@ Superclass of every generated LANGUAGE-comment class."))
  (defclass loop-ast (control-flow-ast) ()
     (:documentation "Mix-in for AST classes that are loops."))
 
- (defclass type-declaration-ast (ast) ()
+ (defclass declaration-ast (ast) ()
+   (:documentation "Mixin for AST classes that declare/define something."))
+
+ (defclass type-declaration-ast (declaration-ast) ()
    (:documentation "Mix-in for AST classes that are type declarations."))
 
  (defclass class-ast (type-declaration-ast) ()
@@ -2875,7 +2881,7 @@ not declarations)."))
  ;; NB While function-declaration-ast and lambda-ast are disjoint
  ;; subtypes of function-ast they are not exhaustive.
 
- (defclass function-declaration-ast (function-ast) ()
+ (defclass function-declaration-ast (function-ast declaration-ast) ()
    (:documentation "Mix-in for AST classes that are function declarations."))
 
  (defclass lambda-ast (function-ast) ()
@@ -2887,7 +2893,7 @@ not declarations)."))
  (defclass parameter-ast (ast) ()
    (:documentation "Mix-in for AST classes that are individual parameters."))
 
- (defclass variable-declaration-ast (ast) ()
+ (defclass variable-declaration-ast (declaration-ast) ()
     (:documentation "Mix-in for AST classes that are variable declarations."))
 
  (defclass variable-initialization-ast (variable-declaration-ast) ()
@@ -6038,7 +6044,7 @@ argument destructuring (e.g. ECMAScript).")
 (defgeneric get-parent-decl (obj identifier)
   (:documentation "For the given IDENTIFIER AST, return the parent declaration.")
   (:method (obj identifier)
-    (find-if (of-type 'variable-declaration-ast)
+    (find-if (of-type 'declaration-ast)
              (get-parent-asts obj identifier))))
 
 (defgeneric ast-to-scope-alist (obj scope ast)
