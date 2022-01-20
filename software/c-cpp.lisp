@@ -174,6 +174,12 @@ pointer declarations which are nested on themselves."
         (direct-children enumerators))))
      (cons name (mapcar #'c/cpp-name enumerators)))))
 
+(defmethod outer-declarations ((ast c/cpp-function-declarator))
+  (list (c/cpp-declarator ast)))
+
+(defmethod outer-declarations ((ast c/cpp-function-definition))
+  (list (c/cpp-declarator (c/cpp-declarator ast))))
+
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
   (find-enclosing '(or definition-ast cpp-class-specifier
                     c/cpp-primitive-type)

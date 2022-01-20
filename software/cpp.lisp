@@ -506,9 +506,6 @@
 (defmethod scope-ast-p ((ast cpp-namespace-definition)) t)
 (defmethod scope-ast-p ((ast cpp-declaration-list)) t)
 
-(defmethod outer-declarations ((ast cpp-function-declarator))
-  (list (cpp-declarator ast)))
-
 (def +unnamed-namespace-ast+
   (make 'cpp-ast)
   "Dummy AST for an unnamed namespace.")
