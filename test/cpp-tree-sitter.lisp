@@ -232,7 +232,7 @@ int main () {
                     (when (equal string (aget :name scope))
                       (let ((scope-decl (aget :decl scope)))
                         (is (or (eql decl scope-decl)
-                                (descendant-of-p *soft* decl scope-decl))))))))))
+                                (descendant-of-p *soft* scope-decl decl))))))))))
 
   (deftest test-trim-front-types ()
     "Test that we retrieve the correct type for each identifier."

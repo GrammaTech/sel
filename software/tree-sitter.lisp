@@ -510,6 +510,7 @@
            ;; TODO: should this be in parseable?
            :collect-var-uses
            :get-declaration-ast
+           :declaration-ast-type
            :get-initialization-ast
            :get-declaration-id
            :same-variable-p
@@ -2886,7 +2887,7 @@ not declarations)."))
   (defclass parameters-ast (ast) ()
     (:documentation "Mix-in for AST classes that are parameter lists."))
 
- (defclass parameter-ast (ast) ()
+ (defclass parameter-ast (variable-declaration-ast) ()
    (:documentation "Mix-in for AST classes that are individual parameters."))
 
  (defclass variable-declaration-ast (declaration-ast) ()
@@ -2901,7 +2902,7 @@ not declarations)."))
   (defclass identifier-ast (ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
 
- (defclass type-identifier-ast (ast) ()
+ (defclass type-identifier-ast (identifier-ast) ()
    (:documentation "Mix-in for AST classes that are type identifiers \(when they are distinct)."))
 
   (defclass field-ast (ast) ()
@@ -6228,26 +6229,33 @@ For a declaration AST, return AST unchanged.")
         (return parent)))
      (call-next-method)))
   (:method ((obj normal-scope) (identifier identifier-ast))
-    (aget :decl
-          (find-if-in-scopes
-           (let ((id-text (source-text identifier)))
-             (lambda (scope)
-               (and (typep (aget :decl scope)
-                           '(not type-declaration-ast))
-                    (equal id-text (aget :name scope)))))
-           (scopes obj identifier))))
+    (let ((type (declaration-ast-type obj identifier)))
+      (assert (or (subtypep 'declaration-ast type)
+                  (and type (subtypep type 'declaration-ast))))
+      (aget :decl
+            (find-if-in-scopes
+             (let ((id-text (source-text identifier)))
+               (lambda (scope)
+                 (and (equal id-text (aget :name scope))
+                      (typep (aget :decl scope) type))))
+             (scopes obj identifier))))))
+
+(define-generic-analysis declaration-ast-type (obj ast)
+  (:documentation "Return the type of declaration we should look for.
+
+That is, based on AST's context, figure out whether we should be
+looking for a `variable-declaration-ast', `function-declaration-ast',
+or `type-declaration-ast'.")
   ;; TODO Not every language has a separate class for type
   ;; identifiers. E.g. Python just has Python identifiers inside
   ;; Python types.
-  (:method ((obj normal-scope) (identifier type-identifier-ast))
-    (aget :decl
-          (find-if-in-scopes
-           (let ((id-text (source-text identifier)))
-             (lambda (scope)
-               (and (typep (aget :decl scope)
-                           'type-declaration-ast)
-                    (equal id-text (aget :name scope)))))
-           (scopes obj identifier)))))
+  (:method ((obj t) (ast type-identifier-ast))
+    'type-declaration-ast)
+  (:method ((obj t) (ast identifier-ast))
+    (or (when-let ((call (find-enclosing 'call-ast obj ast)))
+          (when (eql ast (call-function call))
+            'function-declaration-ast))
+        'variable-declaration-ast)))
 
 (define-generic-analysis get-initialization-ast (obj ast)
   (:documentation "Find where AST is initialized.
