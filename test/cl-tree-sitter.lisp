@@ -24,7 +24,7 @@
 
 
 
-(deftest cl-parse-sel-itself ()
+(deftest (cl-parse-sel-itself :long) ()
   (let* ((root (asdf:system-relative-pathname "software-evolution-library" ""))
          (files (lines ($cmd "find " root " -name '*.lisp'"))))
     (is files)
