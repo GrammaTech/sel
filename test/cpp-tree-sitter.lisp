@@ -199,7 +199,7 @@ int main () {
     (let ((wanted-names
            (convert 'set (mapcar #'car +trim-front-types+)))
           (scope-names
-           (convert 'set (mapcar {aget :name} (all-scopes *soft*)))))
+            (convert 'set (mapcar {aget :name} (all-scopes *soft*)))))
       (is (empty? (set-difference scope-names wanted-names)))
       (is (empty? (set-difference wanted-names scope-names))))))
 
@@ -422,6 +422,56 @@ auto z = myfun(1, 2);")))
                   :test #'source-text=)))
     (is (typep z 'identifier-ast))
     (is (source-text= "int" (infer-type sw z)))))
+
+(deftest test-infer-auto-type-from-function ()
+  (let* ((sw (from-string 'cpp (fmt "~
+int myfun(int x, int y) {
+    return x + y;
+}
+
+auto z = myfun(1, 2);")))
+         (z (find "z" (identifiers (genome sw))
+                  :test #'source-text=)))
+    (is (typep z 'identifier-ast))
+    (is (source-text= "int" (infer-type sw z)))))
+
+(deftest test-struct-in-scope ()
+  (let* ((sw (from-string 'cpp (fmt "~
+struct whatsit {};
+
+whatsit myfun() {
+  return std::make_shared<whatsit>();
+}
+
+auto x = myfun();")))
+         (scopes (all-scopes sw))
+         (x (find "x" (identifiers (genome sw)) :test #'source-text=)))
+    (is (find "whatsit" scopes :test #'equal :key (op (aget :name _))))
+    (is (typep x 'identifier-ast))
+    (is (source-text= "whatsit" (infer-type sw x)))
+    (is (typep (get-declaration-ast sw (infer-type sw x))
+               'cpp-struct-specifier))))
+
+(deftest test-resolve-method-call-to-field-decl ()
+  (let* ((sw (from-string 'cpp (fmt "~
+struct Point {
+  double x,y;
+  double Distance(const Point&);
+  Point PointAlongSegment(const Point&, double);
+};
+
+auto p1 = new Point{0.0, 0.0};
+auto p2 = new Point{0.0, 1.0};
+
+p1->Distance(p2);")))
+         (call (find-if (of-type 'call-ast) (genome sw)))
+         (field-expr (call-function call)))
+    (is (source-text= "Point"
+                      (infer-type sw (get-declaration-id sw field-expr))))
+    (is (get-declaration-ast sw
+                      (infer-type sw (get-declaration-id sw field-expr))))
+    (is (typep (get-declaration-ast sw field-expr)
+               'cpp-field-declaration))))
 
 
 ;;; Parsing tests

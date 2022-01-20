@@ -228,10 +228,28 @@ pointer declarations which are nested on themselves."
   (get-declaration-ast obj (c/cpp-argument ast)))
 
 (defmethod get-declaration-ast ((obj software) (ast c/cpp-field-expression))
-  (ematch ast
-    ((c/cpp-field-expression
-      (c/cpp-argument arg))
-     (get-declaration-ast obj arg))))
+  (when-let* ((type (infer-type obj (get-declaration-id obj ast)))
+              (type-decl (get-declaration-ast obj type))
+              (field-text (source-text (c/cpp-field ast))))
+    (ematch type-decl
+      ((c/cpp-struct-specifier
+        (c/cpp-body field-list))
+       (dolist (field (direct-children field-list))
+         (match field
+           ((c/cpp-field-declaration
+             (c/cpp-declarator
+              (list
+               (c/cpp-function-declarator
+                (c/cpp-declarator
+                 (c/cpp-field-identifier :text text))))))
+            (when (equal text field-text)
+              (return field)))))))))
+
+(defmethod declaration-ast-type ((obj software) (ast c/cpp-field-expression))
+  'c/cpp-field-declaration)
+
+(defmethod get-declaration-id ((obj c/cpp) (field c/cpp-field-expression))
+  (get-declaration-id obj (c/cpp-argument field)))
 
 (defmethod get-declaration-id ((obj c/cpp) (id identifier-ast))
   (when-let (declaration (get-declaration-ast obj id))

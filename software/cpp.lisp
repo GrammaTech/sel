@@ -624,6 +624,9 @@
       ((ppcre "^[0-9]+\\.[0-9]*f$")
        (make 'cpp-primitive-type :text "float")))))
 
+(defmethod expression-type ((ast cpp-new-expression))
+  (cpp-type ast))
+
 (defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
   (infer-expression-type obj (only-elt (direct-children ast))))
 
