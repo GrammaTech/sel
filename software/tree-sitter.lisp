@@ -510,7 +510,7 @@
            ;; TODO: should this be in parseable?
            :collect-var-uses
            :get-declaration-ast
-           :declaration-ast-type
+           :relevant-declaration-type
            :get-initialization-ast
            :get-declaration-id
            :same-variable-p
@@ -6231,7 +6231,7 @@ For a declaration AST, return AST unchanged.")
         (return parent)))
      (call-next-method)))
   (:method ((obj normal-scope) (identifier identifier-ast))
-    (let ((type (declaration-ast-type obj identifier)))
+    (let ((type (relevant-declaration-type obj identifier)))
       (assert (or (subtypep 'declaration-ast type)
                   (and type (subtypep type 'declaration-ast))))
       (aget :decl
@@ -6242,7 +6242,7 @@ For a declaration AST, return AST unchanged.")
                       (typep (aget :decl scope) type))))
              (scopes obj identifier))))))
 
-(define-generic-analysis declaration-ast-type (obj ast)
+(define-generic-analysis relevant-declaration-type (obj ast)
   (:documentation "Return the type of declaration we should look for.
 
 That is, based on AST's context, figure out whether we should be
@@ -6388,7 +6388,7 @@ If NODE is not a thing that has fields, return nil.")
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
-  (:method ((software tree-sitter) (ast ast))
+  (:method ((software software) (ast ast))
     (or (infer-expression-type software ast)
         (when-let (decl (get-declaration-ast software ast))
           (resolve-declaration-type software decl ast)))))
@@ -6404,7 +6404,7 @@ By default this first tries `expression-type', then invokes
   (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
 
 By default calls `declaration-type' with DECL-AST.")
-  (:method ((software tree-sitter) (ast ast))
+  (:method ((obj t) (ast ast))
     (declaration-type ast)))
 
 (define-generic-analysis resolve-declaration-type (software decl-ast ast)
@@ -6417,7 +6417,7 @@ but `y' as a float.)
 
 By default simply calls `extract-declaration-type' with SOFTWARE and
 DECL-AST.")
-  (:method ((software tree-sitter) (decl-ast ast) (ast ast))
+  (:method ((software software) (decl-ast ast) (ast ast))
     (extract-declaration-type software decl-ast)))
 
 (define-generic-analysis declaration-type (declaration-ast)

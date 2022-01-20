@@ -124,11 +124,6 @@ field."
         (c-declarator decl)
         (c-type decl))))
 
-(defmethod extract-declaration-type ((c c) (ast c-function-declarator))
-  (match (parent c ast)
-    ((c-function-definition :c-type type)
-     type)))
-
 (defun fix-nil-internal-asts-slots (ast)
   "Fix missing line endings in c preprocessor #if statements.
  If any slots named INTERNAL-ASTS-<nn> are null, set their values to a

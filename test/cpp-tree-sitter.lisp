@@ -199,7 +199,7 @@ int main () {
     (let ((wanted-names
            (convert 'set (mapcar #'car +trim-front-types+)))
           (scope-names
-            (convert 'set (mapcar {aget :name} (all-scopes *soft*)))))
+           (convert 'set (mapcar {aget :name} (all-scopes *soft*)))))
       (is (empty? (set-difference scope-names wanted-names)))
       (is (empty? (set-difference wanted-names scope-names))))))
 
@@ -423,18 +423,6 @@ auto z = myfun(1, 2);")))
     (is (typep z 'identifier-ast))
     (is (source-text= "int" (infer-type sw z)))))
 
-(deftest test-infer-auto-type-from-function ()
-  (let* ((sw (from-string 'cpp (fmt "~
-int myfun(int x, int y) {
-    return x + y;
-}
-
-auto z = myfun(1, 2);")))
-         (z (find "z" (identifiers (genome sw))
-                  :test #'source-text=)))
-    (is (typep z 'identifier-ast))
-    (is (source-text= "int" (infer-type sw z)))))
-
 (deftest test-struct-in-scope ()
   (let* ((sw (from-string 'cpp (fmt "~
 struct whatsit {};
@@ -463,15 +451,16 @@ struct Point {
 auto p1 = new Point{0.0, 0.0};
 auto p2 = new Point{0.0, 1.0};
 
-p1->Distance(p2);")))
+auto d = p1->Distance(p2);")))
          (call (find-if (of-type 'call-ast) (genome sw)))
          (field-expr (call-function call)))
     (is (source-text= "Point"
                       (infer-type sw (get-declaration-id sw field-expr))))
     (is (get-declaration-ast sw
-                      (infer-type sw (get-declaration-id sw field-expr))))
+                             (infer-type sw (get-declaration-id sw field-expr))))
     (is (typep (get-declaration-ast sw field-expr)
-               'cpp-field-declaration))))
+               'cpp-field-declaration))
+    (is (source-text= "double" (infer-type sw call)))))
 
 
 ;;; Parsing tests

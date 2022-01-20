@@ -245,7 +245,7 @@ pointer declarations which are nested on themselves."
             (when (equal text field-text)
               (return field)))))))))
 
-(defmethod declaration-ast-type ((obj software) (ast c/cpp-field-expression))
+(defmethod relevant-declaration-type ((obj software) (ast c/cpp-field-expression))
   'c/cpp-field-declaration)
 
 (defmethod get-declaration-id ((obj c/cpp) (field c/cpp-field-expression))
@@ -304,10 +304,34 @@ Then if we cannot infer the type of y per se we infer its type to be int."
 
 (defmethod infer-expression-type ((obj c/cpp) (ast call-ast))
   "Infer the type of a call from its declaration."
-  (or (let ((decl (get-declaration-ast obj (call-function ast))))
-        (when (typep decl 'function-ast)
-          (c/cpp-type decl)))
+  (or (when-let (decl (get-declaration-ast obj (call-function ast)))
+        (resolve-declaration-type obj decl ast))
       (call-next-method)))
+
+(defmethod extract-declaration-type ((obj c/cpp) (ast c/cpp-function-declarator))
+  (when-let (fn (find-enclosing 'c/cpp-function-definition obj ast))
+    (extract-declaration-type obj fn)))
+
+(defmethod extract-declaration-type ((obj c/cpp) (ast c/cpp-function-definition))
+  (c/cpp-type ast))
+
+(defmethod extract-declaration-type ((obj c/cpp) (ast c/cpp-field-declaration))
+  (c/cpp-type ast))
+
+(defmethod extract-declaration-type ((obj c/cpp) (decl ast))
+  (or
+   ;; Look for a surrounding variable declaration.
+   (when-let ((declaration
+               (find-if (of-type '(and variable-declaration-ast
+                                   (not c/cpp-init-declarator)))
+                        ;; Inclusive of AST.
+                        (get-parent-asts obj decl))))
+     (c/cpp-type declaration))
+   ;; If the declaration is for a function, return that
+   ;; function's type.
+   (and-let* ((function (find-enclosing 'function-ast obj decl))
+              ((eql decl (c/cpp-declarator function))))
+     (c/cpp-type function))))
 
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))

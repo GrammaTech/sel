@@ -541,21 +541,6 @@
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
 
-(defmethod extract-declaration-type ((obj cpp) (decl cpp-ast))
-  (or
-   ;; Look for a surrounding variable declaration.
-   (when-let ((declaration
-               (find-if (of-type '(and variable-declaration-ast
-                                   (not cpp-init-declarator)))
-                        ;; Inclusive of AST.
-                        (get-parent-asts obj decl))))
-     (cpp-type declaration))
-   ;; If the declaration is for a function, return that
-   ;; function's type.
-   (and-let* ((function (find-enclosing 'function-ast obj decl))
-              ((eql decl (cpp-declarator function))))
-     (cpp-type function))))
-
 (defmethod resolve-declaration-type ((obj cpp)
                                      (decl cpp-ast)
                                      (ast cpp-ast))
