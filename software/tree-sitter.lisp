@@ -1020,7 +1020,7 @@ for the language.")
        (:parse-error-ast c-error)
        (:variable-initialization-ast c-init-declarator c-assignment-expression)
        (:assignment-ast c-assignment-expression c-update-expression)
-       (:function-ast c-function-definition)
+       (:function-declaration-ast c-function-definition)
        (:identifier-ast c-identifier)
        (:field-ast c-field-expression)
        (:subscript-ast c-subscript-expression)
@@ -1145,7 +1145,7 @@ for the language.")
        (:variable-declaration-ast cpp-parameter-declaration cpp-declaration)
        (:variable-initialization-ast cpp-assignment-expression cpp-init-declarator)
        (:assignment-ast cpp-assignment-expression cpp-update-expression)
-       (:function-ast cpp-function-definition)
+       (:function-declaration-ast cpp-function-definition)
        (:unary-ast cpp-unary-expression)
        (:binary-ast cpp-binary-expression)
        (:number-ast cpp-number-literal)
@@ -1278,9 +1278,7 @@ for the language.")
        (:compound-ast javascript-statement-block)
        (:boolean-true-ast javascript-true)
        (:boolean-false-ast javascript-false)
-       (:function-ast
-        javascript-function javascript-function-declaration
-        javascript-arrow-function)
+       (:function-declaration-ast javascript-function-declaration)
        (:lambda-ast javascript-function javascript-arrow-function)
        (:parameters-ast javascript-formal-parameters)
        (:variable-declaration-ast javascript-variable-declaration-ast)
@@ -1365,8 +1363,7 @@ for the language.")
        (:while-ast python-while-statement)
        (:expression-ast python-expression)
        (:parenthesized-expression-ast python-parenthesized-expression)
-       (:function-ast
-        python-function-definition python-lambda)
+       (:function-declaration-ast python-function-definition)
        (:parameters-ast python-parameters python-lambda-parameters)
        (:boolean-true-ast python-true)
        (:boolean-false-ast python-false)
@@ -1423,18 +1420,15 @@ for the language.")
         typescript-tsx-switch-statement
         typescript-ts-while-statement
         typescript-tsx-while-statement)
-       (:function-ast
+       (:function-declaration-ast
         typescript-ts-function-declaration
         typescript-tsx-function-declaration
         typescript-ts-function-signature
-        typescript-tsx-function-signature
+        typescript-tsx-function-signature)
+       (:function-ast
         typescript-ts-function
-        typescript-tsx-function
-        typescript-ts-arrow-function
-        typescript-tsx-arrow-function)
+        typescript-tsx-function)
        (:lambda-ast
-        typescript-ts-function
-        typescript-tsx-function
         typescript-ts-arrow-function
         typescript-tsx-arrow-function)
        (:parameter-ast
@@ -2857,8 +2851,11 @@ Superclass of every generated LANGUAGE-comment class."))
  (defclass loop-ast (control-flow-ast) ()
     (:documentation "Mix-in for AST classes that are loops."))
 
-  (defclass class-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are classes."))
+ (defclass type-declaration-ast (ast) ()
+   (:documentation "Mix-in for AST classes that are type declarations."))
+
+ (defclass class-ast (type-declaration-ast) ()
+   (:documentation "Mix-in for AST classes that are class declarations."))
 
   (defclass parse-error-ast (ast) ()
     (:documentation
@@ -2867,7 +2864,22 @@ Superclass of every generated LANGUAGE-comment class."))
 Superclass of every generated LANGUAGE-error class."))
 
  (defclass function-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are functions."))
+   (:documentation "Mix-in for AST classes that are functions.
+
+An AST that declares a function should be a
+`function-declaration-ast'; an anonymous function AST should be a
+`lambda-ast'. Function ASTs that are not declarations or lambdas are
+things like JavaScript function expressions (which have names but are
+not declarations)."))
+
+ ;; NB While function-declaration-ast and lambda-ast are disjoint
+ ;; subtypes of function-ast they are not exhaustive.
+
+ (defclass function-declaration-ast (function-ast) ()
+   (:documentation "Mix-in for AST classes that are function declarations."))
+
+ (defclass lambda-ast (function-ast) ()
+   (:documentation "Mix-in for AST classes that are lambdas."))
 
   (defclass parameters-ast (ast) ()
     (:documentation "Mix-in for AST classes that are parameter lists."))
@@ -2888,16 +2900,14 @@ Superclass of every generated LANGUAGE-error class."))
     (:documentation "Mix-in for AST classes that are identifiers."))
 
  (defclass type-identifier-ast (ast) ()
-   (:documentation "Mix-in for AST classes that are type identifiers."))
+   (:documentation "Mix-in for AST classes that are type identifiers \(when they are distinct)."))
 
   (defclass field-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are fields."))
+    (:documentation "Mix-in for AST classes that are field
+    expressions (not field declarations)."))
 
   (defclass subscript-ast (ast) ()
     (:documentation "Mix-in for AST classes that are subscripts."))
-
-  (defclass lambda-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are lambdas."))
 
   (defclass literal-ast (ast) ()
     (:documentation "Mix-in for AST classes that are literals."))
