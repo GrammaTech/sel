@@ -690,7 +690,8 @@ not &key) parameters."
        (:method-combination standard/context)
        (:method :context ,lambda-list
          (declare (ignore ,@(mapcar #'cadar keys)))
-         (with-analysis-memoization (,@req
+         (with-analysis-memoization (',name ;Included for debugging.
+                                     ,@req
                                      ,@(mapcar #'car opt)
                                      ,@(ensure-list rest))
            (call-next-method)))
