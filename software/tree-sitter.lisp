@@ -6388,7 +6388,7 @@ By default this first tries `expression-type', then invokes
           (resolve-declaration-type software decl ast)))))
 
 (define-generic-analysis infer-expression-type (software ast)
-  (:method ((software tree-sitter) (ast ast))
+  (:method ((software software) (ast ast))
     (expression-type ast)))
 
 (define-generic-analysis expression-type (ast)

@@ -266,6 +266,31 @@ pointer declarations which are nested on themselves."
            obj
            decl)))))
 
+(defmethod infer-expression-type :around ((obj c/cpp) (ast expression-ast))
+  "Fall back to inferring the expression type from the surrounding declaration.
+
+That is, if the type of an expression cannot be extracted, then if it
+occurs as the RHS of a init declarator in a declaration, take the type
+of a declaration.
+
+E.g. given
+
+    int x = y
+
+Then if we cannot infer the type of y per se we infer its type to be int."
+  (or (call-next-method)
+      (match (take 2 (get-parent-asts* obj ast))
+        ((list (type c/cpp-init-declarator)
+               (and decl (type c/cpp-declaration)))
+         (c/cpp-type decl)))))
+
+(defmethod infer-expression-type ((obj c/cpp) (ast call-ast))
+  "Infer the type of a call from its declaration."
+  (or (let ((decl (get-declaration-ast obj (call-function ast))))
+        (when (typep decl 'function-ast)
+          (c/cpp-type decl)))
+      (call-next-method)))
+
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
   "Transform PARSE-TREE such that any specifiers are placed in relevants slots."

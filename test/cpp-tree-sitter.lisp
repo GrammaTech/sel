@@ -411,6 +411,18 @@ dereferenced pointer."
       (get-initialization-ast sw pl)
       (is (length= 4 (alias-set sw pl))))))
 
+(deftest test-infer-auto-type-from-function ()
+  (let* ((sw (from-string 'cpp (fmt "~
+int myfun(int x, int y) {
+    return x + y;
+}
+
+auto z = myfun(1, 2);")))
+         (z (find "z" (identifiers (genome sw))
+                  :test #'source-text=)))
+    (is (typep z 'identifier-ast))
+    (is (source-text= "int" (infer-type sw z)))))
+
 
 ;;; Parsing tests
 
