@@ -228,24 +228,38 @@ pointer declarations which are nested on themselves."
   (get-declaration-ast obj (c/cpp-argument ast)))
 
 (defmethod get-declaration-ast ((obj software) (ast c/cpp-field-expression))
-  (when-let* ((id (without-recursion ()
-                    (get-declaration-id obj ast)))
+  (when-let* ((id
+               ;; Get the ID from the declaration of the field
+               ;; argument.
+
+               ;; By default get-declaration-id invokes
+               ;; get-declaration-ast. If we end up back here
+               ;; something has gone wrong.
+               (without-recursion ()
+                 (get-declaration-id obj ast)))
+              ;; Get the type of the argument.
               (type (infer-type obj id))
+              ;; Get the declaration of the type of the argument.
               (type-decl (get-declaration-ast obj type))
-              (field-text (source-text (c/cpp-field ast))))
-    (ematch type-decl
+              ;; The name of the field we're looking for.
+              (target-field-name (source-text (c/cpp-field ast))))
+    (match type-decl
       ((c/cpp-struct-specifier
         (c/cpp-body field-list))
-       (dolist (field (direct-children field-list))
-         (match field
-           ((c/cpp-field-declaration
-             (c/cpp-declarator
-              (list
-               (c/cpp-function-declarator
-                (c/cpp-declarator
-                 (c/cpp-field-identifier :text text))))))
-            (when (equal text field-text)
-              (return field)))))))))
+       (iter (for field in (direct-children field-list))
+             (for field-name = (definition-name field))
+             (finding field such-that
+                      (source-text= field-name target-field-name)))))))
+
+(defmethod definition-name ((ast c/cpp-field-declaration))
+  (match ast
+    ((c/cpp-field-declaration
+      (c/cpp-declarator
+       (list
+        (c/cpp-function-declarator
+         (c/cpp-declarator
+          (c/cpp-field-identifier :text name))))))
+     name)))
 
 (defmethod relevant-declaration-type ((obj software) (ast c/cpp-field-expression))
   'c/cpp-field-declaration)
