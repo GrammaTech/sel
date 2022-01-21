@@ -1029,7 +1029,7 @@ for the language.")
        (:variable-initialization-ast c-init-declarator c-assignment-expression)
        (:assignment-ast c-assignment-expression c-update-expression)
        (:function-declaration-ast c-function-definition)
-       (:identifier-ast c-identifier)
+       (:identifier-ast c-identifier c-field-identifier)
        (:field-ast c-field-expression)
        (:subscript-ast c-subscript-expression)
        (:string-ast c-string-literal)
@@ -1163,7 +1163,8 @@ for the language.")
        (:identifier-ast cpp-identifier cpp-namespace-identifier
         cpp-qualified-identifier
         cpp-type-identifier
-        cpp-primitive-type)
+        cpp-primitive-type
+        cpp-field-identifier)
        (:type-identifier-ast cpp-type-identifier)
        (:field-ast cpp-field-expression)
        (:subscript-ast cpp-subscript-expression)

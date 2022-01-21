@@ -247,19 +247,12 @@ pointer declarations which are nested on themselves."
       ((c/cpp-struct-specifier
         (c/cpp-body field-list))
        (iter (for field in (direct-children field-list))
-             (for field-name = (definition-name field))
+             (for field-names =
+                  (collect-if (of-type 'c/cpp-field-identifier) field))
              (finding field such-that
-                      (source-text= field-name target-field-name)))))))
-
-(defmethod definition-name ((ast c/cpp-field-declaration))
-  (match ast
-    ((c/cpp-field-declaration
-      (c/cpp-declarator
-       (list
-        (c/cpp-function-declarator
-         (c/cpp-declarator
-          (c/cpp-field-identifier :text name))))))
-     name)))
+                      (member target-field-name
+                              field-names
+                              :test #'source-text=)))))))
 
 (defmethod relevant-declaration-type ((obj software) (ast c/cpp-field-expression))
   'c/cpp-field-declaration)

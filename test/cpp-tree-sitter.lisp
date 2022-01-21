@@ -449,7 +449,7 @@ auto x = myfun();")))
   (let* ((sw (from-string 'cpp (fmt "~
 struct Point {
   double x,y;
-  double Distance(const Point&);
+  double Distance(const Point&), other_function();
   Point PointAlongSegment(const Point&, double);
 };
 
