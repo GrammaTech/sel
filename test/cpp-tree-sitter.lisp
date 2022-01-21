@@ -424,7 +424,8 @@ auto z = myfun(1, 2);")))
     (is (source-text= "int" (infer-type sw z)))))
 
 (deftest test-struct-in-scope ()
-  (let* ((sw (from-string 'cpp (fmt "~
+  (with-analysis-cache ()
+    (let* ((sw (from-string 'cpp (fmt "~
 struct whatsit {};
 
 whatsit myfun() {
@@ -432,21 +433,21 @@ whatsit myfun() {
 }
 
 auto x = myfun();")))
-         (scopes (all-scopes sw))
-         (x (find "x" (identifiers (genome sw)) :test #'source-text=)))
-    (with-analysis-cache ()
+           (scopes (all-scopes sw))
+           (x (find "x" (identifiers (genome sw)) :test #'source-text=))
+           (struct (get-declaration-ast sw (infer-type sw x))))
       ;; We get the struct as a scope.
       (is (find "whatsit" scopes :test #'equal :key (op (aget :name _))))
       (is (typep x 'identifier-ast))
       ;; We infer the type of `x' from the type of `myfun'.
       (is (source-text= "whatsit" (infer-type sw x)))
       ;; We get the declaration of `whatsit'.
-      (let ((struct (get-declaration-ast sw (infer-type sw x))))
-        (is (typep struct 'cpp-struct-specifier))
-        (is (source-text= (definition-name struct) "whatsit"))))))
+      (is (typep struct 'cpp-struct-specifier))
+      (is (source-text= (definition-name struct) "whatsit")))))
 
 (deftest test-resolve-method-call-to-field-decl ()
-  (let* ((sw (from-string 'cpp (fmt "~
+  (with-analysis-cache ()
+    (let* ((sw (from-string 'cpp (fmt "~
 struct Point {
   double x,y;
   double Distance(const Point&), other_function();
@@ -457,9 +458,9 @@ auto p1 = new Point{0.0, 0.0};
 auto p2 = new Point{0.0, 1.0};
 
 auto d = p1->Distance(p2);")))
-         (call (find-if (of-type 'call-ast) (genome sw)))
-         (field-expr (call-function call)))
-    (with-analysis-cache ()
+           (call (find-if (of-type 'call-ast) (genome sw)))
+           (field-expr (call-function call))
+           (field-decl (get-declaration-ast sw field-expr)))
       ;; We get the type of `p1' (`Point').
       (is (source-text= "Point"
                         (infer-type sw (get-declaration-id sw field-expr))))
@@ -467,9 +468,9 @@ auto d = p1->Distance(p2);")))
       (is (get-declaration-ast sw
                                (infer-type sw (get-declaration-id sw field-expr))))
       ;; We get the declaration of the `Distance' field in `Point'.
-      (let ((field-decl (get-declaration-ast sw field-expr)))
-        (is (typep field-decl 'cpp-field-declaration))
-        (is (source-text= (definition-name field-decl) "Distance")))
+      (is (typep field-decl 'cpp-field-declaration))
+      (is (member "Distance" (identifiers field-decl)
+                  :test #'source-text=))
       ;; Finally we infer the type of the call.
       (is (source-text= "double" (infer-type sw call))))))
 
@@ -576,11 +577,9 @@ auto d = p1->Distance(p2);")))
                         "->")))))
 
 (deftest test-variadic-declarator/rvalue-reference ()
-  (nest
-   (finishes)
-   (genome)
-   (from-string 'cpp)
-   "iterator emplace(const_iterator position, Args&&... args);"))
+  (finishes
+   (convert 'cpp-ast
+            "iterator emplace(const_iterator position, Args&&... args);")))
 
 
 ;;;; Rule Substitution tests
