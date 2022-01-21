@@ -447,6 +447,12 @@
   (with-modify-parse-tree (parse-tree)
     ((:& :&&) (label-as :valueness))))
 
+(defmethod transform-parse-tree
+    ((language (eql :cpp)) (class (eql 'cpp-variadic-reference-declarator))
+     parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:& :&&) (label-as :valueness))))
+
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))

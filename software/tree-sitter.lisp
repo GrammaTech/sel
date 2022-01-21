@@ -785,6 +785,9 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-optional-parameter-declaration
         (:pre-specifiers (:multiple . t))
         (:post-specifiers (:multiple . t)))
+       (cpp-variadic-parameter-declaration
+        (:pre-specifiers (:multiple . t))
+        (:post-specifiers (:multiple . t)))
        (cpp-type-descriptor
         (:pre-type-qualifiers (:multiple . t))
         (:post-type-qualifiers (:multiple . t)))
@@ -795,7 +798,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-sized-type-specifier (:modifiers (:multiple . t)))
        (cpp-access-specifier (:keyword))
        (cpp-type-parameter-declaration (:keyword))
-       (cpp-reference-declarator (:valueness)))
+       (cpp-reference-declarator (:valueness))
+       (cpp-variadic-reference-declarator (:valueness)))
       (:python
        (python-function-definition (:async))
        (python-for-statement (:async))
@@ -1817,6 +1821,18 @@ definitions.")
              (:MEMBERS ((:TYPE . "SYMBOL") (:name . "&"))
                        ((:TYPE . "SYMBOL") (:name . "&&")))))
            ((:TYPE . "SYMBOL") (:NAME . "_declarator"))))))
+       (:VARIADIC-REFERENCE-DECLARATOR
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ;; Wrap in a field.
+         ((:type . "FIELD")
+          (:name . "valueness")
+          (:content
+           (:TYPE . "CHOICE")
+           ;; Convert strings to symbols.
+           (:MEMBERS ((:TYPE . "SYMBOL") (:name . "&"))
+                     ((:TYPE . "SYMBOL") (:name . "&&")))))
+         ((:TYPE . "SYMBOL") (:NAME . "variadic_declarator"))))
        (:REFERENCE-FIELD-DECLARATOR
         (:TYPE . "PREC_DYNAMIC") (:VALUE . 1)
         (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)

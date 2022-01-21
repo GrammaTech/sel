@@ -564,6 +564,13 @@ auto d = p1->Distance(p2);")))
       (is (string-equal (source-text  (@ g '(0 2 5 0 2 1)))
                         "->")))))
 
+(deftest test-variadic-declarator/rvalue-reference ()
+  (nest
+   (finishes)
+   (genome)
+   (from-string 'cpp)
+   "iterator emplace(const_iterator position, Args&&... args);"))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.
