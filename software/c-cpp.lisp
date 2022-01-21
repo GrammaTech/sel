@@ -213,10 +213,10 @@ pointer declarations which are nested on themselves."
 (defmethod declarator-name ((ast c/cpp-function-declarator))
   (declarator-name (c/cpp-declarator ast)))
 
-(defmethod field-name ((ast c/cpp-field-declaration))
-  (find-if (of-type 'c/cpp-field-identifier) ast))
-(defmethod field-name ((ast c/cpp-enumerator))
-  (c/cpp-name ast))
+(defmethod field-names ((ast c/cpp-field-declaration))
+  (collect-if (of-type 'c/cpp-field-identifier) ast))
+(defmethod field-names ((ast c/cpp-enumerator))
+  (list (c/cpp-name ast)))
 
 (defmethod get-declaration-id ((obj c/cpp) (ast c/cpp-pointer-expression))
   (get-declaration-id obj (c/cpp-argument ast)))
@@ -247,8 +247,7 @@ pointer declarations which are nested on themselves."
       ((c/cpp-struct-specifier
         (c/cpp-body field-list))
        (iter (for field in (direct-children field-list))
-             (for field-names =
-                  (collect-if (of-type 'c/cpp-field-identifier) field))
+             (for field-names = (field-names field))
              (finding field such-that
                       (member target-field-name
                               field-names

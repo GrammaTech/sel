@@ -704,13 +704,14 @@ for (int i = 0; i < x; i++) {
          (unbound-vals (get-unbound-vals software (genome software))))
     (is (null unbound-vals))))
 
-(deftest field-name-test ()
-  (is (equal (field-name (find-if (of-type 'c/cpp-field-declaration)
+(deftest field-names-test ()
+  (is (member "x"
+              (field-names (find-if (of-type 'c/cpp-field-declaration)
                                   (genome (from-string
                                            (make-instance 'c)
                                            "struct { int x; };"))))
-             "x"))
-  (is (null (field-name (genome (from-string (make-instance 'c) "int x;"))))))
+              :test #'source-text=))
+  (is (null (field-names (genome (from-string (make-instance 'c) "int x;"))))))
 
 
 ;;;; variable-use-p tests

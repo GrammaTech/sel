@@ -469,7 +469,7 @@ auto d = p1->Distance(p2);")))
                                (infer-type sw (get-declaration-id sw field-expr))))
       ;; We get the declaration of the `Distance' field in `Point'.
       (is (typep field-decl 'cpp-field-declaration))
-      (is (member "Distance" (identifiers field-decl)
+      (is (member "Distance" (field-names field-decl)
                   :test #'source-text=))
       ;; Finally we infer the type of the call.
       (is (source-text= "double" (infer-type sw call))))))

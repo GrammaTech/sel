@@ -528,7 +528,7 @@
            :operator
            :control-flow-condition
            :end-of-parameter-list
-           :field-name
+           :field-names
            :function-name
            :identifiers
            :call-arguments
@@ -6389,15 +6389,16 @@ If NODE is not a function node, return nil.")
       (warn "FUNCTION-NAME undefined for ~a" type))
     nil))
 
-(defgeneric field-name (node)
-  (:documentation "Extract the name (as a string) of a field from NODE.
-If NODE is not a thing that has fields, return nil.")
+(defgeneric field-names (node)
+  (:documentation "Extract the names (as strings) of a field from
+NODE. If NODE is not a thing that has fields, return nil.")
   (:method ((node t)) nil)
   (:method :around ((node t))
-    (let ((result (call-next-method)))
-      (if (typep result 'tree-sitter-ast)
-          (source-text result)
-          result))))
+    (iter (for result in (call-next-method))
+          (collecting
+           (if (typep result 'tree-sitter-ast)
+               (source-text result)
+               result)))))
 
 (define-generic-analysis infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
