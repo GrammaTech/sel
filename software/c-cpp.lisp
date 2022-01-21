@@ -228,7 +228,9 @@ pointer declarations which are nested on themselves."
   (get-declaration-ast obj (c/cpp-argument ast)))
 
 (defmethod get-declaration-ast ((obj software) (ast c/cpp-field-expression))
-  (when-let* ((type (infer-type obj (get-declaration-id obj ast)))
+  (when-let* ((id (without-recursion ()
+                    (get-declaration-id obj ast)))
+              (type (infer-type obj id))
               (type-decl (get-declaration-ast obj type))
               (field-text (source-text (c/cpp-field ast))))
     (ematch type-decl
