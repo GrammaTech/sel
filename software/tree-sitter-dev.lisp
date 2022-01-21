@@ -36,9 +36,12 @@
   "Dump the rules for language NAME."
   (aget :rules (dump-tree-sitter-grammar-json name)))
 
+(defun json-rules (language)
+  (aget :rules (dump-tree-sitter-grammar-json language)))
+
 (defun json-rule-ref (language rule)
   "Look up RULE in the rules for language NAME."
-  (aget rule (aget :rules (dump-tree-sitter-grammar-json language))))
+  (aget rule (json-rules language)))
 
 (defun set-grammar (name)
   (setf *grammar* (dump-tree-sitter-grammar-json name)))
