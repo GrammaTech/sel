@@ -434,11 +434,16 @@ whatsit myfun() {
 auto x = myfun();")))
          (scopes (all-scopes sw))
          (x (find "x" (identifiers (genome sw)) :test #'source-text=)))
-    (is (find "whatsit" scopes :test #'equal :key (op (aget :name _))))
-    (is (typep x 'identifier-ast))
-    (is (source-text= "whatsit" (infer-type sw x)))
-    (is (typep (get-declaration-ast sw (infer-type sw x))
-               'cpp-struct-specifier))))
+    (with-analysis-cache ()
+      ;; We get the struct as a scope.
+      (is (find "whatsit" scopes :test #'equal :key (op (aget :name _))))
+      (is (typep x 'identifier-ast))
+      ;; We infer the type of `x' from the type of `myfun'.
+      (is (source-text= "whatsit" (infer-type sw x)))
+      ;; We get the declaration of `whatsit'.
+      (let ((struct (get-declaration-ast sw (infer-type sw x))))
+        (is (typep struct 'cpp-struct-specifier))
+        (is (source-text= (definition-name struct) "whatsit"))))))
 
 (deftest test-resolve-method-call-to-field-decl ()
   (let* ((sw (from-string 'cpp (fmt "~
@@ -454,13 +459,19 @@ auto p2 = new Point{0.0, 1.0};
 auto d = p1->Distance(p2);")))
          (call (find-if (of-type 'call-ast) (genome sw)))
          (field-expr (call-function call)))
-    (is (source-text= "Point"
-                      (infer-type sw (get-declaration-id sw field-expr))))
-    (is (get-declaration-ast sw
-                             (infer-type sw (get-declaration-id sw field-expr))))
-    (is (typep (get-declaration-ast sw field-expr)
-               'cpp-field-declaration))
-    (is (source-text= "double" (infer-type sw call)))))
+    (with-analysis-cache ()
+      ;; We get the type of `p1' (`Point').
+      (is (source-text= "Point"
+                        (infer-type sw (get-declaration-id sw field-expr))))
+      ;; We get the declaration of the `Point' type.
+      (is (get-declaration-ast sw
+                               (infer-type sw (get-declaration-id sw field-expr))))
+      ;; We get the declaration of the `Distance' field in `Point'.
+      (let ((field-decl (get-declaration-ast sw field-expr)))
+        (is (typep field-decl 'cpp-field-declaration))
+        (is (source-text= (definition-name field-decl) "Distance")))
+      ;; Finally we infer the type of the call.
+      (is (source-text= "double" (infer-type sw call))))))
 
 
 ;;; Parsing tests

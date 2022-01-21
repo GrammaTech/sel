@@ -586,6 +586,7 @@ int main () {
     (is (eq (aget :scope i-alist) genome))))
 
 (deftest c-scopes-enums ()
+  "Test that enums export their identifiers into the surrounding scope."
   (let* ((software (from-string 'c (fmt "~
 enum boolean { NO = 0, YES };
 x;")))
@@ -597,6 +598,7 @@ x;")))
     (is (scopes-contains-string-p scopes "YES"))))
 
 (deftest c-scopes-struct ()
+  "Test that structs appear in scopes."
   (let* ((software (from-string 'c (fmt "~
 struct point { int x; int y; };
 x;")))
