@@ -1142,7 +1142,8 @@ for the language.")
        (:declaration-ast cpp-field-declaration)
        (:type-declaration-ast cpp-type-definition cpp-struct-specifier
         cpp-union-specifier
-        cpp-enum-specifier)
+        cpp-enum-specifier
+        cpp-class-specifier)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
        (:statement-ast cpp--statement cpp-function-definition cpp-declaration)
        (:expression-statement-ast cpp-expression-statement)
