@@ -699,6 +699,13 @@ array, function parameter, parens, and pointer information.")
    :declarator (canonicalize-declarator declarator)))
 
 (defmethod canonicalize-type
+    ((declaration c/cpp-init-declarator)
+     &key ast-type canonical-type software)
+  (if-let (decl (find-enclosing 'c/cpp-declaration software declaration))
+    (canonicalize-type decl :ast-type ast-type :canonical-type canonical-type)
+    (call-next-method)))
+
+(defmethod canonicalize-type
     ((declaration c/cpp-field-declaration)
      &key ast-type canonical-type
        (declarator (car (c/cpp-declarator declaration))))
