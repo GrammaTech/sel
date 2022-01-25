@@ -227,6 +227,9 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
   (get-declaration-ast obj (c/cpp-argument ast)))
 
+(defmethod get-declaration-ast ((obj c/cpp) (ast c/cpp-type-descriptor))
+  (get-declaration-ast obj (c/cpp-type ast)))
+
 (defmethod infer-type ((obj software) (ast c/cpp-field-expression))
   (when-let ((id (get-declaration-id obj ast)))
     ;; Get the type from the declaration of the field argument.
