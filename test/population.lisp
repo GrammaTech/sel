@@ -22,8 +22,8 @@
                                                      :collect j)
                                           :fitness i))
                 *fitness-evals* 0
-                *mutation-stats* (make-hash-table)
-                *crossover-stats* (make-hash-table)))
+                *mutation-stats* (make-hash-table :test #'equal)
+                *crossover-stats* (make-hash-table :test #'equal)))
   (:teardown (setf *population* nil
                    *fitness-evals* 0
                    *mutation-stats* nil
@@ -63,7 +63,7 @@
   (let ((counter 0)
         (*fitness-predicate* #'>)
         (*max-population-size* 10)
-        (*mutation-stats* (make-hash-table)))
+        (*mutation-stats* (make-hash-table :test #'equal)))
     (flet ((test (candidate)
              (declare (ignorable candidate))
              (incf counter)
@@ -78,9 +78,9 @@
                                   :max-evals 20
                                   :analyze-mutation-fn #'analyze-mutation)))
         (evolve #'test :max-evals 20 :analyze-mutation-fn #'analyze-mutation)
-        (is (equal '(:fake) (hash-table-keys *mutation-stats*)))
-        (is (= 20 (length (gethash :fake *mutation-stats*))))
-        (let ((statuses (mapcar #'car (gethash :fake *mutation-stats*))))
+        (is (equal '((:fake)) (hash-table-keys *mutation-stats*)))
+        (is (= 20 (length (gethash '(:fake) *mutation-stats*))))
+        (let ((statuses (mapcar #'car (gethash '(:fake) *mutation-stats*))))
           (is (member :better statuses))
           (is (member :worse statuses)))))))
 

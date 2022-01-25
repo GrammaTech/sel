@@ -501,8 +501,7 @@ compared to OLD.  NEW and OLD must have fitness populated."
 * OBJ DOCFIXME
 * MUTATION DOCFIXME
 "
-  ;; Default to using the mutation op.
-  (declare (ignorable obj)) (car mutation))
+  (declare (ignorable obj)) mutation)
 
 (defun summarize-mutation-stats (&aux results)
   "DOCFIXME
@@ -765,7 +764,7 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (make-instance (type-of mut) :object object :targets targets))
 
 (defmethod mutation-key ((obj software) (mutation mutation))
-  (declare (ignorable obj)) (type-of mutation))
+  (declare (ignorable obj)) (list (type-of mutation)))
 
 (defmethod apply-mutation :before ((obj software) (mut mutation))
   ;; Mutation removes previously calculated fitness values.
