@@ -474,6 +474,32 @@ auto d = p1->Distance(p2);")))
       ;; Finally we infer the type of the call.
       (is (source-text= "double" (infer-type sw call))))))
 
+(deftest test-resolve-method-call-to-iterator-container-type ()
+  (with-analysis-cache ()
+    (let* ((sw (from-string 'cpp (fmt "~
+struct Point {
+  double x,y;
+  double Distance(const Point&), other_function();
+  Point PointAlongSegment(const Point&, double);
+};
+
+std::list<Point>::iterator p1 = pts.begin();
+
+auto d = p1->Distance(p2);")))
+           (call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
+           (field-expr (call-function call))
+           (field-decl (get-declaration-ast sw field-expr)))
+      ;; We get the type of `p1' (`Point') in `p1->Distance(p2)'.
+      (is (source-text= "Point" (infer-type sw field-expr)))
+      ;; We get the declaration of the `Point' type.
+      (is (get-declaration-ast sw (infer-type sw field-expr)))
+      ;; We get the declaration of the `Distance' field in `Point'.
+      (is (typep field-decl 'cpp-field-declaration))
+      (is (member "Distance" (field-names field-decl)
+                  :test #'source-text=))
+      ;; Finally we infer the type of the call.
+      (is (source-text= "double" (infer-type sw call))))))
+
 
 ;;; Parsing tests
 

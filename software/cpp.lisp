@@ -648,6 +648,26 @@
 (defmethod expression-type ((ast cpp-new-expression))
   (cpp-type ast))
 
+(defmethod infer-type :around ((obj software) (ast cpp-field-expression))
+  (let ((type (call-next-method)))
+    (or (and (typep type 'cpp-qualified-identifier)
+             (let ((quals (namespace-qualifiers obj type))
+                   (name (unqualified-name type)))
+               ;; Special case. Since a field expression is an
+               ;; implicit dereference, if the type is a std iterator
+               ;; we want the type of the container's elements.
+               (and (typep name 'identifier-ast)
+                    (source-text= name "iterator")
+                    (source-text= (first quals) "std")
+                    (let ((last-qual (lastcar quals)))
+                      (and (typep last-qual 'cpp-template-type)
+                           (let ((children
+                                  (direct-children
+                                   (cpp-arguments last-qual))))
+                             (and (single children)
+                                  (only-elt children))))))))
+        type)))
+
 (defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
   (infer-expression-type obj (only-elt (direct-children ast))))
 
