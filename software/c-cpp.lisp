@@ -227,18 +227,19 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
   (get-declaration-ast obj (c/cpp-argument ast)))
 
+(defmethod infer-type ((obj software) (ast c/cpp-field-expression))
+  (when-let ((id (get-declaration-id obj ast)))
+    ;; Get the type from the declaration of the field argument.
+    (infer-type obj id)))
+
 (defmethod get-declaration-ast ((obj software) (ast c/cpp-field-expression))
-  (when-let* ((id
+  (when-let* ((type
                ;; Get the ID from the declaration of the field
                ;; argument.
 
-               ;; By default get-declaration-id invokes
-               ;; get-declaration-ast. If we end up back here
-               ;; something has gone wrong.
+               ;; If we end up back here something has gone wrong.
                (without-recursion ()
-                 (get-declaration-id obj ast)))
-              ;; Get the type of the argument.
-              (type (infer-type obj id))
+                 (infer-type obj ast)))
               ;; Get the declaration of the type of the argument.
               (type-decl (get-declaration-ast obj type))
               ;; The name of the field we're looking for.
