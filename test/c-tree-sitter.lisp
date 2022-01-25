@@ -358,7 +358,11 @@
           (#P"inner-asts-for-statement.c")
           ;; TODO: figure out how to work around issues with the top-most rule.
           (#P"inner-asts-enum.c")
-          (#P"inner-asts-if-defined.c"))))
+          (#P"inner-asts-if-defined.c")
+          ;; The following two test that inner-asts are assigned to the correct
+          ;; internal-asts slot.
+          (#P"enum-if-preproc.c")
+          (#P"inner-asts-for-statement.c"))))
 
 (defixture factorial.c
   (:setup (setf *soft* (from-file (make-instance 'c)

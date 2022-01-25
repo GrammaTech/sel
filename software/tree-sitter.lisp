@@ -6491,10 +6491,6 @@ return whether they are equal.")
 (defun children-parser (ast pruned-rule slots &aux (child-stack-key '#.(gensym)))
   "Return the children of AST in order based on PRUNED-RULE. SLOTS specifies
 which slots are expected to be used."
-  ;; TODO: quit copying hash tables and use indices into them or find a
-  ;;       different way altogether if this method performs poorly since
-  ;;       it's very hacky right now. It may be best to do the following note.
-
   ;; NOTE: this does not back track; not sure if this will be a problem,
   ;;       but there aren't any rules that obviously require it--this may
   ;;       be the case if a rule is a subtype of another.
@@ -6665,10 +6661,15 @@ be more than one string outside of string literals."
     (after-text ast))))
 
 (defun match-parsed-children-json
-    (json-rule parse-tree &aux (immediate-token-count 0))
+    (json-rule parse-tree
+     &aux (token-count 0)
+       (immediate-token-count 0))
   "Match a cl-tree-sitter PARSE-TREE as a JSON-RULE if possible.
-Returns as values the updated parse tree, whether it matched, and
-the number of immediate tokens encountered."
+Returns as values the updated parse tree, whether it matched, and a cons of the
+number of terminals and the number of immediate tokens encountered. The number of
+immediate tokens is used to discard inner-asts that were generated between two
+tokens but don't actually belong in between them. These inner-asts are generated
+in #'convert and inlined into the parse tree received from cl-tree-sitter."
   ;; NOTE: this could be expanded to match on the string too
   ;;       though the current representation of transformed json
   ;;       rules and pruned rules likely wouldn't benefit from it.
@@ -6677,12 +6678,12 @@ the number of immediate tokens encountered."
                ((aget :named rule)
                 ;; Named aliases are unhandled by #'match-parsed-children-json.
                 (error "Named alias in JSON subtree"))
-               (t
-                (and (string-equal (if (consp alias)
-                                       (cadr alias)
-                                       alias)
-                                   (aget :value rule))
-                     (values (cdr tree) t)))))
+               ((string-equal (if (consp alias)
+                                  (cadr alias)
+                                  alias)
+                              (aget :value rule))
+                (incf token-count)
+                (values (cdr tree) t))))
            (handle-blank (tree) (values tree t))
            (handle-choice (rule tree)
              (mvlet* ((branches (aget :members rule))
@@ -6720,6 +6721,7 @@ the number of immediate tokens encountered."
                  (leave))
                (finally (return (values result t)))))
            (handle-string (rule tree &aux (token (car tree)))
+             (incf token-count)
              (when (and (consp token)
                         (atom (car token))
                         (string-equal (car token) (convert-name (aget :value rule))))
@@ -6730,7 +6732,9 @@ the number of immediate tokens encountered."
              (cond
                ((equal "STRING" (aget :type content))
                 (rule-handler content tree))
-               (t (values tree t))))
+               (t
+                (incf token-count)
+                (values tree t))))
            (rule-handler (rule tree)
              "Handles dispatching RULE to its relevant rule handler."
              ;; NOTE: this will throw an error if an unexpected rule is
@@ -6747,16 +6751,18 @@ the number of immediate tokens encountered."
                ("SLOT" (values tree t))
                ("STRING" (handle-string rule tree)))))
     (mvlet ((tree matched? (rule-handler json-rule parse-tree)))
-      (values tree matched? immediate-token-count))))
+      (values tree matched? (cons token-count immediate-token-count)))))
 
 (defun match-parsed-children
     (language-prefix json-rule pruned-rule child-types parse-tree)
   "Match a cl-tree-sitter PARSE-TREE as a PRUNED-RULE in LANGUGE-PREFIX.
 CHILD-TYPES is a list of lisp types that the children slot can contain.
 Returns as values whether the match succeeded and if so, returns a list
-specifying how to populate the inner-asts slots--symbols indicate a slot
-to store the next grouping of ASTs on the inner-asts stack while a number
-indicates the number of groupings to drop from the stack."
+specifying how to populate the inner-asts slots--'symbols' indicate a slot
+to store the next grouping of ASTs on the inner-asts stack; a 'number' indicates
+the number of terminals to drop from the children list; and a 'cons' where the
+car does the same as the aformentioned 'number' and the cdr indicates the number
+of groupings to drop from the stack. See convert-parse-tree for advanced usage."
   (labels ((remove-ignorable-items (tree)
              "Remove ignorable items from PARSE-TREE. This includes comments,
               errors, and internal ast slots."
@@ -6798,7 +6804,7 @@ indicates the number of groupings to drop from the stack."
                              (cons 'source-text-fragment
                                    (cdr rule))
                              :test #'subtypep))
-                (values (cdr parse-stack) t inner-asts-order))
+                (values (cdr parse-stack) t (cons 1 inner-asts-order)))
                ;; This is an edge case for rules that allow null children.
                ((member 'null (cdr rule))
                 (values parse-stack t inner-asts-order))))
@@ -6819,7 +6825,7 @@ indicates the number of groupings to drop from the stack."
                       (cons 'source-text-fragment
                             (cddr rule))
                       :test #'subtypep))
-                (values (cdr parse-stack) t inner-asts-order))
+                (values (cdr parse-stack) t (cons 1 inner-asts-order)))
                ;; This is an edge case for a field that allows nil.
                ((member 'null (cddr rule))
                 (values parse-stack t inner-asts-order))))
@@ -7703,36 +7709,108 @@ the indentation slots."
                        (list (caar grouping))
                        (mapcar #'cdr grouping)))
               (assort field-list :key #'car)))
-           (set-inner-ast-slots (inner-asts stack-directives
+           (categorize-children (children)
+             "Categorize CHILDREN into three groups:
+               - :terminal indicates a terminal symbol.
+               - :ast indicates an AST which is stored in a slot.
+               - :extra-ast indicates an AST which is stored in a before/after
+                 slot or an inner-asts slot."
+             (mapcar
+              (lambda (child &aux (type (car child)))
+                (cond
+                  ((terminal-symbol-class-p type) :terminal)
+                  ((member type '(:inner-whitespace :comment :error)) :extra-ast)
+                  (t :ast)))
+              children))
+           (drop-before/after-asts (children)
+             "Drop ASTs in CHILDREN which are stored in the before or
+              after slots."
+             (let ((category->child-runs
+                     (runs (mapcar #'cons
+                                   (categorize-children children)
+                                   children)
+                           :key #'car)))
+               ;; NOTE: category->child-runs is a list of cons which map a
+               ;;       category to a specification for a child.
+               ;;
+               ;;       Any :extra-ast run which has an :ast on either side is
+               ;;       dropped as they will be stored in before or after slots.
+               (iter
+                 (for terminal-boundary-flag initially nil
+                      then (eql previous-key :terminal))
+                 (for current in category->child-runs)
+                 (for previous previous current)
+                 (for current-key = (caar current))
+                 (for previous-key = (caar previous))
+                 (case previous-key
+                   ((:terminal :ast) (appending (mapcar #'cdr previous)
+                                                into result))
+                   (:extra-ast
+                    (unless (or (not terminal-boundary-flag)
+                                (eql current-key :ast))
+                      (appending (mapcar #'cdr previous)
+                                 into result))))
+                 (finally
+                  (unless (and (eql current-key :extra-ast)
+                               (eql previous-key :ast))
+                    (return (append result (mapcar #'cdr current))))))))
+           (set-inner-ast-slots (inner-asts stack-directives children
                                  &aux (stack-directive (car stack-directives))
-                                   (grouping (car inner-asts)))
+                                   (grouping (car inner-asts))
+                                   (child (car (car children))))
              "Set the inner-asts slots in instance that
               correspond to INNER-ASTS and STACK-DIRECTIVES.
               STACK-DIRECTIVES is a list of symbols and numbers.
               A symbol indicates the next grouping in INNER-ASTS is
-              to be stored in a slot specified by the symbol. A number
-              indicates the number of groupings to be dropped in INNER-ASTS
-              due to IMMEDIATE_TOKENs."
+              to potentially be stored in a slot specified by the symbol;
+              A cons has the number of terminal children to skip over in its
+              car and the cdr is the number of groupings to be dropped in
+              INNER-ASTS due to IMMEDIATE_TOKENs.
+              A number is the same as the car of a cons."
+             ;; NOTE: this is slightly complicated due to how the information
+             ;;       has been passed around.
+             ;;       INNER-ASTS is a list of groupings of inner-asts. This
+             ;;       has no information attached to it in regards to which slot
+             ;;       it should be stored in.
+             ;;       STACK-DIRECTIVES contains all of the directives needed to
+             ;;       traverse CHILDREN and determine which internal-asts slot
+             ;;       to place the next inner-asts grouping in. It's, more or
+             ;;       less, a road map from match-parsed-children which gives
+             ;;       enough information to determine if an internal-asts slot
+             ;;       should be matched with NULL instead of an inner-ast
+             ;;       grouping. This matching wasn't done in
+             ;;       match-parsed-children since it strips inner-asts before
+             ;;       matching. Thus, it is done here.
              (symbol-macrolet ((slot-value
                                  (slot-value instance stack-directive)))
                (etypecase stack-directive
                  (null)
-                 (number
-                  (set-inner-ast-slots (nthcdr stack-directive inner-asts)
-                                       (cdr stack-directives)))
-                 (symbol
-                  (let ((value (if (cdr grouping)
-                                   ;; Store multiple ASTs in a wrapper AST so
-                                   ;; that they continue to work with functional
-                                   ;; trees. This notably occurs when multiple
-                                   ;; comments are between two terminal tokens.
-                                   (list
-                                    (make-instance 'inner-parent
-                                                   :children (reverse grouping)))
-                                   grouping)))
-                    (setf slot-value (append slot-value value)))
+                 (cons
                   (set-inner-ast-slots
-                   (cdr inner-asts) (cdr stack-directives))))))
+                   (nthcdr (cdr stack-directive) inner-asts)
+                   (cdr stack-directives)
+                   (nthcdr (car stack-directive) children)))
+                 (number
+                  (set-inner-ast-slots inner-asts
+                                       (cdr stack-directives)
+                                       (nthcdr stack-directive children)))
+                 (symbol
+                  (if (member child '(:inner-whitespace :comment :error))
+                      (let ((value
+                              (if (cdr grouping)
+                                  ;; Store multiple ASTs in a wrapper AST so
+                                  ;; that they continue to work with functional
+                                  ;; trees. This notably occurs when multiple
+                                  ;; comments are between two terminal tokens.
+                                  (list
+                                   (make-instance 'inner-parent
+                                                  :children (reverse grouping)))
+                                  grouping)))
+                        (setf slot-value (append slot-value value))
+                        (set-inner-ast-slots
+                         (cdr inner-asts) (cdr stack-directives) (cdr children)))
+                      (set-inner-ast-slots
+                       inner-asts (cdr stack-directives) children))))))
            (set-slot-values (slot-values inner-asts)
              "Set the slots in instance to correspond to SLOT-VALUES."
              (when (and (slot-exists-p instance 'json-rule)
@@ -7743,7 +7821,8 @@ the indentation slots."
                  1
                  (match-parsed-children
                   prefix (json-rule instance) (pruned-rule instance)
-                  (slot-usage instance) spec))))
+                  (slot-usage instance) spec))
+                (drop-before/after-asts (caddr spec))))
              (mapc
               (lambda (list)
                 (setf (slot-value
