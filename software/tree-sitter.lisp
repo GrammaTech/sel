@@ -6432,23 +6432,23 @@ NODE. If NODE is not a thing that has fields, return nil.")
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
-  (:method ((software software) (ast ast))
+  (:method ((software t) (ast t))
     (or (infer-expression-type software ast)
         (when-let (decl (get-declaration-ast software ast))
           (resolve-declaration-type software decl ast)))))
 
 (define-generic-analysis infer-expression-type (software ast)
-  (:method ((software software) (ast ast))
+  (:method ((software t) (ast t))
     (expression-type ast)))
 
 (define-generic-analysis expression-type (ast)
-  (:method ((ast ast)) nil))
+  (:method ((ast t)) nil))
 
 (define-generic-analysis extract-declaration-type (software decl-ast)
   (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
 
 By default calls `declaration-type' with DECL-AST.")
-  (:method ((obj t) (ast ast))
+  (:method ((obj t) (ast t))
     (declaration-type ast)))
 
 (define-generic-analysis resolve-declaration-type (software decl-ast ast)
@@ -6461,7 +6461,7 @@ but `y' as a float.)
 
 By default simply calls `extract-declaration-type' with SOFTWARE and
 DECL-AST.")
-  (:method ((software software) (decl-ast ast) (ast ast))
+  (:method ((software t) (decl-ast t) (ast t))
     (extract-declaration-type software decl-ast)))
 
 (define-generic-analysis declaration-type (declaration-ast)
