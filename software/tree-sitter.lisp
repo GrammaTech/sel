@@ -430,7 +430,6 @@
            :*tree-sitter-language-files*
            :ast-type-to-rebind-p
            :ast-mixin-subclasses
-           :collect-fun-uses
            :javascript
            :python
            :source-text-fragment
@@ -508,7 +507,9 @@
            :canonical-type
            ;; Generics
            ;; TODO: should this be in parseable?
+           :collect-fun-uses
            :collect-var-uses
+           :collect-arg-uses
            :assignments
            :get-declaration-ast
            :*relevant-declaration-type*
@@ -6425,6 +6426,22 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
               (collect ast)))))
   (:method ((sw software) (target ast))
     (assignments sw (get-declaration-id sw target))))
+
+(define-generic-analysis collect-arg-uses (obj target)
+  (:documentation "Collect function calls in OBJ with TARGET as an argument.")
+  (:method ((obj software) (target identifier-ast))
+    (let ((target (get-declaration-id obj target)))
+      (iter (for ast in-tree (genome obj))
+            ;; The outer loop will recurse, so we don't
+            ;; need to recurse here.
+            (match ast
+              ((call-ast (call-arguments args))
+               (when (member target
+                             (filter (of-type 'identifier-ast)
+                                     (assure list args))
+                             :key (op (get-declaration-id obj _)))
+                 (set-collect ast into calls))))
+            (finally (return (convert 'list calls)))))))
 
 
 ;;;; Cross-language generics and methods

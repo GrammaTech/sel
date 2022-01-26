@@ -518,7 +518,20 @@ auto d = p1->Distance(p2);")))
         (is (not (assigned (find-soft-var "frac"))))
         (is (not (assigned (find-soft-var "midpoint"))))))))
 
-
+(deftest test-collect-arg-uses ()
+  (flet ((count-arg-uses (name)
+           (nest
+            (length)
+            (collect-arg-uses *soft*)
+            (find name
+                  (identifiers (genome *soft*))
+                  :test #'equal
+                  :key #'source-text))))
+    (with-fixture trim-front
+      (with-analysis-cache ()
+        (is (= 2 (count-arg-uses "next_point")))
+        (is (= (count-arg-uses "next_point")
+               (count-arg-uses "p2")))))))
 
 
 ;;; Parsing tests

@@ -511,6 +511,31 @@ Should return `:failure' in the base case.")
             (set-collect (get-declaration-id sw ast) into set))
           (finally (return (convert 'list (less set plain-var)))))))
 
+
+(defmethod collect-arg-uses ((sw c/cpp) (target identifier-ast))
+  (labels ((occurs-as-object? (ast target)
+             (match ast
+               ((call-ast
+                 (call-function
+                  (cpp-field-expression
+                   (cpp-argument arg))))
+                (eql (get-declaration-id sw arg) target))))
+           (occurs-as-arg? (ast target)
+             (match ast
+               ((call-ast (call-arguments args))
+                (member target
+                        (filter (of-type 'identifier-ast)
+                                (assure list args))
+                        :key (op (get-declaration-id sw _)))))))
+    (let ((target (get-declaration-id sw target)))
+      (iter (for ast in-tree (genome sw))
+            ;; The outer loop will recurse, so we don't
+            ;; need to recurse here.
+            (when (or (occurs-as-object? ast target)
+                      (occurs-as-arg? ast target))
+              (set-collect ast into calls))
+            (finally (return (convert 'list calls)))))))
+
 
 ;;;; Whitespace
 (defmethod whitespace-between/parent ((parent c/cpp-do-statement)
