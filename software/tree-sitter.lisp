@@ -6488,6 +6488,26 @@ return whether they are equal.")
          (collect (cons 'defun form)))
      ,@body))
 
+(deftype stack-directive ()
+  "A directive for translating stacks to inner asts..
+
+- A symbol indicates the next inner AST grouping is to potentially be
+  stored in a slot specified by the symbol.
+- A cons has the number of terminal children to skip over in its car
+  and the cdr is the number of groupings to be dropped in inner ASTS
+  due to immediate tokens.
+- A number is the same as the car of a cons."
+
+  '(or symbol number (cons number number)))
+
+(deftype child-category ()
+  "A child category.
+- :terminal indicates a terminal symbol.
+- :ast indicates an AST which is stored in a slot.
+- :extra-ast indicates an AST which is stored in a before/after
+  slot or an inner-asts slot."
+  '(member :terminal :ast :extra-ast))
+
 (defun children-parser (ast pruned-rule slots &aux (child-stack-key '#.(gensym)))
   "Return the children of AST in order based on PRUNED-RULE. SLOTS specifies
 which slots are expected to be used."
@@ -7710,17 +7730,15 @@ the indentation slots."
                        (mapcar #'cdr grouping)))
               (assort field-list :key #'car)))
            (categorize-children (children)
-             "Categorize CHILDREN into three groups:
-               - :terminal indicates a terminal symbol.
-               - :ast indicates an AST which is stored in a slot.
-               - :extra-ast indicates an AST which is stored in a before/after
-                 slot or an inner-asts slot."
+             "Categorize CHILDREN according to `child-category'."
              (mapcar
               (lambda (child &aux (type (car child)))
-                (cond
-                  ((terminal-symbol-class-p type) :terminal)
-                  ((member type '(:inner-whitespace :comment :error)) :extra-ast)
-                  (t :ast)))
+                (the child-category
+                     (cond
+                       ((terminal-symbol-class-p type) :terminal)
+                       ((member type '(:inner-whitespace :comment :error))
+                        :extra-ast)
+                       (t :ast))))
               children))
            (drop-before/after-asts (children)
              "Drop ASTs in CHILDREN which are stored in the before or
@@ -7742,14 +7760,15 @@ the indentation slots."
                  (for previous previous current)
                  (for current-key = (caar current))
                  (for previous-key = (caar previous))
-                 (case previous-key
+                 (ecase-of (or null child-category) previous-key
                    ((:terminal :ast) (appending (mapcar #'cdr previous)
                                                 into result))
                    (:extra-ast
                     (unless (or (not terminal-boundary-flag)
                                 (eql current-key :ast))
                       (appending (mapcar #'cdr previous)
-                                 into result))))
+                                 into result)))
+                   ((nil)))
                  (finally
                   (unless (and (eql current-key :extra-ast)
                                (eql previous-key :ast))
@@ -7758,15 +7777,10 @@ the indentation slots."
                                  &aux (stack-directive (car stack-directives))
                                    (grouping (car inner-asts))
                                    (child (car (car children))))
-             "Set the inner-asts slots in instance that
-              correspond to INNER-ASTS and STACK-DIRECTIVES.
-              STACK-DIRECTIVES is a list of symbols and numbers.
-              A symbol indicates the next grouping in INNER-ASTS is
-              to potentially be stored in a slot specified by the symbol;
-              A cons has the number of terminal children to skip over in its
-              car and the cdr is the number of groupings to be dropped in
-              INNER-ASTS due to IMMEDIATE_TOKENs.
-              A number is the same as the car of a cons."
+             "Set the inner-asts slots in instance that correspond to
+              INNER-ASTS and STACK-DIRECTIVES.
+              STACK-DIRECTIVES is a list with elements of type
+              `stack-directive'."
              ;; NOTE: this is slightly complicated due to how the information
              ;;       has been passed around.
              ;;       INNER-ASTS is a list of groupings of inner-asts. This
@@ -7783,9 +7797,9 @@ the indentation slots."
              ;;       matching. Thus, it is done here.
              (symbol-macrolet ((slot-value
                                  (slot-value instance stack-directive)))
-               (etypecase stack-directive
+               (etypecase-of stack-directive stack-directive
                  (null)
-                 (cons
+                 ((cons number number)
                   (set-inner-ast-slots
                    (nthcdr (cdr stack-directive) inner-asts)
                    (cdr stack-directives)
