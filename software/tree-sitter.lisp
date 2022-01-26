@@ -1855,15 +1855,8 @@ definitions.")
           (:CONTENT
            (:TYPE . "REPEAT")
            (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
-             ;; Added for C++.
-             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))
+            (:TYPE . "SYMBOL")
+            (:NAME . "_declaration_modifiers"))))
          ;; Wrap a field around the type specifier.
          ((:TYPE . "FIELD") (:NAME . "type")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_specifier")))
@@ -1872,15 +1865,8 @@ definitions.")
           (:CONTENT
            (:TYPE . "REPEAT")
            (:CONTENT
-            (:TYPE . "CHOICE")
-            (:MEMBERS
-             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
-             ;; Added for C++.
-             ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
-             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier"))))))))
+            (:TYPE . "SYMBOL")
+            (:NAME . "_declaration_modifiers"))))))
        (:-CONSTRUCTOR-SPECIFIERS (:TYPE . "REPEAT1")
         (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
          (:CONTENT

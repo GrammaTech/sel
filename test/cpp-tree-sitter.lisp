@@ -778,6 +778,12 @@ line, after a comment if there is one."
   return OpenLR::LocationReferencePoint::OTHER;
 }"))
 
+(deftest cpp-declaration-specifiers ()
+  "Attribute Declarations can be parsed."
+  (let ((source "[[maybe_unused]] x var = y;"))
+    (is (equal (source-text (convert 'cpp-ast source))
+               source))))
+
 
 ;;; Contextualize-ast Tests
 (defun contextualization-check (source target-ast-type

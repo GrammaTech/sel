@@ -355,8 +355,8 @@ Then if we cannot infer the type of y per se we infer its type to be int."
           (setf position-slot :post-specifiers)
           child-tree)
          ((member car '(:storage-class-specifier :type-qualifier
-                        :attribute-specifier :ms-declspec-modifier
-                        :virtual-function-specifier
+                        :attribute-specifier :attribute-declaration
+                        :ms-declspec-modifier :virtual-function-specifier
                         :explicit-function-specifier))
           (cons (list position-slot (car child-tree))
                 (cdr child-tree)))
