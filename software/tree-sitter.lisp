@@ -7514,7 +7514,15 @@ the indentation slots."
                        ((stringp output)
                         (patch-text output ast parents))
                        ((indentablep output)
-                        (process-indentation* output (cons ast parents)))))
+                        (process-indentation* output (cons ast parents)))
+                       (t
+                        ;; NOTE: this assumes that if it isn't indentable,
+                        ;;       it will have some non-whitespace characters.
+                        ;;       It also assumes that there won't be any trailing
+                        ;;       whitespace except possibly a newline.
+                        (setf indentation-carryover
+                              (when (ends-with-newline-p (text ast))
+                                  0)))))
                    (cdr (butlast output-transformation)))
              (setf (after-text ast)
                    (patch-internal-indentation

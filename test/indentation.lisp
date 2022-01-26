@@ -128,6 +128,14 @@ after the parent indent-children slot is set."
   return 1;"))
     (is (equal source (source-text (convert 'c-ast source))))))
 
+(deftest indentation-resets-indentation-flag-on-source-text-fragments ()
+  "The indentation isn't removed from a valid AST if it is preceded by a
+source-text-fragment that doesn't end with a newline."
+  (let ((source "#define v V()
+MACRO const char * MACRO2 vv F((void));
+"))
+    (is (equal (source-text (convert 'c-ast source)) source))))
+
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()
