@@ -500,6 +500,26 @@ auto d = p1->Distance(p2);")))
       ;; Finally we infer the type of the call.
       (is (source-text= "double" (infer-type sw call))))))
 
+(defun find-soft-var (name)
+  (find name (identifiers (genome *soft*))
+        :test #'source-text=))
+
+(deftest test-assignments ()
+  (with-fixture trim-front
+    (with-analysis-cache ()
+      (flet ((assigned (var) (assignments *soft* var)))
+        (is (not (assigned (find-soft-var "dist"))))
+        (is (assigned (find-soft-var "p1")))
+        (is (assigned (find-soft-var "p2")))
+        (is (not (assigned (find-soft-var "result"))))
+        (is (assigned (find-soft-var "d")))
+        (is (not (assigned (find-soft-var "next_point"))))
+        (is (not (assigned (find-soft-var "segdist"))))
+        (is (not (assigned (find-soft-var "frac"))))
+        (is (not (assigned (find-soft-var "midpoint"))))))))
+
+
+
 
 ;;; Parsing tests
 
