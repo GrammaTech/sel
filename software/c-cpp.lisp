@@ -257,12 +257,6 @@ pointer declarations which are nested on themselves."
                               field-names
                               :test #'source-text=)))))))
 
-(defmethod relevant-declaration-type ((obj software) (ast c/cpp-field-expression))
-  'c/cpp-field-declaration)
-
-(defmethod get-declaration-id ((obj c/cpp) (field c/cpp-field-expression))
-  (get-declaration-id obj (c/cpp-argument field)))
-
 (defmethod get-declaration-id ((obj c/cpp) (id identifier-ast))
   (when-let (declaration (get-declaration-ast obj id))
     (let ((id-text (source-text id)))

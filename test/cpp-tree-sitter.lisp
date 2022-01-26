@@ -533,6 +533,22 @@ auto d = p1->Distance(p2);")))
         (is (= (count-arg-uses "next_point")
                (count-arg-uses "p2")))))))
 
+(deftest test-lookup-in-include ()
+  (is (typep (lookup-in-include "list" '("std" "list") "push_back")
+             'cpp-field-declaration)))
+
+(deftest test-get-declaration-ast-from-include ()
+  (let ((sw (from-string 'cpp (fmt "~
+#include <list>
+
+std::list<int> xs = {1, 2, 3};
+int first = xs.front();"))))
+    (is (typep
+         (get-declaration-ast
+          sw
+          (find-if (of-type 'c/cpp-field-expression) (genome sw)))
+         'c/cpp-field-declaration))))
+
 
 ;;; Parsing tests
 

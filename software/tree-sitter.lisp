@@ -450,6 +450,10 @@
            :c-canonical-type
            ;; Cpp
            :cpp-source-text-fragment
+           :find-std-include
+           :lookup-in-include
+           :system-include-names
+           :get-declaration-ast/includes
            :cpp-variadic-declaration
            :cpp-canonical-type
            ;; C/Cpp
@@ -6255,6 +6259,8 @@ Every element in the list has the following form:
 For a declaration AST, return AST unchanged.")
   ;; NB Not tree-sitter, since that would shadow normal-scope.
   (:method ((obj t) (ast ast)) nil)
+  (:method ((obj t) (ast call-ast))
+    (get-declaration-ast obj (call-function ast)))
   (:method ((obj software) (ast variable-declaration-ast)) ast)
   (:method :around ((obj normal-scope) (identifier identifier-ast))
     (or
@@ -6299,7 +6305,7 @@ or `type-declaration-ast'.")
   ;; Python types.
   (:method ((obj t) (ast type-identifier-ast))
     'type-declaration-ast)
-  (:method ((obj t) (ast identifier-ast))
+  (:method ((obj t) (ast ast))
     (or (when-let ((call (find-enclosing 'call-ast obj ast)))
           (when (eql ast (call-function call))
             'function-declaration-ast))

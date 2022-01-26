@@ -45,6 +45,49 @@
     "<" ">" "<=" ">=" "==" "!="
     "&" "^" "|"))
 
+;;; TODO Generalize include handling to C as well as C++. (This will
+;;; involve pulling the declarations from the std namespace, and only
+;;; for the C compatibility headers.)
+
+(def +system-include-dir+
+  (asdf:system-relative-pathname :software-evolution-library
+                                 "utility/include/"))
+
+(defun find-std-include (name &key (language 'cpp))
+  (setf name (source-text name))
+  (when-let ((file (file-exists-p (path-join +system-include-dir+ name))))
+    (from-file language file)))
+
+(defun system-include-names (sw)
+  (iter (for ast in-tree (genome sw))
+        (match ast
+          ((c/cpp-preproc-include (c/cpp-path path))
+           (match (source-text path)
+             ((ppcre "<(.*)>" s)
+              (collect s)))))))
+
+(defun lookup-in-include (include namespaces field)
+  (when-let ((include (find-std-include include)))
+    (nlet rec ((namespaces (ensure-list namespaces))
+               (ast (genome include)))
+      (if (null namespaces)
+          (find-if (lambda (ast)
+                     (and-let*  (((typep ast 'cpp-field-declaration))
+                                 (decl
+                                  (find-if (of-type 'cpp-function-declarator)
+                                           ast)))
+                       (source-text= field (cpp-declarator decl))))
+                   ast)
+          (destructuring-bind (type . namespaces) namespaces
+            (let ((class
+                   (find-if (lambda (ast)
+                              (and (typep ast '(or cpp-namespace-definition
+                                                type-declaration-ast))
+                                   (source-text= type
+                                                 (definition-name ast))))
+                            ast)))
+              (rec (rest namespaces) class)))))))
+
 #+:TREE-SITTER-CPP
 (progn
 
@@ -787,6 +830,52 @@
                                     (namespace-qualifiers obj decl)))))))
                  (scope-tree obj))))
           (aget :decl scope)))))
+
+(defmethod get-declaration-ast :context ((obj cpp) (ast ast))
+  "When we can't find declaration in the file, look in (system) includes."
+  (labels ((lookup-in-includes (quals fn-name)
+             (some (op (lookup-in-include _ quals fn-name))
+                   (system-include-names obj)))
+           (get-variable-declaration-ast (sw ast)
+             (let ((*relevant-declaration-type*
+                    'variable-declaration-ast))
+               (get-declaration-ast sw ast))))
+    (let ((decl (call-next-method)))
+      (cond ((typep decl
+                    ;; TODO No distinguished class for a field
+                    ;; declaration with a function declarator.
+                    '(or function-declaration-ast
+                      cpp-field-declaration))
+             decl)
+            ((not (eql 'function-declaration-ast
+                       (relevant-declaration-type obj ast)))
+             decl)
+            ((typep ast 'identifier-ast)
+             (lookup-in-includes
+              (namespace-qualifiers obj ast)
+              (unqualified-name ast)))
+            (t
+             (match ast
+               ;; A field expression. We need to find the type of
+               ;; the variable.
+               ((cpp-field-expression
+                 (cpp-argument field-arg)
+                 (cpp-field field-field))
+                (let ((decl (get-variable-declaration-ast obj field-arg)))
+                  (match (infer-type obj decl)
+                    ((and qname (type cpp-qualified-identifier))
+                     (let ((quals (namespace-qualifiers obj qname))
+                           (name (unqualified-name qname)))
+                       (match name
+                         ((and name (type identifier-ast))
+                          (lookup-in-includes (append quals (list name))
+                                              field-field))
+                         ((cpp-template-type
+                           (cpp-name name))
+                          (lookup-in-includes (append quals (list name))
+                                              field-field)))))
+                    ((and type (type identifier-ast))
+                     (lookup-in-includes nil type)))))))))))
 
 (defmethod initializer-aliasee ((sw cpp)
                                 (lhs cpp-reference-declarator)
