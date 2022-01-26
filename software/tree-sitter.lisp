@@ -527,6 +527,7 @@
            :lhs
            :rhs
            :assignee
+           :assignees
            :operator
            :control-flow-condition
            :end-of-parameter-list
@@ -6400,17 +6401,28 @@ pointers into account in languages that support them.")
          (collect-var-use-children
           (enclosing-scope obj declaration-ast) nil))))))
 
+(defgeneric assignees (ast)
+  (:documentation "Get the ASTs that AST assigns to.
+
+This is like `assignee', but handles the cast of an AST assigning to
+more than one thing (destructuring).")
+  (:method ((ast t)) nil)
+  (:method ((ast ast))
+    (when-let (assignee (assignee ast))
+      (list assignee))))
+
 (define-generic-analysis assignments (obj target)
   (:documentation "Return a list of ASTs that assign to TARGET.
 TARGET should be the actual declaration ID (from `get-declaration-id'.")
   (:method ((sw software) (target identifier-ast))
     (iter (for ast in-tree (genome sw))
           (unless (ancestor-of-p sw target ast)
-            (when-let (assignee (assignee ast))
-              (when (member target
-                            (identifiers assignee)
-                            :key (op (get-declaration-id sw _)))
-                (collect ast))))))
+            (when (some (lambda (assignee)
+                          (member target
+                                  (identifiers assignee)
+                                  :key (op (get-declaration-id sw _))))
+                        (assignees ast))
+              (collect ast)))))
   (:method ((sw software) (target ast))
     (assignments sw (get-declaration-id sw target))))
 
