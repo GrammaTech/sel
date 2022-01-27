@@ -49,16 +49,19 @@
 ;;; involve pulling the declarations from the std namespace, and only
 ;;; for the C compatibility headers.)
 
-(def +system-include-dir+
+(defparameter *std-header-dir*
   (asdf:system-relative-pathname :software-evolution-library
-                                 "utility/include/"))
+                                 "utility/include/")
+  "Directory to search for standard library headers.")
 
-(defun find-std-include (name &key (language 'cpp))
+(defun find-std-header (name &key (language 'cpp))
+  "Find the standard library header named NAME."
   (setf name (source-text name))
-  (when-let ((file (file-exists-p (path-join +system-include-dir+ name))))
+  (when-let ((file (file-exists-p (path-join *std-header-dir* name))))
     (from-file language file)))
 
-(defun system-include-names (sw)
+(defun system-header-names (sw)
+  "Return a list of the system headers in SW."
   (iter (for ast in-tree (genome sw))
         (match ast
           ((c/cpp-preproc-include (c/cpp-path path))
@@ -66,10 +69,14 @@
              ((ppcre "<(.*)>" s)
               (collect s)))))))
 
-(defun lookup-in-include (include namespaces field)
-  (when-let ((include (find-std-include include)))
+(defun lookup-in-std-header (header namespaces field)
+  "Look up a declaration in a standard library header synopsis.
+- HEADER is the name of the header.
+- NAMESPACES is a list of namespace (or class) names.
+- FIELD is the name of the function or field we want."
+  (when-let ((header (find-std-header header)))
     (nlet rec ((namespaces (ensure-list namespaces))
-               (ast (genome include)))
+               (ast (genome header)))
       (if (null namespaces)
           (find-if (lambda (ast)
                      (and-let*  (((typep ast 'cpp-field-declaration))
@@ -692,23 +699,22 @@
   (cpp-type ast))
 
 (defmethod infer-type :around ((obj software) (ast cpp-field-expression))
+  "Handle the special case of inferring the type of a field expression whose argument is a standard library iterator.
+
+Since a field expression is an implicit dereference, if the type is a
+iterator we want the type of the container's elements."
   (let ((type (call-next-method)))
-    (or (and (typep type 'cpp-qualified-identifier)
-             (let ((quals (namespace-qualifiers obj type))
-                   (name (unqualified-name type)))
-               ;; Special case. Since a field expression is an
-               ;; implicit dereference, if the type is a std iterator
-               ;; we want the type of the container's elements.
-               (and (typep name 'identifier-ast)
-                    (source-text= name "iterator")
-                    (source-text= (first quals) "std")
-                    (let ((last-qual (lastcar quals)))
-                      (and (typep last-qual 'cpp-template-type)
-                           (let ((children
-                                  (direct-children
-                                   (cpp-arguments last-qual))))
-                             (and (single children)
-                                  (only-elt children))))))))
+    (or (and-let* (((typep type 'cpp-qualified-identifier))
+                   (quals (namespace-qualifiers obj type))
+                   (name (unqualified-name type))
+                   ((typep name 'identifier-ast))
+                   ((source-text= name "iterator"))
+                   ((source-text= (first quals) "std"))
+                   (last-qual (lastcar quals))
+                   ((typep last-qual 'cpp-template-type))
+                   (children (direct-children (cpp-arguments last-qual)))
+                   ((single children)))
+          (only-elt children))
         type)))
 
 (defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
@@ -832,10 +838,10 @@
           (aget :decl scope)))))
 
 (defmethod get-declaration-ast :context ((obj cpp) (ast ast))
-  "When we can't find declaration in the file, look in (system) includes."
-  (labels ((lookup-in-includes (quals fn-name)
-             (some (op (lookup-in-include _ quals fn-name))
-                   (system-include-names obj)))
+  "When we can't find declaration in the file, look in standard library headers."
+  (labels ((lookup-in-std-headers (quals fn-name)
+             (some (op (lookup-in-std-header _ quals fn-name))
+                   (system-header-names obj)))
            (get-variable-declaration-ast (sw ast)
              (let ((*relevant-declaration-type*
                     'variable-declaration-ast))
@@ -851,7 +857,7 @@
                        (relevant-declaration-type obj ast)))
              decl)
             ((typep ast 'identifier-ast)
-             (lookup-in-includes
+             (lookup-in-std-headers
               (namespace-qualifiers obj ast)
               (unqualified-name ast)))
             (t
@@ -868,14 +874,14 @@
                            (name (unqualified-name qname)))
                        (match name
                          ((and name (type identifier-ast))
-                          (lookup-in-includes (append quals (list name))
-                                              field-field))
+                          (lookup-in-std-headers (append quals (list name))
+                                                 field-field))
                          ((cpp-template-type
                            (cpp-name name))
-                          (lookup-in-includes (append quals (list name))
-                                              field-field)))))
+                          (lookup-in-std-headers (append quals (list name))
+                                                 field-field)))))
                     ((and type (type identifier-ast))
-                     (lookup-in-includes nil type)))))))))))
+                     (lookup-in-std-headers nil type)))))))))))
 
 (defmethod initializer-aliasee ((sw cpp)
                                 (lhs cpp-reference-declarator)

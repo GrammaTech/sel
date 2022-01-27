@@ -530,8 +530,8 @@ auto d = p1->Distance(p2);")))
       (is (length= 0 (collect-arg-uses *soft*
                                        (find-soft-var "p2")))))))
 
-(deftest test-lookup-in-include ()
-  (is (typep (lookup-in-include "list" '("std" "list") "push_back")
+(deftest test-lookup-in-std-header ()
+  (is (typep (lookup-in-std-header "list" '("std" "list") "push_back")
              'cpp-field-declaration)))
 
 (deftest test-get-declaration-ast-from-include ()

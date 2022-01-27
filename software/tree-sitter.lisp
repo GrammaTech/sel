@@ -451,8 +451,8 @@
            ;; Cpp
            :cpp-source-text-fragment
            :find-std-include
-           :lookup-in-include
-           :system-include-names
+           :lookup-in-std-header
+           :system-header-names
            :get-declaration-ast/includes
            :cpp-variadic-declaration
            :cpp-canonical-type
