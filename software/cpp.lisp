@@ -843,8 +843,10 @@ iterator we want the type of the container's elements."
              (some (op (lookup-in-std-header _ quals fn-name))
                    (system-header-names obj)))
            (get-variable-declaration-ast (sw ast)
-             (let ((*relevant-declaration-type*
-                    'variable-declaration-ast))
+             (let ((*relevant-declaration-types*
+                    (with *relevant-declaration-types*
+                          ast
+                          'variable-declaration-ast)))
                (get-declaration-ast sw ast))))
     (let ((decl (call-next-method)))
       (cond ((typep decl

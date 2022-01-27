@@ -516,7 +516,7 @@
            :collect-arg-uses
            :assignments
            :get-declaration-ast
-           :*relevant-declaration-type*
+           :*relevant-declaration-types*
            :relevant-declaration-type
            :get-initialization-ast
            :get-declaration-id
@@ -6287,9 +6287,8 @@ For a declaration AST, return AST unchanged.")
                     (typep (aget :decl scope) type)))
              (scopes obj identifier))))))
 
-(defvar *relevant-declaration-type* nil
-  "If bound to a non-nil symbol, overrides the result of
-  `relevant-declaration-type'.")
+(defvar *relevant-declaration-types* (empty-map)
+  "A map of overrides (AST to type) for `relevant-declaration-type'.")
 
 (define-generic-analysis relevant-declaration-type (obj ast)
   (:documentation "Return the type of declaration we should look for.
@@ -6298,7 +6297,7 @@ That is, based on AST's context, figure out whether we should be
 looking for a `variable-declaration-ast', `function-declaration-ast',
 or `type-declaration-ast'.")
   (:method :context ((obj software) (ast ast))
-    (or (assure symbol *relevant-declaration-type*)
+    (or (lookup *relevant-declaration-types* ast)
         (call-next-method)))
   ;; TODO Not every language has a separate class for type
   ;; identifiers. E.g. Python just has Python identifiers inside
