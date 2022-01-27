@@ -5703,6 +5703,14 @@ If there are no types, always wrap."
         (cons (list field-name type)
               (cdr tree))))))
 
+(defun wrap-with (symbol &rest types)
+  (check-type symbol keyword)
+  (assert (every #'keywordp types))
+  (lambda (tree)
+    (let ((type (parse-tree-type tree)))
+      (when (or (null types) (member type types))
+        `(,symbol ,(cadr tree) (,tree))))))
+
 (defun ignore-types (&rest types)
   (assert types)
   (lambda (tree)
