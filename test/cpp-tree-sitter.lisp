@@ -519,19 +519,16 @@ auto d = p1->Distance(p2);")))
         (is (not (assigned (find-soft-var "midpoint"))))))))
 
 (deftest test-collect-arg-uses ()
-  (flet ((count-arg-uses (name)
-           (nest
-            (length)
-            (collect-arg-uses *soft*)
-            (find name
-                  (identifiers (genome *soft*))
-                  :test #'equal
-                  :key #'source-text))))
-    (with-fixture trim-front
-      (with-analysis-cache ()
-        (is (= 2 (count-arg-uses "next_point")))
-        (is (= (count-arg-uses "next_point")
-               (count-arg-uses "p2")))))))
+  (with-fixture trim-front
+    (with-analysis-cache ()
+      (is (length= 2 (collect-arg-uses *soft* (find-soft-var "next_point"))))
+      (is (length= 0 (collect-arg-uses *soft* (find-soft-var "p2"))))
+      (is (length= 2 (collect-arg-uses *soft*
+                                       (find-soft-var "p2")
+                                       t)))
+      ;; This last one is really a caching test.
+      (is (length= 0 (collect-arg-uses *soft*
+                                       (find-soft-var "p2")))))))
 
 (deftest test-lookup-in-include ()
   (is (typep (lookup-in-include "list" '("std" "list") "push_back")

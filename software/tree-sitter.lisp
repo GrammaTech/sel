@@ -6433,21 +6433,26 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
   (:method ((sw software) (target ast))
     (assignments sw (get-declaration-id sw target))))
 
-(define-generic-analysis collect-arg-uses (obj target)
+(define-generic-analysis collect-arg-uses (obj target &optional alias)
   (:documentation "Collect function calls in OBJ with TARGET as an argument.")
-  (:method ((obj software) (target identifier-ast))
-    (let ((target (get-declaration-id obj target)))
-      (iter (for ast in-tree (genome obj))
-            ;; The outer loop will recurse, so we don't
-            ;; need to recurse here.
-            (match ast
-              ((call-ast (call-arguments args))
-               (when (member target
-                             (filter (of-type 'identifier-ast)
-                                     (assure list args))
-                             :key (op (get-declaration-id obj _)))
-                 (set-collect ast into calls))))
-            (finally (return (convert 'list calls)))))))
+  (:method ((obj software) (target identifier-ast) &optional alias)
+    (fbind ((get-decl
+             (if alias
+                 (lambda (obj var)
+                   (get-declaration-id obj (or (aliasee obj var) var)))
+                 #'get-declaration-id)))
+      (let ((target (get-decl obj target)))
+        (iter (for ast in-tree (genome obj))
+              ;; The outer loop will recurse, so we don't
+              ;; need to recurse here.
+              (match ast
+                ((call-ast (call-arguments args))
+                 (when (member target
+                               (filter (of-type 'identifier-ast)
+                                       (assure list args))
+                               :key (op (get-decl obj _)))
+                   (set-collect ast into calls))))
+              (finally (return (convert 'list calls))))))))
 
 
 ;;;; Cross-language generics and methods

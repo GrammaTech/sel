@@ -257,6 +257,9 @@ pointer declarations which are nested on themselves."
                               field-names
                               :test #'source-text=)))))))
 
+(defmethod get-declaration-id ((obj c/cpp) (field c/cpp-field-expression))
+  (get-declaration-id obj (c/cpp-argument field)))
+
 (defmethod get-declaration-id ((obj c/cpp) (id identifier-ast))
   (when-let (declaration (get-declaration-ast obj id))
     (let ((id-text (source-text id)))
@@ -506,22 +509,30 @@ Should return `:failure' in the base case.")
           (finally (return (convert 'list (less set plain-var)))))))
 
 
-(defmethod collect-arg-uses ((sw c/cpp) (target identifier-ast))
-  (labels ((occurs-as-object? (ast target)
-             (match ast
-               ((call-ast
-                 (call-function
-                  (cpp-field-expression
-                   (cpp-argument arg))))
-                (eql (get-declaration-id sw arg) target))))
-           (occurs-as-arg? (ast target)
-             (match ast
-               ((call-ast (call-arguments args))
-                (member target
-                        (filter (of-type 'identifier-ast)
-                                (assure list args))
-                        :key (op (get-declaration-id sw _)))))))
-    (let ((target (get-declaration-id sw target)))
+(defmethod collect-arg-uses ((sw c/cpp) (target identifier-ast)
+                             &optional alias)
+  (fbindrec ((get-decl
+              (if alias
+                  (lambda (obj var)
+                    (get-declaration-id obj (or (aliasee obj var) var)))
+                  #'get-declaration-id))
+             (occurs-as-object?
+              (lambda (ast target)
+                (match ast
+                  ((call-ast
+                    (call-function
+                     (cpp-field-expression
+                      (cpp-argument arg))))
+                   (eql (get-decl sw arg) target)))))
+             (occurs-as-arg?
+              (lambda (ast target)
+                (match ast
+                  ((call-ast (call-arguments args))
+                   (member target
+                           (filter (of-type 'identifier-ast)
+                                   (assure list args))
+                           :key (op (get-decl sw _))))))))
+    (let ((target (get-decl sw target)))
       (iter (for ast in-tree (genome sw))
             ;; The outer loop will recurse, so we don't
             ;; need to recurse here.
