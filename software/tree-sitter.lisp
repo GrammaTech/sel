@@ -1744,7 +1744,22 @@ definitions.")
          ;; Add a body field.
          ((:TYPE . "FIELD")
           (:NAME . "body")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))))
+       ;; This is to get around _EMPTY_DECLARATION inlining a semicolon
+       ;; without any further information to reproduce it.
+       (:EMPTY-STATEMENT
+        (:TYPE . "STRING") (:value . ";"))
+       ;; Replaces semicolon string with empty_statement.
+       ;; This is currently only use for compound-statement, so
+       ;; a parse-tree transformation is currently only used for that.
+       (:-EMPTY-DECLARATION
+        ;; NOTE: this should probably be a SEQ, but it would unfortunately
+        ;;       require backtracking which isn't implemented currently, so
+        ;;       a CHOICE is used instead.
+        (:TYPE . "CHOICE")
+        (:MEMBERS
+         ((:TYPE . "SYMBOL") (:NAME . "_type_specifier"))
+         ((:TYPE . "SYMBOL") (:NAME . "empty_statement")))))
       (:c
        ;; These are specific to C.
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
@@ -2456,7 +2471,15 @@ Supported patch syntaxes are:
 All tests are done with `EQUAL'.")
 
   (defparameter *tree-sitter-json-node-type-substitutions*
-    '((:python
+    '((:c
+       ;; This is to get around _EMPTY_DECLARATION inlining a semicolon
+       ;; without any further information to reproduce it.
+       ((:type . "empty_statement") (:named . T)))
+      (:cpp
+       ;; This is to get around _EMPTY_DECLARATION inlining a semicolon
+       ;; without any further information to reproduce it.
+       ((:type . "empty_statement") (:named . T)))
+      (:python
        ((:TYPE . "positional_only_separator") (:NAMED . T))
        ((:TYPE . "keyword_only_separator") (:NAMED . T))
        ((:TYPE . "parameter") (:NAMED . T)

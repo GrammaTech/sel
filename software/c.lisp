@@ -89,6 +89,34 @@ field."
     ((language (eql ':c)) (class (eql 'c-for-statement)) parse-tree &key)
   (transform-for-statement parse-tree))
 
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-compound-statement)) parse-tree &key)
+  (transform-empty-statements parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-translation-unit)) parse-tree &key)
+  (transform-empty-statements parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-preproc-if)) parse-tree &key)
+  (transform-empty-statements parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-preproc-ifdef)) parse-tree &key)
+  (transform-empty-statements parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-preproc-else)) parse-tree &key)
+  (transform-empty-statements parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-preproc-elif)) parse-tree &key)
+  (transform-empty-statements parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':c)) (class (eql 'c-declaration-list)) parse-tree &key)
+  (transform-empty-statements parse-tree))
+
 (defgeneric pointers (c-declarator)
   (:documentation "Return the number of pointers around C-DECLARATOR.")
   (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))

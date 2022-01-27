@@ -399,6 +399,13 @@ stored in the 'statement' AST slot."
 stored in the 'body' AST slot."
   (label-last-child :body parse-tree))
 
+(defun transform-empty-statements (parse-tree)
+  "Transform the empty statements in PARSE-TREE such that they appear as empty
+statements. This is to get around unnamed semicolons being inserted at the in
+ASTs that can have multiple statements in their body."
+  (with-modify-parse-tree (parse-tree)
+    ((:|;|) (wrap-with :empty-statement))))
+
 (defun label-last-child (label parse-tree)
   "Transform PARSE-TREE such that the last child has the given label, allowing
 it to be placed in the corresponding AST slot."
