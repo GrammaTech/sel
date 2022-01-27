@@ -1,4 +1,5 @@
 (defpackage :software-evolution-library/utility/include
+  (:documentation "Code to regenerate standard library header synopses.")
   (:use :gt/full)
   (:use
     :software-evolution-library

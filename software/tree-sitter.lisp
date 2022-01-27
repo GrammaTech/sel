@@ -6434,7 +6434,9 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
     (assignments sw (get-declaration-id sw target))))
 
 (define-generic-analysis collect-arg-uses (obj target &optional alias)
-  (:documentation "Collect function calls in OBJ with TARGET as an argument.")
+  (:documentation "Collect function calls in OBJ with TARGET as an argument.
+
+If ALIAS is non-nil, resolve aliases during the search.")
   (:method ((obj software) (target identifier-ast) &optional alias)
     (fbind ((get-decl
              (if alias
