@@ -409,6 +409,7 @@
         :software-evolution-library
         :software-evolution-library/utility/json
         :software-evolution-library/utility/range
+        :software-evolution-library/utility/include
         :software-evolution-library/software/parseable
         :software-evolution-library/software/compilable
         :software-evolution-library/components/file

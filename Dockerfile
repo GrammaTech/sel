@@ -96,7 +96,7 @@ COPY .cl-make /root/quicklisp/local-projects/sel/.cl-make
 COPY Makefile /root/quicklisp/local-projects/sel/Makefile
 COPY .qlfile.external /root/quicklisp/local-projects/sel/.qlfile.external
 COPY .qlfile.grammatech /root/quicklisp/local-projects/sel/.qlfile.grammatech
-RUN make -C /root/quicklisp/local-projects/sel dependencies
+RUN make -C /root/quicklisp/local-projects/sel dependencies libcxx-src
 RUN rm -rf /root/quicklisp/local-projects/sel
 RUN rm /root/quicklisp/local-projects/system-index.txt
 

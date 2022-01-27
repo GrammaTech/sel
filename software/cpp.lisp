@@ -49,16 +49,9 @@
 ;;; involve pulling the declarations from the std namespace, and only
 ;;; for the C compatibility headers.)
 
-(defparameter *std-header-dir*
-  (asdf:system-relative-pathname :software-evolution-library
-                                 "utility/include/")
-  "Directory to search for standard library headers.")
-
 (defun find-std-header (name &key (language 'cpp))
   "Find the standard library header named NAME."
-  (setf name (source-text name))
-  (when-let ((file (file-exists-p (path-join *std-header-dir* name))))
-    (from-file language file)))
+  (from-string language (extract-header-synopsis name)))
 
 (defun system-header-names (sw)
   "Return a list of the system headers in SW."
@@ -74,7 +67,7 @@
 - HEADER is the name of the header.
 - NAMESPACES is a list of namespace (or class) names.
 - FIELD is the name of the function or field we want."
-  (when-let ((header (find-std-header header)))
+  (when-let ((header (find-std-header (source-text header))))
     (nlet rec ((namespaces (ensure-list namespaces))
                (ast (genome header)))
       (if (null namespaces)

@@ -1,4 +1,4 @@
-.PHONY: doc api python-check
+.PHONY: doc api python-check libcxx-src
 
 # Set personal or machine-local flags in a file named local.mk
 ifneq ("$(wildcard local.mk)","")
@@ -120,3 +120,9 @@ bin/limit: limit.c
 
 python-check: bin/tree-sitter-interface bin/tree-sitter-py-generator
 	PATH=$(ROOT_DIR)/bin:$$PATH pytest python
+
+libcxx-src: | utility/libcxx-src/LICENSE.TXT
+
+utility/libcxx-src/LICENSE.TXT:
+	mkdir -p utility/libcxx-src
+	wget https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/libcxx-13.0.0.src.tar.xz -O - | tar Jxf - -C utility/libcxx-src --strip-components=1

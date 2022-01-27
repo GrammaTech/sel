@@ -66,3 +66,6 @@ system-index.txt
 
 # Ignore the wiki
 wiki/
+
+# Ignore libc++ includes
+utility/libcxx-src
