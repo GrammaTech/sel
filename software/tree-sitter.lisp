@@ -6437,11 +6437,9 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
 
 If ALIAS is non-nil, resolve aliases during the search.")
   (:method ((obj software) (target identifier-ast) &optional alias)
-    (fbind ((get-decl
-             (if alias
-                 (lambda (obj var)
-                   (get-declaration-id obj (or (aliasee obj var) var)))
-                 #'get-declaration-id)))
+    (flet ((get-decl (obj var)
+             (get-declaration-id obj (or (and alias (aliasee obj var))
+                                         var))))
       (let ((target (get-decl obj target)))
         (iter (for ast in-tree (genome obj))
               ;; The outer loop will recurse, so we don't
