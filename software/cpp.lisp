@@ -67,26 +67,26 @@
 - HEADER is the name of the header.
 - NAMESPACES is a list of namespace (or class) names.
 - FIELD is the name of the function or field we want."
-  (when-let ((header (find-std-header (source-text header))))
-    (nlet rec ((namespaces (ensure-list namespaces))
-               (ast (genome header)))
-      (if (null namespaces)
-          (find-if (lambda (ast)
-                     (and-let*  (((typep ast 'cpp-field-declaration))
-                                 (decl
-                                  (find-if (of-type 'cpp-function-declarator)
-                                           ast)))
-                       (source-text= field (cpp-declarator decl))))
-                   ast)
-          (destructuring-bind (type . namespaces) namespaces
-            (let ((class
-                   (find-if (lambda (ast)
-                              (and (typep ast '(or cpp-namespace-definition
-                                                type-declaration-ast))
-                                   (source-text= type
-                                                 (definition-name ast))))
-                            ast)))
-              (rec (rest namespaces) class)))))))
+  (labels ((find-field (field ast)
+             (find-if (lambda (ast)
+                        (and-let*  (((typep ast 'cpp-field-declaration))
+                                    (decl
+                                     (find-if (of-type 'cpp-function-declarator)
+                                              ast)))
+                          (source-text= field (cpp-declarator decl))))
+                      ast))
+           (find-namespace-or-class (ast name)
+             (find-if (lambda (ast)
+                        (and (typep ast '(or cpp-namespace-definition
+                                          type-declaration-ast))
+                             (source-text= name
+                                           (definition-name ast))))
+                      ast)))
+    (when-let ((header (find-std-header (source-text header))))
+      (find-field field
+                  (reduce #'find-namespace-or-class
+                          (ensure-list namespaces)
+                          :initial-value (genome header))))))
 
 #+:TREE-SITTER-CPP
 (progn
