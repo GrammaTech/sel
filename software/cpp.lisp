@@ -525,6 +525,9 @@
     ((language (eql ':cpp)) (class (eql 'cpp-declaration-list)) parse-tree &key)
   (transform-empty-statements parse-tree))
 
+(defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-template-declaration)) parse-tree &key)
+  (transform-empty-statements parse-tree))
 
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 

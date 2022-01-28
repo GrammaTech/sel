@@ -1770,7 +1770,11 @@ definitions.")
         (:TYPE . "CHOICE")
         (:MEMBERS
          ((:TYPE . "SYMBOL") (:NAME . "_type_specifier"))
-         ((:TYPE . "SYMBOL") (:NAME . "empty_statement")))))
+         ((:TYPE . "SYMBOL") (:NAME . "empty_statement"))
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "SYMBOL") (:NAME . "_type_specifier"))
+           ((:TYPE . "SYMBOL") (:NAME . "empty_statement")))))))
       (:c
        ;; These are specific to C.
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
