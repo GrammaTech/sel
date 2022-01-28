@@ -6446,10 +6446,9 @@ If ALIAS is non-nil, resolve aliases during the search.")
               ;; The outer loop will recurse, so we don't
               ;; need to recurse here.
               (match ast
-                ((call-ast (call-arguments args))
+                ((call-ast (call-arguments (and args (type list))))
                  (when (member target
-                               (filter (of-type 'identifier-ast)
-                                       (assure list args))
+                               (filter (of-type 'identifier-ast) args)
                                :key (op (get-decl obj _)))
                    (set-collect ast into calls))))
               (finally (return (convert 'list calls))))))))

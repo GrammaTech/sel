@@ -524,10 +524,9 @@ Should return `:failure' in the base case.")
                 (eql (get-decl sw arg) target))))
            (occurs-as-arg? (ast target)
              (match ast
-               ((call-ast (call-arguments args))
+               ((call-ast (call-arguments (and args (type list))))
                 (member target
-                        (filter (of-type 'identifier-ast)
-                                (assure list args))
+                        (filter (of-type 'identifier-ast) args)
                         :key (op (get-decl sw _)))))))
     (let ((target (get-decl sw target)))
       (iter (for ast in-tree (genome sw))
