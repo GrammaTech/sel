@@ -594,6 +594,11 @@ optionally writing to STREAM.")
   (:method (x y)
     (string= (source-text x) (source-text y))))
 
+(defpattern source-text= (arg)
+  "Compare the source text against ARG (evaluated)."
+  (with-unique-names (it)
+    `(guard1 (,it) (source-text= ,it ,arg))))
+
 (defgeneric rebind-vars (ast var-replacements fun-replacements)
   (:documentation
    "Replace variable and function references, returning a new AST.")
