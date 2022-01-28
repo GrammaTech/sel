@@ -6450,8 +6450,7 @@ If ALIAS is non-nil, resolve aliases during the search.")
                  (when (member target
                                (filter (of-type 'identifier-ast) args)
                                :key (op (get-decl obj _)))
-                   (set-collect ast into calls))))
-              (finally (return (convert 'list calls))))))))
+                   (collect ast)))))))))
 
 
 ;;;; Cross-language generics and methods

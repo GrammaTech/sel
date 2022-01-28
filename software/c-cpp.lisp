@@ -534,8 +534,7 @@ Should return `:failure' in the base case.")
             ;; need to recurse here.
             (when (or (occurs-as-object? ast target)
                       (occurs-as-arg? ast target))
-              (set-collect ast into calls))
-            (finally (return (convert 'list calls)))))))
+              (collect ast))))))
 
 
 ;;;; Whitespace
