@@ -530,6 +530,10 @@ auto d = p1->Distance(p2);")))
       (is (length= 0 (collect-arg-uses *soft*
                                        (find-soft-var "p2")))))))
 
+(deftest test-infer-type-loop-terminates ()
+  (with-fixture trim-front
+    (finishes (infer-type *soft* (find-soft-var "midpoint")))))
+
 (deftest test-lookup-in-std-header ()
   (is (typep (lookup-in-std-header "list" '("std" "list") "push_back")
              'cpp-field-declaration)))

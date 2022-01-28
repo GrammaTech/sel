@@ -240,9 +240,10 @@ pointer declarations which are nested on themselves."
                ;; Get the ID from the declaration of the field
                ;; argument.
 
-               ;; If we end up back here something has gone wrong.
-               (without-recursion ()
-                 (infer-type obj ast)))
+               ;; Note it is possible to end up recursing here when
+               ;; working backward through multiple field
+               ;; declarations.
+               (infer-type obj ast))
               ;; Get the declaration of the type of the argument.
               (type-decl (get-declaration-ast obj type))
               ;; The name of the field we're looking for.
