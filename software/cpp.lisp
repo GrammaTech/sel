@@ -696,19 +696,25 @@
 
 Since a field expression is an implicit dereference, if the type is a
 iterator we want the type of the container's elements."
-  (let ((type (call-next-method)))
-    (or (and-let* (((typep type 'cpp-qualified-identifier))
-                   (quals (namespace-qualifiers obj type))
-                   (name (unqualified-name type))
-                   ((typep name 'identifier-ast))
-                   ((source-text= name "iterator"))
-                   ((source-text= (first quals) "std"))
-                   (last-qual (lastcar quals))
-                   ((typep last-qual 'cpp-template-type))
-                   (children (direct-children (cpp-arguments last-qual)))
-                   ((single children)))
-          (only-elt children))
-        type)))
+  (let ((type-ast (call-next-method)))
+    (or (flet ((namespace-qualifiers* (ast)
+                 (namespace-qualifiers obj ast)))
+          (match type-ast
+            ((and
+              (type cpp-qualified-identifier)
+              (access #'unqualified-name
+                      (and (type identifier-ast)
+                           (source-text= "iterator")))
+              (access #'namespace-qualifiers*
+                      (and (list* (source-text= "std") _)
+                           (cl:last
+                            (list
+                             (cpp-template-type
+                              (cpp-arguments
+                               (access #'direct-children
+                                       (list element-type)))))))))
+             element-type)))
+        type-ast)))
 
 (defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
   (infer-expression-type obj (only-elt (direct-children ast))))

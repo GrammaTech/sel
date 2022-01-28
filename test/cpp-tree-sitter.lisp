@@ -538,6 +538,17 @@ auto d = p1->Distance(p2);")))
   (is (typep (lookup-in-std-header "list" '("std" "list") "push_back")
              'cpp-field-declaration)))
 
+(deftest test-infer-type-for-std ()
+  (local
+   (def cpp (from-string 'cpp "std::list<X>::iterator x;
+x->front();"))
+   (is (typep
+        (infer-type cpp (lastcar (collect-if (of-type 'cpp-field-expression)
+                                             (genome cpp))))
+        'cpp-type-descriptor))))
+
+
+
 (deftest test-get-declaration-ast-from-include ()
   (let ((sw (from-string 'cpp (fmt "~
 #include <list>
