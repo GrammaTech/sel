@@ -840,13 +840,7 @@ iterator we want the type of the container's elements."
   "When we can't find declaration in the file, look in standard library headers."
   (labels ((lookup-in-std-headers (quals fn-name)
              (some (op (lookup-in-std-header _ quals fn-name))
-                   (system-header-names obj)))
-           (get-variable-declaration-ast (sw ast)
-             (let ((*relevant-declaration-types*
-                    (with *relevant-declaration-types*
-                          ast
-                          'variable-declaration-ast)))
-               (get-declaration-ast sw ast))))
+                   (system-header-names obj))))
     (let ((decl (call-next-method)))
       (cond ((typep decl
                     ;; TODO No distinguished class for a field
@@ -864,7 +858,7 @@ iterator we want the type of the container's elements."
             (t
              (match ast
                ;; A field expression. We need to find the type of
-               ;; the variable.
+               ;; the variable (argument).
                ((cpp-field-expression
                  (cpp-argument field-arg)
                  (cpp-field field-field))

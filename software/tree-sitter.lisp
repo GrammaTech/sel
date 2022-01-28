@@ -454,7 +454,6 @@
            :find-std-include
            :lookup-in-std-header
            :system-header-names
-           :get-declaration-ast/includes
            :cpp-variadic-declaration
            :cpp-canonical-type
            ;; C/Cpp
@@ -517,7 +516,9 @@
            :collect-arg-uses
            :assignments
            :get-declaration-ast
-           :*relevant-declaration-types*
+           :get-variable-declaration-ast
+           :get-function-declaration-ast
+           :get-type-declaration-ast
            :relevant-declaration-type
            :get-initialization-ast
            :get-declaration-id
@@ -6303,6 +6304,27 @@ For example, to force looking up an AST as a variable:
             (with *relevant-declaration-types*
                   ast 'variable-declaration-ast)))
       (get-declaration-ast software ast))")
+
+(define-generic-analysis get-variable-declaration-ast (obj ast)
+  (:documentation "Like `get-declaration-ast', but searching only the variable namespace.")
+  (:method (obj ast)
+    (let ((*relevant-declaration-types*
+           (with *relevant-declaration-types* ast 'variable-declaration-ast)))
+      (get-declaration-ast obj ast))))
+
+(define-generic-analysis get-function-declaration-ast (obj ast)
+  (:documentation "Like `get-declaration-ast', but searching only the function namespace.")
+  (:method (obj ast)
+    (let ((*relevant-declaration-types*
+           (with *relevant-declaration-types* ast 'function-declaration-ast)))
+      (get-declaration-ast obj ast))))
+
+(define-generic-analysis get-type-declaration-ast (obj ast)
+  (:documentation "Like `get-declaration-ast', but searching only the type namespace.")
+  (:method (obj ast)
+    (let ((*relevant-declaration-types*
+           (with *relevant-declaration-types* ast 'type-declaration-ast)))
+      (get-declaration-ast obj ast))))
 
 (define-generic-analysis relevant-declaration-type (obj ast)
   (:documentation "Return the type of declaration we should look for.
