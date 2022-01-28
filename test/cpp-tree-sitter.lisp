@@ -11,7 +11,8 @@
     :software-evolution-library/software/cpp
     :software-evolution-library/test/util-clang
     :software-evolution-library/components/file
-    :software-evolution-library/components/formatting)
+    :software-evolution-library/components/formatting
+    :software-evolution-library/utility/include)
   (:import-from :software-evolution-library/software/tree-sitter
                 :inner-declarations
                 :outer-declarations
@@ -535,8 +536,9 @@ auto d = p1->Distance(p2);")))
     (finishes (infer-type *soft* (find-soft-var "midpoint")))))
 
 (deftest test-lookup-in-std-header ()
-  (is (typep (lookup-in-std-header "list" '("std" "list") "push_back")
-             'cpp-field-declaration)))
+  (when (std-headers-available-p)
+    (is (typep (lookup-in-std-header "list" '("std" "list") "push_back")
+               'cpp-field-declaration))))
 
 (deftest test-infer-type-for-std ()
   (local

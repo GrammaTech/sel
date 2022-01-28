@@ -4,13 +4,18 @@
   (:import-from :serapeum :~>>)
   (:export :extract-llvm-synopses
            :*std-header-dir*
-           :extract-header-synopsis))
+           :extract-header-synopsis
+           :std-headers-available-p))
 (in-package :software-evolution-library/utility/include)
 
 (defparameter *std-header-dir*
   (asdf:system-relative-pathname :software-evolution-library
                                  "utility/libcxx-src/include/")
   "Directory to search for standard library headers.")
+
+(defun std-headers-available-p ()
+  "Are the standard headers available for reference?"
+  (file-exists-p (path-join *std-header-dir* "list")))
 
 (defun extract-synopsis-from-string (file-string)
   (let ((synopsis (find "synopsis"
