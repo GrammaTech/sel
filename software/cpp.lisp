@@ -840,7 +840,33 @@ iterator we want the type of the container's elements."
   "When we can't find declaration in the file, look in standard library headers."
   (labels ((lookup-in-std-headers (quals fn-name)
              (some (op (lookup-in-std-header _ quals fn-name))
-                   (system-header-names obj))))
+                   (system-header-names obj)))
+           (lookup-qualified-name (ast)
+             (lookup-in-std-headers
+              (namespace-qualifiers obj ast)
+              (unqualified-name ast)))
+           (lookup-qualified-declaration (qname method)
+             (let ((quals (namespace-qualifiers obj qname))
+                   (name (unqualified-name qname)))
+               (when-let (name-as-qualifier
+                          (match name
+                            ((identifier-ast) name)
+                            ((cpp-template-type (cpp-name name))
+                             name)))
+                 (lookup-in-std-headers
+                  (append1 quals name-as-qualifier)
+                  method))))
+           (lookup-field-method-declaration (field)
+             (let-match (((cpp-field-expression
+                           (cpp-argument var)
+                           (cpp-field method))
+                          field))
+               (let ((var-decl (get-variable-declaration-ast obj var)))
+                 (match (infer-type obj var-decl)
+                   ((and qname (type cpp-qualified-identifier))
+                    (lookup-qualified-declaration qname method))
+                   ((and type (identifier-ast))
+                    (lookup-in-std-headers nil type)))))))
     (let ((decl (call-next-method)))
       (cond ((typep decl
                     ;; TODO No distinguished class for a field
@@ -852,31 +878,9 @@ iterator we want the type of the container's elements."
                        (relevant-declaration-type obj ast)))
              decl)
             ((typep ast 'identifier-ast)
-             (lookup-in-std-headers
-              (namespace-qualifiers obj ast)
-              (unqualified-name ast)))
-            (t
-             (match ast
-               ;; A field expression. We need to find the type of
-               ;; the variable (argument).
-               ((cpp-field-expression
-                 (cpp-argument field-arg)
-                 (cpp-field field-field))
-                (let ((decl (get-variable-declaration-ast obj field-arg)))
-                  (match (infer-type obj decl)
-                    ((and qname (type cpp-qualified-identifier))
-                     (let ((quals (namespace-qualifiers obj qname))
-                           (name (unqualified-name qname)))
-                       (match name
-                         ((and name (type identifier-ast))
-                          (lookup-in-std-headers (append quals (list name))
-                                                 field-field))
-                         ((cpp-template-type
-                           (cpp-name name))
-                          (lookup-in-std-headers (append quals (list name))
-                                                 field-field)))))
-                    ((and type (type identifier-ast))
-                     (lookup-in-std-headers nil type)))))))))))
+             (lookup-qualified-name ast))
+            ((typep ast 'cpp-field-expression)
+             (lookup-field-method-declaration ast))))))
 
 (defmethod initializer-aliasee ((sw cpp)
                                 (lhs cpp-reference-declarator)
