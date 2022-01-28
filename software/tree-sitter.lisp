@@ -6289,7 +6289,20 @@ For a declaration AST, return AST unchanged.")
              (scopes obj identifier))))))
 
 (defvar *relevant-declaration-types* (empty-map)
-  "A map of overrides (AST to type) for `relevant-declaration-type'.")
+  "A map to override the results of `relevant-declaration-type'.
+
+Normally `relevant-declaration-type' relies on the context of an AST
+to determine what kind of declaration is needed (such as
+`variable-declaration-ast' or `function-declaration-ast').
+
+If you want to look up a different kind of declaration for an AST, you
+can force that by binding this variable around `get-declaration-ast'.
+For example, to force looking up an AST as a variable:
+
+    (let ((*relevant-declaration-types*
+            (with *relevant-declaration-types*
+                  ast 'variable-declaration-ast)))
+      (get-declaration-ast software ast))")
 
 (define-generic-analysis relevant-declaration-type (obj ast)
   (:documentation "Return the type of declaration we should look for.
