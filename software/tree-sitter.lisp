@@ -6260,19 +6260,28 @@ Every element in the list has the following form:
 
 (define-generic-analysis get-declaration-ast (type obj ast)
   (:documentation "For an identifier, get the declaration AST.
-For a declaration AST, return AST unchanged.")
+For a declaration AST, return AST unchanged.
+
+Calling `get-declaration-ast' with a type of T means to derive the
+type from AST's context, using `relevant-declaration-type'.
+
+Calling `get-declaration-ast' with a type of `variable', `function',
+or `type' is equivalent to `variable-declaration-ast',
+`function-declaration-ast', or `type-declaration-ast', respectively.")
+  ;; NB `(eql t)', not `t'.
   (:method ((type (eql t)) (obj t) (ast t))
     (get-declaration-ast (relevant-declaration-type obj ast)
                          obj ast))
-  ;; NB `variable', `function', and `type' are all symbols exported by
-  ;; CL.
+  ;; Shorthands. Note that `variable', `function', and `type' are all
+  ;; symbols exported by CL.
   (:method ((type (eql 'variable)) (obj t) (ast t))
     (get-declaration-ast 'variable-declaration-ast obj ast))
   (:method ((type (eql 'function)) (obj t) (ast t))
     (get-declaration-ast 'function-declaration-ast obj ast))
   (:method ((type (eql 'type)) (obj t) (ast t))
     (get-declaration-ast 'type-declaration-ast obj ast))
-  ;; NB Not tree-sitter, since that would shadow normal-scope.
+  ;; NB Not specialized on tree-sitter objects, since that would
+  ;; shadow normal-scope.
   (:method ((type t) (obj t) (ast ast)) nil)
   (:method ((type t) (obj t) (ast call-ast))
     (get-declaration-ast type obj (call-function ast)))
