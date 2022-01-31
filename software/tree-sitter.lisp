@@ -6280,6 +6280,18 @@ or `type' is equivalent to `variable-declaration-ast',
     (get-declaration-ast 'function-declaration-ast obj ast))
   (:method ((type (eql 'type)) (obj t) (ast t))
     (get-declaration-ast 'type-declaration-ast obj ast))
+  ;; Assert we get the right kind of declaration.
+  (:method :context ((type (eql 'variable-declaration-ast)) obj ast)
+    (assure (or null variable-declaration-ast)
+      (call-next-method)))
+  ;; Currently deactivated since there is no distinguished class for
+  ;; C++ field declarations that define functions.
+  ;; (:method :context ((type (eql 'function-declaration-ast)) obj ast)
+  ;;   (assure (or null function-declaration-ast)
+  ;;     (call-next-method)))
+  (:method :context ((type (eql 'type-declaration-ast)) obj ast)
+    (assure (or null type-declaration-ast)
+      (call-next-method)))
   ;; NB Not specialized on tree-sitter objects, since that would
   ;; shadow normal-scope.
   (:method ((type t) (obj t) (ast ast)) nil)
