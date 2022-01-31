@@ -136,6 +136,19 @@ MACRO const char * MACRO2 vv F((void));
 "))
     (is (equal (source-text (convert 'c-ast source)) source))))
 
+(deftest indentation-maintains-before-text-after-source-text-fragment ()
+  "The before text indentation is maintained after a source-text-fragment."
+  (let ((*indent-with-tabs-p* t)
+        (source "
+int main() {
+	IF_THING(
+		unsigned val;
+		val = get_val();
+	)
+}
+"))
+    (is (equal (source-text (convert 'c-ast source)) source))))
+
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()

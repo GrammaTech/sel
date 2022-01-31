@@ -7590,11 +7590,9 @@ the indentation slots."
                     (patch-trailing-indentation text ast)
                   ;; But update it if it's before-text.
                   (when before-text
-                    (update-indentation-slots
-                     ast parents (adjusted-spaces-from-tabs
-                                  (subseq
-                                   text (position #\newline text :from-end t)))
-                     text))))
+                    ;; NOTE: pass 0 in becase indentation-carryover should be
+                    ;;       set if needed at this point.
+                    (update-indentation-slots ast parents 0 text))))
                ((or indentation
                     ;; NOTE: check if text exists here so that
                     ;;       the inherited indentation can be
