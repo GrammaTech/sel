@@ -6267,7 +6267,7 @@ For a declaration AST, return AST unchanged.")
   (:method ((obj t) (ast ast)) nil)
   (:method ((obj t) (ast call-ast))
     (get-declaration-ast obj (call-function ast)))
-  (:method ((obj software) (ast variable-declaration-ast)) ast)
+  (:method ((obj software) (ast declaration-ast)) ast)
   (:method :around ((obj normal-scope) (identifier identifier-ast))
     (or
      ;; Check if this identifier is part of a declaration before
