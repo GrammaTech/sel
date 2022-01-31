@@ -516,10 +516,6 @@
            :collect-arg-uses
            :assignments
            :get-declaration-ast
-           :get-declaration-ast-by-type
-           :get-variable-declaration-ast
-           :get-function-declaration-ast
-           :get-type-declaration-ast
            :relevant-declaration-type
            :get-initialization-ast
            :get-declaration-id
@@ -6262,19 +6258,24 @@ Every element in the list has the following form:
 (define-generic-analysis variable-use-p (obj identifier &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
-(define-generic-analysis get-declaration-ast (obj ast)
-  (:documentation "For an identifier, get the relevant declaration AST.
-For a declaration AST, return AST unchanged.")
-  (:method ((obj t) (ast t))
-    (get-declaration-ast-by-type (relevant-declaration-type obj ast) obj ast)))
-
-(define-generic-analysis get-declaration-ast-by-type (type obj ast)
+(define-generic-analysis get-declaration-ast (type obj ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.")
+  (:method ((type (eql t)) (obj t) (ast t))
+    (get-declaration-ast (relevant-declaration-type obj ast)
+                         obj ast))
+  ;; NB `variable', `function', and `type' are all symbols exported by
+  ;; CL.
+  (:method ((type (eql 'variable)) (obj t) (ast t))
+    (get-declaration-ast 'variable-declaration-ast obj ast))
+  (:method ((type (eql 'function)) (obj t) (ast t))
+    (get-declaration-ast 'function-declaration-ast obj ast))
+  (:method ((type (eql 'type)) (obj t) (ast t))
+    (get-declaration-ast 'type-declaration-ast obj ast))
   ;; NB Not tree-sitter, since that would shadow normal-scope.
   (:method ((type t) (obj t) (ast ast)) nil)
   (:method ((type t) (obj t) (ast call-ast))
-    (get-declaration-ast-by-type type obj (call-function ast)))
+    (get-declaration-ast type obj (call-function ast)))
   (:method ((type t) (obj software) (ast declaration-ast)) ast)
   (:method :around ((type t) (obj normal-scope) (identifier identifier-ast))
     (or
@@ -6300,21 +6301,6 @@ For a declaration AST, return AST unchanged.")
                     (typep (aget :decl scope) type)))
              (scopes obj identifier))))))
 
-(define-generic-analysis get-variable-declaration-ast (obj ast)
-  (:documentation "Like `get-declaration-ast', but searching only the variable namespace.")
-  (:method (obj ast)
-    (get-declaration-ast-by-type 'variable-declaration-ast obj ast)))
-
-(define-generic-analysis get-function-declaration-ast (obj ast)
-  (:documentation "Like `get-declaration-ast', but searching only the function namespace.")
-  (:method (obj ast)
-    (get-declaration-ast-by-type 'function-declaration-ast obj ast)))
-
-(define-generic-analysis get-type-declaration-ast (obj ast)
-  (:documentation "Like `get-declaration-ast', but searching only the type namespace.")
-  (:method (obj ast)
-    (get-declaration-ast-by-type 'type-declaration-ast obj ast)))
-
 (define-generic-analysis relevant-declaration-type (obj ast)
   (:documentation "Return the type of declaration we should look for.
 
@@ -6339,24 +6325,24 @@ This is useful when languages allow a single declaration to initialize
 more than one variable, and for languages that allow declaration and
 initialization to be separate.")
   (:method ((obj t) (ast t))
-    (when-let (id (get-declaration-id obj ast))
+    (when-let (id (get-declaration-id 'variable obj ast))
       (find-enclosing 'variable-initialization-ast
                       obj
                       id))))
 
-(define-generic-analysis get-declaration-id (obj ast)
+(define-generic-analysis get-declaration-id (type obj ast)
   (:documentation "Find AST's declaration (using `get-declaration-ast') and extract the corresponding identifier.
 
 This is important because a single declaration may define multiple
 variables, e.g. in C/C++ declaration syntax or in languages that
 support destructuring.")
-  (:method ((obj t) (id identifier-ast))
+  (:method ((type t) (obj t) (id identifier-ast))
     (let ((id-text (source-text id)))
       (find-if (lambda (ast)
                  (and (typep ast 'identifier-ast)
                       (equal (source-text ast)
                              id-text)))
-               (get-declaration-ast obj id)))))
+               (get-declaration-ast type obj id)))))
 
 (define-generic-analysis same-variable-p (obj ast1 ast2)
   (:documentation "T if AST1 and AST2 resolve to the same declaration.
@@ -6364,8 +6350,8 @@ Returns a second value to represent certainty; returning NIL, T means
 they are definitely not the same; returning NIL, NIL means
 uncertainty.")
   (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
-    (let ((decl1 (get-declaration-id obj id1))
-          (decl2 (get-declaration-id obj id2)))
+    (let ((decl1 (get-declaration-id 'variable obj id1))
+          (decl2 (get-declaration-id 'variable obj id2)))
       (cond ((not (and decl1 decl2))
              (values nil nil))
             ((eql decl1 decl2)
@@ -6423,7 +6409,8 @@ pointers into account in languages that support them.")
                     (appending
                      (collect-var-use-children child (cons ast parents)))
                     (until (variable-shadowed-p (outer-declarations child))))))))
-      (when-let ((declaration-ast (get-declaration-ast obj identifier)))
+      (when-let ((declaration-ast
+                  (get-declaration-ast 'variable obj identifier)))
         (remove-if-not
          (op (path-later-p obj _ declaration-ast))
          (collect-var-use-children
@@ -6448,11 +6435,11 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
             (when (some (lambda (assignee)
                           (member target
                                   (identifiers assignee)
-                                  :key (op (get-declaration-id sw _))))
+                                  :key (op (get-declaration-id 'variable sw _))))
                         (assignees ast))
               (collect ast)))))
   (:method ((sw software) (target ast))
-    (assignments sw (get-declaration-id sw target))))
+    (assignments sw (get-declaration-id 'variable sw target))))
 
 (define-generic-analysis collect-arg-uses (obj target &optional alias)
   (:documentation "Collect function calls in OBJ with TARGET as an argument.
@@ -6460,8 +6447,10 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
 If ALIAS is non-nil, resolve aliases during the search.")
   (:method ((obj software) (target identifier-ast) &optional alias)
     (flet ((get-decl (obj var)
-             (get-declaration-id obj (or (and alias (aliasee obj var))
-                                         var))))
+             (get-declaration-id 'variable
+                                 obj
+                                 (or (and alias (aliasee obj var))
+                                     var))))
       (let ((target (get-decl obj target)))
         (iter (for ast in-tree (genome obj))
               ;; The outer loop will recurse, so we don't
@@ -6508,7 +6497,7 @@ By default this first tries `expression-type', then invokes
 `get-declaration-ast'.")
   (:method ((software t) (ast t))
     (or (infer-expression-type software ast)
-        (when-let (decl (get-declaration-ast software ast))
+        (when-let (decl (get-declaration-ast t software ast))
           (resolve-declaration-type software decl ast)))))
 
 (define-generic-analysis infer-expression-type (software ast)

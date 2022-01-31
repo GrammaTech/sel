@@ -218,24 +218,31 @@ pointer declarations which are nested on themselves."
 (defmethod field-names ((ast c/cpp-enumerator))
   (list (c/cpp-name ast)))
 
-(defmethod get-declaration-id ((obj c/cpp) (ast c/cpp-pointer-expression))
-  (get-declaration-id obj (c/cpp-argument ast)))
+(defmethod get-declaration-id ((type t) (obj c/cpp) (ast c/cpp-pointer-expression))
+  (get-declaration-id type obj (c/cpp-argument ast)))
 
 (defmethod get-initialization-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
   (get-initialization-ast obj (c/cpp-argument ast)))
 
-(defmethod get-declaration-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
-  (get-declaration-ast obj (c/cpp-argument ast)))
+(defmethod get-declaration-ast ((type t) (obj c/cpp) (ast c/cpp-pointer-expression))
+  (get-declaration-ast type obj (c/cpp-argument ast)))
 
-(defmethod get-declaration-ast ((obj c/cpp) (ast c/cpp-type-descriptor))
-  (get-declaration-ast obj (c/cpp-type ast)))
+(defmethod get-declaration-ast ((type t) (obj c/cpp) (ast c/cpp-type-descriptor))
+  (get-declaration-ast type obj (c/cpp-type ast)))
 
 (defmethod infer-type ((obj software) (ast c/cpp-field-expression))
-  (when-let ((id (get-declaration-id obj ast)))
+  (when-let ((id (get-declaration-id 'function obj ast)))
     ;; Get the type from the declaration of the field argument.
     (infer-type obj id)))
 
-(defmethod get-declaration-ast ((obj software) (ast c/cpp-field-expression))
+(defmethod get-declaration-ast ((type (eql 'variable-declaration-ast))
+                                (obj software)
+                                (ast c/cpp-field-expression))
+  (get-declaration-ast type obj (c/cpp-argument ast)))
+
+(defmethod get-declaration-ast ((type (eql 'function-declaration-ast))
+                                (obj software)
+                                (ast c/cpp-field-expression))
   (when-let* ((type
                ;; Get the ID from the declaration of the field
                ;; argument.
@@ -245,7 +252,7 @@ pointer declarations which are nested on themselves."
                ;; declarations.
                (infer-type obj ast))
               ;; Get the declaration of the type of the argument.
-              (type-decl (get-declaration-ast obj type))
+              (type-decl (get-declaration-ast 'type obj type))
               ;; The name of the field we're looking for.
               (target-field-name (source-text (c/cpp-field ast))))
     (match type-decl
@@ -258,11 +265,34 @@ pointer declarations which are nested on themselves."
                               field-names
                               :test #'source-text=)))))))
 
-(defmethod get-declaration-id ((obj c/cpp) (field c/cpp-field-expression))
-  (get-declaration-id obj (c/cpp-argument field)))
+(defmethod get-declaration-ast ((type t) (obj software) (ast c/cpp-field-expression))
+  (when-let* ((type
+               ;; Get the ID from the declaration of the field
+               ;; argument.
 
-(defmethod get-declaration-id ((obj c/cpp) (id identifier-ast))
-  (when-let (declaration (get-declaration-ast obj id))
+               ;; Note it is possible to end up recursing here when
+               ;; working backward through multiple field
+               ;; declarations.
+               (infer-type obj ast))
+              ;; Get the declaration of the type of the argument.
+              (type-decl (get-declaration-ast 'type obj type))
+              ;; The name of the field we're looking for.
+              (target-field-name (source-text (c/cpp-field ast))))
+    (match type-decl
+      ((c/cpp-struct-specifier
+        (c/cpp-body field-list))
+       (iter (for field in (direct-children field-list))
+             (for field-names = (field-names field))
+             (finding field such-that
+                      (member target-field-name
+                              field-names
+                              :test #'source-text=)))))))
+
+(defmethod get-declaration-id ((type t) (obj c/cpp) (field c/cpp-field-expression))
+  (get-declaration-id type obj (c/cpp-argument field)))
+
+(defmethod get-declaration-id ((type t) (obj c/cpp) (id identifier-ast))
+  (when-let (declaration (get-declaration-ast t obj id))
     (let ((id-text (source-text id)))
       (iter (for ast1 in-tree declaration)
             (for subtree =
@@ -278,7 +308,7 @@ pointer declarations which are nested on themselves."
 (defmethod get-initialization-ast ((obj cpp) (ast ast))
   "Find the assignment for an unitialized variable."
   (or (call-next-method)
-      (when-let* ((id (get-declaration-id obj ast))
+      (when-let* ((id (get-declaration-id 'variable obj ast))
                   (decl
                    (find-enclosing 'variable-declaration-ast obj id)))
         (let ((id-text (source-text id)))
@@ -314,7 +344,7 @@ Then if we cannot infer the type of y per se we infer its type to be int."
 
 (defmethod infer-expression-type ((obj c/cpp) (ast call-ast))
   "Infer the type of a call from its declaration."
-  (or (when-let (decl (get-declaration-ast obj (call-function ast)))
+  (or (when-let (decl (get-declaration-ast 'function obj (call-function ast)))
         (resolve-declaration-type obj decl ast))
       (call-next-method)))
 
@@ -486,7 +516,7 @@ Should return `:failure' in the base case.")
             (rhs identifier-ast))
     ;; Assigning a pointer variable to a pointer variable.
     (let ((aliasee (aliasee sw rhs)))
-      (if (not (eql aliasee (get-declaration-id sw rhs)))
+      (if (not (eql aliasee (get-declaration-id 'variable sw rhs)))
           aliasee
           (call-next-method)))))
 
@@ -495,25 +525,27 @@ Should return `:failure' in the base case.")
     ((c/cpp-init-declarator (lhs lhs) (rhs rhs))
      (let ((result (initializer-aliasee sw lhs rhs)))
        (if (eql result :failure)
-           (get-declaration-id sw id)
+           (get-declaration-id 'variable sw id)
            result)))
     ((c/cpp-assignment-expression (rhs rhs))
      (aliasee sw rhs))
     (otherwise nil)))
 
 (defmethod alias-set ((sw c/cpp) (plain-var c/cpp-ast))
-  (when-let (id (get-declaration-id sw plain-var))
+  (when-let (id (get-declaration-id 'variable sw plain-var))
     (iter (for ast in-tree (genome sw))
           (when (and (typep ast 'identifier-ast)
                      (eql (aliasee sw ast) id))
-            (set-collect (get-declaration-id sw ast) into set))
+            (set-collect (get-declaration-id 'variable sw ast) into set))
           (finally (return (convert 'list (less set plain-var)))))))
 
 
 (defmethod collect-arg-uses ((sw c/cpp) (target identifier-ast)
                              &optional alias)
   (labels ((get-decl (obj var)
-             (get-declaration-id obj (or (and alias (aliasee obj var))
+             (get-declaration-id 'variable
+                                 obj
+                                 (or (and alias (aliasee obj var))
                                          var)))
            (occurs-as-object? (ast target)
              (match ast

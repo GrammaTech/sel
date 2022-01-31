@@ -635,9 +635,16 @@
      ;; its RHS.
      (when-let (init
                 (find-if (of-type 'c/cpp-init-declarator)
-                         (get-parent-asts obj ast)))
-       (when (eql ast (lhs init))
+                         (get-parent-asts obj decl)))
+       (when (or (eql decl init)
+                 (ancestor-of-p obj decl (lhs init)))
          (infer-type obj (rhs init))))
+     (match decl
+       ((cpp-declaration
+         (cpp-declarator (and decls (type list))))
+        (dolist (decl decls)
+          (when (source-text= (lhs decl) ast)
+            (return (infer-type obj (rhs decl)))))))
      ;; Go with the original result.
      first-try)))
 
@@ -818,7 +825,7 @@ iterator we want the type of the container's elements."
   (:method ((ast cpp-namespace-definition-name))
     (lastcar (children ast))))
 
-(defmethod get-declaration-ast-by-type ((type t) (obj cpp) (ast ast))
+(defmethod get-declaration-ast ((type t) (obj cpp) (ast ast))
   (let ((explicits (explicit-namespace-qualifiers ast)))
     (if (null explicits)
         (call-next-method)
@@ -840,7 +847,8 @@ iterator we want the type of the container's elements."
                  (scope-tree obj))))
           (aget :decl scope)))))
 
-(defmethod get-declaration-ast :context ((obj cpp) (ast ast))
+(defmethod get-declaration-ast :context ((type (eql 'function-declaration-ast))
+                                         (obj cpp) (ast ast))
   "When we can't find declaration in the file, look in standard library headers."
   (labels ((lookup-in-std-headers (quals fn-name)
              (some (op (lookup-in-std-header _ quals fn-name))
@@ -865,7 +873,7 @@ iterator we want the type of the container's elements."
                            (cpp-argument var)
                            (cpp-field method))
                           field))
-               (let ((var-decl (get-variable-declaration-ast obj var)))
+               (let ((var-decl (get-declaration-ast 'variable obj var)))
                  (match (infer-type obj var-decl)
                    ((and qname (type cpp-qualified-identifier))
                     (lookup-qualified-declaration qname method))
