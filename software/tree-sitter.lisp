@@ -7651,8 +7651,12 @@ the indentation slots."
                         ;;       It also assumes that there won't be any trailing
                         ;;       whitespace except possibly a newline.
                         (setf indentation-carryover
-                              (when (ends-with-newline-p (text ast))
-                                  0)))))
+                              (when-let* ((text (source-text output))
+                                          (newline (ends-with-newline-p text)))
+                                ;; NOTE: only set to 0 if the very last thing
+                                ;;       is a newline.
+                                (when (eql (1+ newline) (length text))
+                                  0))))))
                    (cdr (butlast output-transformation)))
              (setf (after-text ast)
                    (patch-internal-indentation
