@@ -818,7 +818,7 @@ iterator we want the type of the container's elements."
   (:method ((ast cpp-namespace-definition-name))
     (lastcar (children ast))))
 
-(defmethod get-declaration-ast ((obj cpp) (ast ast))
+(defmethod get-declaration-ast-by-type ((type t) (obj cpp) (ast ast))
   (let ((explicits (explicit-namespace-qualifiers ast)))
     (if (null explicits)
         (call-next-method)
@@ -832,6 +832,7 @@ iterator we want the type of the container's elements."
                      ((alist (:name . (and name (type string)))
                              (:decl . (and decl (type ast))))
                       (and (equal source-text name)
+                           (typep decl type)
                            (equal
                             full-qualifiers
                             (mapcar #'source-text

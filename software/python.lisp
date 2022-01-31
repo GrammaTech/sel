@@ -173,12 +173,16 @@ Every element in the list has the following form:
 (defmethod phenome ((obj python) &key (bin (temp-file-name)))
   (interpreted-phenome obj bin))
 
-(defmethod get-declaration-ast ((obj python) (ast python-identifier))
+(defmethod get-declaration-ast-by-type ((type t)
+                                        (obj python)
+                                        (ast python-identifier))
   (let ((name (source-text ast))
         (scopes (scopes obj ast)))
     (when-let* ((binding
                  (find-if-in-scopes
-                  (op (equal (aget :name _) name))
+                  (lambda (binding)
+                    (and (equal (aget :name binding) name)
+                         (typep (aget :decl binding) type)))
                   scopes)))
       (aget :decl binding))))
 

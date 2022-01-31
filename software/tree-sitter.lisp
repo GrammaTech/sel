@@ -516,6 +516,7 @@
            :collect-arg-uses
            :assignments
            :get-declaration-ast
+           :get-declaration-ast-by-type
            :get-variable-declaration-ast
            :get-function-declaration-ast
            :get-type-declaration-ast
@@ -6261,14 +6262,20 @@ Every element in the list has the following form:
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
 (define-generic-analysis get-declaration-ast (obj ast)
+  (:documentation "For an identifier, get the relevant declaration AST.
+For a declaration AST, return AST unchanged.")
+  (:method ((obj t) (ast t))
+    (get-declaration-ast-by-type (relevant-declaration-type obj ast) obj ast)))
+
+(define-generic-analysis get-declaration-ast-by-type (type obj ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.")
   ;; NB Not tree-sitter, since that would shadow normal-scope.
-  (:method ((obj t) (ast ast)) nil)
-  (:method ((obj t) (ast call-ast))
-    (get-declaration-ast obj (call-function ast)))
-  (:method ((obj software) (ast declaration-ast)) ast)
-  (:method :around ((obj normal-scope) (identifier identifier-ast))
+  (:method ((type t) (obj t) (ast ast)) nil)
+  (:method ((type t) (obj t) (ast call-ast))
+    (get-declaration-ast-by-type type obj (call-function ast)))
+  (:method ((type t) (obj software) (ast declaration-ast)) ast)
+  (:method :around ((type t) (obj normal-scope) (identifier identifier-ast))
     (or
      ;; Check if this identifier is part of a declaration before
      ;; checking scopes to avoid returning a shadowed variable.
@@ -6281,9 +6288,8 @@ For a declaration AST, return AST unchanged.")
                     :test #'eq)
         (return parent)))
      (call-next-method)))
-  (:method ((obj normal-scope) (identifier identifier-ast))
-    (let ((type (relevant-declaration-type obj identifier))
-          (id-text (source-text identifier)))
+  (:method ((type t) (obj normal-scope) (identifier identifier-ast))
+    (let ((id-text (source-text identifier)))
       (assert (or (subtypep 'declaration-ast type)
                   (and type (subtypep type 'declaration-ast))))
       (aget :decl
@@ -6293,42 +6299,20 @@ For a declaration AST, return AST unchanged.")
                     (typep (aget :decl scope) type)))
              (scopes obj identifier))))))
 
-(defvar *relevant-declaration-types* (empty-map)
-  "A map to override the results of `relevant-declaration-type'.
-
-Normally `relevant-declaration-type' relies on the context of an AST
-to determine what kind of declaration is needed (such as
-`variable-declaration-ast' or `function-declaration-ast').
-
-If you want to look up a different kind of declaration for an AST, you
-can force that by binding this variable around `get-declaration-ast'.
-For example, to force looking up an AST as a variable:
-
-    (let ((*relevant-declaration-types*
-            (with *relevant-declaration-types*
-                  ast 'variable-declaration-ast)))
-      (get-declaration-ast software ast))")
-
 (define-generic-analysis get-variable-declaration-ast (obj ast)
   (:documentation "Like `get-declaration-ast', but searching only the variable namespace.")
   (:method (obj ast)
-    (let ((*relevant-declaration-types*
-           (with *relevant-declaration-types* ast 'variable-declaration-ast)))
-      (get-declaration-ast obj ast))))
+    (get-declaration-ast-by-type 'variable-declaration-ast obj ast)))
 
 (define-generic-analysis get-function-declaration-ast (obj ast)
   (:documentation "Like `get-declaration-ast', but searching only the function namespace.")
   (:method (obj ast)
-    (let ((*relevant-declaration-types*
-           (with *relevant-declaration-types* ast 'function-declaration-ast)))
-      (get-declaration-ast obj ast))))
+    (get-declaration-ast-by-type 'function-declaration-ast obj ast)))
 
 (define-generic-analysis get-type-declaration-ast (obj ast)
   (:documentation "Like `get-declaration-ast', but searching only the type namespace.")
   (:method (obj ast)
-    (let ((*relevant-declaration-types*
-           (with *relevant-declaration-types* ast 'type-declaration-ast)))
-      (get-declaration-ast obj ast))))
+    (get-declaration-ast-by-type 'type-declaration-ast obj ast)))
 
 (define-generic-analysis relevant-declaration-type (obj ast)
   (:documentation "Return the type of declaration we should look for.
@@ -6336,9 +6320,6 @@ For example, to force looking up an AST as a variable:
 That is, based on AST's context, figure out whether we should be
 looking for a `variable-declaration-ast', `function-declaration-ast',
 or `type-declaration-ast'.")
-  (:method :context ((obj software) (ast ast))
-    (or (lookup *relevant-declaration-types* ast)
-        (call-next-method)))
   ;; TODO Not every language has a separate class for type
   ;; identifiers. E.g. Python just has Python identifiers inside
   ;; Python types.
