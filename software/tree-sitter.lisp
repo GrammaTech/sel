@@ -1407,6 +1407,7 @@ for the language.")
        (:binary-ast python-binary-operator python-boolean-operator)
        (:return-ast python-return-statement)
        (:variable-declaration-ast python-assignment python-keyword-argument)
+       (:parameter-ast python-parameter)
        (:assignment-ast python-assignment python-augmented-assignment)
        (:catch-ast python-except-clause))
       (:rust
