@@ -6367,10 +6367,6 @@ type from AST's context, using `relevant-declaration-type'.
 Calling `get-declaration-ast' with a type of `variable', `function',
 or `type' is equivalent to `variable-declaration-ast',
 `function-declaration-ast', or `type-declaration-ast', respectively.")
-  ;; NB `(eql t)', not `t'.
-  (:method ((type (eql t)) (obj t) (ast t))
-    (get-declaration-ast (relevant-declaration-type obj ast)
-                         obj ast))
   ;; Shorthands. Note that `variable', `function', and `type' are all
   ;; symbols exported by CL.
   (:method ((type (eql 'variable)) (obj t) (ast t))
@@ -6403,11 +6399,12 @@ or `type' is equivalent to `variable-declaration-ast',
      ;; checking scopes to avoid returning a shadowed variable.
      (iter
       (for parent in (get-parent-asts* obj identifier))
-      (when (member identifier
-                    (append (outer-declarations parent)
-                            (inner-declarations parent))
-                    ;; Looking for the exact AST.
-                    :test #'eq)
+      (when (and (member identifier
+                         (append (outer-declarations parent)
+                                 (inner-declarations parent))
+                         ;; Looking for the exact AST.
+                         :test #'eq)
+                 (typep parent type))
         (return parent)))
      (call-next-method)))
   (:method ((type t) (obj normal-scope) (identifier identifier-ast))
@@ -6435,6 +6432,9 @@ or `type-declaration-ast'.")
   (:method ((obj t) (ast ast))
     (or (when-let ((call (find-enclosing 'call-ast obj ast)))
           (when (eql ast (call-function call))
+            'function-declaration-ast))
+        (when-let ((fn (find-enclosing 'function-declaration-ast obj ast)))
+          (when (eql ast (definition-name-ast fn))
             'function-declaration-ast))
         'variable-declaration-ast)))
 
@@ -6617,8 +6617,9 @@ By default this first tries `expression-type', then invokes
 `get-declaration-ast'.")
   (:method ((software t) (ast t))
     (or (infer-expression-type software ast)
-        (when-let (decl (get-declaration-ast t software ast))
-          (resolve-declaration-type software decl ast)))))
+        (let ((decl-type (relevant-declaration-type software ast)))
+          (when-let (decl (get-declaration-ast decl-type software ast))
+            (resolve-declaration-type software decl ast))))))
 
 (define-generic-analysis infer-expression-type (software ast)
   (:method ((software t) (ast t))

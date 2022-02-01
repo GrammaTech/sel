@@ -126,7 +126,9 @@ int main () {
   }
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 0" (source-text (get-declaration-ast t cpp qid))))))
+    (is (string*= "x = 0" (source-text (get-declaration-ast
+                                        'variable
+                                        cpp qid))))))
 
 (deftest test-namespace-qualify-2 ()
   (let* ((cpp
@@ -141,7 +143,9 @@ int main () {
   }
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 0" (source-text (get-declaration-ast t cpp qid))))))
+    (is (string*= "x = 0" (source-text (get-declaration-ast
+                                        'variable
+                                        cpp qid))))))
 
 (deftest test-namespace-qualify-3 ()
   (let* ((cpp
@@ -156,7 +160,9 @@ int main () {
   }
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 1" (source-text (get-declaration-ast t cpp qid))))))
+    (is (string*= "x = 1" (source-text (get-declaration-ast
+                                        'variable
+                                        cpp qid))))))
 
 (deftest test-namespace-deepest-match ()
   "Check that we return the deepest matching namespace."
@@ -177,7 +183,8 @@ int main () {
   }
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 1" (source-text (get-declaration-ast t cpp qid))))))
+    (is (string*= "x = 1" (source-text (get-declaration-ast 'variable
+                                                            cpp qid))))))
 
 (def +trim-front-types+
   '(("trim_front" . "std::list<Point>")
@@ -227,13 +234,17 @@ int main () {
     (with-fixture trim-front
       (let* ((all-scopes (all-scopes *soft*)))
         (iter (for access in (accesses))
-              (for decl = (get-declaration-ast t *soft* access))
-              (for string = (source-text access))
+              (for decl-type = (relevant-declaration-type *soft* access))
+              (for decl = (get-declaration-ast decl-type *soft* access))
+              (is (typep decl 'ast))
               (iter (for scope in all-scopes)
-                    (when (equal string (aget :name scope))
+                    (when (source-text= access (aget :name scope))
                       (let ((scope-decl (aget :decl scope)))
+                        (is (typep scope-decl 'ast))
                         (is (or (eql decl scope-decl)
-                                (descendant-of-p *soft* scope-decl decl))))))))))
+                                (descendant-of-p *soft*
+                                                 scope-decl
+                                                 decl))))))))))
 
   (deftest test-trim-front-types ()
     "Test that we retrieve the correct type for each identifier."
@@ -479,18 +490,40 @@ auto d = p1->Distance(p2);")))
       ;; (is (source-text= "double" (infer-type sw call)))
       )))
 
-(deftest test-resolve-method-call-to-iterator-container-type ()
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp (fmt "~
+(def +iterator-container-type-sw+
+  (from-string 'cpp (fmt "~
+#include<list>
+
 struct Point {
   double x,y;
   double Distance(const Point&), other_function();
   Point PointAlongSegment(const Point&, double);
 };
 
-std::list<Point>::iterator p1 = pts.begin();
+double myfun(std::list<Point>& pts) {
+  std::list<Point>::iterator p1 = pts.begin();
+  auto d = p1->Distance(p2);
+  return d;
+}
+")))
 
-auto d = p1->Distance(p2);")))
+(deftest test-resolve-iterator-container-type ()
+  (with-analysis-cache ()
+    (let* ((sw +iterator-container-type-sw+)
+           (pts
+            (get-declaration-id
+             'variable
+             sw
+             (find-if (op (source-text= "pts" _)) sw)))
+           (p1d (get-declaration-id
+                 'variable
+                 sw
+                 (find-if (op (source-text= "p1" _)) sw))))
+      (infer-type sw pts))))
+
+(deftest test-resolve-method-call-to-iterator-container-type ()
+  (with-analysis-cache ()
+    (let* ((sw +iterator-container-type-sw+)
            (call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
            (field-expr (call-function call))
            (field-decl (is (get-declaration-ast 'function sw field-expr))))
@@ -553,8 +586,6 @@ x->front();"))
                                              (genome cpp))))
         'cpp-type-descriptor))))
 
-
-
 (deftest test-get-declaration-ast-from-include ()
   (let ((sw (from-string 'cpp (fmt "~
 #include <list>
@@ -562,7 +593,7 @@ x->front();"))
 std::list<int> xs = {1, 2, 3};
 int first = xs.front();"))))
     (is (typep
-         (get-declaration-ast t
+         (get-declaration-ast 'function
           sw
           (find-if (of-type 'c/cpp-field-expression) (genome sw)))
          'c/cpp-field-declaration))))
