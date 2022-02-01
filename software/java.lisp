@@ -13,3 +13,10 @@
 ;;;===================================================
 (create-tree-sitter-language "java")
 ;;;===================================================
+
+(defmethod transform-parse-tree
+    ((language (eql ':java)) (class (eql 'java-modifiers)) parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:public :protected :private :abstract :static :final :strictfp :default
+      :synchronized :native :transient :volatile :annotation :marker-annotation)
+     (label-as :modifiers))))

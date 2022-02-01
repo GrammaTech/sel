@@ -808,6 +808,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-type-parameter-declaration (:keyword))
        (cpp-reference-declarator (:valueness))
        (cpp-variadic-reference-declarator (:valueness)))
+      (:java
+       (java-modifiers (:modifiers (:multiple . t))))
       (:python
        (python-function-definition (:async))
        (python-for-statement (:async))
@@ -1949,6 +1951,25 @@ definitions.")
                       ((:TYPE . "SEQ")
                        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "\"\""))
                                  ((:TYPE . "SYMBOL") (:NAME . "identifier")))))))))))
+      (:java
+       (:MODIFIERS (:TYPE . "REPEAT1")
+        (:CONTENT
+         ;; Add modifiers field around everything
+         (:TYPE . "FIELD") (:NAME . "modifiers")
+         (:CONTENT (:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "_annotation"))
+           ((:TYPE . "STRING") (:VALUE . "public"))
+           ((:TYPE . "STRING") (:VALUE . "protected"))
+           ((:TYPE . "STRING") (:VALUE . "private"))
+           ((:TYPE . "STRING") (:VALUE . "abstract"))
+           ((:TYPE . "STRING") (:VALUE . "static"))
+           ((:TYPE . "STRING") (:VALUE . "final"))
+           ((:TYPE . "STRING") (:VALUE . "strictfp"))
+           ((:TYPE . "STRING") (:VALUE . "default"))
+           ((:TYPE . "STRING") (:VALUE . "synchronized"))
+           ((:TYPE . "STRING") (:VALUE . "native"))
+           ((:TYPE . "STRING") (:VALUE . "transient"))
+           ((:TYPE . "STRING") (:VALUE . "volatile")))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
