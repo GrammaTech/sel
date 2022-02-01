@@ -1284,6 +1284,7 @@ for the language.")
       (:golang
        (:comment-ast golang-comment))
       (:java
+       (:comment-ast java-comment)
        (:statement-ast java-statement)
        (:return-ast java-return-statement))
       (:javascript
@@ -5513,6 +5514,17 @@ Unlike the `children` methods which collects all children of an AST from any slo
                      (list 0 (1+ start-line)))
                    ,(caddr parse-tree))))
 
+           ;; This provides access to extra ASTs, such as comments.
+           (defmethod extra-asts ((language (eql ',(make-keyword name-prefix))))
+             (list
+              :error
+              :inner-whitespace
+              ,@(iter
+                  (for extra in (aget :extras grammar))
+                  (when (equal (aget :type extra) "SYMBOL")
+                    (collect
+                        (make-keyword (convert-name (aget :name extra))))))))
+
            ,structured-text-code)))))
 
 (defmacro define-and-export-all-mixin-classes ()
@@ -5546,6 +5558,12 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
 (defmethod pruned-rule ((ast t)) nil)
 (defmethod slot-usage ((ast t)) nil)
+
+(defgeneric extra-asts (language)
+  (:method (language) nil)
+  (:documentation "Return a list of extra ASTs for LANGUAGE. These are the ASTs
+which can occur anywhere in a tree and are put in the surrounding text or
+internal slots."))
 
 (defgeneric parse-order (ast &key &allow-other-keys)
   (:documentation "Return a list of children intermixed with keywords
@@ -6924,7 +6942,8 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                  ,(mapcar
                    #'remove-ignorable-items
                    (remove-if
-                    (op (member (car _) '(:comment :error :inner-whitespace)))
+                    (op (member (car _)
+                                (extra-asts (make-keyword language-prefix))))
                     (caddr tree))))))
            (get-children ()
              "Get the children slots and their types from parse-tree."
@@ -7878,7 +7897,7 @@ the indentation slots."
                 (the child-category
                      (cond
                        ((terminal-symbol-class-p type) :terminal)
-                       ((member type '(:inner-whitespace :comment :error))
+                       ((member type (extra-asts prefix))
                         :extra-ast)
                        (t :ast))))
               children))
@@ -7951,7 +7970,7 @@ the indentation slots."
                                        (cdr stack-directives)
                                        (nthcdr stack-directive children)))
                  (symbol
-                  (if (member child '(:inner-whitespace :comment :error))
+                  (if (member child (extra-asts prefix))
                       (let ((value
                               (if (cdr grouping)
                                   ;; Store multiple ASTs in a wrapper AST so
