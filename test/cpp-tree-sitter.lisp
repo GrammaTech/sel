@@ -501,7 +501,7 @@ struct Point {
 };
 
 double myfun(std::list<Point>& pts) {
-  std::list<Point>::iterator p1 = pts.begin();
+  auto p1 = pts.begin();
   auto d = p1->Distance(p2);
   return d;
 }
@@ -515,11 +515,12 @@ double myfun(std::list<Point>& pts) {
              'variable
              sw
              (find-if (op (source-text= "pts" _)) sw)))
-           (p1d (get-declaration-id
-                 'variable
-                 sw
-                 (find-if (op (source-text= "p1" _)) sw))))
-      (infer-type sw pts))))
+           (p1 (get-declaration-id
+                'variable
+                sw
+                (find-if (op (source-text= "p1" _)) sw))))
+      (is (source-text= "std::list<Point>" (infer-type sw pts)))
+      (is (source-text= "Point" (infer-type sw p1))))))
 
 (deftest test-resolve-method-call-to-iterator-container-type ()
   (with-analysis-cache ()

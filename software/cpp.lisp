@@ -650,6 +650,48 @@
      ;; Go with the original result.
      first-try)))
 
+(defmethod resolve-declaration-type ((obj cpp)
+                                     (decl cpp-field-declaration)
+                                     (ast call-ast))
+  "If AST is a call AST, and the declaration is a field declaration,
+then the return type of the call is the return type of the field."
+  (match ast
+    ((call-ast
+      (call-function
+       (and field (cpp-field-expression))))
+     (resolve-declaration-type obj decl field))
+    (otherwise (call-next-method))))
+
+(defgeneric resolve-container-element-type (type)
+  (:documentation "Assuming TYPE is a container type, try to get the
+  type of its elements.")
+  (:method ((type ast)) nil)
+  (:method ((type cpp-qualified-identifier))
+    (resolve-container-element-type (cpp-name type)))
+  (:method ((type cpp-template-type))
+    (resolve-container-element-type (cpp-arguments type)))
+  (:method ((type cpp-template-argument-list))
+    (let ((children (direct-children type)))
+      (and (single children)
+           (first children)))))
+
+(defmethod resolve-declaration-type ((obj cpp)
+                                     (decl cpp-field-declaration)
+                                     (ast cpp-field-expression))
+  "Handle the special case of a field expression when the argument of
+the field expression is an (implicitly dereferenced) iterator -- in
+this case the type we want is the type of the elements of the
+iterator's container."
+  (match ast
+    ((cpp-field-expression (cpp-argument arg))
+     (let ((result (call-next-method)))
+       ;; TODO Check for std?
+       (or (and-let* (((source-text= "iterator" result))
+                      (container-type (infer-type obj arg)))
+             (resolve-container-element-type container-type))
+           result)))
+    (otherwise (call-next-method))))
+
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
 
@@ -908,6 +950,4 @@ iterator we want the type of the container's elements."
 
 
 ;;; Whitespace rules
-
-
 ) ; #+:TREE-SITTER-CPP
