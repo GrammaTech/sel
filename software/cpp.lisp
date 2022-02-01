@@ -504,11 +504,11 @@
 (defmethod c/cpp-declarator ((ast cpp-reference-declarator))
   (cpp-declarator ast))
 
-(defmethod definition-name ((ast cpp-class-specifier))
-  (source-text (cpp-name ast)))
+(defmethod definition-name-ast ((ast cpp-class-specifier))
+  (cpp-name ast))
 
-(defmethod definition-name ((ast cpp-namespace-definition))
-  (source-text (cpp-name ast)))
+(defmethod definition-name-ast ((ast cpp-namespace-definition))
+  (cpp-name ast))
 
 (defmethod canonicalize-declarator ((declarator cpp-reference-declarator))
   ;; NOTE: more or less an alias. Maybe adding it to the type information
@@ -564,7 +564,7 @@
                         (and (typep ast '(or cpp-namespace-definition
                                           type-declaration-ast))
                              (source-text= name
-                                           (definition-name ast))))
+                                           (definition-name-ast ast))))
                       ast)))
     (when-let ((header (find-std-header (source-text header))))
       (find-field field

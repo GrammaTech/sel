@@ -561,6 +561,7 @@
            :find-following
            :comments-for
            :definition-name
+           :definition-name-ast
            :declarator-name
            :enclosing-definition
            :imports
@@ -6257,7 +6258,14 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
           (find-preceding 'comment-ast software fn)))))
 
 (defgeneric definition-name (ast)
-  (:documentation "Return a string that is the name of the things
+  (:documentation "Return a string that is the name of the things defined by a
+definition. Return NIL if AST is not a definition.")
+  (:method ((ast ast))
+    (when-let (name (definition-name-ast ast))
+      (source-text name))))
+
+(defgeneric definition-name-ast (ast)
+  (:documentation "Return an AST that is the name of the things
 defined by a definition.  Return NIL if AST is not a definition.")
   (:method ((ast t)) nil))
 
@@ -6265,9 +6273,17 @@ defined by a definition.  Return NIL if AST is not a definition.")
   (:documentation "Returns a string that is the name of a things
 declared in a declarator, or in the first element of a list of declarators.
 Return NIL on the empty list.")
+  (:method ((ast ast))
+    (when-let (name (declarator-name-ast ast))
+      (source-text name))))
+
+(defgeneric declarator-name-ast (ast)
+  (:documentation "Returns an AST that is the name of a things
+declared in a declarator, or in the first element of a list of declarators.
+Return NIL on the empty list.")
   (:method ((ast null)) nil)
   (:method ((ast list))
-    (declarator-name (car ast))))
+    (declarator-name-ast (car ast))))
 
 (defgeneric enclosing-definition (sw ast)
   (:documentation "Find the enclosing definition AST in which AST resides,
