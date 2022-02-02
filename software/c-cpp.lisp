@@ -344,12 +344,6 @@ Then if we cannot infer the type of y per se we infer its type to be int."
                (and decl (type c/cpp-declaration)))
          (c/cpp-type decl)))))
 
-(defmethod infer-expression-type ((obj c/cpp) (ast call-ast))
-  "Infer the type of a call from its declaration."
-  (or (when-let (decl (get-declaration-ast 'function obj (call-function ast)))
-        (resolve-declaration-type obj decl ast))
-      (call-next-method)))
-
 (defmethod extract-declaration-type ((obj c/cpp) (ast c/cpp-function-declarator))
   (when-let (fn (find-enclosing 'c/cpp-function-definition obj ast))
     (extract-declaration-type obj fn)))

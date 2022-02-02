@@ -6649,9 +6649,14 @@ By default this first tries `expression-type', then invokes
           (when-let (decl (get-declaration-ast decl-type software ast))
             (resolve-declaration-type software decl ast))))))
 
-(define-generic-analysis infer-expression-type (software ast)
-  (:method ((software t) (ast t))
-    (expression-type ast)))
+(define-generic-analysis infer-expression-type (obj ast)
+  (:method ((obj t) (ast t))
+    (expression-type ast))
+  (:method ((obj software) (ast call-ast))
+    "Infer the type of a call from its declaration."
+    (or (when-let (decl (get-declaration-ast 'function obj (call-function ast)))
+          (resolve-declaration-type obj decl ast))
+        (call-next-method))))
 
 (define-generic-analysis expression-type (ast)
   (:method ((ast t)) nil))
