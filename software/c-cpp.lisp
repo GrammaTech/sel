@@ -347,6 +347,9 @@ Then if we cannot infer the type of y per se we infer its type to be int."
                (and decl (type c/cpp-declaration)))
          (c/cpp-type decl)))))
 
+(defmethod expression-type ((ast c/cpp-declaration))
+  (cpp-type ast))
+
 (defmethod extract-declaration-type ((obj c/cpp) (ast c/cpp-function-declarator))
   (when-let (fn (find-enclosing 'c/cpp-function-definition obj ast))
     (extract-declaration-type obj fn)))
