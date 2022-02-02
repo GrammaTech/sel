@@ -502,25 +502,36 @@ struct Point {
 
 double myfun(std::list<Point>& pts) {
   auto p1 = pts.begin();
+  auto po = *p1;
   auto d = p1->Distance(p2);
   return d;
 }
 ")))
 
+(deftest test-infer-field-call-type ()
+  (let* ((sw +iterator-container-type-sw+)
+         (calls (collect-if (of-type 'call-ast) (genome sw))))
+    (is (length= 2 calls))
+    (destructuring-bind (call1 call2) calls
+      (is (source-text= call1 "pts.begin()"))
+      (is (source-text= call2 "p1->Distance(p2)"))
+      (is (source-text= (infer-type sw call1) "iterator"))
+      (is (source-text= (infer-type sw call2) "double")))))
+
 (deftest test-resolve-iterator-container-type ()
   (with-analysis-cache ()
-    (let* ((sw +iterator-container-type-sw+)
-           (pts
-            (get-declaration-id
-             'variable
-             sw
-             (find-if (op (source-text= "pts" _)) sw)))
-           (p1 (get-declaration-id
+    (let ((sw +iterator-container-type-sw+))
+      (flet ((get-decl (name)
+               (get-declaration-id
                 'variable
                 sw
-                (find-if (op (source-text= "p1" _)) sw))))
-      (is (source-text= "std::list<Point>" (infer-type sw pts)))
-      (is (source-text= "Point" (infer-type sw p1))))))
+                (find-if (op (source-text= name _)) sw))))
+        (is (source-text= "Point" (infer-type sw (get-decl "po"))))
+        (is (source-text= "std::list<Point>" (infer-type sw (get-decl "pts"))))
+        (is (source-text= "double" (infer-type sw (get-decl "d"))))
+        (is (string*= "iterator"
+                      (source-text
+                       (infer-type sw (get-decl "p1")))))))))
 
 (deftest test-resolve-method-call-to-iterator-container-type ()
   (with-analysis-cache ()
