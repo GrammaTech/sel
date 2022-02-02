@@ -1412,7 +1412,8 @@ for the language.")
        (:catch-ast python-except-clause))
       (:rust
        (:assignment-ast
-        rust-assignment-expression rust-compound-assignment-expr))
+        rust-assignment-expression rust-compound-assignment-expr)
+       (:comment-ast rust-line-comment rust-block-comment))
       ((:typescript-ts :typescript-tsx)
        (:root-ast
         typescript-ts-program
