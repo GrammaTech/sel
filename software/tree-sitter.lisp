@@ -6357,6 +6357,26 @@ Every element in the list has the following form:
 (define-generic-analysis variable-use-p (obj identifier &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
+;;; Expand shorthands at compile time.
+(flet ((expand-get-declaration (call fn type obj ast)
+         (match type
+           ((list 'quote (and type (or 'function 'variable 'type)))
+            `(,fn
+              ',(ecase type
+                  (function 'function-declaration-ast)
+                  (variable 'variable-declaration-ast)
+                  (type 'type-declaration-ast))
+              ,obj ,ast))
+           (otherwise call))))
+
+  (define-compiler-macro get-declaration-ast (&whole call type obj ast)
+    "Compiler macro to save calls for easier debugging (fewer frames)."
+    (expand-get-declaration call 'get-declaration-ast type obj ast))
+
+  (define-compiler-macro get-declaration-id (&whole call type obj ast)
+    "Compiler macro to save calls for easier debugging (fewer frames)."
+    (expand-get-declaration call 'get-declaration-id type obj ast)))
+
 (define-generic-analysis get-declaration-ast (type obj ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.
