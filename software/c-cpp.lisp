@@ -233,9 +233,12 @@ pointer declarations which are nested on themselves."
   (get-declaration-ast type obj (c/cpp-type ast)))
 
 (defmethod infer-type ((obj software) (ast c/cpp-field-expression))
-  (when-let ((id (get-declaration-id 'function obj ast)))
-    ;; Get the type from the declaration of the field argument.
-    (infer-type obj id)))
+  (or (and-let* ((call (find-enclosing 'call-ast obj ast))
+                 ((eql (call-function call) ast))
+                 (id (get-declaration-id 'function obj ast)))
+        ;; Get the type from the declaration of the field argument.
+        (infer-type obj id))
+      (call-next-method)))
 
 (defmethod get-declaration-ast ((type (eql 'variable-declaration-ast))
                                 (obj software)
