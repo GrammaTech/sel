@@ -6369,11 +6369,11 @@ or `type' is equivalent to `variable-declaration-ast',
 `function-declaration-ast', or `type-declaration-ast', respectively.")
   ;; Shorthands. Note that `variable', `function', and `type' are all
   ;; symbols exported by CL.
-  (:method ((type (eql 'variable)) (obj t) (ast t))
+  (:method :context ((type (eql 'variable)) obj ast)
     (get-declaration-ast 'variable-declaration-ast obj ast))
-  (:method ((type (eql 'function)) (obj t) (ast t))
+  (:method :context ((type (eql 'function)) (obj t) (ast t))
     (get-declaration-ast 'function-declaration-ast obj ast))
-  (:method ((type (eql 'type)) (obj t) (ast t))
+  (:method :context ((type (eql 'type)) (obj t) (ast t))
     (get-declaration-ast 'type-declaration-ast obj ast))
   ;; Assert we get the right kind of declaration.
   (:method :context ((type (eql 'variable-declaration-ast)) obj ast)
@@ -6456,6 +6456,12 @@ initialization to be separate.")
 This is important because a single declaration may define multiple
 variables, e.g. in C/C++ declaration syntax or in languages that
 support destructuring.")
+  (:method :context ((type (eql 'variable)) obj ast)
+    (get-declaration-id 'variable-declaration-ast obj ast))
+  (:method :context ((type (eql 'function)) (obj t) (ast t))
+    (get-declaration-id 'function-declaration-ast obj ast))
+  (:method :context ((type (eql 'type)) (obj t) (ast t))
+    (get-declaration-id 'type-declaration-ast obj ast))
   (:method ((type t) (obj t) (id identifier-ast))
     (let ((id-text (source-text id)))
       (find-if (lambda (ast)
