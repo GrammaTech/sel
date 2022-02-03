@@ -349,6 +349,17 @@ int y = *x;
       (is (equal (source-text (get-declaration-ast t sw ptr-expr))
                  "int *x;")))))
 
+(deftest test-infer-type/primitive-type-pointer ()
+  (let* ((sw (from-string 'cpp (fmt "~
+int *x;
+x = malloc(sizeof(int));
+*x = 42;
+int y = *x;
+"))))
+    (let ((expr (lastcar (collect-if (of-type 'cpp-pointer-expression)
+                                     (genome sw)))))
+      (is (source-text= "int" (infer-type sw expr))))))
+
 (deftest test-get-initialization-ast/assignment ()
   "Test that we get the correct assignment for the initialization AST
 of a variable (not just the first succeeding assignment)."

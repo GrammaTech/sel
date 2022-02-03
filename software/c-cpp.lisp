@@ -240,6 +240,19 @@ pointer declarations which are nested on themselves."
         (infer-type obj id))
       (call-next-method)))
 
+(defgeneric resolve-deref-type (obj ast type)
+  (:documentation "Given TYPE, the type of a pointer variable, resolve
+  the type of the \"pointee\", what is returned when the pointer is dereferenced.")
+  (:method ((obj c/cpp) (ast c/cpp-ast) (type c/cpp-primitive-type))
+    type))
+
+(defmethod infer-type ((obj software) (ast c/cpp-pointer-expression))
+  "Get the type for a pointer dereference."
+  (let ((result (infer-type obj (c/cpp-argument ast))))
+    (if (typep (c/cpp-operator ast) 'cpp-*)
+        (resolve-deref-type obj ast result)
+        result)))
+
 (defmethod get-declaration-ast ((type (eql 'variable-declaration-ast))
                                 (obj software)
                                 (ast c/cpp-field-expression))

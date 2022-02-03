@@ -628,8 +628,7 @@
 (defun requalify (qualifiers initial)
   "Given a list of names (or template types) to use as qualifiers, and
 an identifier to qualify, build a `cpp-qualified-identifier' AST."
-  ;; TODO Drop redundant qualifiers if there are explicit qualifiers?
-  ;; But this could get tricky between files.
+  (assert (not (typep initial 'cpp-qualified-identifier)))
   (reduce (lambda (scope name)
             (make 'cpp-qualified-identifier
                   :cpp-scope scope
@@ -638,12 +637,13 @@ an identifier to qualify, build a `cpp-qualified-identifier' AST."
           :initial-value initial
           :from-end t))
 
-(defmethod resolve-declaration-type ((obj cpp)
-                                     (decl cpp-ast)
-                                     (ast cpp-ast))
+(defmethod resolve-declaration-type :around ((obj cpp)
+                                             (decl cpp-ast)
+                                             (ast cpp-ast))
+  "Possibly qualify the type of AST according to AST's namespace qualification."
   (let ((result (call-next-method)))
     (requalify
-     (prop-ref ast :qualifiers)
+     (prop-ref ast :decl-qualifiers)
      result)))
 
 (defmethod resolve-declaration-type ((obj cpp)
@@ -683,35 +683,25 @@ then the return type of the call is the return type of the field."
      (resolve-declaration-type obj decl field))
     (otherwise (call-next-method))))
 
+(defmethod resolve-deref-type ((obj cpp) (ast cpp-ast)
+                               (type cpp-qualified-identifier))
+  (or (and (string$= "::iterator" (source-text type))
+           (resolve-container-element-type type))
+      (call-next-method)))
+
 (defgeneric resolve-container-element-type (type)
   (:documentation "Assuming TYPE is a container type, try to get the
   type of its elements.")
   (:method ((type ast)) nil)
   (:method ((type cpp-qualified-identifier))
-    (resolve-container-element-type (cpp-name type)))
+    (or (resolve-container-element-type (cpp-name type))
+        (resolve-container-element-type (cpp-scope type))))
   (:method ((type cpp-template-type))
     (resolve-container-element-type (cpp-arguments type)))
   (:method ((type cpp-template-argument-list))
     (let ((children (direct-children type)))
       (and (single children)
            (first children)))))
-
-(defmethod resolve-declaration-type ((obj cpp)
-                                     (decl cpp-field-declaration)
-                                     (ast cpp-field-expression))
-  "Handle the special case of a field expression when the argument of
-the field expression is an (implicitly dereferenced) iterator -- in
-this case the type we want is the type of the elements of the
-iterator's container."
-  (match ast
-    ((cpp-field-expression (cpp-argument arg))
-     (let ((result (call-next-method)))
-       ;; TODO Check for std?
-       (or (and-let* (((source-text= "iterator" result))
-                      (container-type (infer-type obj arg)))
-             (resolve-container-element-type container-type))
-           result)))
-    (otherwise (call-next-method))))
 
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
