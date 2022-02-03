@@ -5799,6 +5799,13 @@ If there are no types, always wrap."
     (and (eql (parse-tree-type tree) from)
          (copy-parse-tree tree :type to))))
 
+(defun rename-type-to/in-slot (to from)
+  "Similar to RENAME-TYPE-TO but only transforms FROM to TO if it is in a slot."
+  (lambda (tree &aux (slot-info (parse-tree-type tree)))
+    (when (and (listp slot-info)
+               (eql (cadr slot-info) from))
+      (copy-parse-tree tree :type (list (car slot-info) to)))))
+
 (-> modify-parse-tree (list &rest function) list)
 (defun modify-parse-tree (parse-tree &rest fns)
   "For each child of PARSE-TREE, call each function in FNS with the child tree.
