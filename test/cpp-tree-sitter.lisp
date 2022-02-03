@@ -515,7 +515,7 @@ double myfun(std::list<Point>& pts) {
     (destructuring-bind (call1 call2) calls
       (is (source-text= call1 "pts.begin()"))
       (is (source-text= call2 "p1->Distance(p2)"))
-      (is (source-text= (infer-type sw call1) "iterator"))
+      (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
       (is (source-text= (infer-type sw call2) "double")))))
 
 (deftest test-resolve-iterator-container-type ()

@@ -625,6 +625,27 @@
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
 
+(defun requalify (qualifiers initial)
+  "Given a list of names (or template types) to use as qualifiers, and
+an identifier to qualify, build a `cpp-qualified-identifier' AST."
+  ;; TODO Drop redundant qualifiers if there are explicit qualifiers?
+  ;; But this could get tricky between files.
+  (reduce (lambda (scope name)
+            (make 'cpp-qualified-identifier
+                  :cpp-scope scope
+                  :cpp-name name))
+          qualifiers
+          :initial-value initial
+          :from-end t))
+
+(defmethod resolve-declaration-type ((obj cpp)
+                                     (decl cpp-ast)
+                                     (ast cpp-ast))
+  (let ((result (call-next-method)))
+    (requalify
+     (prop-ref ast :qualifiers)
+     result)))
+
 (defmethod resolve-declaration-type ((obj cpp)
                                      (decl cpp-ast)
                                      (ast cpp-ast))
@@ -895,8 +916,12 @@ iterator we want the type of the container's elements."
                                          (obj cpp) (ast ast))
   "When we can't find declaration in the file, look in standard library headers."
   (labels ((lookup-in-std-headers (quals fn-name)
-             (some (op (lookup-in-std-header _ quals fn-name))
-                   (system-header-names obj)))
+             (with-ast-property (ast :header-decl)
+               (iter (for header in (system-header-names obj))
+                     (when-let (decl
+                                (lookup-in-std-header header quals fn-name))
+                       (setf (prop-ref ast :header) header)
+                       (return decl)))))
            (lookup-qualified-name (ast)
              (lookup-in-std-headers
               (namespace-qualifiers obj ast)
@@ -904,14 +929,18 @@ iterator we want the type of the container's elements."
            (lookup-qualified-declaration (qname method)
              (let ((quals (namespace-qualifiers obj qname))
                    (name (unqualified-name qname)))
-               (when-let (name-as-qualifier
-                          (match name
-                            ((identifier-ast) name)
-                            ((cpp-template-type (cpp-name name))
-                             name)))
-                 (lookup-in-std-headers
-                  (append1 quals name-as-qualifier)
-                  method))))
+               (when-let* ((name-as-qualifier
+                            (match name
+                              ((identifier-ast) name)
+                              ((cpp-template-type (cpp-name name))
+                               name)))
+                           (decl
+                            (lookup-in-std-headers
+                             (append1 quals name-as-qualifier)
+                             method)))
+                 (setf (prop-ref ast :qualifiers)
+                       (append1 quals name))
+                 decl)))
            (lookup-field-method-declaration (field)
              (let-match (((cpp-field-expression
                            (cpp-argument var)

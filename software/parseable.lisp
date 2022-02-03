@@ -10,6 +10,7 @@
   (:import-from :functional-trees
    :path-later-p :slot-specifier-slot :slot-specifier-class
    :slot-specifier)
+  (:local-nicknames (:tg :trivial-garbage))
   (:export ;; ASTs
            :ast
            :functional-tree-ast
@@ -111,7 +112,11 @@
            :*spaces-per-tab*
            :indentablep
            :combine-all-conflict-asts
-           :ast-source-range))
+           :ast-source-range
+           :prop-ref
+           :with-ast-property
+           :dump-ast-properties
+           :clear-ast-properties))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -638,6 +643,45 @@ optionally writing to STREAM.")
 (declaim (type analysis-cache *analysis-cache*))
 (defvar-unbound *analysis-cache*
   "Holds cached analyses.")
+
+(defvar *ast-properties*
+  (tg:make-weak-hash-table
+   :weakness :key
+   :weakness-matters t
+   :test #'eq))
+
+(defun clear-ast-properties ()
+  (clrhash *ast-properties*))
+
+(defun ast-properties (ast)
+  (check-type ast ast)
+  (ensure-gethash ast *ast-properties*
+                  (make-hash-table :test #'equal)))
+
+(defun prop-ref (ast &rest key)
+  (check-type ast ast)
+  (gethash key (ast-properties ast)))
+
+(defun (setf prop-ref) (value ast &rest key)
+  (check-type ast ast)
+  (setf (gethash key (ast-properties ast)) value))
+
+(defun call/ast-property (fn ast key)
+  (multiple-value-bind (value value?) (prop-ref ast key)
+    (if value? value
+        (setf (prop-ref ast key)
+              (funcall fn)))))
+
+(defmacro with-ast-property ((ast &rest props) &body body)
+  (with-thunk (body)
+    `(call/ast-property ,body ,ast ,@props)))
+
+(defun dump-ast-properties (&optional ast)
+  (if ast
+      (hash-table-alist (ast-properties ast))
+      (let ((alist (hash-table-alist *ast-properties*)))
+        (mapcar (op (cons (car _1) (hash-table-alist (cdr _1))))
+                alist))))
 
 (defun call/cached-analysis (fn key &rest args)
   "If `*analysis-cache*` is bound, use it to memoize FN, a function of
