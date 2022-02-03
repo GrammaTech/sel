@@ -22,7 +22,8 @@
 
 (defun dump-tree-sitter-grammar-json (name
                                       &aux (*json-identifier-name-to-lisp*
-                                            #'convert-name))
+                                            (lambda (string)
+                                              (convert-name name string))))
   "Dump the grammar for language NAME."
   (destructuring-bind (name grammar-file nodes-file)
       (or (find name
@@ -51,7 +52,7 @@
         (mapcar (lambda (rule &aux (rule-name (car rule)))
                   (cons rule-name
                         (transform-json-rule
-                         (cdr rule) *grammar* (list rule-name))))
+                         name (cdr rule) *grammar* (list rule-name))))
                 (set-rules name))))
 
 (defun set-types (name)

@@ -3045,8 +3045,17 @@ not declarations)."))
 cover every terminal symbol, only the ones that aren't named.")
     (:default-initargs :indent-adjustment 0))
 
-  (defun convert-name (name-string)
-    (substitute #\- #\_  (string-upcase (string name-string))))
+  (defgeneric convert-name (language name-string)
+    (:method (language name-string)
+      (substitute #\- #\_  (string-upcase (string name-string))))
+    (:method ((language (eql :rust)) name-string)
+      (if (equal "_" (string name-string))
+          name-string
+          (call-next-method)))
+    (:method :around (language name-string)
+      (if (keywordp language)
+          (call-next-method)
+          (convert-name (make-keyword language) name-string))))
 
   (defun translate-to-slot-name (name prefix)
     "Translate NAME into a slot name that is unlikely
@@ -3063,7 +3072,7 @@ cover every terminal symbol, only the ones that aren't named.")
   ;;       is useful for converting from a list where the :child-order
   ;;       annotation would need to be generated and slot order is likely
   ;;       already correct except in a few rare cases.
-  (defun slot-order (name expected-fields grammar-rules
+  (defun slot-order (language-prefix name expected-fields grammar-rules
                      &aux dependencies fields
                        (expected-fields (mapcar #'car expected-fields)))
     "Return the slot order of the fields in the production specified
@@ -3119,7 +3128,8 @@ of fields needs to be determined at parse-time."
                             &aux (name (aget :name rule)))
                "Handle RULE as a 'FIELD' rule and add a dependency from
               the field to PRECEDING-FIELDS if it exists."
-               (when (member (make-keyword (convert-name name)) expected-fields)
+               (when (member (make-keyword (convert-name language-prefix name))
+                             expected-fields)
                  (add-field name)
                  (add-dependency preceding-fields name)
                  (list name)))
@@ -3140,7 +3150,8 @@ of fields needs to be determined at parse-time."
                  ("SEQ" (handle-seq rule preceding-fields visited-rules))
                  ("SYMBOL"
                   (let* ((name-string (aget :name rule))
-                         (name (make-keyword (convert-name name-string))))
+                         (name (make-keyword (convert-name language-prefix
+                                                           name-string))))
                     ;; NOTE: the rules starting with an #\_ are special
                     ;;       and are the only ones that should be considered
                     ;;       when searching for fields that may be down the line
@@ -3154,14 +3165,14 @@ of fields needs to be determined at parse-time."
       ;; NOTE: tree-sitter/cli/src/generate/grammar-schema.json
       ;;       The grammar schema contains information on the
       ;;       possible rule types.
-      (let* ((name-keyword (make-keyword (convert-name name)))
+      (let* ((name-keyword (make-keyword (convert-name language-prefix name)))
              (name-rule (aget name-keyword grammar-rules)))
         (when name-rule
           (handle-rule name-rule nil (list name-keyword))
           (mapcar
            #'make-keyword
            (mapcar
-            #'convert-name
+            {convert-name language-prefix}
             (handler-case (sort fields (toposort dependencies :test #'equal))
               (inconsistent-graph ()
                 ;; NOTE: the order doesn't matter as a :child-order
@@ -3368,7 +3379,7 @@ then whole substitutions (from
       (stable-sort node-types ordering :key #'cdar)))
 
   (defun add-aliased-rules
-      (rules
+      (language-prefix rules
        &aux (rule-name-set
              (alist-hash-table (mapcar (op (cons (car _) t))
                                        rules))))
@@ -3398,7 +3409,8 @@ This is to prevent certain classes from being seen as terminal symbols."
                          (equal "ALIAS" (aget :type alist))
                          (not
                           (gethash
-                           (make-keyword (convert-name (aget :value alist)))
+                           (make-keyword (convert-name
+                                          language-prefix (aget :value alist)))
                            rule-name-set)))
                     (symbol-macrolet
                         ((hash-value (gethash (aget :value alist)
@@ -3448,7 +3460,8 @@ This is to prevent certain classes from being seen as terminal symbols."
                         ("ALIAS"
                          (throw 'prune alist))
                         ("SYMBOL"
-                         (aget (make-keyword (convert-name (aget :name alist)))
+                         (aget (make-keyword (convert-name language-prefix
+                                                           (aget :name alist)))
                                rules))
                         (t alist))
                       alist))
@@ -3457,12 +3470,12 @@ This is to prevent certain classes from being seen as terminal symbols."
                "Create rules for every alias in ALIAS->CONTENT."
                (maphash-return
                 (lambda (name content)
-                  (cons (make-keyword (convert-name name))
+                  (cons (make-keyword (convert-name language-prefix name))
                         (expand-alias-content content)))
                 alias->content)))
       (append rules (create-aliased-rules (collect-strictly-aliased-types)))))
 
-  (defun combine-aliased-rules (rule-table)
+  (defun combine-aliased-rules (language-prefix rule-table)
     "Search each rule for aliases. When an alias is found, add a 'CHOICE'
 around the relevant rule and have a choice branch for the original rule and
 a branch for the alias. This should help get around several issues that come
@@ -3488,14 +3501,16 @@ up due to aliases."
                      ,@(aget :members rule)
                      ,@(gethash
                         (make-keyword
-                         (convert-name (aget :name aliased-content)))
+                         (convert-name language-prefix
+                                       (aget :name aliased-content)))
                         rule-table))))
                  ("CHOICE"
                   (reduce #'add-aliases (aget :members aliased-content)
                           :initial-value rule))))
              (update-rule
                  (rule-name aliased-content
-                  &aux (rule-key (make-keyword (convert-name rule-name))))
+                  &aux (rule-key (make-keyword (convert-name language-prefix
+                                                             rule-name))))
                "Update the rule specified by RULE-NAME such that it considers
                 ALIASED-CONTENT to be a valid, match-able state of the rule."
                (symbol-macrolet ((rule (gethash rule-key rule-table)))
@@ -3779,7 +3794,7 @@ matches as the root of the AST."
         class-name->class-definition
         :top-level-rule top-level-rule))))
 
-  (defun transform-json-rule (rule grammar rule-key-stack)
+  (defun transform-json-rule (language-prefix rule grammar rule-key-stack)
     "Expand inline rules base on GRAMMAR and :repeat1's in RULE.
 RULE-KEY-STACK is a stack of rules that have already been visited in the
 recursive calls for this function. Returns a transformed version of RULE."
@@ -3841,7 +3856,8 @@ recursive calls for this function. Returns a transformed version of RULE."
                (map-json
                 (lambda (alist)
                   (let* ((name-string (aget :name alist))
-                         (name-key (make-keyword (convert-name name-string)))
+                         (name-key (make-keyword
+                                    (convert-name language-prefix name-string)))
                          (inlinep (member name-string inline-rules
                                           :test #'equal)))
                     ;; NOTE: it appears that all "SYMBOL"s that start with
@@ -3868,7 +3884,8 @@ recursive calls for this function. Returns a transformed version of RULE."
                       ((aget name-key (aget :rules grammar))
                        ;; Transform it again before inlining.
                        (transform-json-rule
-                        result grammar (cons name-key rule-key-stack)))
+                        language-prefix result grammar
+                        (cons name-key rule-key-stack)))
                       ((member name-string (aget :externals grammar)
                                :test #'equal
                                :key {aget :name})
@@ -4018,8 +4035,10 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                   &aux (slot-name (format-symbol
                                    'sel/sw/ts "~a-~a"
                                    language-prefix
-                                   (convert-name (getf symbol-substitution
-                                                       :slot-name)))))
+                                   (convert-name
+                                    language-prefix
+                                    (getf symbol-substitution
+                                          :slot-name)))))
                "Update class-name->class-definition with information from
                 SYMBOL-SUBSTITUTION."
                ;; TODO: add slot name to symbols that need exported.
@@ -4729,10 +4748,16 @@ any slot usages in JSON-SUBTREE."
                      (flatten ,(generate-body transformed-json-rule pruned-rule)))))))
       (generate-method transformed-json-rule pruned-rule)))
 
-  (defun convert-to-lisp-type (prefix type-string)
-    ;; TODO: this function is also used above. Refactor after rebasing with
-    ;;       master.
-    (format-symbol 'sel/sw/ts "~a-~a" prefix (convert-name type-string)))
+  (defgeneric convert-to-lisp-type (prefix type-string)
+    (:documentation "Convert TYPE-STRING to a lisp type for the language
+PREFIX.")
+    (:method (prefix type-string)
+      (format-symbol 'sel/sw/ts "~a-~a"
+                     prefix (convert-name prefix type-string)))
+    (:method :around (prefix type-string)
+      (if (keywordp prefix)
+          (call-next-method)
+          (convert-to-lisp-type (make-keyword prefix) type-string))))
 
   (defun generate-input/output-handling
       (pruned-rule json-rule superclass language-prefix child-types
@@ -5011,6 +5036,7 @@ subclass based on the order of the children were read in."
              (get-transformed-json-table ()
                "Get a hash table containing transformed JSON rules."
                (let* ((rules (add-aliased-rules
+                              language-prefix
                               (substitute-json-rules
                                language-prefix
                                (aget :rules grammar))))
@@ -5022,11 +5048,12 @@ subclass based on the order of the children were read in."
                  (iter
                    (iter:with root-rule-name = (caar (aget :rules grammar)))
                    (for (key value) in-hashtable
-                        (combine-aliased-rules rule-table))
+                        (combine-aliased-rules language-prefix rule-table))
                    (setf (gethash key rule-table)
                          (add-internal-ast-slots
                           language-prefix
                           (transform-json-rule
+                           language-prefix
                            (substitute-field-symbols
                             value
                             key language-prefix
@@ -5056,7 +5083,7 @@ subclass based on the order of the children were read in."
              (iter:with type-set = (make-hash-table :test #'equal))
              (for type in types)
              (for type-string = (aget :type type))
-             (for converted-type = (convert-name type-string))
+             (for converted-type = (convert-name language-prefix type-string))
              (for lisp-type = (convert-to-lisp-type
                                language-prefix converted-type))
              (for terminal-lisp-type = (format-symbol 'sel/sw/ts "~a-~a"
@@ -5111,9 +5138,9 @@ subclass based on the order of the children were read in."
          (ast-superclass (symbolicate
                           name-prefix
                           "-"
-                          (convert-name "ast")))
+                          (convert-name name-prefix "ast")))
          (class-name->class-definition (make-hash-table))
-         (*json-identifier-name-to-lisp* #'convert-name)
+         (*json-identifier-name-to-lisp* {convert-name name-prefix})
          (node-types
           (substitute-json-node-types
            node-type-substitutions
@@ -5195,10 +5222,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                (lret* ((*package* (find-package :sel/sw/ts))
                        (name
                         (if name-string
-                            (symbolicate
-                             name-prefix
-                             "-"
-                             (convert-name name-string))
+                            (convert-to-lisp-type name-prefix name-string)
                             (symbolicate name-prefix))))
                  (ensure-gethash name symbols-to-export t)))
              (make-accessor-name (prefix name-keyword)
@@ -5279,7 +5303,8 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                                          (aget slot-keyword all-fields))
                                    0
                                    1)))
-                            (slot-order type all-fields grammar-rules)))
+                            (slot-order
+                             name-prefix type all-fields grammar-rules)))
                          (when extra-fields
                            ;; Assume an arity of 0 for now.
                            (mapcar
@@ -5313,7 +5338,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                     ,(if (gethash
                           (format-symbol 'sel/sw/ts "~a-~a"
                                          name-prefix
-                                         (convert-name type))
+                                         (convert-name name-prefix type))
                           class-name->class-definition)
                          (make-class-name
                           (format-symbol 'sel/sw/ts "~a-~a"
@@ -5504,7 +5529,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
              t)
 
            (defmethod root-rule-ast-p
-               ((name (eql ,(make-keyword (convert-name root-rule-name)))))
+               ((name (eql ,(make-keyword
+                             (convert-name name-prefix root-rule-name)))))
              t)
 
            ;; This works around a bug with ranges for newlines in tree-sitter
@@ -5538,7 +5564,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
                   (for extra in (aget :extras grammar))
                   (when (equal (aget :type extra) "SYMBOL")
                     (collect
-                        (make-keyword (convert-name (aget :name extra))))))))
+                        (make-keyword
+                         (convert-name name-prefix (aget :name extra))))))))
 
            ,structured-text-code)))))
 
@@ -6853,7 +6880,7 @@ be more than one string outside of string literals."
     (after-text ast))))
 
 (defun match-parsed-children-json
-    (json-rule parse-tree
+    (language-prefix json-rule parse-tree
      &aux (token-count 0)
        (immediate-token-count 0))
   "Match a cl-tree-sitter PARSE-TREE as a JSON-RULE if possible.
@@ -6916,7 +6943,9 @@ in #'convert and inlined into the parse tree received from cl-tree-sitter."
              (incf token-count)
              (when (and (consp token)
                         (atom (car token))
-                        (string-equal (car token) (convert-name (aget :value rule))))
+                        (string-equal (car token)
+                                      (convert-name language-prefix
+                                                    (aget :value rule))))
                (values (cdr tree) t)))
            (handle-token (rule tree &aux (content (aget :content rule)))
              (when (equal (aget :type rule) "IMMEDIATE_TOKEN")
@@ -7075,7 +7104,8 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                 (mvlet ((stack
                          matched?
                          immediate-token-count
-                         (match-parsed-children-json json parse-stack)))
+                         (match-parsed-children-json
+                          language-prefix json parse-stack)))
                   (when matched?
                     (values
                      stack t (cons immediate-token-count inner-asts-order))))))))
@@ -8289,11 +8319,17 @@ correct class name for subclasses of SUPERCLASS."
       (annotate-surrounding-text
        (transform-tree
         (ensure-beginning-bound
-         (parse-string (get-language-from-superclass superclass) string
-                       :produce-cst t))))
+         (parse-language superclass string))))
       :superclass superclass
       :string-pass-through string
       :line-octets-cache line-octets-cache))))
+
+(defgeneric parse-language (superclass string &key)
+  (:documentation "Get a parse tree for STRING using the language associated
+with SUPERCLASS.")
+  (:method (superclass string &key)
+    (parse-string (get-language-from-superclass superclass) string
+                  :produce-cst t)))
 
 ;;; By default, don't indent comments, text fragments or parsing errors.
 (defmethod indentablep ((ast comment-ast)) nil)

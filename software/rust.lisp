@@ -13,3 +13,10 @@
 ;;;===================================================
 (create-tree-sitter-language "rust")
 ;;;===================================================
+
+(defmethod parse-language ((superclass (eql 'rust-ast)) string &key)
+  (labels ((name-generator (string)
+             (make-keyword (convert-name :rust string))))
+    (parse-string (get-language-from-superclass superclass) string
+                  :produce-cst t
+                  :name-generator #'name-generator)))
