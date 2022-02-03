@@ -2081,7 +2081,9 @@ definitions.")
             ((:TYPE . "ALIAS")
              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "last_match_arm"))
              (:NAMED . T) (:VALUE . "match_arm")))))
-         ((:TYPE . "STRING") (:VALUE . "}")))))
+         ((:TYPE . "STRING") (:VALUE . "}"))))
+       (:_
+        (:TYPE . "STRING") (:VALUE . "_")))
       ((:javascript :typescript-ts :typescript-tsx)
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
@@ -2551,29 +2553,7 @@ All tests are done with `EQUAL'.")
       ((:typescript-ts :typescript-tsx)
        ((:type . "number") (:named . t)))
       (:rust
-       ((:TYPE . "_pattern") (:NAMED . T)
-        (:SUBTYPES
-         ;; NOTE: removes the "_" from here which unfortunately causes some
-         ;;       difficult problems to solve in SEL. Removing this information
-         ;;       shouldn't be an issue as it should be implicit when the parent
-         ;;       is taken into account. It may cause some problems with parsing,
-         ;;       these will need to be addressed when Rust becomes a target
-         ;;       language.
-         ((:TYPE . "_literal_pattern") (:NAMED . T))
-         ((:TYPE . "captured_pattern") (:NAMED . T))
-         ((:TYPE . "const_block") (:NAMED . T))
-         ((:TYPE . "identifier") (:NAMED . T))
-         ((:TYPE . "mut_pattern") (:NAMED . T))
-         ((:TYPE . "or_pattern") (:NAMED . T))
-         ((:TYPE . "range_pattern") (:NAMED . T))
-         ((:TYPE . "ref_pattern") (:NAMED . T))
-         ((:TYPE . "reference_pattern") (:NAMED . T))
-         ((:TYPE . "remaining_field_pattern") (:NAMED . T))
-         ((:TYPE . "scoped_identifier") (:NAMED . T))
-         ((:TYPE . "slice_pattern") (:NAMED . T))
-         ((:TYPE . "struct_pattern") (:NAMED . T))
-         ((:TYPE . "tuple_pattern") (:NAMED . T))
-         ((:TYPE . "tuple_struct_pattern") (:NAMED . T))))))
+       ((:type . "_") (:named . t))))
     "A mapping of JSON node type substitutions to be performed on the JSON file
 before class generation and analysis. This effectively allows the definition
 of new classes.")

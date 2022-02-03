@@ -22,6 +22,11 @@
 
 
 ;;; Round Trip Tests
+(deftest rust-can-round-trip-_-pattern ()
+  "The '_' shows up in source-text."
+  (let ((source "let _ = 100i;"))
+    (is (equal (source-text (convert 'rust-ast source))
+               source))))
 
 
 ;;; Rule Substitution Tests
@@ -39,3 +44,9 @@ pub fn a(&self) -> Thing {
 }"))
     ;; NOTE: only care if it fails.
     (convert 'rust-ast source)))
+
+(deftest rust-_-substitution ()
+  "'_' pattern can be parsed."
+  (let* ((source "let _ = 100i;")
+         (root (convert 'rust-ast source)))
+    (is (find-if (of-type 'rust-_) root))))
