@@ -2068,6 +2068,20 @@ definitions.")
                            ((:TYPE . "STRING") (:VALUE . "not"))))
                 ((:TYPE . "STRING") (:VALUE . "is")))))
              ((:TYPE . "SYMBOL") (:NAME . "primary_expression")))))))))
+      (:rust
+       (:MATCH-BLOCK (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "{"))
+         ;; Remove the 'SEQ' and move the 'ALIAS' into the 'REPEAT'.
+         ;; Also remove the 'BLANK' as it is no longer needed.
+         ((:TYPE . "REPEAT")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "SYMBOL") (:NAME . "match_arm"))
+            ((:TYPE . "ALIAS")
+             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "last_match_arm"))
+             (:NAMED . T) (:VALUE . "match_arm")))))
+         ((:TYPE . "STRING") (:VALUE . "}")))))
       ((:javascript :typescript-ts :typescript-tsx)
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS

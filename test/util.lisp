@@ -32,6 +32,7 @@
            :javascript-tree-sitter-available-p
            :typescript-tree-sitter-available-p
            :json-tree-sitter-available-p
+           :rust-tree-sitter-available-p
            :stmt-with-text
            :fully-every
            :different-asts
@@ -222,6 +223,10 @@
 
 (defun json-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::json))
+                (error (e) (declare (ignorable e)) nil)))
+
+(defun rust-tree-sitter-available-p ()
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::rust))
                 (error (e) (declare (ignorable e)) nil)))
 
 (defun stmt-with-text- (asts text trim at-start)

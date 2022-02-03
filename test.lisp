@@ -54,6 +54,7 @@
         :software-evolution-library/test/population
         :software-evolution-library/test/range-representation
         :software-evolution-library/test/rest
+        :software-evolution-library/test/rust-tree-sitter
         :software-evolution-library/test/selection
         :software-evolution-library/test/serapi
         :software-evolution-library/test/sexp
