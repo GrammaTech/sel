@@ -814,6 +814,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (python-function-definition (:async))
        (python-for-statement (:async))
        (python-with-statement (:async)))
+      (:rust
+       (rust-function-modifiers (:modifiers (:multiple . t))))
       (:javascript
        (javascript-function-declaration (:async))
        (javascript-export-statement (:default)))
@@ -2083,7 +2085,19 @@ definitions.")
              (:NAMED . T) (:VALUE . "match_arm")))))
          ((:TYPE . "STRING") (:VALUE . "}"))))
        (:_
-        (:TYPE . "STRING") (:VALUE . "_")))
+        (:TYPE . "STRING") (:VALUE . "_"))
+       (:FUNCTION-MODIFIERS
+        ;; Add field around everything.
+        (:TYPE . "FIELD") (:NAME . "modifiers")
+        (:CONTENT
+         (:TYPE . "REPEAT1")
+         (:CONTENT (:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "STRING") (:VALUE . "async"))
+           ((:TYPE . "STRING") (:VALUE . "default"))
+           ((:TYPE . "STRING") (:VALUE . "const"))
+           ((:TYPE . "STRING") (:VALUE . "unsafe"))
+           ((:TYPE . "SYMBOL") (:NAME . "extern_modifier")))))))
       ((:javascript :typescript-ts :typescript-tsx)
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS

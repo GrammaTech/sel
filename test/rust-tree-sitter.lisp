@@ -45,6 +45,18 @@ pub fn a(&self) -> Thing {
     ;; NOTE: only care if it fails.
     (convert 'rust-ast source)))
 
+(deftest rust-function-modifiers-substitution ()
+  "Function modifiers can be parsed."
+  ;; TODO: maybe actually check for the relevant modifiers in a slot.
+  (let* ((source "
+pub unsafe fn auto() -> MmapChoice {
+    MmapChoice(MmapChoiceImpl::Auto)
+}")
+         (root (convert 'rust-ast source))
+         (target-ast (find-if (of-type 'rust-function-modifiers) root)))
+    (is (find-if (of-type 'rust-unsafe)
+                 (rust-modifiers target-ast)))))
+
 (deftest rust-_-substitution ()
   "'_' pattern can be parsed."
   (let* ((source "let _ = 100i;")

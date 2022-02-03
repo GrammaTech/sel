@@ -20,3 +20,13 @@
     (parse-string (get-language-from-superclass superclass) string
                   :produce-cst t
                   :name-generator #'name-generator)))
+
+
+;;; Parse Tree Transforms
+(defmethod transform-parse-tree
+    ((language (eql ':rust)) (class (eql 'rust-function-modifiers)) parse-tree &key)
+  "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
+field."
+  (with-modify-parse-tree (parse-tree)
+    ((:error :line-comment :block-comment) (ignore-types))
+    (t (label-as :modifiers))))
