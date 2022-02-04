@@ -6452,13 +6452,18 @@ or `type-declaration-ast'.")
   (:method ((obj t) (ast type-identifier-ast))
     'type-declaration-ast)
   (:method ((obj t) (ast ast))
-    (or (when-let ((call (find-enclosing 'call-ast obj ast)))
-          (when (eql ast (call-function call))
-            'function-declaration-ast))
-        (when-let ((fn (find-enclosing 'function-declaration-ast obj ast)))
-          (when (eql ast (definition-name-ast fn))
-            'function-declaration-ast))
-        'variable-declaration-ast)))
+    (or
+     ;; The relevant declaration type for a call function is a
+     ;; function.
+     (when-let ((call (find-enclosing 'call-ast obj ast)))
+       (when (eql ast (call-function call))
+         'function-declaration-ast))
+     ;; The relevant declaration for a function name is a function.
+     (when-let ((fn (find-enclosing 'function-declaration-ast obj ast)))
+       (when (eql ast (definition-name-ast fn))
+         'function-declaration-ast))
+     ;; Default to a variable declaration.
+     'variable-declaration-ast)))
 
 (define-generic-analysis get-initialization-ast (obj ast)
   (:documentation "Find where AST is initialized.
@@ -6478,6 +6483,8 @@ initialization to be separate.")
 This is important because a single declaration may define multiple
 variables, e.g. in C/C++ declaration syntax or in languages that
 support destructuring.")
+  ;; We can't just rely on get-declaration-ast to translate, we need
+  ;; to be able to define methods on the full names.
   (:method :context ((type (eql 'variable)) obj ast)
     (get-declaration-id 'variable-declaration-ast obj ast))
   (:method :context ((type (eql 'function)) (obj t) (ast t))

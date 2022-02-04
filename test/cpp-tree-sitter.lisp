@@ -350,6 +350,8 @@ int y = *x;
                  "int *x;")))))
 
 (deftest test-infer-type/primitive-type-pointer ()
+  "Test we can resolve a C++ primitive type as the type of the pointee
+of a pointer expression."
   (let* ((sw (from-string 'cpp (fmt "~
 int *x;
 x = malloc(sizeof(int));
@@ -530,6 +532,8 @@ double myfun(std::list<Point>& pts) {
       (is (source-text= (infer-type sw call2) "double")))))
 
 (deftest test-resolve-iterator-container-type ()
+  "Test that we can resolve the type of the elements of the container
+of a std iterator."
   (with-analysis-cache ()
     (let ((sw +iterator-container-type-sw+))
       (flet ((get-decl (name)
@@ -545,6 +549,8 @@ double myfun(std::list<Point>& pts) {
                        (infer-type sw (get-decl "p1")))))))))
 
 (deftest test-resolve-method-call-to-iterator-container-type ()
+  "Test that can infer the type of the elements of a container of an
+iterator from a call on a dereferenced element."
   (with-analysis-cache ()
     (let* ((sw +iterator-container-type-sw+)
            (call (lastcar (collect-if (of-type 'call-ast) (genome sw))))

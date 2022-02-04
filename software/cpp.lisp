@@ -694,6 +694,8 @@ then the return type of the call is the return type of the field."
   type of its elements.")
   (:method ((type ast)) nil)
   (:method ((type cpp-qualified-identifier))
+    ;; Recurse on the name first, not the scope: we want the last
+    ;; template type if there is more than one.
     (or (resolve-container-element-type (cpp-name type))
         (resolve-container-element-type (cpp-scope type))))
   (:method ((type cpp-template-type))
@@ -906,10 +908,12 @@ iterator we want the type of the container's elements."
                                          (obj cpp) (ast ast))
   "When we can't find declaration in the file, look in standard library headers."
   (labels ((lookup-in-std-headers (quals fn-name)
+             ;; Memoize as a header-decl property.
              (with-ast-property (ast :header-decl)
                (iter (for header in (system-header-names obj))
                      (when-let (decl
                                 (lookup-in-std-header header quals fn-name))
+                       ;; Also store the name of the header file.
                        (setf (prop-ref ast :header) header)
                        (return decl)))))
            (lookup-qualified-name (ast)
@@ -928,7 +932,8 @@ iterator we want the type of the container's elements."
                             (lookup-in-std-headers
                              (append1 quals name-as-qualifier)
                              method)))
-                 (setf (prop-ref ast :qualifiers)
+                 ;; Store the qualifiers as a property of the AST.
+                 (setf (prop-ref ast :decl-qualifiers)
                        (append1 quals name))
                  decl)))
            (lookup-field-method-declaration (field)
