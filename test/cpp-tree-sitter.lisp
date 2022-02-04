@@ -503,22 +503,8 @@ auto d = p1->Distance(p2);")))
       ;; (is (source-text= "double" (infer-type sw call)))
       )))
 
-(deftest test-infer-field-call-type ()
-  "Test that we correctly infer the type of a field expression call
-both when it uses a dot (not a dereference) and when it dereferences
-with an arrow, even when the infererence passes through both."
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
-           (calls (collect-if (of-type 'call-ast) (genome sw))))
-      (is (length= 2 calls))
-      (destructuring-bind (call1 call2) calls
-        (is (source-text= call1 "pts.begin()"))
-        (is (source-text= call2 "p1->Distance(p2)"))
-        (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
-        (is (source-text= (infer-type sw call2) "double"))))))
-
 (def +iterator-container-type-sw+
-  (from-string 'cpp (fmt "~
+  (fmt "~
 #include<list>
 
 struct Point {
@@ -535,11 +521,25 @@ double myfun(std::list<Point>& pts) {
 }
 "))
 
+(deftest test-infer-field-call-type ()
+  "Test that we correctly infer the type of a field expression call
+both when it uses a dot (not a dereference) and when it dereferences
+with an arrow, even when the infererence passes through both."
+  (with-analysis-cache ()
+    (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
+           (calls (collect-if (of-type 'call-ast) (genome sw))))
+      (is (length= 2 calls))
+      (destructuring-bind (call1 call2) calls
+        (is (source-text= call1 "pts.begin()"))
+        (is (source-text= call2 "p1->Distance(p2)"))
+        (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
+        (is (source-text= (infer-type sw call2) "double"))))))
+
 (deftest test-resolve-iterator-container-type ()
   "Test that we can resolve the type of the elements of the container
 of a std iterator."
   (with-analysis-cache ()
-    (let ((sw +iterator-container-type-sw+))
+    (let ((sw (from-string 'cpp +iterator-container-type-sw+)))
       (flet ((get-decl (name)
                (get-declaration-id
                 'variable
@@ -556,7 +556,7 @@ of a std iterator."
   "Test that can infer the type of the elements of a container of an
 iterator from a call on a dereferenced element."
   (with-analysis-cache ()
-    (let* ((sw +iterator-container-type-sw+)
+    (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
            (call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
            (field-expr (call-function call))
            (field-decl (is (get-declaration-ast 'function sw field-expr))))
