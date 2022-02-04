@@ -425,6 +425,7 @@
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:shadowing-import-from :cl-tree-sitter :parse-string)
         (values))
+  (:intern :explicit-namespace-qualifiers)
   (:export :tree-sitter-ast
            :tree-sitter
            :*tree-sitter-language-directories*

@@ -45,48 +45,6 @@
     "<" ">" "<=" ">=" "==" "!="
     "&" "^" "|"))
 
-;;; TODO Generalize include handling to C as well as C++. (This will
-;;; involve pulling the declarations from the std namespace, and only
-;;; for the C compatibility headers.)
-
-(defun find-std-header (name &key (language 'cpp))
-  "Find the standard library header named NAME."
-  (from-string language (extract-header-synopsis name)))
-
-(defun system-header-names (sw)
-  "Return a list of the system headers in SW."
-  (iter (for ast in-tree (genome sw))
-        (match ast
-          ((c/cpp-preproc-include (c/cpp-path path))
-           (match (source-text path)
-             ((ppcre "<(.*)>" s)
-              (collect s)))))))
-
-(defun lookup-in-std-header (header namespaces field)
-  "Look up a declaration in a standard library header synopsis.
-- HEADER is the name of the header.
-- NAMESPACES is a list of namespace (or class) names.
-- FIELD is the name of the function or field we want."
-  (labels ((find-field (field ast)
-             (find-if (lambda (ast)
-                        (and-let*  (((typep ast 'cpp-field-declaration))
-                                    (decl
-                                     (find-if (of-type 'cpp-function-declarator)
-                                              ast)))
-                          (source-text= field (cpp-declarator decl))))
-                      ast))
-           (find-namespace-or-class (ast name)
-             (find-if (lambda (ast)
-                        (and (typep ast '(or cpp-namespace-definition
-                                          type-declaration-ast))
-                             (source-text= name
-                                           (definition-name ast))))
-                      ast)))
-    (when-let ((header (find-std-header (source-text header))))
-      (find-field field
-                  (reduce #'find-namespace-or-class
-                          (ensure-list namespaces)
-                          :initial-value (genome header))))))
 
 #+:TREE-SITTER-CPP
 (progn
@@ -569,6 +527,50 @@
     (values-list rest)
     :ast-type 'cpp-ast
     :canonical-type 'cpp-canonical-type))
+
+;;; TODO Generalize include handling to C as well as C++. (This will
+;;; involve pulling the declarations from the std namespace, and only
+;;; for the C compatibility headers.)
+
+(defun find-std-header (name &key (language 'cpp))
+  "Find the standard library header named NAME."
+  (from-string language (extract-header-synopsis name)))
+
+
+(defun system-header-names (sw)
+  "Return a list of the system headers in SW."
+  (iter (for ast in-tree (genome sw))
+        (match ast
+          ((c/cpp-preproc-include (c/cpp-path path))
+           (match (source-text path)
+             ((ppcre "<(.*)>" s)
+              (collect s)))))))
+
+(defun lookup-in-std-header (header namespaces field)
+  "Look up a declaration in a standard library header synopsis.
+- HEADER is the name of the header.
+- NAMESPACES is a list of namespace (or class) names.
+- FIELD is the name of the function or field we want."
+  (labels ((find-field (field ast)
+             (find-if (lambda (ast)
+                        (and-let*  (((typep ast 'cpp-field-declaration))
+                                    (decl
+                                     (find-if (of-type 'cpp-function-declarator)
+                                              ast)))
+                          (source-text= field (cpp-declarator decl))))
+                      ast))
+           (find-namespace-or-class (ast name)
+             (find-if (lambda (ast)
+                        (and (typep ast '(or cpp-namespace-definition
+                                          type-declaration-ast))
+                             (source-text= name
+                                           (definition-name ast))))
+                      ast)))
+    (when-let ((header (find-std-header (source-text header))))
+      (find-field field
+                  (reduce #'find-namespace-or-class
+                          (ensure-list namespaces)
+                          :initial-value (genome header))))))
 
 
 
