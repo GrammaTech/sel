@@ -369,7 +369,7 @@ dereferenced pointer."
             (is (member next-point alias-set))))))))
 
 (def +alias-fragment+
-  (from-string 'cpp (fmt "~
+  (fmt "~
 {
   int pl = 10;
   int& r = pl;
@@ -377,11 +377,11 @@ dereferenced pointer."
   int* q = p;
   int *s;
   s = p;
-}")))
+}"))
 
 (defun test-aliasee-is-plain-var (alias-name)
   (with-analysis-cache ()
-    (let* ((sw +alias-fragment+)
+    (let* ((sw (from-string 'cpp +alias-fragment+))
            (pl (find-if (op (equal (source-text _) "pl"))
                         (genome sw)))
            (alias (find-if (op (equal (source-text _) alias-name))
@@ -405,7 +405,7 @@ dereferenced pointer."
 
 (deftest test-alias-set ()
   (with-analysis-cache ()
-    (let* ((sw +alias-fragment+)
+    (let* ((sw (from-string 'cpp +alias-fragment+))
            (pl (find-if (op (equal (source-text _) "pl"))
                         (genome sw))))
       (is (typep pl 'identifier-ast))
