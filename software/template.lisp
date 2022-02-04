@@ -195,11 +195,13 @@ Nested lists are not allowed as template arguments:~%~a"
          diff)))
     nil))
 
-(define-compiler-macro ast-template (&whole call template class &rest kwargs)
+(define-compiler-macro ast-template (&whole call template class &rest kwargs
+                                            &environment env)
   "Compile-time validity checking for AST templates."
   (match (list template class)
     ((list (type string) (list 'quote class))
-     (check-ast-template template class kwargs)))
+     (when (subtypep class 'tree-sitter-ast env)
+       (check-ast-template template class kwargs))))
   call)
 
 (defun ast-template (template class &rest args)
