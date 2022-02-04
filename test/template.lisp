@@ -8,11 +8,18 @@
         :software-evolution-library/software/c
         :software-evolution-library/software/cpp
         :software-evolution-library/test/util
-        :stefil+)
-  (:export))
+        :stefil+))
 (in-package :software-evolution-library/test/template)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-templates "tree-sitter representations.")
+(defsuite test-templates "tree-sitter representations."
+    (and (python-tree-sitter-available-p)
+         (javascript-tree-sitter-available-p)
+         (c-tree-sitter-available-p)
+         (cpp-tree-sitter-available-p)))
+
+#+(and :TREE-SITTER-CPP :TREE-SITTER-C
+       :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON)
+(progn
 
 (deftest test-template-as-shorthand ()
   (is (equal? (convert 'python-ast "pass" :deepest t)
@@ -236,3 +243,6 @@ def $READ_NAME():
                       ;; The bugs only happens when the args are ASTs.
                       :x (make 'python-identifier :text "x")
                       :y (make 'python-identifier :text "y"))))))
+
+) ; #+(and :TREE-SITTER-CPP :TREE-SITTER-C
+  ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON)
