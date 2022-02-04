@@ -503,6 +503,20 @@ auto d = p1->Distance(p2);")))
       ;; (is (source-text= "double" (infer-type sw call)))
       )))
 
+(deftest test-infer-field-call-type ()
+  "Test that we correctly infer the type of a field expression call
+both when it uses a dot (not a dereference) and when it dereferences
+with an arrow, even when the infererence passes through both."
+  (with-analysis-cache ()
+    (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
+           (calls (collect-if (of-type 'call-ast) (genome sw))))
+      (is (length= 2 calls))
+      (destructuring-bind (call1 call2) calls
+        (is (source-text= call1 "pts.begin()"))
+        (is (source-text= call2 "p1->Distance(p2)"))
+        (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
+        (is (source-text= (infer-type sw call2) "double"))))))
+
 (def +iterator-container-type-sw+
   (from-string 'cpp (fmt "~
 #include<list>
@@ -519,17 +533,7 @@ double myfun(std::list<Point>& pts) {
   auto d = p1->Distance(p2);
   return d;
 }
-")))
-
-(deftest test-infer-field-call-type ()
-  (let* ((sw +iterator-container-type-sw+)
-         (calls (collect-if (of-type 'call-ast) (genome sw))))
-    (is (length= 2 calls))
-    (destructuring-bind (call1 call2) calls
-      (is (source-text= call1 "pts.begin()"))
-      (is (source-text= call2 "p1->Distance(p2)"))
-      (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
-      (is (source-text= (infer-type sw call2) "double")))))
+"))
 
 (deftest test-resolve-iterator-container-type ()
   "Test that we can resolve the type of the elements of the container
