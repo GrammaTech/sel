@@ -634,28 +634,21 @@ optionally writing to STREAM.")
 
 ;;; Caching of static analyses.
 
-;;; Use a distinct type for symbol tables so we keep our options open
-;;; for changing the implementation later.
-(defstruct-read-only analysis-cache
-  "A symbol table."
-  (table (dict) :type hash-table))
-
-(declaim (type analysis-cache *analysis-cache*))
-(defvar-unbound *analysis-cache*
-  "Holds cached analyses.")
-
-(defvar *ast-properties*
+(defun make-prop-table ()
   (tg:make-weak-hash-table
    :weakness :key
    :weakness-matters t
    :test #'eq))
 
+(defvar *prop-table*
+  (make-prop-table))
+
 (defun clear-ast-properties ()
-  (clrhash *ast-properties*))
+  (clrhash *prop-table*))
 
 (defun ast-properties (ast)
   (check-type ast ast)
-  (ensure-gethash ast *ast-properties*
+  (ensure-gethash ast *prop-table*
                   (make-hash-table :test #'equal)))
 
 (defun prop-ref (ast &rest key)
@@ -667,67 +660,40 @@ optionally writing to STREAM.")
   (setf (gethash key (ast-properties ast)) value))
 
 (defun call/ast-property (fn ast key)
-  (multiple-value-bind (value value?) (prop-ref ast key)
-    (if value? value
-        (setf (prop-ref ast key)
-              (funcall fn)))))
+  (values-list
+   (multiple-value-bind (value value?) (prop-ref ast key)
+     (if value? value
+         (setf (prop-ref ast key)
+               (multiple-value-list (funcall fn)))))))
 
 (defmacro with-ast-property ((ast &rest props) &body body)
   (with-thunk (body)
-    `(call/ast-property ,body ,ast ,@props)))
+    `(call/ast-property ,body ,ast (list ,@props))))
 
 (defun dump-ast-properties (&optional ast)
   (if ast
       (hash-table-alist (ast-properties ast))
-      (let ((alist (hash-table-alist *ast-properties*)))
-        (mapcar (op (cons (car _1) (hash-table-alist (cdr _1))))
-                alist))))
+      (mappend (lambda (table)
+                 (let ((alist (hash-table-alist table)))
+                   (mapcar (op (cons (car _1) (hash-table-alist (cdr _1))))
+                           alist)))
+               *prop-tables*)))
 
-(defun call/cached-analysis (fn key &rest args)
-  "If `*analysis-cache*` is bound, use it to memoize FN, a function of
-no arguments, storing results under KEY and ARGS."
-  (if (boundp '*analysis-cache*)
-      (let ((key (cons key args))
-            (table *analysis-cache*))
-        (symbol-macrolet ((store (gethash key (analysis-cache-table table))))
-          (multiple-value-bind (result result?) store
-            (if result?
-                (values-list result)
-                (let ((result (multiple-value-list (funcall fn))))
-                  (setf store result)
-                  (values-list result))))))
-      (funcall fn)))
+(defmacro with-analysis-cache ((&key (analysis-cache '(make-prop-table)))
+                               &body body)
+  "Invoke BODY with a local table for AST properties.
 
-(defmacro with-analysis-memoization ((&rest args) &body body)
-  "When `*analysis-cache*' is bound, use it to memoize BODY.
-A unique key is implicitly generated for each use of the macro, so
-separate uses will not interfere with each other."
-  (with-thunk (body)
-    `(call/cached-analysis
-      ,body
-      ',(gensym)
-      ,@args)))
+AST properties in BODY are isolated from the global table of AST
+properties.
 
-(defun call/analysis-cache (fn &key analysis-cache)
-  (if (boundp '*analysis-cache*)
-      (funcall fn)
-      (let ((*analysis-cache* (or analysis-cache
-                                  (make-analysis-cache))))
-        (funcall fn))))
-
-(defmacro with-analysis-cache ((&key (analysis-cache '(make-analysis-cache))) &body body)
-  "Invoke BODY with memoization of analyses.
-This should only be used when BODY does not mutate the software being
-analyzed.
-
-If you want a persistent symbol table to use across multiple analyses,
-you can allocate one with `make-analysis-cache' and pass it as the
-symbol table argument to `with-analysis-cache':
+If you want a persistent property table to use across multiple
+analyses, you can allocate one with `make-analysis-cache' and pass it
+as the symbol table argument to `with-analysis-cache':
 
     (with-analysis-cache (:analysis-cache my-table)
       ...)"
-  (with-thunk (body)
-    `(call/analysis-cache ,body :analysis-cache ,analysis-cache)))
+  `(let ((*prop-table* (or ,analysis-cache (make-prop-table))))
+     ,@body))
 
 (defmacro define-generic-analysis (name lambda-list &body clauses)
   "Define a generic analysis.
@@ -748,10 +714,12 @@ not &key) parameters."
        (:method-combination standard/context)
        (:method :context ,lambda-list
          (declare (ignore ,@(mapcar #'cadar keys)))
-         (with-analysis-memoization (',name ;Included for debugging.
-                                     ,@req
-                                     ,@(mapcar #'car opt)
-                                     ,@(ensure-list rest))
+         (with-ast-property (ast ',name
+                                 ;; We don't include the software to
+                                 ;; avoid circularities.
+                                 ,@(remove-if (op (member _'(ast software))) req)
+                                 ,@(mapcar #'car opt)
+                                 ,@(ensure-list rest))
            (call-next-method)))
        ,@clauses)))
 
@@ -844,7 +812,8 @@ satisfies PREDICATE.")
 (defgeneric built-ins (software)
   (:documentation "Return a list of built-in identifiers available in SOFTWARE."))
 
-(define-generic-analysis scopes (software ast)
+;;; Note a generic analysis because it can depend on the environment.
+(defgeneric scopes (software ast)
   (:documentation "Return lists of variables in each enclosing scope.
 Each variable is represented by an alist containing :NAME, :DECL, :TYPE,
 and :SCOPE.
