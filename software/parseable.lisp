@@ -739,6 +739,9 @@ not &key) parameters."
     (error "Cannot specify a method combination for a generic analysis."))
   (multiple-value-bind (req opt rest keys)
       (parse-ordinary-lambda-list lambda-list)
+    (unless (subsetp '(software ast) req)
+      (error "~s must have arguments named SOFTWARE and AST."
+             name))
     (unless req
       (error "A generic analysis must have required arguments."))
     `(defgeneric ,name ,lambda-list

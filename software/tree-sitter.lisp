@@ -6074,7 +6074,7 @@ should be rebound.")
                  value))
     (list value)))
 
-(define-generic-analysis statements-in-scope (obj scope ast)
+(define-generic-analysis statements-in-scope (software scope ast)
   (:documentation "Return all child statements of SCOPE prior to AST.")
   (:method (obj (scope ast) (ast ast))
     (iter (for c in (remove nil (children scope)))
@@ -6356,7 +6356,7 @@ Every element in the list has the following form:
         (list ast)
         (get-unbound-children))))
 
-(define-generic-analysis variable-use-p (obj identifier &key &allow-other-keys)
+(define-generic-analysis variable-use-p (software ast &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
 
 ;;; Expand shorthands at compile time.
@@ -6379,7 +6379,7 @@ Every element in the list has the following form:
     "Compiler macro to save calls for easier debugging (fewer frames)."
     (expand-get-declaration call 'get-declaration-id type obj ast)))
 
-(define-generic-analysis get-declaration-ast (type obj ast)
+(define-generic-analysis get-declaration-ast (type software ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.
 
@@ -6440,7 +6440,7 @@ or `type' is equivalent to `variable-declaration-ast',
                     (typep (aget :decl scope) type)))
              (scopes obj identifier))))))
 
-(define-generic-analysis relevant-declaration-type (obj ast)
+(define-generic-analysis relevant-declaration-type (software ast)
   (:documentation "Return the type of declaration we should look for.
 
 That is, based on AST's context, figure out whether we should be
@@ -6465,7 +6465,7 @@ or `type-declaration-ast'.")
      ;; Default to a variable declaration.
      'variable-declaration-ast)))
 
-(define-generic-analysis get-initialization-ast (obj ast)
+(define-generic-analysis get-initialization-ast (software ast)
   (:documentation "Find where AST is initialized.
 
 This is useful when languages allow a single declaration to initialize
@@ -6477,7 +6477,7 @@ initialization to be separate.")
                       obj
                       id))))
 
-(define-generic-analysis get-declaration-id (type obj ast)
+(define-generic-analysis get-declaration-id (type software ast)
   (:documentation "Find AST's declaration (using `get-declaration-ast') and extract the corresponding identifier.
 
 This is important because a single declaration may define multiple
@@ -6499,7 +6499,7 @@ support destructuring.")
                              id-text)))
                (get-declaration-ast type obj id)))))
 
-(define-generic-analysis same-variable-p (obj ast1 ast2)
+(defgeneric same-variable-p (obj ast1 ast2)
   (:documentation "T if AST1 and AST2 resolve to the same declaration.
 Returns a second value to represent certainty; returning NIL, T means
 they are definitely not the same; returning NIL, NIL means
@@ -6514,7 +6514,7 @@ uncertainty.")
             (t
              (values nil t))))))
 
-(define-generic-analysis same-place-p (obj ast1 ast2)
+(defgeneric same-place-p (software ast1 ast2)
   (:documentation "T if AST1 and AST2 share the same storage.
 
 Differs from `same-variable-p' in that it takes references and
@@ -6524,7 +6524,7 @@ pointers into account in languages that support them.")
           (aliasee2 (or (aliasee obj id2) id2)))
       (same-variable-p obj aliasee1 aliasee2))))
 
-(define-generic-analysis collect-var-uses (obj identifier &key &allow-other-keys)
+(define-generic-analysis collect-var-uses (software ast &key &allow-other-keys)
   (:documentation "Collect uses of IDENTIFIER in OBJ.")
   (:method ((obj normal-scope) (identifier identifier-ast)
             &key &aux after-decl-flag)
@@ -6581,7 +6581,7 @@ more than one thing (destructuring).")
     (when-let (assignee (assignee ast))
       (list assignee))))
 
-(define-generic-analysis assignments (obj target)
+(define-generic-analysis assignments (software ast)
   (:documentation "Return a list of ASTs that assign to TARGET.
 TARGET should be the actual declaration ID (from `get-declaration-id'.")
   (:method ((sw software) (target identifier-ast))
@@ -6596,7 +6596,7 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
   (:method ((sw software) (target ast))
     (assignments sw (get-declaration-id 'variable sw target))))
 
-(define-generic-analysis collect-arg-uses (obj target &optional alias)
+(define-generic-analysis collect-arg-uses (software ast &optional alias)
   (:documentation "Collect function calls in OBJ with TARGET as an argument.
 
 If ALIAS is non-nil, resolve aliases during the search.")
@@ -6656,7 +6656,7 @@ By default this first tries `expression-type', then invokes
           (when-let (decl (get-declaration-ast decl-type software ast))
             (resolve-declaration-type software decl ast))))))
 
-(define-generic-analysis infer-expression-type (obj ast)
+(define-generic-analysis infer-expression-type (software ast)
   (:method ((obj t) (ast t))
     (expression-type ast))
   (:method ((obj software) (ast call-ast))
@@ -6665,10 +6665,10 @@ By default this first tries `expression-type', then invokes
           (resolve-declaration-type obj decl ast))
         (call-next-method))))
 
-(define-generic-analysis expression-type (ast)
+(defgeneric expression-type (ast)
   (:method ((ast t)) nil))
 
-(define-generic-analysis extract-declaration-type (software decl-ast)
+(define-generic-analysis extract-declaration-type (software ast)
   (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
 
 By default calls `declaration-type' with DECL-AST.")
@@ -6688,7 +6688,7 @@ DECL-AST.")
   (:method ((software t) (decl-ast t) (ast t))
     (extract-declaration-type software decl-ast)))
 
-(define-generic-analysis declaration-type (declaration-ast)
+(defgeneric declaration-type (declaration-ast)
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
   (:method ((ast ast)) nil))
 
@@ -6719,13 +6719,15 @@ return whether they are equal.")
   (:method ((type1 canonical-type) (type2 canonical-type) &key)
     (eql type1 type2)))
 
-(define-generic-analysis aliasee (software pointer-var)
+(define-generic-analysis aliasee (software ast)
   (:documentation
-   "If POINTER-VAR holds a pointer, resolve the plain variable it points to."))
+   "If AST is a pointer variable, resolve the plain variable it points to."))
 
-(define-generic-analysis alias-set (software plain-var)
+(define-generic-analysis alias-set (software ast)
   (:documentation
-   "Get the declarations (as identifiers), as in `get-declaration-id' of variables in SOFTWARE that are aliases (pointers or referenes) for PLAIN-VAR."))
+   "Get the declarations \(as identifiers, as in `get-declaration-id')
+   of variables in SOFTWARE that are aliases \(pointers or referenes)
+   for PLAIN-VAR."))
 
 
 ;;;; Structured text
