@@ -23,6 +23,14 @@ build-manual:
   except:
     - schedules
 
+build-no-tree-sitter:
+  stage: test
+  script:
+    - mv /usr/share/tree-sitter /usr/share/hidden-tree-sitter
+    - sbcl --non-interactive --eval "(ql:quickload 'software-evolution-library/test)"
+  except:
+    - schedules
+
 .test-template: &test
   stage: test
   script:
