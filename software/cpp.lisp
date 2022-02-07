@@ -628,7 +628,6 @@
 (defun requalify (qualifiers initial)
   "Given a list of names (or template types) to use as qualifiers, and
 an identifier to qualify, build a `cpp-qualified-identifier' AST."
-  (assert (not (typep initial 'cpp-qualified-identifier)))
   (reduce (lambda (scope name)
             (make 'cpp-qualified-identifier
                   :cpp-scope scope
