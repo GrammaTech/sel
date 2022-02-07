@@ -6357,7 +6357,7 @@ Every element in the list has the following form:
         (get-unbound-children))))
 
 (define-generic-analysis variable-use-p (software ast &key &allow-other-keys)
-  (:documentation "Return T if IDENTIFIER occurs in OBJ as a variable."))
+  (:documentation "Return T if IDENTIFIER occurs in SOFTWARE as a variable."))
 
 ;;; Expand shorthands at compile time.
 (flet ((expand-get-declaration (call fn type obj ast)
@@ -6525,7 +6525,7 @@ pointers into account in languages that support them.")
       (same-variable-p obj aliasee1 aliasee2))))
 
 (define-generic-analysis collect-var-uses (software ast &key &allow-other-keys)
-  (:documentation "Collect uses of IDENTIFIER in OBJ.")
+  (:documentation "Collect uses of IDENTIFIER in SOFTWARE.")
   (:method ((obj normal-scope) (identifier identifier-ast)
             &key &aux after-decl-flag)
     (labels ((initial-declaration-p ()
@@ -6582,7 +6582,7 @@ more than one thing (destructuring).")
       (list assignee))))
 
 (define-generic-analysis assignments (software ast)
-  (:documentation "Return a list of ASTs that assign to TARGET.
+  (:documentation "Return a list of ASTs in SOFTWARE that assign to TARGET.
 TARGET should be the actual declaration ID (from `get-declaration-id'.")
   (:method ((sw software) (target identifier-ast))
     (iter (for ast in-tree (genome sw))
@@ -6597,7 +6597,7 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
     (assignments sw (get-declaration-id 'variable sw target))))
 
 (define-generic-analysis collect-arg-uses (software ast &optional alias)
-  (:documentation "Collect function calls in OBJ with TARGET as an argument.
+  (:documentation "Collect function calls in SOFTWARE with TARGET as an argument.
 
 If ALIAS is non-nil, resolve aliases during the search.")
   (:method ((obj software) (target identifier-ast) &optional alias)
@@ -6657,6 +6657,8 @@ By default this first tries `expression-type', then invokes
             (resolve-declaration-type software decl ast))))))
 
 (define-generic-analysis infer-expression-type (software ast)
+  (:documentation "Infer the type of AST in SOFTWARE as an expression.
+Calls `expression-type' by default.")
   (:method ((obj t) (ast t))
     (expression-type ast))
   (:method ((obj software) (ast call-ast))
@@ -6666,6 +6668,7 @@ By default this first tries `expression-type', then invokes
         (call-next-method))))
 
 (defgeneric expression-type (ast)
+  (:documentation "Extract the type from AST, an expression.")
   (:method ((ast t)) nil))
 
 (define-generic-analysis extract-declaration-type (software ast)
@@ -7228,9 +7231,9 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                              &key (filter nil) (stmt-pool nil))
   "Return a list of target ASTs from STMT-POOL for mutation.
 
-* OBJ software object to query for mutation targets
+* SOFTWARE software object to query for mutation targets
 * FILTER filter AST from consideration when this function returns nil
-* STMT-POOL (non-empty) list of ASTs, or a method on OBJ returning a
+* STMT-POOL (non-empty) list of ASTs, or a method on SOFTWARE returning a
    non-emptylist of ASTs, or NIL (to indicate default pool)"
   (cond ((consp stmt-pool)
          (if filter (remove-if-not filter stmt-pool) stmt-pool))
