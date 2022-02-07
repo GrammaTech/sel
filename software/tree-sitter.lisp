@@ -6455,13 +6455,13 @@ or `type-declaration-ast'.")
     (or
      ;; The relevant declaration type for a call function is a
      ;; function.
-     (when-let ((call (find-enclosing 'call-ast obj ast)))
-       (when (eql ast (call-function call))
-         'function-declaration-ast))
+     (and-let* ((call (find-enclosing 'call-ast obj ast))
+                ((eql ast (call-function call))))
+       'function-declaration-ast)
      ;; The relevant declaration for a function name is a function.
-     (when-let ((fn (find-enclosing 'function-declaration-ast obj ast)))
-       (when (eql ast (definition-name-ast fn))
-         'function-declaration-ast))
+     (and-let* ((fn (find-enclosing 'function-declaration-ast obj ast))
+                ((eql ast (definition-name-ast fn))))
+       'function-declaration-ast)
      ;; Default to a variable declaration.
      'variable-declaration-ast)))
 
