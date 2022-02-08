@@ -5852,6 +5852,15 @@ If there are no types, always wrap."
       (when (or (null types) (member type types))
         `(,symbol ,(cadr tree) (,tree))))))
 
+(defun wrap-with/in-slot (symbol &rest types)
+  (check-type symbol keyword)
+  (assert (every #'keywordp types))
+  (lambda (tree)
+    (match (parse-tree-type tree)
+      ((list slot type)
+       (when (or (null types) (member type types))
+         `((,slot ,symbol) ,(cadr tree) ((,type ,@(cdr tree)))))))))
+
 (defun ignore-types (&rest types)
   (assert types)
   (lambda (tree)
