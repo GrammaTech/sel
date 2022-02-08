@@ -1289,9 +1289,35 @@ for the language.")
       (:golang
        (:comment-ast golang-comment))
       (:java
+       (:arguments-ast java-argument-list)
+       (:assignment-ast java-assignment-expression java-update-expression)
+       (:binary-ast java-binary-expression)
+       (:boolean-false-ast java-false)
+       (:boolean-true-ast java-true)
+       (:catch-ast java-catch-clause)
+       (:class-ast java-class-declaration)
        (:comment-ast java-comment)
+       (:control-flow-ast java-switch-expression java-try-statement)
+       (:expression-ast java-expression)
+       (:field-asst java-field-access)
+       (:identifier-ast java-identifier)
+       (:if-ast java-if-statement)
+       (:lambda-ast java-lambda-expression)
+       (:literal-ast java-class-literal java-decimal-integer-literal
+        java-hex-integer-literal java-octal-integer-literal
+        java-binary-integer-literal java-decimal-floating-point-literal
+        java-hex-floating-point-literal null-literal)
+       (:loop-ast java-for-statement java-while-statement java-do-statement
+        java-enhanced-for-statement)
+       (:parenthesized-expression-ast java-parenthesized-expression)
+       (:return-ast java-return-statement)
+       (:root-ast java-program)
        (:statement-ast java-statement)
-       (:return-ast java-return-statement))
+       (:string-ast java-string-literal)
+       (:unary-ast java-unary-expression)
+       (:variable-declaration-ast java-local-variable-declaration
+        java-variable-declarator)
+       (:while-ast java-while-statement))
       (:javascript
        (:root-ast javascript-program)
        (:comment-ast javascript-comment)
