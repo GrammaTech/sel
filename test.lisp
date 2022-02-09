@@ -40,6 +40,7 @@
         :software-evolution-library/test/fix-compilation
         :software-evolution-library/test/indentation
         :software-evolution-library/test/java-project
+        :software-evolution-library/test/java-tree-sitter
         :software-evolution-library/test/javascript-project
         :software-evolution-library/test/javascript-tree-sitter
         :software-evolution-library/test/typescript-tree-sitter
