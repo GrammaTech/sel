@@ -2588,6 +2588,15 @@ tree-sitter.")
          ;; argument list.
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING"))))))
+       (:parameters
+        (:replace
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . ",")) ((:TYPE . "BLANK"))))
+         :with
+         ;; Put blank first to avoid generating a comma in an empty
+         ;; parameter list.
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING"))))))
        (:unary-expression
         (:label
          ((:TYPE . "CHOICE")
