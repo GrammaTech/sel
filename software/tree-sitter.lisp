@@ -2576,6 +2576,16 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "typename"))
            ((:TYPE . "STRING") (:VALUE . "class"))))
          :as "keyword")))
+      (:rust
+       (:arguments
+        (:replace
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . ",")) ((:TYPE . "BLANK"))))
+         :with
+         ;; Put blank first to avoid generating a comma in an empty
+         ;; argument list.
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING")))))))
       ((:typescript-ts :typescript-tsx)
        (:property-signature
         (:replace
