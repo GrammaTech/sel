@@ -881,7 +881,10 @@ for the language.")
         (c-consequence :initarg :consequence :reader consequence)
         (c-alternative :initarg :alternative :reader alternative))
        (c-update-expression
-        (c-argument :reader assignee)))
+        (c-argument :reader assignee))
+       (c-binary-expression
+        (c-left :reader lhs :initarg :lhs)
+        (c-right :reader rhs :initarg :rhs)))
       (:cpp
        (cpp-init-declarator
         (cpp-declarator :initarg :lhs :reader lhs)
@@ -904,7 +907,10 @@ for the language.")
         (cpp-consequence :initarg :consequence :reader consequence)
         (cpp-alternative :initarg :alternative :reader alternative))
        (cpp-update-expression
-        (cpp-argument :reader assignee)))
+        (cpp-argument :reader assignee))
+       (cpp-binary-expression
+        (cpp-left :reader lhs :initarg :lhs)
+        (cpp-right :reader rhs :initarg :rhs)))
       (:java
        (java-method-declaration
         (java-name :reader function-name)
@@ -961,7 +967,10 @@ for the language.")
         (rust-right :reader rhs))
        (rust-compound-assignment-expr
         (rust-left :reader lhs)
-        (rust-right :reader rhs)))
+        (rust-right :reader rhs))
+       (rust-binary-expression
+        (rust-left :reader lhs :initarg :lhs)
+        (rust-right :reader rhs :initarg :rhs)))
       ((:typescript-ts :typescript-tsx)
        ;; Anonymous function (function keyword).
        (typescript-ts-function
