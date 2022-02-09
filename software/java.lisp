@@ -14,12 +14,12 @@
 (create-tree-sitter-language "java")
 ;;;===================================================
 
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-modifiers)) parse-tree &key)
-  (with-modify-parse-tree (parse-tree)
-    ((:public :protected :private :abstract :static :final :strictfp :default
-      :synchronized :native :transient :volatile :annotation :marker-annotation)
-     (label-as :modifiers))))
+(defvar *empty-statement-asts*
+  '(java-block java-labeled-statement java-do-statement java-if-statement
+    java-while-statement java-enhanced-for-statement java-constructor-body
+    java-program java-switch-block-statement-group java-class-body)
+  "A list of types which contain semicolons that are to be transformed into
+empty statements.")
 
 (defun transform-java-empty-statements (parse-tree)
   "Transform the empty statements in PARSE-TREE such that they appear as empty
@@ -28,56 +28,23 @@ ASTs that can have multiple statements in their body."
   (with-modify-parse-tree (parse-tree :modification-style :all)
     ((:|;|) (wrap-with :empty-statement))))
 
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-block)) parse-tree &key)
-  (transform-java-empty-statements parse-tree))
+(defmethod transform-parse-tree :around
+    ((language (eql ':java)) (class symbol) parse-tree &key)
+  (if (member class *empty-statement-asts*)
+      (transform-java-empty-statements parse-tree)
+      (call-next-method)))
 
 (defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-labeled-statement)) parse-tree
-     &key)
-  (transform-java-empty-statements parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-do-statement)) parse-tree &key)
-  (transform-java-empty-statements parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-if-statement)) parse-tree &key)
-  (transform-java-empty-statements parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-while-statement)) parse-tree &key)
-  (transform-java-empty-statements parse-tree))
+    ((language (eql ':java)) (class (eql 'java-modifiers)) parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:public :protected :private :abstract :static :final :strictfp :default
+      :synchronized :native :transient :volatile :annotation :marker-annotation)
+     (label-as :modifiers))))
 
 (defmethod transform-parse-tree
     ((language (eql ':java)) (class (eql 'java-for-statement)) parse-tree &key)
-  ;; TODO
   (with-modify-parse-tree (parse-tree :modification-style :slots)
     ((:|;|) (wrap-with/in-slot :empty-statement))))
-
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-enhanced-for-statement))
-     parse-tree &key)
-  (transform-java-empty-statements parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-constructor-body)) parse-tree
-     &key)
-  (transform-java-empty-statements parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-program)) parse-tree &key)
-  (transform-java-empty-statements parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-switch-block-statement-group))
-     parse-tree &key)
-  (transform-java-empty-statements parse-tree))
-
-(defmethod transform-parse-tree
-    ((language (eql ':java)) (class (eql 'java-class-body))
-     parse-tree &key)
-  (transform-java-empty-statements parse-tree))
 
 (defmethod transform-parse-tree
     ((language (eql ':java)) (class (eql 'java-enum-body-declarations))
