@@ -30,3 +30,36 @@ field."
   (with-modify-parse-tree (parse-tree)
     ((:error :line-comment :block-comment) (ignore-types))
     (t (label-as :modifiers))))
+
+
+;;; Whitespace.
+
+(defmethod whitespace-between (style (x (eql :|.|)) (y rust-ast))
+  "")
+
+(defmethod whitespace-between (style (x rust-ast) (y (eql :|.|)))
+  "")
+
+(defmethod whitespace-between (s (x rust-ast) (y rust-arguments))
+  "")
+
+(defmethod whitespace-between (style (x rust-identifier) (y (eql :|:|)))
+  "")
+
+(defmethod whitespace-between (style (x (eql :|:|)) (y rust-primitive-type))
+  "")
+
+(defmethod whitespace-between (style (x rust-ast) (y (eql :|;|)))
+  "")
+
+(defmethod whitespace-between/parent ((parent rust-ast)
+                                      style
+                                      (x string)
+                                      (y t))
+  (whitespace-between/parent parent style (make-keyword x) y))
+
+(defmethod whitespace-between/parent ((parent rust-ast)
+                                      style
+                                      (x (eql :|let|))
+                                      (y t))
+  " ")
