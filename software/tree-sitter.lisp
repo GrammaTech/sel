@@ -2002,7 +2002,11 @@ definitions.")
            ((:TYPE . "STRING") (:VALUE . "synchronized"))
            ((:TYPE . "STRING") (:VALUE . "native"))
            ((:TYPE . "STRING") (:VALUE . "transient"))
-           ((:TYPE . "STRING") (:VALUE . "volatile")))))))
+           ((:TYPE . "STRING") (:VALUE . "volatile"))))))
+       ;; This is to get around statement allowing a semicolon
+       ;; without any further information to reproduce it.
+       (:EMPTY-STATEMENT
+        (:TYPE . "STRING") (:value . ";")))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.
@@ -2575,6 +2579,34 @@ All tests are done with `EQUAL'.")
        ;; This is to get around _EMPTY_DECLARATION inlining a semicolon
        ;; without any further information to reproduce it.
        ((:type . "empty_statement") (:named . T)))
+      (:java
+       ;; This is to get around STATEMENT allowing a semicolon
+       ;; without any further information to reproduce it.
+       ((:type . "empty_statement") (:named . T))
+       ;; Put empty statement in statement superclass.
+       ((:TYPE . "statement") (:NAMED . T)
+        (:SUBTYPES
+         ((:TYPE . "empty_statement") (:NAMED . T))
+         ((:TYPE . "assert_statement") (:NAMED . T))
+         ((:TYPE . "block") (:NAMED . T))
+         ((:TYPE . "break_statement") (:NAMED . T))
+         ((:TYPE . "continue_statement") (:NAMED . T))
+         ((:TYPE . "declaration") (:NAMED . T))
+         ((:TYPE . "do_statement") (:NAMED . T))
+         ((:TYPE . "enhanced_for_statement") (:NAMED . T))
+         ((:TYPE . "expression_statement") (:NAMED . T))
+         ((:TYPE . "for_statement") (:NAMED . T))
+         ((:TYPE . "if_statement") (:NAMED . T))
+         ((:TYPE . "labeled_statement") (:NAMED . T))
+         ((:TYPE . "local_variable_declaration") (:NAMED . T))
+         ((:TYPE . "return_statement") (:NAMED . T))
+         ((:TYPE . "switch_expression") (:NAMED . T))
+         ((:TYPE . "synchronized_statement") (:NAMED . T))
+         ((:TYPE . "throw_statement") (:NAMED . T))
+         ((:TYPE . "try_statement") (:NAMED . T))
+         ((:TYPE . "try_with_resources_statement") (:NAMED . T))
+         ((:TYPE . "while_statement") (:NAMED . T))
+         ((:TYPE . "yield_statement") (:NAMED . T)))))
       (:python
        ((:TYPE . "positional_only_separator") (:NAMED . T))
        ((:TYPE . "keyword_only_separator") (:NAMED . T))
@@ -5860,6 +5892,20 @@ If there are no types, always wrap."
       ((list slot type)
        (when (or (null types) (member type types))
          `((,slot ,symbol) ,(cadr tree) ((,type ,@(cdr tree)))))))))
+
+(defun wrap-with (symbol &rest types)
+  (check-type symbol keyword)
+  (assert (every #'keywordp types))
+  (lambda (tree)
+    (let ((type (parse-tree-type tree)))
+      (if (listp type)
+          (funcall
+           (apply #'wrap-with/in-slot symbol types)
+           tree)
+          (funcall
+           (apply #'wrap-with/child symbol types)
+           tree)))))
+
 
 (defun ignore-types (&rest types)
   (assert types)
