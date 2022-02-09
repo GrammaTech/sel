@@ -73,6 +73,16 @@ pub unsafe fn auto() -> MmapChoice {
 
 ;;; Parsing tests.
 
+(deftest rust-empty-argument-list ()
+  "Does an empty argument list print as () and not (,)?"
+  (let ((ast (make 'rust-call-expression
+                   :rust-function
+                   (make 'rust-identifier :text "myfun")
+                   :rust-arguments
+                   (make 'rust-arguments
+                         :children nil))))
+    (is (source-text= "myfun()" ast))))
+
 (deftest rust-round-trip-dereference ()
   "Is the operator preserved in a Rust unary expression?"
   (is (source-text= "*x;" (rust "*x;"))))
