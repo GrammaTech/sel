@@ -14,6 +14,9 @@
 (create-tree-sitter-language "rust")
 ;;;===================================================
 
+#+:TREE-SITTER-RUST
+(progn
+
 (defmethod parse-language ((superclass (eql 'rust-ast)) string &key)
   (labels ((name-generator (string)
              (make-keyword (convert-name :rust string))))
@@ -69,3 +72,5 @@ field."
                                       (x (eql :|let|))
                                       (y t))
   " ")
+
+) ; #+:TREE-SITTER-RUST
