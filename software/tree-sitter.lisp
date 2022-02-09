@@ -1459,9 +1459,25 @@ for the language.")
        (:assignment-ast python-assignment python-augmented-assignment)
        (:catch-ast python-except-clause))
       (:rust
+       (:arguments-ast rust-arguments)
        (:assignment-ast
         rust-assignment-expression rust-compound-assignment-expr)
-       (:comment-ast rust-line-comment rust-block-comment))
+       (:binary-ast rust-binary-expression)
+       (:boolean-ast rust-boolean-literal)
+       (:call-ast rust-call-expression)
+       (:comment-ast rust-line-comment rust-block-comment)
+       (:compound-ast rust-block)
+       (:float-ast rust-float-literal)
+       (:function-declaration-ast rust-function-item)
+       (:identifier-ast
+        rust-field-identifier
+        rust-identifier
+        rust-primitive-type)
+       (:integer-ast rust-integer-literal)
+       (:parameters-ast rust-parameters)
+       (:return-ast rust-return-expression)
+       (:root-ast rust-source-file)
+       (:variable-declaration-ast rust-let-declaration))
       ((:typescript-ts :typescript-tsx)
        (:root-ast
         typescript-ts-program
