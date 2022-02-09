@@ -2006,7 +2006,20 @@ definitions.")
        ;; This is to get around statement allowing a semicolon
        ;; without any further information to reproduce it.
        (:EMPTY-STATEMENT
-        (:TYPE . "STRING") (:value . ";")))
+        (:TYPE . "STRING") (:value . ";"))
+       (:-CLASS-BODY-DECLARATION (:TYPE . "CHOICE")
+        (:MEMBERS
+         ((:TYPE . "SYMBOL") (:NAME . "field_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "record_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "method_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "class_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "interface_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "annotation_type_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "enum_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "block"))
+         ((:TYPE . "SYMBOL") (:NAME . "static_initializer"))
+         ((:TYPE . "SYMBOL") (:NAME . "constructor_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "empty_statement")))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.

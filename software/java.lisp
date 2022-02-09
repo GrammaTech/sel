@@ -73,3 +73,21 @@ ASTs that can have multiple statements in their body."
     ((language (eql ':java)) (class (eql 'java-switch-block-statement-group))
      parse-tree &key)
   (transform-java-empty-statements parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':java)) (class (eql 'java-class-body))
+     parse-tree &key)
+  (transform-java-empty-statements parse-tree))
+
+(defmethod transform-parse-tree
+    ((language (eql ':java)) (class (eql 'java-enum-body-declarations))
+     parse-tree &key
+     &aux semicolon-flag)
+  (labels ((empty-statement-p (tree)
+             (when (eql (parse-tree-type tree) :|;|)
+               (prog1 semicolon-flag
+                 (setf semicolon-flag t))))
+           (wrap-after-first (tree)
+             (when (empty-statement-p tree)
+               `(:empty-statement ,(cadr tree) (,tree)))))
+    (modify-parse-tree parse-tree #'wrap-after-first)))
