@@ -5844,7 +5844,7 @@ If there are no types, always wrap."
         (cons (list field-name type)
               (cdr tree))))))
 
-(defun wrap-with (symbol &rest types)
+(defun wrap-with/child (symbol &rest types)
   (check-type symbol keyword)
   (assert (every #'keywordp types))
   (lambda (tree)
@@ -5879,7 +5879,7 @@ If there are no types, always wrap."
                (eql (cadr slot-info) from))
       (copy-parse-tree tree :type (list (car slot-info) to)))))
 
-(-> modify-parse-tree (list &rest function) list)
+(-> modify-parse-tree (list &rest function) (values list &optional))
 (defun modify-parse-tree (parse-tree &rest fns)
   "For each child of PARSE-TREE, call each function in FNS with the child tree.
 
@@ -5896,13 +5896,59 @@ otherwise the original child is used."
             (t child-tree)))
     (parse-tree-children parse-tree))))
 
-(defmacro with-modify-parse-tree ((parse-tree &key) &body body)
+(-> modify-parse-tree/slots (list &rest function) (values list &optional))
+(defun modify-parse-tree/slots (parse-tree &rest fns)
+  "For each slot of PARSE-TREE, call each function in FNS with the child tree.
+
+The first function to return non-nil is treated as the new child;
+otherwise the original child is used."
+  (copy-parse-tree
+   parse-tree
+   :children
+   (mapcar
+    (lambda (child-tree)
+      (cond ((not (consp (parse-tree-type child-tree)))
+             child-tree)
+            ((some (op (funcall _ child-tree)) fns))
+            (t child-tree)))
+    (parse-tree-children parse-tree))))
+
+(-> modify-parse-tree/full (list &rest function) (values list &optional))
+(defun modify-parse-tree/full (parse-tree &rest fns)
+  "For each child and slot of PARSE-TREE, call each function in FNS with the
+child tree.
+
+The first function to return non-nil is treated as the new child;
+otherwise the original child is used."
+  (copy-parse-tree
+   parse-tree
+   :children
+   (mapcar
+    (lambda (child-tree)
+      (or (some (op (funcall _ child-tree)) fns)
+          child-tree))
+    (parse-tree-children parse-tree))))
+
+(deftype modify-parse-tree-style ()
+  "A style to modify parse trees.
+- :children indicates the children in the children slot of the parse tree
+            are modified.
+- :slots indicates the children in slots of the parse tree are modified.
+- :all indicates that every child in the parse tree is modified."
+  '(member :children :slots :all))
+
+(defmacro with-modify-parse-tree ((parse-tree
+                                   &key (modification-style :children))
+                                  &body body)
   "Like `modify-parse-tree', but with a case-like syntax.
 Each clause consists of a key (or list of keys) and a function call.
 The keys are simply appended to the function call.
 
 If the key is `t', the call is left unchanged."
-  `(modify-parse-tree
+  `(,(ecase modification-style
+       (:children 'modify-parse-tree)
+       (:slots 'modify-parse-tree/slots)
+       (:all 'modify-parse-tree/full))
     ,parse-tree
     ,@(iter (for (key/s call) in body)
             (collect (if (eql key/s t) call
