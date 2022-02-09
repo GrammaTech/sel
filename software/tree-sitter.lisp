@@ -816,7 +816,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (python-for-statement (:async))
        (python-with-statement (:async)))
       (:rust
-       (rust-function-modifiers (:modifiers (:multiple . t))))
+       (rust-function-modifiers (:modifiers (:multiple . t)))
+       (rust-unary-expression (:operator)))
       (:javascript
        (javascript-function-declaration (:async))
        (javascript-export-statement (:default)))
@@ -1477,6 +1478,7 @@ for the language.")
        (:parameters-ast rust-parameters)
        (:return-ast rust-return-expression)
        (:root-ast rust-source-file)
+       (:unary-ast rust-unary-expression)
        (:variable-declaration-ast rust-let-declaration))
       ((:typescript-ts :typescript-tsx)
        (:root-ast
@@ -2585,7 +2587,14 @@ tree-sitter.")
          ;; Put blank first to avoid generating a comma in an empty
          ;; argument list.
          ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING")))))))
+          (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING"))))))
+       (:unary-expression
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "-"))
+           ((:TYPE . "STRING") (:VALUE . "*"))
+           ((:TYPE . "STRING") (:VALUE . "!"))))
+         :as "operator")))
       ((:typescript-ts :typescript-tsx)
        (:property-signature
         (:replace

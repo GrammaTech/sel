@@ -31,6 +31,12 @@ field."
     ((:error :line-comment :block-comment) (ignore-types))
     (t (label-as :modifiers))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':rust)) (class (eql 'rust-unary-expression)) parse-tree &key)
+  "Store the operators of unary expressions in their own field."
+  (with-modify-parse-tree (parse-tree)
+    ((:- :* :!) (label-as :operator))))
+
 
 ;;; Whitespace.
 

@@ -69,3 +69,10 @@ pub unsafe fn auto() -> MmapChoice {
          (root (convert 'rust-ast source))
          (target-ast (find-if (of-type 'rust-type-arguments) root)))
     (is (typep target-ast '(not computed-text)))))
+
+
+;;; Parsing tests.
+
+(deftest rust-round-trip-dereference ()
+  "Is the operator preserved in a Rust unary expression?"
+  (is (source-text= "*x;" (rust "*x;"))))
