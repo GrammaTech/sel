@@ -70,6 +70,14 @@ pub unsafe fn auto() -> MmapChoice {
          (target-ast (find-if (of-type 'rust-type-arguments) root)))
     (is (typep target-ast '(not computed-text)))))
 
+(deftest rust-let-mut-specifier ()
+  "Is there a slot for let mut specifiers?"
+  (is (typep (rust-mutable-specifier
+              (convert 'rust-ast "let mut x = 1;" :deepest t))
+             'rust-mutable-specifier))
+  (is (null (rust-mutable-specifier
+             (convert 'rust-ast "let x = 1;" :deepest t)))))
+
 
 ;;; Parsing tests.
 
