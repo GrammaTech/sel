@@ -868,6 +868,7 @@ for the language.")
         (c-declarator :initarg :lhs :reader lhs)
         (c-value :initarg :rhs :reader rhs))
        (c-assignment-expression
+        (c-operator :initarg :operator :reader operator)
         (c-left :initarg :lhs :reader lhs :reader assignee)
         (c-right :initarg :rhs :reader rhs))
        (c-call-expression
@@ -892,6 +893,7 @@ for the language.")
         (cpp-declarator :initarg :lhs :reader lhs)
         (cpp-value :initarg :rhs :reader rhs))
        (cpp-assignment-expression
+        (cpp-operator :initarg :operator :reader operator)
         (cpp-left :initarg :lhs :reader lhs :reader assignee)
         (cpp-right :initarg :rhs :reader rhs))
        (cpp-call-expression
@@ -965,14 +967,15 @@ for the language.")
         (python-body :reader body)))
       (:rust
        (rust-assignment-expression
-        (rust-left :reader lhs)
-        (rust-right :reader rhs))
+        (rust-left :initarg :lhs :reader lhs)
+        (rust-right  :initarg :rhs :reader rhs))
        (rust-compound-assignment-expr
-        (rust-left :reader lhs)
-        (rust-right :reader rhs))
+        (rust-operator :reader operator :initarg :operator)
+        (rust-left :initarg :lhs :reader lhs)
+        (rust-right :initarg :rhs :reader rhs))
        (rust-binary-expression
-        (rust-left :reader lhs :initarg :lhs)
-        (rust-right :reader rhs :initarg :rhs)))
+        (rust-left :initarg :lhs :reader lhs)
+        (rust-right :initarg :rhs :reader rhs)))
       ((:typescript-ts :typescript-tsx)
        ;; Anonymous function (function keyword).
        (typescript-ts-function
