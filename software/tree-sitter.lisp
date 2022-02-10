@@ -905,6 +905,14 @@ for the language.")
         (cpp-alternative :initarg :alternative :reader alternative))
        (cpp-update-expression
         (cpp-argument :reader assignee)))
+      (:java
+       (java-method-declaration
+        (java-name :reader function-name)
+        (java-parameters :reader function-parameters)
+        (java-body :reader function-body))
+       (java-method-invocation
+        (java-name :reader call-function)
+        (java-arguments :reader call-arguments)))
       (:javascript
        (javascript-switch-case
         (javascript-body :reader body))
