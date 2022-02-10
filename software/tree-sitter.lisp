@@ -881,6 +881,9 @@ for the language.")
        (c-for-statement
         (c-body :reader body :initarg :body))
        (c-if-statement
+        ;; TODO Is it worth shadowing `cl:condition'? `test' would
+        ;; also cause package conflicts with test frameworks.
+        (c-condition :initarg :condition)
         (c-consequence :initarg :consequence :reader consequence)
         (c-alternative :initarg :alternative :reader alternative))
        (c-update-expression
@@ -908,6 +911,7 @@ for the language.")
        (cpp-for-range-loop
         (cpp-body :reader body :initarg :body))
        (cpp-if-statement
+        (cpp-condition :initarg :condition)
         (cpp-consequence :initarg :consequence :reader consequence)
         (cpp-alternative :initarg :alternative :reader alternative))
        (cpp-update-expression
@@ -975,7 +979,11 @@ for the language.")
         (rust-right :initarg :rhs :reader rhs))
        (rust-binary-expression
         (rust-left :initarg :lhs :reader lhs)
-        (rust-right :initarg :rhs :reader rhs)))
+        (rust-right :initarg :rhs :reader rhs))
+       (rust-if-expression
+        (rust-condition :initarg :condition)
+        (rust-consequence :initarg :consequence :reader consequence)
+        (rust-alternative :initarg :alternative :reader alternative)))
       ((:typescript-ts :typescript-tsx)
        ;; Anonymous function (function keyword).
        (typescript-ts-function
