@@ -531,6 +531,8 @@
            :body
            :lhs
            :rhs
+           :consequence
+           :alternative
            :assignee
            :assignees
            :operator
