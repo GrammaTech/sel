@@ -36,9 +36,10 @@ class ASTLanguage(enum.Enum):
     Python = 0
     C = 1
     Cpp = 2
-    Javascript = 3
-    TypescriptTs = 4
-    TypescriptTsx = 5
+    Java = 3
+    Javascript = 4
+    TypescriptTs = 5
+    TypescriptTsx = 6
 
 
 class ASTException(Exception):
@@ -52,14 +53,16 @@ def _guess_language(text: str) -> Optional[ASTLanguage]:
     lexer = pygments.lexers.guess_lexer(text)
     if isinstance(lexer, pygments.lexers.PythonLexer):
         return ASTLanguage.Python
-    elif isinstance(lexer, pygments.lexers.JavascriptLexer):
-        return ASTLanguage.Javascript
-    elif isinstance(lexer, pygments.lexers.TypeScriptLexer):
-        return ASTLanguage.TypescriptTs
     elif isinstance(lexer, pygments.lexers.CLexer):
         return ASTLanguage.C
     elif isinstance(lexer, pygments.lexers.CppLexer):
         return ASTLanguage.Cpp
+    elif isinstance(lexer, pygments.lexers.JavaLexer):
+        return ASTLanguage.Java
+    elif isinstance(lexer, pygments.lexers.JavascriptLexer):
+        return ASTLanguage.Javascript
+    elif isinstance(lexer, pygments.lexers.TypeScriptLexer):
+        return ASTLanguage.TypescriptTs
     else:
         raise ASTException(
             f"Supported source language could not be derived from:\n{text}"

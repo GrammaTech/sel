@@ -478,3 +478,11 @@ class InnerParentTestDriver(unittest.TestCase):
         inner_parent = root.children[0].children[0].children[1].children[1]
         self.assertIsInstance(inner_parent, InnerParent)
         self.assertTrue(inner_parent.source_text.startswith(" # first comment"))
+
+
+class JavaTestDriver(unittest.TestCase):
+    def test_java_parse(self):
+        text = "import foo;"
+        root = AST.from_string(text, ASTLanguage.Java)
+        self.assertEqual(root.language, ASTLanguage.Java)
+        self.assertEqual(root.source_text, text)

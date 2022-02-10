@@ -9,6 +9,7 @@
         :software-evolution-library/software/c
         :software-evolution-library/software/cpp
         :software-evolution-library/software/python
+        :software-evolution-library/software/java
         :software-evolution-library/software/javascript
         :software-evolution-library/software/typescript
         :software-evolution-library/python/lisp/utility)
@@ -23,7 +24,7 @@
     '((("help" #\h #\?) :type boolean :optional t
        :documentation "display help output")
       (("languages" #\L) :type string :optional t
-       :initial-value "c,cpp,javascript,python,typescript-ts,typescript-tsx"
+       :initial-value "c,cpp,java,javascript,python,typescript-ts,typescript-tsx"
        :action #'handle-languages-argument
        :documentation
        "comma-delimited source languages of the ASTs to dump"))))

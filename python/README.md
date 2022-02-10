@@ -90,7 +90,7 @@ text language.  The example below shows the creation of a simple AST:
 >>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
 ```
 
-Language enumerations exist for `Python`, `C`, `Cpp`, `Javascript`,
+Language enumerations exist for `Python`, `C`, `Cpp`, `Java`, `Javascript`,
 `TypescriptTs`, and `TypescriptTsx`.
 
 For larger examples where the language may be inferred, the language

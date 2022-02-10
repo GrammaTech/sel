@@ -12,6 +12,7 @@
         :software-evolution-library/software/c
         :software-evolution-library/software/cpp
         :software-evolution-library/software/python
+        :software-evolution-library/software/java
         :software-evolution-library/software/javascript
         :software-evolution-library/software/typescript
         :software-evolution-library/utility/range
