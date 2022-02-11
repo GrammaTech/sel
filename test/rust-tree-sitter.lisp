@@ -62,3 +62,10 @@ pub unsafe fn auto() -> MmapChoice {
   (let* ((source "let _ = 100i;")
          (root (convert 'rust-ast source)))
     (is (find-if (of-type 'rust-_) root))))
+
+(deftest rust-type-arguments-substitution ()
+  "Ensure that the substitution is not considered a computed-text AST."
+  (let* ((source "let x:Vec<T>;")
+         (root (convert 'rust-ast source))
+         (target-ast (find-if (of-type 'rust-type-arguments) root)))
+    (is (typep target-ast '(not computed-text)))))

@@ -2151,7 +2151,36 @@ definitions.")
            ((:TYPE . "STRING") (:VALUE . "default"))
            ((:TYPE . "STRING") (:VALUE . "const"))
            ((:TYPE . "STRING") (:VALUE . "unsafe"))
-           ((:TYPE . "SYMBOL") (:NAME . "extern_modifier")))))))
+           ((:TYPE . "SYMBOL") (:NAME . "extern_modifier"))))))
+       (:TYPE-ARGUMENTS (:TYPE . "SEQ")
+        (:MEMBERS
+         ;; Remove token around this which causes it to be seen as computed-text.
+         ((:TYPE . "PREC") (:VALUE . 1)
+          (:CONTENT (:TYPE . "STRING") (:VALUE . "<")))
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "CHOICE")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "_type"))
+             ((:TYPE . "SYMBOL") (:NAME . "type_binding"))
+             ((:TYPE . "SYMBOL") (:NAME . "lifetime"))
+             ((:TYPE . "SYMBOL") (:NAME . "_literal"))
+             ((:TYPE . "SYMBOL") (:NAME . "block"))))
+           ((:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "STRING") (:VALUE . ","))
+              ((:TYPE . "CHOICE")
+               (:MEMBERS
+                ((:TYPE . "SYMBOL") (:NAME . "_type"))
+                ((:TYPE . "SYMBOL") (:NAME . "type_binding"))
+                ((:TYPE . "SYMBOL") (:NAME . "lifetime"))
+                ((:TYPE . "SYMBOL") (:NAME . "_literal"))
+                ((:TYPE . "SYMBOL") (:NAME . "block")))))))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . ",")) ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ">")))))
       ((:javascript :typescript-ts :typescript-tsx)
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
