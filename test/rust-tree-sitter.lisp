@@ -118,6 +118,8 @@ pub unsafe fn auto() -> MmapChoice {
   ;; No spaces around colon for a generic type, or betwen the type
   ;; identifier and the type arguments.
   (check-patch-whitespace "let x:Vec<T> = y;")
+  ;; Generic with a primitive type argument.
+  (check-patch-whitespace "let x:Vec<i32> = y;")
   ;; No spaces around :: for a class method.
   (check-patch-whitespace "Point::new();")
   ;; TODO Whitespace between an identifier and a equal signs. This

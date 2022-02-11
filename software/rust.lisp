@@ -60,6 +60,7 @@ field."
   :|:| rust-ast
   :|::| rust-ast
   :< rust-type-identifier
+  :< rust-primitive-type
   rust-type-identifier rust-type-arguments)
 
 (defmethod whitespace-between (s (x (eql :=)) (y rust-ast))
