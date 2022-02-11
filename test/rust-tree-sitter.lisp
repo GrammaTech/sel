@@ -101,7 +101,8 @@ pub unsafe fn auto() -> MmapChoice {
 (defun check-patch-whitespace (rust)
   (is (source-text= rust
                     (patch-whitespace
-                     (convert 'rust-ast rust :deepest t)))))
+                     (convert 'rust-ast rust :deepest t)
+                     :prettify t))))
 
 (deftest test-rust-patch-whitespace ()
   ;; No space before semicolon.

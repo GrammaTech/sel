@@ -76,16 +76,16 @@ field."
 (defmethod whitespace-between (s (x (eql :|:|)) (ast rust-generic-type))
   "")
 
+(defmethod whitespace-between (s (x (eql :<)) (ast rust-type-identifier))
+  "")
+
 (defmethod whitespace-between (s
                                (x rust-type-identifier)
                                (y rust-type-arguments))
   "")
 
-(defmethod whitespace-between/parent ((parent rust-ast)
-                                      style
-                                      (x string)
-                                      (y t))
-  (whitespace-between/parent parent style (make-keyword x) y))
+(defmethod whitespace-between (s (x (eql :=)) (y rust-ast))
+  " ")
 
 (defmethod whitespace-between/parent ((parent rust-ast)
                                       style
