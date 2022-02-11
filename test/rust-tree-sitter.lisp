@@ -94,3 +94,26 @@ pub unsafe fn auto() -> MmapChoice {
 (deftest rust-round-trip-dereference ()
   "Is the operator preserved in a Rust unary expression?"
   (is (source-text= "*x;" (rust "*x;"))))
+
+
+;;; Whitespace tests.
+
+(defun check-patch-whitespace (rust)
+  (is (source-text= rust
+                    (patch-whitespace
+                     (convert 'rust-ast rust :deepest t)))))
+
+(deftest test-rust-patch-whitespace ()
+  ;; No space before semicolon.
+  (check-patch-whitespace "x;")
+  ;; No spaces around dots.
+  (check-patch-whitespace "x.y;")
+  ;; No whitespace before arguments.
+  (check-patch-whitespace "x(y);")
+  ;; No spaces around colon for a primitive type.
+  (check-patch-whitespace "let x:u64 = y;")
+  ;; No spaces around colon for a user-defined type.
+  (check-patch-whitespace "let x:mytype = y;")
+  ;; No spaces around colon for a generic type, or betwen the type
+  ;; identifier and the type arguments.
+  (check-patch-whitespace "let x:Vec<T> = y;"))
