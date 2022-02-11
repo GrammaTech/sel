@@ -49,40 +49,19 @@ field."
 
 ;;; Whitespace.
 
-(defmethod whitespace-between (style (x (eql :|.|)) (y rust-ast))
-  "")
-
-(defmethod whitespace-between (style (x rust-ast) (y (eql :|.|)))
-  "")
-
-(defmethod whitespace-between (s (x rust-ast) (y rust-arguments))
-  "")
-
-(defmethod whitespace-between (style (x rust-identifier) (y (eql :|:|)))
-  "")
-
-(defmethod whitespace-between (style (x (eql :|:|)) (y rust-primitive-type))
-  "")
-
-(defmethod whitespace-between (style (x rust-ast) (y (eql :|;|)))
-  "")
-
-(defmethod whitespace-between (style (x rust-ast) (y (eql :|;|)))
-  "")
-
-(defmethod whitespace-between (s (x (eql :|:|)) (ast rust-type-identifier))
-  "")
-
-(defmethod whitespace-between (s (x (eql :|:|)) (ast rust-generic-type))
-  "")
-
-(defmethod whitespace-between (s (x (eql :<)) (ast rust-type-identifier))
-  "")
-
-(defmethod whitespace-between (s
-                               (x rust-type-identifier)
-                               (y rust-type-arguments))
-  "")
+(define-empty-whitespace-methods ()
+  :|.| rust-ast
+  rust-ast :|.|
+  rust-ast rust-arguments
+  rust-identifier :|:|
+  :|:| rust-primitive-type
+  rust-ast :|;|
+  rust-ast :|;|
+  :|:| rust-type-identifier
+  :|:| rust-generic-type
+  :< rust-type-identifier
+  :< rust-type-identifier
+  rust-type-identifier rust-type-arguments)
 
 (defmethod whitespace-between (s (x (eql :=)) (y rust-ast))
   " ")
