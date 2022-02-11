@@ -53,13 +53,12 @@ field."
   :|.| rust-ast
   rust-ast :|.|
   rust-ast rust-arguments
-  rust-identifier :|:|
-  :|:| rust-primitive-type
   rust-ast :|;|
   rust-ast :|;|
-  :|:| rust-type-identifier
-  :|:| rust-generic-type
-  :< rust-type-identifier
+  rust-ast :|:|
+  rust-ast :|::|
+  :|:| rust-ast
+  :|::| rust-ast
   :< rust-type-identifier
   rust-type-identifier rust-type-arguments)
 

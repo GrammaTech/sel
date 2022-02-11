@@ -118,6 +118,8 @@ pub unsafe fn auto() -> MmapChoice {
   ;; No spaces around colon for a generic type, or betwen the type
   ;; identifier and the type arguments.
   (check-patch-whitespace "let x:Vec<T> = y;")
+  ;; No spaces around :: for a class method.
+  (check-patch-whitespace "Point::new();")
   ;; TODO Whitespace between an identifier and a equal signs. This
   ;; doesn't currently work because the output transformation looks
   ;; like \(<rust-identifier :text "x"> "" "="), which means working
