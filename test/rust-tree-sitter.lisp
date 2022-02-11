@@ -117,4 +117,10 @@ pub unsafe fn auto() -> MmapChoice {
   (check-patch-whitespace "let x:mytype = y;")
   ;; No spaces around colon for a generic type, or betwen the type
   ;; identifier and the type arguments.
-  (check-patch-whitespace "let x:Vec<T> = y;"))
+  (check-patch-whitespace "let x:Vec<T> = y;")
+  ;; TODO Whitespace between an identifier and a equal signs. This
+  ;; doesn't currently work because the output transformation looks
+  ;; like \(<rust-identifier :text "x"> "" "="), which means working
+  ;; pairwise patch-whitespace doesn't know that the identifier and
+  ;; the equal sign are next to each other.
+  #+(or) (check-patch-whitespace "let x = y;"))
