@@ -985,7 +985,10 @@ for the language.")
        (rust-if-expression
         (rust-condition :initarg :condition)
         (rust-consequence :initarg :consequence :reader consequence)
-        (rust-alternative :initarg :alternative :reader alternative)))
+        (rust-alternative :initarg :alternative :reader alternative))
+       (rust-let-declaration
+        (rust-pattern :initarg :lhs :reader lhs)
+        (rust-value :initarg :rhs :reader rhs)))
       ((:typescript-ts :typescript-tsx)
        ;; Anonymous function (function keyword).
        (typescript-ts-function
