@@ -426,6 +426,7 @@
         '(:shadowing-import-from :cl-tree-sitter :parse-string)
         (values))
   (:intern :explicit-namespace-qualifiers)
+  (:shadow :condition)
   (:export :tree-sitter-ast
            :tree-sitter
            :*tree-sitter-language-directories*
@@ -532,6 +533,8 @@
            :body
            :lhs
            :rhs
+           ;; Not currently exported, too many conflicts.
+           ;; :condition
            :consequence
            :alternative
            :assignee
@@ -891,7 +894,7 @@ for the language.")
        (c-if-statement
         ;; TODO Is it worth shadowing `cl:condition'? `test' would
         ;; also cause package conflicts with test frameworks.
-        (c-condition :initarg :condition)
+        (c-condition :initarg :condition :reader condition)
         (c-consequence :initarg :consequence :reader consequence)
         (c-alternative :initarg :alternative :reader alternative))
        (c-update-expression
@@ -919,7 +922,7 @@ for the language.")
        (cpp-for-range-loop
         (cpp-body :reader body :initarg :body))
        (cpp-if-statement
-        (cpp-condition :initarg :condition)
+        (cpp-condition :initarg :condition :reader condition)
         (cpp-consequence :initarg :consequence :reader consequence)
         (cpp-alternative :initarg :alternative :reader alternative))
        (cpp-update-expression
@@ -989,7 +992,7 @@ for the language.")
         (rust-left :initarg :lhs :reader lhs)
         (rust-right :initarg :rhs :reader rhs))
        (rust-if-expression
-        (rust-condition :initarg :condition)
+        (rust-condition :initarg :condition :reader condition)
         (rust-consequence :initarg :consequence :reader consequence)
         (rust-alternative :initarg :alternative :reader alternative))
        (rust-let-declaration
