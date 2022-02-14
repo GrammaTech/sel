@@ -85,6 +85,17 @@ pub unsafe fn auto() -> MmapChoice {
     (is (typep (rust-mutable-specifier ast1) 'rust-mutable-specifier))
     (is (null (rust-mutable-specifier ast2)))))
 
+(deftest rust-param-mut-specifier ()
+  "Is there a slot for let mut specifiers?"
+  (let ((ast1 (find-if (of-type 'parameter-ast)
+                       (rust "fn myfun(mut x: i32) {}")))
+        (ast2 (find-if (of-type 'parameter-ast)
+                       (rust "fn myfun(x: i32) {}"))))
+    (is (typep ast1 'parameter-ast))
+    (is (typep ast2 'parameter-ast))
+    (is (typep (rust-mutable-specifier ast1) 'rust-mutable-specifier))
+    (is (null (rust-mutable-specifier ast2)))))
+
 (deftest rust-block-substitution ()
   "The implicit return expression is not followed by a semicolon."
   (let* ((source "{(x, y)}")
