@@ -159,6 +159,9 @@ pub unsafe fn auto() -> MmapChoice {
   (check-patch-whitespace "myfn(&y);")
   ;; But a space after &mut.
   (check-patch-whitespace "myfn(&mut y);")
+  ;; The convention that there is no space after : in a let, but there
+  ;; is in a function parameter.
+  (check-patch-whitespace "fn myfn(x: i32){}")
   ;; TODO Whitespace between an identifier and a equal signs. This
   ;; doesn't currently work because the output transformation looks
   ;; like \(<rust-identifier :text "x"> "" "="), which means working

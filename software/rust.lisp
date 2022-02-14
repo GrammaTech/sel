@@ -109,7 +109,8 @@ returns something or not."
   :< rust-type-identifier
   :< rust-primitive-type
   :& rust-ast
-  rust-type-identifier rust-type-arguments)
+  rust-type-identifier rust-type-arguments
+  rust-identifier rust-parameters)
 
 (defmethod whitespace-between (s (x (eql :=)) (y rust-ast))
   " ")
@@ -118,6 +119,13 @@ returns something or not."
                                       style
                                       (x (eql :|let|))
                                       (y t))
+  " ")
+
+(defmethod whitespace-between/parent ((parent rust-parameter)
+                                      style
+                                      (x (eql :|:|))
+                                      (y t))
+  "Leave a space after a colon, but only in a parameter."
   " ")
 
 ) ; #+:TREE-SITTER-RUST
