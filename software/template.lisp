@@ -440,14 +440,30 @@ languages allow you to use a pattern with the same name as shorthand:
                               metavar-subtrees
                               :test #'equal))
                    node))
-             pattern)))
+             pattern))
+           ;; If the same name occurs more than once in the pattern,
+           ;; ignore all but the first occurrence.
+           (tree
+            (map-tree
+             (let ((name-counts (make-hash-table)))
+               (lambda (node)
+                 (if (and (symbolp node)
+                          (not (keywordp node))
+                          (member node names :test #'string=))
+                     (let ((count (incf (gethash node name-counts 0))))
+                       (if (> count 1)
+                           '_
+                         node))
+                     node)))
+             tree
+             :traversal :inorder)))
     (declare (ignore placeholders template))
     (sublis '((ellipsis-match . _)) tree)))
 
 (defpattern ast-template* (template class &rest args)
   "Like `ast-template', but take the first child."
   (ematch (pattern-expand-1 `(ast-template ,template ,class ,@args))
-    ((list _ :children (list 'list pat))
+    ((list* _ :children (list 'list pat) _)
      pat)))
 
 (defmacro ast-from-template-aux (ast-template-fn template class &rest args)
