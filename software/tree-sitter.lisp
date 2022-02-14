@@ -312,6 +312,10 @@
 ;;; @cindex templates
 ;;; @subsubsection Templates for building ASTs
 ;;;
+;;; SEL supports building (and destructuring) tree-sitter ASTs using
+;;; string templates. Holes in string templates are called
+;;; metavariables.
+;;;
 ;;; The function that builds templates is called @code{ast-template}.
 ;;; You probably don't want to use this function directly; supported
 ;;; languages allow you to use a function with the same name as
@@ -319,6 +323,19 @@
 ;;;
 ;;;     (python "$ID = 1" :id "x")
 ;;;     ≡ (ast-template "$ID = 1" 'python-ast :id "x")
+;;;
+;;; There is also a function, @code{ast-template*}, that behaves like
+;;; @code{ast-template} except that it returns the first child of the
+;;; AST, rather than the whole AST. This is useful with languages
+;;; where expressions must be parsed as part of statements. Again, you
+;;; probably don't want to use this function directly, since you can
+;;; use starred versions of the language-specific shorthands.
+;;;
+;;;     (cpp "$X+$Y;" :x 1 :y 2)
+;;;     => #<cpp-expression-statement "1+2;">
+;;;
+;;;     (cpp* "$X+$Y;" :x 1 :y 2)
+;;;     => #<cpp-binary-expression "1+2">
 ;;;
 ;;; By default metavariables look like @code{$X}, where the name can
 ;;; contain only uppercase characters, digits, or underscores. (The
@@ -393,10 +410,8 @@
 ;;; This is useful because not every kind of AST node can be parsed
 ;;; directly as a template. E.g. in Python a tuple, an argument list,
 ;;; and a parameter list all use the same syntax and can only be
-;;; distinguished in context. Or (at the time of writing) the C and
-;;; C++ parsers for tree-sitter cannot correctly parse unterminated
-;;; statements. Using @code{ast-from-template} lets you provide
-;;; throwaway context to the parser while pulling out only the
+;;; distinguished in context. Using @code{ast-from-template} lets you
+;;; provide throwaway context to the parser while pulling out only the
 ;;; particular nodes that you want.
 ;;;
 ;;; @texi{tree-sitter}
@@ -596,10 +611,12 @@
            :ellipsis-match
            ;; template.lisp
            :ast-template
+           :ast-template*
            :template-placeholder
            :template-metavariable
            :template-subtree
            :ast-from-template
+           :ast-from-template*
            :*tree-sitter-mutation-types*
            :tree-sitter-replace
            :tree-sitter-swap
@@ -3032,19 +3049,34 @@ stored on the AST or external rules.")
 ;;; Defining tree-sitter classes
 
 (defmacro define-template-builder (class ast-class)
-  `(progn
-     (defun ,class
-         (template &rest args)
-       "Short for (ast-template TEMPLATE python-ast ARGS...)."
-       (apply #'ast-template template ',ast-class args))
+  (let ((class* (intern (string+ class '*)
+                        (symbol-package class))))
+    `(progn
+       (export-always ',class*)
 
-     ;; Define compiler macro so the template can be
-     ;; statically checked.
-     (define-compiler-macro ,class (template &rest args)
-       (list* 'ast-template template '',ast-class args))
+       (defun ,class
+           (template &rest args)
+         "Short for (ast-template TEMPLATE python-ast ARGS...)."
+         (apply #'ast-template template ',ast-class args))
 
-     (defpattern ,class (template &rest args)
-       (list* 'ast-template template ',ast-class args))))
+       (defun ,class*
+           (template &rest args)
+         "Short for (ast-template* TEMPLATE python-ast ARGS...)."
+         (apply #'ast-template* template ',ast-class args))
+
+       ;; Define compiler macro so the template can be
+       ;; statically checked.
+       (define-compiler-macro ,class (template &rest args)
+         (list* 'ast-template template '',ast-class args))
+
+       (define-compiler-macro ,class* (template &rest args)
+         (list* 'ast-template* template '',ast-class args))
+
+       (defpattern ,class (template &rest args)
+         (list* 'ast-template template ',ast-class args))
+
+       (defpattern ,class* (template &rest args)
+         (list* 'ast-template* template ',ast-class args)))))
 
 (eval-always
  ;; TODO The methods on null for before-text and after-text are insurance

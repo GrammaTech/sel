@@ -387,6 +387,20 @@ If SUBTREE is a list do the same for each element."
            names
            :initial-value ast)))
 
+(define-compiler-macro ast-template* (template class &rest args)
+  (with-gensyms (ast)
+    `(match (ast-template ,template ,class ,@args)
+       ((and ,ast (type ast))
+        (first (children ,ast))))))
+
+(defun ast-template* (template class &rest args)
+  "Like `ast-template', but return the first child of the created AST.
+This is useful for languages where the parser requires semicolons as
+delimiters (such as C or C++)."
+  (match (apply #'ast-template template class args)
+    ((and ast (type ast))
+     (first (children ast)))))
+
 (defpattern ast-template (template class &rest args)
   "Match TEMPLATE as a pattern using CLASS and ARGS.
 
@@ -430,6 +444,20 @@ languages allow you to use a pattern with the same name as shorthand:
     (declare (ignore placeholders template))
     (sublis '((ellipsis-match . _)) tree)))
 
+(defpattern ast-template* (template class &rest args)
+  "Like `ast-template', but take the first child."
+  (ematch (pattern-expand-1 `(ast-template ,template ,class ,@args))
+    ((list _ :children (list 'list pat))
+     pat)))
+
+(defmacro ast-from-template-aux (ast-template-fn template class &rest args)
+  (let ((temps (make-gensym-list (length args))))
+    (ematch class
+      ((list 'quote class)
+       `(ematch (,ast-template-fn ,template ',class ,@args)
+          ((,ast-template-fn ,template ,class ,@temps)
+           (values ,@temps)))))))
+
 (defmacro ast-from-template (template class &rest args)
   "In one step, build and destructure a template into ASTs.
 
@@ -443,9 +471,8 @@ in context. Or (at the time of writing) the C and C++ parsers for
 tree-sitter cannot correctly parse unterminated statements. Using
 `ast-from-template' lets you provide throwaway context to the parser
 while pulling out only the particular nodes that you want."
-  (let ((temps (make-gensym-list (length args))))
-    (ematch class
-      ((list 'quote class)
-       `(ematch (ast-template ,template ',class ,@args)
-          ((ast-template ,template ,class ,@temps)
-           (values ,@temps)))))))
+  `(ast-from-template-aux ast-template ,template ,class ,@args))
+
+(defmacro ast-from-template* (template class &rest args)
+  "Like `ast-from-template', but implicitly passes through to the first child."
+  `(ast-from-template-aux ast-template* ,template ,class ,@args))
