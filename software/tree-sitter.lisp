@@ -829,6 +829,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (rust-function-modifiers (:modifiers (:multiple . t)))
        (rust-let-declaration (:mutable-specifier))
        (rust-self-parameter (:borrow))
+       (rust-reference-expression (:mutable-specifier))
        (rust-unary-expression (:operator)))
       (:javascript
        (javascript-function-declaration (:async))
@@ -2680,6 +2681,12 @@ tree-sitter.")
          ;; parameter list.
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING"))))))
+       (:reference-expression
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "mutable_specifier"))
+           ((:TYPE . "BLANK"))))
+         :as "mutable_specifier"))
        (:unary-expression
         (:label
          ((:TYPE . "CHOICE")

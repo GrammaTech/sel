@@ -41,6 +41,13 @@ field."
     (:mutable-specifier (label-as :mutable-specifier))))
 
 (defmethod transform-parse-tree
+    ((language (eql ':rust)) (class (eql 'rust-reference-expression))
+     parse-tree &key)
+  "Store the mutable specifier in its own field."
+  (with-modify-parse-tree (parse-tree)
+    (:mutable-specifier (label-as :mutable-specifier))))
+
+(defmethod transform-parse-tree
     ((language (eql ':rust)) (class (eql 'rust-unary-expression)) parse-tree &key)
   "Store the operators of unary expressions in their own field."
   (with-modify-parse-tree (parse-tree)
