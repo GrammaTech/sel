@@ -625,7 +625,15 @@
            :tree-sitter-cut
            :tree-sitter-nop
            :parameter-ast
-           :return-type)
+           :return-type
+           ;; When redefining the tree-sitter package during
+           ;; development, preserve exports that have been added by
+           ;; language-specific files.
+           . #.(when (find-package :sel/sw/ts)
+                 (let ((syms ()))
+                   (do-external-symbols (s :sel/sw/ts)
+                     (push s syms))
+                   syms)))
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)))
