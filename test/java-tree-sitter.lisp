@@ -53,3 +53,11 @@ in an enum body."
          (target-ast (find-if (of-type 'java-modifiers) root)))
     (is (java-modifiers target-ast))
     (is (equal source (source-text root)))))
+
+(deftest java-module-declaration-substitution ()
+  "The 'open' specifier is stored so that it can be reproduced."
+  (let* ((source "open module X {}")
+         (root (convert 'java-ast source))
+         (target-ast (find-if (of-type 'java-module-declaration) root)))
+    (is (java-open target-ast))
+    (is (equal source (source-text root)))))

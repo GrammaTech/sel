@@ -812,7 +812,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (cpp-reference-declarator (:valueness))
        (cpp-variadic-reference-declarator (:valueness)))
       (:java
-       (java-modifiers (:modifiers (:multiple . t))))
+       (java-modifiers (:modifiers (:multiple . t)))
+       (java-module-declaration (:open)))
       (:python
        (python-function-definition (:async))
        (python-for-statement (:async))
@@ -2071,7 +2072,23 @@ definitions.")
          ((:TYPE . "SYMBOL") (:NAME . "block"))
          ((:TYPE . "SYMBOL") (:NAME . "static_initializer"))
          ((:TYPE . "SYMBOL") (:NAME . "constructor_declaration"))
-         ((:TYPE . "SYMBOL") (:NAME . "empty_statement")))))
+         ((:TYPE . "SYMBOL") (:NAME . "empty_statement"))))
+       (:MODULE-DECLARATION (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "REPEAT")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_annotation")))
+         ;; Add field around "open" so that it can be reproduced.
+         ((:TYPE . "FIELD") (:NAME . "open")
+          (:CONTENT
+           (:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "STRING") (:VALUE . "open"))
+            ((:TYPE . "BLANK")))))
+         ((:TYPE . "STRING") (:VALUE . "module"))
+         ((:TYPE . "FIELD") (:NAME . "name")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_name")))
+         ((:TYPE . "FIELD") (:NAME . "body")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "module_body"))))))
       (:python
        ;; NOTE: this removes semicolons. This can be further amended if it
        ;;       becomes problematic.

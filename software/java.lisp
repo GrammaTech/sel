@@ -58,3 +58,9 @@ ASTs that can have multiple statements in their body."
              (when (empty-statement-p tree)
                `(:empty-statement ,(cadr tree) (,tree)))))
     (modify-parse-tree parse-tree #'wrap-after-first)))
+
+(defmethod transform-parse-tree
+    ((language (eql ':java)) (class (eql 'java-module-declaration)) parse-tree
+     &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:open) (label-as :open))))
