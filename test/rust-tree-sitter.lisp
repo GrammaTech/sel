@@ -155,6 +155,10 @@ pub unsafe fn auto() -> MmapChoice {
   (check-patch-whitespace "let x:Vec<i32> = y;")
   ;; No spaces around :: for a class method.
   (check-patch-whitespace "Point::new();")
+  ;; No space before &.
+  (check-patch-whitespace "myfn(&y);")
+  ;; But a space after &mut.
+  (check-patch-whitespace "myfn(&mut y);")
   ;; TODO Whitespace between an identifier and a equal signs. This
   ;; doesn't currently work because the output transformation looks
   ;; like \(<rust-identifier :text "x"> "" "="), which means working

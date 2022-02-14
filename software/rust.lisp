@@ -108,6 +108,7 @@ returns something or not."
   :|::| rust-ast
   :< rust-type-identifier
   :< rust-primitive-type
+  :& rust-ast
   rust-type-identifier rust-type-arguments)
 
 (defmethod whitespace-between (s (x (eql :=)) (y rust-ast))
