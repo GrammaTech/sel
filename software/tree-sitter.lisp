@@ -642,7 +642,9 @@
      (parse-tree :initarg :parse-tree :initform nil
                  :reader parse-tree-matching-error-parse-tree)
      (subclasses :initarg :subclasses :initform nil
-                 :reader parse-tree-matching-error-subclasses))
+                 :reader parse-tree-matching-error-subclasses)
+     (child-types :initarg :child-types :initform nil
+                  :reader :parse-tree-matching-error-child-types))
     (:documentation "Error when a parse tree can't be matched.")
     (:report
      (lambda (condition stream)
