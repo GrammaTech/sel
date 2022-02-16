@@ -2849,6 +2849,9 @@ around them. It is also followed by the slot that should be added to the relevan
 class, a predicate that determines whether a subtree should be encapsulated and
 the body of a parse tree transformation for each class that uses it.")
 
+  (defparameter *tree-sitter-superclass-additions* nil
+    "A mapping of tree-sitter language to additional supertypes.")
+
   (defparameter *tree-sitter-ast-superclass-table*
     (lret ((table (make-hash-table)))
       (iter
@@ -2928,7 +2931,9 @@ stored on the AST or external rules.")
          :json-subtree-choice-resolver
          (car (aget-all class-keyword *tree-sitter-json-subtree-choice-resolver*))
          :json-field-transformations
-         (aget-all class-keyword *tree-sitter-json-field-transformations*))))))
+         (aget-all class-keyword *tree-sitter-json-field-transformations*)
+         :additional-supertypes
+         (aget-all class-keyword *tree-sitter-superclass-additions*))))))
 
 (-> ast-mixin-subclasses ((or symbol class) (or symbol class)) list)
 (defun ast-mixin-subclasses (class language)
@@ -5332,6 +5337,7 @@ subclass based on the order of the children were read in."
          node-type-substitutions
          json-subtree-choice-resolver
          json-field-transformations
+         additional-supertypes
        &aux (subtype->supertypes (make-hash-table))
          (symbols-to-export (make-hash-table))
          (class->extra-slot-options (make-hash-table))
@@ -5371,7 +5377,13 @@ AST-EXTRA-SLOT-OPTIONS is an alist from classes to extra options for
 their slots.
 
 AST-EXTRA-SLOTS is an alist from classes to extra slots."
-    (labels ((initialize-subtype->supertypes ()
+    (labels ((add-additional-supertypes (additional-supertypes)
+               "Destructively add ADDITIONAL-SUPERTYPES to the supertypes of
+                grammar."
+               (when additional-supertypes
+                 (symbol-macrolet ((supertypes (aget :supertypes grammar)))
+                   (setf supertypes (append additional-supertypes supertypes)))))
+             (initialize-subtype->supertypes ()
                "Initialize subtype->supertypes with the super types that
                 aren't parsed from the json files."
                (mapc
@@ -5580,6 +5592,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                "Create classes for the external rules for the grammar file."
                (filter-map (op (create-external-class (aget :name _)))
                            (aget :externals grammar))))
+      (add-additional-supertypes additional-supertypes)
       (initialize-subtype->supertypes)
       (initialize-class->extra-slot-options)
       (initialize-class->extra-slots)
