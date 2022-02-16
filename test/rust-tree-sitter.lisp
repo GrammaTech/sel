@@ -78,6 +78,13 @@ pub unsafe fn auto() -> MmapChoice {
   (is (null (rust-mutable-specifier
              (convert 'rust-ast "let x = 1;" :deepest t)))))
 
+(deftest rust-block-substitution ()
+  "The implicit return expression is not followed by a semicolon."
+  (let* ((source "{(x, y)}")
+         (root (convert 'rust-ast source))
+         (target-ast (find-if (of-type 'rust-block) root)))
+    (is (not (find #\; (source-text target-ast))))))
+
 
 ;;; Parsing tests.
 

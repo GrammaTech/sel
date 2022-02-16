@@ -2244,7 +2244,22 @@ definitions.")
                 ((:TYPE . "SYMBOL") (:NAME . "block")))))))))
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . ",")) ((:TYPE . "BLANK"))))
-         ((:TYPE . "STRING") (:VALUE . ">")))))
+         ((:TYPE . "STRING") (:VALUE . ">"))))
+       (:BLOCK
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "STRING") (:VALUE . "{"))
+         ((:TYPE . "REPEAT") (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ;; Replace _expression with new class.
+           ((:TYPE . "SYMBOL") (:NAME . "implicit_return_expression"))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . "}"))))
+       ;; Wrapper class.
+       (:IMPLICIT-RETURN-EXPRESSION
+        (:TYPE . "SYMBOL")
+        (:NAME . "_expression")))
       ((:javascript :typescript-ts :typescript-tsx)
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS
@@ -2767,6 +2782,8 @@ All tests are done with `EQUAL'.")
          ((:TYPE . "tuple_pattern") (:NAMED . T))
          ((:TYPE . "typed_default_parameter") (:NAMED . T))
          ((:TYPE . "typed_parameter") (:NAMED . T)))))
+      (:rust
+       ((:TYPE . "implicit_return_expression") (:NAMED . T)))
       ;; Both the TSX and TypeScript node-types.json have duplicate
       ;; number types, one named and one not named, but in the
       ;; opposite orders. This makes them consistent (and allows TSX

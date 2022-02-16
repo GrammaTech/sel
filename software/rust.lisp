@@ -46,6 +46,34 @@ field."
   (with-modify-parse-tree (parse-tree)
     ((:- :* :!) (label-as :operator))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':rust)) (class (eql 'rust-block)) parse-tree &key
+     &aux (children (parse-tree-children parse-tree)))
+  "Change the class of rust-block such that it reflects whether it implicitly
+returns something or not."
+  (labels ((has-return-expression-p ()
+             "Return T if a semicolon does not occur after the last expression."
+             (let* ((children
+                      (remove-if {member _ (append1 (extra-asts :rust) :|}|)}
+                                 children
+                                 :key #'car))
+                    (last-child (lastcar children))
+                    (type (parse-tree-type last-child)))
+               (when (subtypep (format-symbol 'sel/sw/ts "~a-~a" 'rust type)
+                               'rust--expression)
+                 last-child)))
+           (change-target-child (current-child target-child)
+             (if (eq current-child target-child)
+                 `(:implicit-return-expression
+                   ,(cadr target-child)
+                   (,current-child))
+                 current-child)))
+    (if-let ((target-child (has-return-expression-p)))
+      `(,(parse-tree-type parse-tree)
+        ,(parse-tree-range parse-tree)
+        ,(mapcar (op (change-target-child _ target-child)) children))
+      (call-next-method))))
+
 
 ;;; Whitespace.
 
