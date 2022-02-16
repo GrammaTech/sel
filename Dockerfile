@@ -62,9 +62,13 @@ WORKDIR /tree-sitter
 RUN PREFIX=/usr make all install
 WORKDIR /
 # Withheld languages: agda c-sharp julia ocaml/interface ocaml/ocaml php ql ruby scala
+# Special case: pin tree-sitter-python to 24b530c until https://github.com/tree-sitter/tree-sitter/issues/1654 is resolved
 RUN for language in bash c cpp css go html java javascript jsdoc json python regex rust typescript/tsx typescript/typescript;do \
-        [ -d tree-sitter-${language%/*} ] || git clone --depth=1 https://github.com/tree-sitter/tree-sitter-${language%/*};     \
+        [ -d tree-sitter-${language%/*} ] || git clone https://github.com/tree-sitter/tree-sitter-${language%/*};               \
         cd /tree-sitter-${language}/src;                                                                                        \
+        if [ ${language} = "python" ];then                                                                                      \
+            git reset --hard 24b530c;                                                                                           \
+        fi;                                                                                                                     \
         if test -f "scanner.cc"; then                                                                                           \
             clang++ -fPIC scanner.cc -c -lstdc++;                                                                               \
             clang -std=c99 -fPIC parser.c -c;                                                                                   \
