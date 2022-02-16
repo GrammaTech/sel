@@ -265,7 +265,7 @@
 ;;;                  of the rule associated with the AST. This is generally
 ;;;                  whitespace. This slot is preferred over the after-text slot
 ;;;                  when creating ASTs from a string with @code{#'convert}. It
-;;;                  is possible for this to be an instance of `conflict-ast'
+;;;                  is possible for this to be an instance of `alternative-ast'
 ;;;                  instead of a string.
 ;;;
 ;;; - after-text :: stores text that directly procedes the AST but is not part
@@ -273,7 +273,7 @@
 ;;;                 whitespace. This slot is preferred when a terminal token
 ;;;                 directly follows the AST which does not have a before-text
 ;;;                 slot due to being implicit source text. It is also possible
-;;;                 for this to be an instance of `conflict-ast' instead of a
+;;;                 for this to be an instance of `alternative-ast' instead of a
 ;;;                 string.
 ;;;
 ;;; - before-asts :: stores comment and error ASTs that occur before the AST
@@ -526,6 +526,7 @@
            :patch-whitespace
            :prettify-software
            :output-transformation
+           :get-representative-ast
            ;; Cross-language Generics
            :direct-children
            :body
@@ -5929,13 +5930,13 @@ are ordered for reproduction as source text.")
                   (cond
                     ((typep output 'structured-text)
                      ;; TODO Currently before-text and after-text can contain
-                     ;; conflict ASTs.
-                     (append (and (typep (before-text output) 'conflict-ast)
+                     ;; alternative ASTs.
+                     (append (and (typep (before-text output) 'alternative-ast)
                                   (list (before-text output)))
                              (before-asts output)
                              (list output)
                              (after-asts output)
-                             (and (typep (after-text output) 'conflict-ast)
+                             (and (typep (after-text output) 'alternative-ast)
                                   (list (after-text output)))))
                     (t (list output))))
                 output-transformation)))
@@ -6214,9 +6215,9 @@ is hand-written.")
 ;;; TODO This handles conflict ASTs in {before-,after-,}text slots.
 (defmethod child-slots :around ((ast structured-text))
   "When there are ASTs in before-text, after-text, or text, expose them as
-children. (This can happen when they store conflict ASTs)."
+children. (This can happen when they store alternative ASTs)."
   (macrolet ((wrap-slot (slot)
-               `(when (typep (slot-value ast ',slot) 'conflict-ast)
+               `(when (typep (slot-value ast ',slot) 'alternative-ast)
                   '((,slot . 1)))))
     (append
      (wrap-slot before-text)
@@ -6227,9 +6228,9 @@ children. (This can happen when they store conflict ASTs)."
 ;;; TODO This also handles conflict ASTs in {before-,after-,}text slots.
 (defmethod child-slot-specifiers :around ((ast structured-text))
   "If there are ASTs in before-text, after-text, or text, expose them as
-children. (This can happen when they store conflict ASTs)."
+children. (This can happen when they store alternative ASTs)."
   (macrolet ((wrap-slot (slot)
-               `(when (typep (slot-value ast ',slot) 'conflict-ast)
+               `(when (typep (slot-value ast ',slot) 'alternative-ast)
                   (load-time-value
                    (list
                     (make 'ft::slot-specifier
@@ -7035,6 +7036,13 @@ return whether they are equal.")
   slot or an inner-asts slot."
   '(member :terminal :ast :extra-ast))
 
+(defgeneric get-representative-ast (alternative-ast)
+  (:documentation "Get an AST in ALTERNATIVE-AST which can be used when
+structured-text methods require a structured-text AST.")
+  (:method ((ast conflict-ast))
+    (some #'cadr (conflict-ast-child-alist ast))))
+
+
 (defun children-parser (ast pruned-rule slots &aux (child-stack-key '#.(gensym)))
   "Return the children of AST in order based on PRUNED-RULE. SLOTS specifies
 which slots are expected to be used."
@@ -7055,13 +7063,10 @@ which slots are expected to be used."
              value)
            (copy-table (table)
              (box (unbox table)))
-           (conflict-ast-substitution (conflict-ast)
-             "Retrieve a value from CONFLICT-AST which can be used to match on."
-             (some #'cadr (conflict-ast-child-alist conflict-ast)))
            (get-matchable-value (value)
              "Get a value that can be matched on by the tree-sitter rules."
-             (if (typep value 'conflict-ast)
-                 (conflict-ast-substitution value)
+             (if (typep value 'alternative-ast)
+                 (get-representative-ast value)
                  value))
            (populate-slot->stack ()
              "Create a table that maps a slot name to its
@@ -8683,7 +8688,7 @@ of the parent."
 for ASTs which need to appear in the surrounding text slots.")
   (:method (text) text)
   (:method ((ast null)) "")
-  (:method ((ast conflict-ast)) (source-text ast))
+  (:method ((ast alternative-ast)) (source-text ast))
   (:method ((ast source-text-fragment)) (text ast)))
 
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen

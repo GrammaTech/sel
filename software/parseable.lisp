@@ -27,6 +27,9 @@
            :ast-combine-hash-values
            :annotations
            :stored-hash
+           :alternative-ast
+           :alternative-ast-child-alist
+           :alternative-ast-default-children
            :conflict-ast
            :conflict-ast-child-alist
            :conflict-ast-default-children
@@ -151,16 +154,24 @@ whether they inherit from the functional trees library."))
   (:documentation "Base class for SEL functional tree ASTs.
 An applicative tree structure is used to hold the ASTs."))
 
-(defclass conflict-ast (functional-tree-ast)
+(defclass alternative-ast (functional-tree-ast)
   ((child-alist :initarg :child-alist :initform nil
-                :reader conflict-ast-child-alist
+                :reader alternative-ast-child-alist
                 :documentation "Child-Alist of the AST." :type list)
    (child-slot-specifiers
     :initform nil
     :allocation :class)
    (default-children :initarg :default-children :initform nil
-                     :reader conflict-ast-default-children
+                     :reader alternative-ast-default-children
                      :documentation "Default-Children of the AST." :type list))
+  (:documentation "Node representing several different ASTs at a point.
+This can be used to create ASTs which represent several different nodes in the
+same language or several nodes which differ in language."))
+
+(defclass conflict-ast (alternative-ast)
+  ((child-alist :reader conflict-ast-child-alist)
+   (child-slot-specifiers :allocation :class)
+   (default-children :reader conflict-ast-default-children))
   (:documentation "Node representing several possibilities for an AST.
 The mapping from a conflicted AST into a regular AST is as follows: for
 a given conflict key, and for each conflict node, get the list of children
