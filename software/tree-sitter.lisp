@@ -9123,6 +9123,12 @@ the rebinding"
                                       ast2)
   #.(fmt "~%"))
 
+;;; This is necessary for the c-round-trip-prettify-software test.
+(defmethod whitespace-between ((style c-style-indentation)
+                               (ast1 identifier-ast)
+                               (ast2 parameters-ast))
+  " ")
+
 
 ;;;; Parse Tree Util
 (defun add-operator-to-binary-operation (parse-tree)
