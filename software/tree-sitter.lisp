@@ -2259,7 +2259,27 @@ definitions.")
        ;; Wrapper class.
        (:IMPLICIT-RETURN-EXPRESSION
         (:TYPE . "SYMBOL")
-        (:NAME . "_expression")))
+        (:NAME . "_expression"))
+       ;; Reformat rule such that the trailing comma isn't preferred.
+       (:TUPLE-EXPRESSION
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "REPEAT")
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "attribute_item")))
+         ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "STRING") (:VALUE . ","))
+           ((:TYPE . "REPEAT")
+            (:CONTENT
+             (:TYPE . "SEQ")
+             (:MEMBERS
+              ((:TYPE . "STRING") (:VALUE . ","))
+              ((:TYPE . "SYMBOL") (:NAME . "_expression")))))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "BLANK")) ((:TYPE . "STRING") (:VALUE . ","))))
+         ((:TYPE . "STRING") (:VALUE . ")")))))
       ((:javascript :typescript-ts :typescript-tsx)
        (:-SEMICOLON (:TYPE . "CHOICE")
         (:MEMBERS

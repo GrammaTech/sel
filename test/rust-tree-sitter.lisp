@@ -85,6 +85,13 @@ pub unsafe fn auto() -> MmapChoice {
          (target-ast (find-if (of-type 'rust-block) root)))
     (is (not (find #\; (source-text target-ast))))))
 
+(deftest rust-tuple-expression-substitution ()
+  "rust-tuple-expression does not prefer a trailing comma over a blank."
+  (let* ((source "{(x, y)}")
+         (root (convert 'rust-ast source))
+         (target-ast (find-if (of-type 'rust-tuple-expression) root)))
+    (is (eql 1 (count #\, (source-text target-ast))))))
+
 
 ;;; Parsing tests.
 
