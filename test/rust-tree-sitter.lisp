@@ -98,6 +98,12 @@ pub unsafe fn auto() -> MmapChoice {
          (root (convert 'rust-ast source)))
     (is (equal source (source-text root)))))
 
+(deftest rust-closure-expression-substitution ()
+  "rust-closure-expression does not drop 'move' from the source text."
+  (let* ((source "let x = f(move || write(&thing));")
+         (root (convert 'rust-ast source)))
+    (is (equal source (source-text root)))))
+
 
 ;;; Parsing tests.
 

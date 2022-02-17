@@ -80,6 +80,12 @@ returns something or not."
   (with-modify-parse-tree (parse-tree)
     ((:&) (label-as :borrow))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':rust)) (class (eql 'rust-closure-expression)) parse-tree &key)
+  "Store the operators of unary expressions in their own field."
+  (with-modify-parse-tree (parse-tree)
+    ((:move) (label-as :move))))
+
 
 ;;; Whitespace.
 

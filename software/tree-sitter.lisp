@@ -822,6 +822,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (python-for-statement (:async))
        (python-with-statement (:async)))
       (:rust
+       (rust-closure-expression (:move))
        (rust-function-modifiers (:modifiers (:multiple . t)))
        (rust-let-declaration (:mutable-specifier))
        (rust-self-parameter (:borrow))
@@ -2686,7 +2687,11 @@ tree-sitter.")
        (:self-parameter
         (:label
          ((:TYPE . "STRING") (:VALUE . "&"))
-         :as "borrow")))
+         :as "borrow"))
+       (:closure-expression
+        (:label
+         ((:TYPE . "STRING") (:VALUE . "move"))
+         :as "move")))
       ((:typescript-ts :typescript-tsx)
        (:property-signature
         (:replace
