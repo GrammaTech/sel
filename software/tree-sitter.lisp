@@ -824,6 +824,7 @@ searched to populate `*tree-sitter-language-files*'.")
       (:rust
        (rust-function-modifiers (:modifiers (:multiple . t)))
        (rust-let-declaration (:mutable-specifier))
+       (rust-self-parameter (:borrow))
        (rust-unary-expression (:operator)))
       (:javascript
        (javascript-function-declaration (:async))
@@ -2681,7 +2682,11 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "-"))
            ((:TYPE . "STRING") (:VALUE . "*"))
            ((:TYPE . "STRING") (:VALUE . "!"))))
-         :as "operator")))
+         :as "operator"))
+       (:self-parameter
+        (:label
+         ((:TYPE . "STRING") (:VALUE . "&"))
+         :as "borrow")))
       ((:typescript-ts :typescript-tsx)
        (:property-signature
         (:replace

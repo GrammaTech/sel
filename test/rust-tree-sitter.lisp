@@ -92,6 +92,12 @@ pub unsafe fn auto() -> MmapChoice {
          (target-ast (find-if (of-type 'rust-tuple-expression) root)))
     (is (eql 1 (count #\, (source-text target-ast))))))
 
+(deftest rust-self-parameter-substitution ()
+  "rust-self-parameter does not drop the borrow syntax from the source text."
+  (let* ((source "pub fn f(&mut self) {}")
+         (root (convert 'rust-ast source)))
+    (is (equal source (source-text root)))))
+
 
 ;;; Parsing tests.
 

@@ -74,6 +74,12 @@ returns something or not."
         ,(mapcar (op (change-target-child _ target-child)) children))
       (call-next-method))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':rust)) (class (eql 'rust-self-parameter)) parse-tree &key)
+  "Store the operators of unary expressions in their own field."
+  (with-modify-parse-tree (parse-tree)
+    ((:&) (label-as :borrow))))
+
 
 ;;; Whitespace.
 
