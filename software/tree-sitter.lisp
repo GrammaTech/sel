@@ -1697,6 +1697,19 @@ definitions.")
          (:seq (:child c--expression c-comma-expression)))
         (c-empty-expression-statement
          (:seq))))
+      (:cpp
+       ;; TODO: this should be moved over to using the pruned-rule before
+       ;;       merging into master.
+       (cpp-update-expression
+        (cpp-update-expression-prefix
+         (:seq (:field cpp-operator cpp--- cpp-++) (:field cpp-argument cpp--expression)))
+        (cpp-update-expression-postfix
+         (:seq (:field cpp-argument cpp--expression) (:field cpp-operator cpp--- cpp-++))))
+       (cpp-expression-statement
+        (cpp-expression-statement-
+         (:seq (:child cpp--expression cpp-comma-expression)))
+        (cpp-empty-expression-statement
+         (:seq))))
       (:python
        (python-tuple
         (python-empty-tuple
