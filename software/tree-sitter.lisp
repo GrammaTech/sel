@@ -1698,8 +1698,6 @@ definitions.")
         (c-empty-expression-statement
          (:seq))))
       (:cpp
-       ;; TODO: this should be moved over to using the pruned-rule before
-       ;;       merging into master.
        (cpp-update-expression
         (cpp-update-expression-prefix
          (:seq (:field cpp-operator cpp--- cpp-++) (:field cpp-argument cpp--expression)))
@@ -1722,7 +1720,10 @@ definitions.")
          (:seq (:slot python-internal-asts-0))))
        (python-argument-list
         (python-empty-argument-list
-         (:seq (:slot python-internal-asts-1)))))))
+         (:seq (:slot python-internal-asts-1))))))
+    "Give names to choice expansion subclasses having a certain collapsed rule.
+This isn't just for convenience; anonymous choice expansion subclasses
+are ignored by templates, whereas named ones are preserved.")
 
   (defparameter *tree-sitter-json-rule-substitutions*
     '(((:c :cpp)

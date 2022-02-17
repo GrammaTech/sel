@@ -168,14 +168,24 @@ in context."
   "This wrapper methods has two different intended effects:
 1. Bind `*annotation-numbers*' around nested methods.
 2. Generalize specialized class names with the enclosing `map-tree'."
-  (map-tree (lambda (symbol)            ; (2)
-              (if-let* ((class (and (symbolp symbol) (find-class-safe symbol)))
-                        (superclass-slot
-                         (find-if [{eql 'choice-superclass} #'slot-definition-name]
-                                  (progn (ensure-finalized class) (class-slots class))))
-                        (quoted-value (slot-definition-initform superclass-slot)))
-                (eval quoted-value)
-                symbol))
+  (map-tree (lambda (node)                 ; (2)
+              (match node
+                ((and symbol
+                      (type symbol)
+                      ;; We only want to generalize choice expansion
+                      ;; subclasses if they haven't been named.
+                      (access #'symbol-name (ppcre "-\\d+$")))
+                 (if-let* ((class (find-class-safe symbol))
+                           (superclass-slot
+                            (find-if [{eql 'choice-superclass}
+                                      #'slot-definition-name]
+                                     (progn (ensure-finalized class)
+                                            (class-slots class))))
+                           (quoted-value
+                            (slot-definition-initform superclass-slot)))
+                   (eval quoted-value)
+                   symbol))
+                (otherwise node)))
             (if (boundp '*annotation-number*) ; (1)
                 (call-next-method)
                 (let ((*annotation-number* 0))
