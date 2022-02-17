@@ -1,0 +1,4 @@
+strip-comments: True
+number-sections: True
+table-of-contents: True
+filters: [pandoc-include, tikz.lua, pandoc-xnos]
