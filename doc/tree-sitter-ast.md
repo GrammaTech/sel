@@ -1,6 +1,5 @@
 ---
 title: "SEL's tree-sitter ASTs"
-subtitle: (more like CSTs)
 ---
 
 SEL provides abstract syntax trees (ASTs) which can be used for source
@@ -14,7 +13,7 @@ This document details SEL's use of tree-sitter to build its AST
 representation.
 
 
-# What is tree-sitter?
+# Tree-sitter in the context of SEL
 
 From <https://tree-sitter.github.io/tree-sitter/>:
 
@@ -31,24 +30,24 @@ SEL's usage:
 
 ## Benefits of tree-sitter
 
-- Adoption by several projects, such as Neovim.
+- Widespread adoption.  Many people, projects, and organizations
+  contribute to tree-sitter resulting in high-quality grammars that
+  span many languages and stay up to date as languages evolve.
 
-- Many available languages.
+- Many supported languages.
 
-- Fairly uniform representation of languages.
+- Fairly uniform representation across languages.
 
-  Previously, each language had a different way of getting an AST.
-  These different ways often varied widely in how useful they were.
-  As an example, Python 3's AST representation isn't the most ideal
-  for SEL's use case.
-
-- Many people and organizations contribute to tree-sitter resulting in
-  high-quality grammars that span many languages and stay up to date
-  with evolving languages.
+  Previously, each language in SEL had a different front-end tools
+  used to parse ASTs.  These front ends varied widely in their
+  requirements (e.g., Clang needed a compilation database) fit to
+  SEL's needs and representation.  As an example, Python 3's AST
+  representation isn't the most ideal for SEL's use case.
+  <!-- TODO: specifically what about Python 3? -->
 
 ## What does tree-sitter provide?
 
--   A shared object that provides functionality to take a string and
+-   A shared object with the functionality to read a string and
     generate a CST.  This CST is fairly error-resilient.
 
 -   JSON files which specify the structure of the CST.  Specifically:
@@ -57,9 +56,9 @@ SEL's usage:
 
     - grammar.json (commonly referred to as "the JSON" in discussions)
 
-## Pain Points
+## Pain Points of tree-sitter
 
-- Tree-sitter has trouble parsing some languages, such as C++.
+- Tree-sitter has trouble parsing some languages, notably C++.
 
 - Frequently SEL needs to patch the ASTs that come from tree sitter to
   store enough information to reproduce source text.
@@ -318,7 +317,15 @@ The sequence of steps is as follows:
     expansion subclass is found if needed. Otherwise, it simply checks
     if the class matches if there aren't any subclasses. If it fails to
     match, an error occurs.
-5.  An instance of the relevant class is instantiated and its slots are
-    populated with its named children, internal ASTs, and surrounding
-    text.
+5.  An instance of the relevant class is instantiated and its slots
+    are populated with its named children, internal ASTs, and
+    surrounding text.  At this point the parse tree is rebuilt as an
+    applicative tree using functional-trees.[^functional-trees] This
+    structure provides support for cheap copy and undo of tree
+    modifications as well as emerging support for static analysis via
+    incrementally calculated attribute grammars. <!-- TODO: Confirm
+    this is the right place in the sequence to mention functional
+    treees? -->
 6.  The AST has its indentation converted from a string into a number.
+
+[^functional-trees]: https://github.com/grammatech/functional-trees
