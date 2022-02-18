@@ -508,6 +508,7 @@
            :variable-initialization-ast
            :assignment-ast
            :identifier-ast
+           :type-ast
            :lambda-ast
            :literal-ast
            :number-ast
@@ -1136,6 +1137,8 @@ for the language.")
        (:goto-ast c-goto-statement)
        (:parameter-ast c-parameter-declaration)
        (:parameters-ast c-parameter-list)
+       (:type-identifier-ast c-type-identifier)
+       (:type-ast c-primitive-type c-sized-type-specifier c-type-descriptor)
        (:c/cpp-+ c-+)
        (:c/cpp-- c--)
        (:c/cpp-* c-*)
@@ -1240,6 +1243,7 @@ for the language.")
         cpp-enum-specifier
         cpp-class-specifier)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
+       (:expression-ast cpp--expression)
        (:statement-ast cpp--statement cpp-function-definition cpp-declaration)
        (:expression-statement-ast cpp-expression-statement)
        (:compound-ast cpp-compound-statement)
@@ -1262,7 +1266,6 @@ for the language.")
         cpp-type-identifier
         cpp-primitive-type
         cpp-field-identifier)
-       (:type-identifier-ast cpp-type-identifier)
        (:field-ast cpp-field-expression)
        (:subscript-ast cpp-subscript-expression)
        (:catch-ast cpp-catch-clause)
@@ -1273,6 +1276,10 @@ for the language.")
         cpp-do-statement)
        (:parameter-ast cpp-parameter-declaration)
        (:parameters-ast cpp-parameter-list)
+       (:arguments-ast cpp-argument-list)
+       (:type-identifier-ast cpp-type-identifier)
+       (:type-ast cpp-primitive-type cpp-sized-type-specifier cpp-template-type
+        cpp-type-descriptor)
        (:c/cpp-+ cpp-+)
        (:c/cpp-- cpp--)
        (:c/cpp-* cpp-*)
@@ -1534,6 +1541,7 @@ for the language.")
        (:call-ast rust-call-expression)
        (:comment-ast rust-line-comment rust-block-comment)
        (:compound-ast rust-block)
+       (:expression-ast rust--expression)
        (:float-ast rust-float-literal)
        (:function-declaration-ast rust-function-item)
        (:identifier-ast
@@ -1543,8 +1551,12 @@ for the language.")
        (:integer-ast rust-integer-literal)
        (:parameter-ast rust-parameter)
        (:parameters-ast rust-parameters)
+       (:parenthesized-expression-ast rust-parenthesized-expression)
        (:return-ast rust-return-expression)
        (:root-ast rust-source-file)
+       (:string-ast rust-string-literal)
+       (:type-ast rust-primitive-type rust-generic-type)
+       (:type-identifier-ast rust-type-identifier)
        (:unary-ast rust-unary-expression)
        (:variable-declaration-ast rust-let-declaration))
       ((:typescript-ts :typescript-tsx)
@@ -3257,15 +3269,19 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
 
-  (defclass expression-statement-ast (ast) ()
+ (defclass expression-statement-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are expression statements."))
 
   (defclass expression-ast (ast) ()
     (:documentation "Mix-in for AST classes that are expressions."))
 
-  (defclass parenthesized-expression-ast (ast) ()
+ (defclass parenthesized-expression-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are parenthesized
     expressions."))
+
+ (defclass field-ast (expression-ast) ()
+   (:documentation "Mix-in for AST classes that are field
+    expressions (not field declarations)."))
 
  (defclass compound-ast (ast) ()
     (:documentation "Mix-in for AST classes that are compounds."))
@@ -3336,12 +3352,11 @@ not declarations)."))
   (defclass identifier-ast (ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
 
- (defclass type-identifier-ast (identifier-ast) ()
-   (:documentation "Mix-in for AST classes that are type identifiers \(when they are distinct)."))
+ (defclass type-ast (ast) ()
+   (:documentation "Mixin for AST classes that designate types."))
 
-  (defclass field-ast (ast) ()
-    (:documentation "Mix-in for AST classes that are field
-    expressions (not field declarations)."))
+ (defclass type-identifier-ast (identifier-ast type-ast) ()
+   (:documentation "Mix-in for AST classes that are type identifiers \(when they are distinct)."))
 
   (defclass subscript-ast (ast) ()
     (:documentation "Mix-in for AST classes that are subscripts."))
