@@ -42,6 +42,7 @@
 
 ;;; Template tests.
 
+#+tree-sitter-cpp
 (deftest test-starred-template-variant ()
   (is (typep
        (ematch (cpp* "($EXPR);" :expr 1)
