@@ -215,6 +215,9 @@ pointer declarations which are nested on themselves."
 (defmethod declarator-name-ast ((ast c/cpp-function-declarator))
   (declarator-name-ast (c/cpp-declarator ast)))
 
+(defmethod declaration-type ((ast c/cpp-function-definition))
+  (c/cpp-type ast))
+
 (defmethod field-names ((ast c/cpp-field-declaration))
   (collect-if (of-type 'c/cpp-field-identifier) ast))
 (defmethod field-names ((ast c/cpp-enumerator))
