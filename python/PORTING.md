@@ -170,7 +170,7 @@ This aids in reproducibility/tracing of issues in older releases.
 | tree-sitter-typescript | e8e8e8dc |
 | tree-sitter-python     | 24b530ca |
 
-## v0.5.2 -> Latest
+## v0.5.2
 
 | Repository             | Revision |
 |------------------------|----------|
@@ -181,3 +181,16 @@ This aids in reproducibility/tracing of issues in older releases.
 | tree-sitter-javascript | fdeb68ac |
 | tree-sitter-typescript | e8e8e8dc |
 | tree-sitter-python     | 24b530ca |
+
+## v0.6.0 -> Latest
+
+| Repository             | Revision |
+|------------------------|----------|
+| tree-sitter            | 5ef4ef4e |
+| tree-sitter-c          | e348e8ec |
+| tree-sitter-cpp        | 656d7ea4 |
+| tree-sitter-java       | 8a6ab8e8 |
+| tree-sitter-javascript | fdeb68ac |
+| tree-sitter-python     | 24b530ca |
+| tree-sitter-typescript | e8e8e8dc |
+| tree-sitter-rust       | a250c458 |
