@@ -11,6 +11,7 @@
         :software-evolution-library/software/python
         :software-evolution-library/software/java
         :software-evolution-library/software/javascript
+        :software-evolution-library/software/rust
         :software-evolution-library/software/typescript
         :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library/command-line :alias-language)
@@ -21,10 +22,12 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +command-line-options+
-    '((("help" #\h #\?) :type boolean :optional t
+    `((("help" #\h #\?) :type boolean :optional t
        :documentation "display help output")
       (("languages" #\L) :type string :optional t
-       :initial-value "c,cpp,java,javascript,python,typescript-ts,typescript-tsx"
+       :initial-value ,(format nil "~{~a~^,~}"
+                               (list "c" "cpp" "java" "javascript" "python"
+                                     "rust" "typescript-ts" "typescript-tsx"))
        :action #'handle-languages-argument
        :documentation
        "comma-delimited source languages of the ASTs to dump"))))

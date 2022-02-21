@@ -461,13 +461,6 @@ class UTF8TestDriver(unittest.TestCase):
         self.assertEqual([[1, 1], [1, 9]], rnge)
 
 
-class TypescriptTestDriver(unittest.TestCase):
-    def test_typescript_parse(self):
-        text = "let message: string = 'Hello World!'\nconsole.log(message)"
-        root = AST.from_string(text, ASTLanguage.TypescriptTs)
-        self.assertEqual(root.language, ASTLanguage.TypescriptTs)
-
-
 class InnerParentTestDriver(unittest.TestCase):
     def test_inner_parent_asts(self):
         text = """__all__ = [
@@ -480,9 +473,20 @@ class InnerParentTestDriver(unittest.TestCase):
         self.assertTrue(inner_parent.source_text.startswith(" # first comment"))
 
 
-class JavaTestDriver(unittest.TestCase):
+class SimpleParseTestDriver(unittest.TestCase):
+    def test_typescript_parse(self):
+        self.simple_parse_driver(
+            "let message: string = 'Hello World!'\nconsole.log(message)",
+            ASTLanguage.TypescriptTs,
+        )
+
     def test_java_parse(self):
-        text = "import foo;"
-        root = AST.from_string(text, ASTLanguage.Java)
-        self.assertEqual(root.language, ASTLanguage.Java)
+        self.simple_parse_driver("import foo;", ASTLanguage.Java)
+
+    def test_rust_parse(self):
+        self.simple_parse_driver('println!("Hello, world!");', ASTLanguage.Rust)
+
+    def simple_parse_driver(self, text, language):
+        root = AST.from_string(text, language)
+        self.assertEqual(root.language, language)
         self.assertEqual(root.source_text, text)

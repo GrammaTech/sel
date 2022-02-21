@@ -33,13 +33,14 @@ LiteralOrAST = Union[int, float, str, "AST"]
 
 # Auxillary classes
 class ASTLanguage(enum.Enum):
-    Python = 0
-    C = 1
-    Cpp = 2
-    Java = 3
-    Javascript = 4
-    TypescriptTs = 5
-    TypescriptTsx = 6
+    C = 0
+    Cpp = 1
+    Java = 2
+    Javascript = 3
+    Python = 4
+    Rust = 5
+    TypescriptTs = 6
+    TypescriptTsx = 7
 
 
 class ASTException(Exception):
@@ -51,9 +52,7 @@ class ASTException(Exception):
 def _guess_language(text: str) -> Optional[ASTLanguage]:
     """Use pygments to guess the source language of text, if possible."""
     lexer = pygments.lexers.guess_lexer(text)
-    if isinstance(lexer, pygments.lexers.PythonLexer):
-        return ASTLanguage.Python
-    elif isinstance(lexer, pygments.lexers.CLexer):
+    if isinstance(lexer, pygments.lexers.CLexer):
         return ASTLanguage.C
     elif isinstance(lexer, pygments.lexers.CppLexer):
         return ASTLanguage.Cpp
@@ -61,6 +60,10 @@ def _guess_language(text: str) -> Optional[ASTLanguage]:
         return ASTLanguage.Java
     elif isinstance(lexer, pygments.lexers.JavascriptLexer):
         return ASTLanguage.Javascript
+    elif isinstance(lexer, pygments.lexers.PythonLexer):
+        return ASTLanguage.Python
+    elif isinstance(lexer, pygments.lexers.RustLexer):
+        return ASTLanguage.Rust
     elif isinstance(lexer, pygments.lexers.TypeScriptLexer):
         return ASTLanguage.TypescriptTs
     else:

@@ -9,6 +9,7 @@
         :software-evolution-library/software/python
         :software-evolution-library/software/java
         :software-evolution-library/software/javascript
+        :software-evolution-library/software/rust
         :software-evolution-library/software/typescript)
   (:export :cl-to-python-type
            :cl-to-python-ast-language
@@ -147,6 +148,12 @@ the trailing characters of the symbol string SYMNAME."
                           (">>>=" . "unsigned-bitshift-right-assign")
                           ;; Java terminals
                           ("@interface" . "at-interface")
+                          ;; Rust terminals
+                          ("#" . "hash-sign")
+                          ("$" . "dollar-sign")
+                          ("rules!" . "rules-exclamation")
+                          (".." . "dot-dot")
+                          ("..=" . "dot-dot-assign")
                           ;; Typescript terminals
                           ("?:" . "opting-type-terminal")
                           ("-?:" . "omitting-type-terminal")
@@ -204,7 +211,7 @@ AST (instance, type symbol, or class).")
   (:method ((ast-type symbol))
     (when-let ((superclass (find ast-type
                                  '(c-ast cpp-ast python-ast
-                                   java-ast javascript-ast
+                                   java-ast javascript-ast rust-ast
                                    typescript-ts-ast typescript-tsx-ast)
                                  :test #'subtypep)))
       (drop-suffix "-AST" (symbol-name superclass)))))

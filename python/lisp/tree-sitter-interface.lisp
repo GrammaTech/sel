@@ -14,6 +14,7 @@
         :software-evolution-library/software/python
         :software-evolution-library/software/java
         :software-evolution-library/software/javascript
+        :software-evolution-library/software/rust
         :software-evolution-library/software/typescript
         :software-evolution-library/utility/range
         :software-evolution-library/python/lisp/utility)
