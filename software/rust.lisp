@@ -100,6 +100,13 @@ returns something or not."
   (with-modify-parse-tree (parse-tree)
     ((:move) (label-as :move))))
 
+(defmethod transform-parse-tree
+    ((language (eql ':rust)) (class (eql 'rust-generic-type)) parse-tree &key)
+  "Store the :: of the turbofish operator in its own field. This is to get
+around generic-type-with-turbofish being aliased to generic-type."
+  (with-modify-parse-tree (parse-tree)
+    ((:|::|) (label-as :turbofish-operator))))
+
 
 ;;; Whitespace.
 

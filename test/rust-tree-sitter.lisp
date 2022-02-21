@@ -122,6 +122,12 @@ pub unsafe fn auto() -> MmapChoice {
          (root (convert 'rust-ast source)))
     (is (equal source (source-text root)))))
 
+(deftest rust-generic-type-with-turbofish-substitution ()
+  "rust-generic-type does not drop turbofish information."
+  (let* ((source "let x = X::<Y>::new();")
+         (root (convert 'rust-ast source)))
+    (is (equal source (source-text root)))))
+
 
 ;;; Parsing tests.
 
