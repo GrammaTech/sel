@@ -1024,7 +1024,14 @@ for the language.")
         (rust-alternative :initarg :alternative :reader alternative))
        (rust-let-declaration
         (rust-pattern :initarg :lhs :reader lhs)
-        (rust-value :initarg :rhs :reader rhs)))
+        (rust-value :initarg :rhs :reader rhs))
+       (rust-function-item
+        (rust-name :reader function-name)
+        (rust-parameters :reader function-parameters)
+        (rust-body :reader function-body))
+       (rust-call-expression
+        (rust-function :reader call-function)
+        (rust-arguments :reader call-arguments)))
       ((:typescript-ts :typescript-tsx)
        ;; Anonymous function (function keyword).
        (typescript-ts-function
