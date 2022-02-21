@@ -537,6 +537,7 @@
            :relevant-declaration-type
            :get-initialization-ast
            :get-declaration-id
+           :variable-declaration-ids
            :same-variable-p
            :same-place-p
            :variable-use-p
@@ -6953,6 +6954,17 @@ support destructuring.")
                       (equal (source-text ast)
                              id-text)))
                (get-declaration-ast type obj id)))))
+
+(define-generic-analysis variable-declaration-ids (software ast)
+  (:documentation "Collect the variable declarations IDs in AST.")
+  (:method (sw ast)
+    (iter (for id in (identifiers ast))
+          (for decl =
+               (get-declaration-ast 'variable sw id))
+          (when (typep decl 'variable-declaration-ast)
+            (set-collect (assure ast (get-declaration-id 'variable sw id))
+                         into ids))
+          (finally (return (convert 'list ids))))))
 
 (defgeneric same-variable-p (obj ast1 ast2)
   (:documentation "T if AST1 and AST2 resolve to the same declaration.
