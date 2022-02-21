@@ -726,6 +726,25 @@ then the return type of the call is the return type of the field."
     (otherwise
      (call-next-method))))
 
+(defmethod infer-expression-type ((obj cpp) (ast cpp-call-expression))
+  (match ast
+    ;; Special case: the type of `std::next' should be the same as
+    ;; its argument.
+    ((cpp-call-expression
+      :cpp-function
+      (and name
+           (cpp-qualified-identifier
+            :cpp-name (cpp-identifier :text "next")))
+      :cpp-arguments
+      (cpp-argument-list
+       :children (list arg)))
+     (unless (equal (mapcar #'source-text (namespace-qualifiers obj name))
+                    '("std"))
+       (trivia.fail:fail))
+     (infer-type obj arg))
+    (otherwise
+     (call-next-method))))
+
 (defmethod expression-type ((ast cpp-number-literal))
   ;; NB There are no negative integer literals in C++; they are
   ;; handed through implicit conversion with the unary minus
