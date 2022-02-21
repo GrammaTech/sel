@@ -205,15 +205,23 @@ to advance to the next file."
 (defun summarize-ast (ast &key (stream t) (indent 2))
   "Print a quick summary of an AST as a tree."
   (with-string (out stream)
-    (labels ((summarize-ast (ast depth)
-               (let ((lines (lines (source-text ast) :count 2)))
+    (labels ((source-text* (ast)
+               (handler-case (source-text ast)
+                 (error () "UNKNOWN")))
+             (summarize-ast (ast depth)
+               (let ((lines (lines (source-text* ast) :count 2)))
                  (format out "~&~a~a ~a~@[...~]"
                          (make-string depth :initial-element #\Space)
                          (type-of ast)
                          (first lines)
                          (rest lines)))
-               (dolist (child (children ast))
-                 (summarize-ast child (+ depth indent)))))
+               (let ((children
+                      (typecase ast
+                        (alternative-ast
+                         (mapcar #'cdr (alternative-ast-child-alist ast)))
+                        (otherwise (children ast)))))
+                 (dolist (child children)
+                   (summarize-ast child (+ depth indent))))))
       (summarize-ast ast 0))))
 
 (defun ambiguous-asts (software &key context)
