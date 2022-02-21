@@ -64,3 +64,12 @@ ASTs that can have multiple statements in their body."
      &key)
   (with-modify-parse-tree (parse-tree)
     ((:open) (label-as :open))))
+
+
+;;; Methods for tree-sitter generics.
+
+(defmethod declaration-type ((ast java-local-variable-declaration))
+  (java-type ast))
+
+(defmethod placeholder-type-p ((ast java-type-identifier))
+  (equal (text ast) "var"))

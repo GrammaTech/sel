@@ -757,6 +757,12 @@ then the return type of the call is the return type of the field."
 (defmethod expression-type ((ast cpp-new-expression))
   (cpp-type ast))
 
+(defmethod placeholder-type-p ((ast cpp-auto))
+  t)
+
+(defmethod placeholder-type-p ((ast cpp-placeholder-type-specifier))
+  t)
+
 (defmethod infer-type :around ((obj software) (ast cpp-field-expression))
   "Handle the special case of inferring the type of a field expression whose argument is a standard library iterator.
 
@@ -970,6 +976,7 @@ iterator we want the type of the container's elements."
 
 (defmethod initializer-aliasee ((sw cpp) (lhs cpp-reference-declarator) rhs)
   (aliasee sw rhs))
+
 
 
 ;;; Whitespace rules

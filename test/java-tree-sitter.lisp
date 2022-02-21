@@ -61,3 +61,11 @@ in an enum body."
          (target-ast (find-if (of-type 'java-module-declaration) root)))
     (is (java-open target-ast))
     (is (equal source (source-text root)))))
+
+
+;;; Static analysis tests.
+
+(deftest java-var-placeholder-type ()
+  (is (placeholder-type-p
+       (declaration-type
+        (convert 'java-ast "var x = 1;" :deepest t)))))

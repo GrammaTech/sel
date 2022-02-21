@@ -574,6 +574,7 @@
            :infer-type
            :infer-expression-type
            :expression-type
+           :placeholder-type-p
            :extract-declaration-type
            :resolve-declaration-type
            :declaration-type
@@ -7098,6 +7099,13 @@ NODE. If NODE is not a thing that has fields, return nil.")
                (source-text result)
                result)))))
 
+(defgeneric placeholder-type-p (ast)
+  (:documentation "Does AST designate a placeholder type?
+
+A placeholder type is a type like C++ `auto' or Java `var', a request
+for the compiler to infer the type.")
+  (:method ((ast t)) nil))
+
 (define-generic-analysis infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
@@ -7105,10 +7113,17 @@ By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
   (:method ((software t) (ast t))
-    (or (infer-expression-type software ast)
-        (let ((decl-type (relevant-declaration-type software ast)))
-          (when-let (decl (get-declaration-ast decl-type software ast))
-            (resolve-declaration-type software decl ast))))))
+    (flet ((infer-type-from-declaration ()
+             (let ((decl-type (relevant-declaration-type software ast)))
+               (when-let (decl (get-declaration-ast decl-type software ast))
+                 (resolve-declaration-type software decl ast)))))
+      (let ((expression-type (infer-expression-type software ast)))
+        (cond ((null expression-type)
+               (infer-type-from-declaration))
+              ((placeholder-type-p expression-type)
+               (or (infer-type-from-declaration)
+                   expression-type))
+              (t expression-type))))))
 
 (define-generic-analysis infer-expression-type (software ast)
   (:documentation "Infer the type of AST in SOFTWARE as an expression.
