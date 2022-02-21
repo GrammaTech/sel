@@ -26,6 +26,15 @@
 // Trim the front of a polyline (represented as a list or vector of Point2).
 // Returns the trimmed portion of the polyline. The supplied polyline is
 // altered (the trimmed part is removed).
+
+#include<list>
+
+struct Point {
+  double x,y;
+  double Distance(const Point&);
+  Point PointAlongSegment(const Point&, double);
+};
+
 std::list<Point> trim_front(std::list<Point>& pts, const float dist) {
   // Return if less than 2 points
   if (pts.size() < 2) {
