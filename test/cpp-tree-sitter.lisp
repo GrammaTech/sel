@@ -205,11 +205,11 @@ int main () {
     ("dist" . "float")
     ("result" . "std::list<Point>")
     ("d" . "double")
-    ("p1" . "auto")
-    ("p2" . "auto")
+    ("p1" . "std::list<Point>::iterator")
+    ("p2" . "std::list<Point>::iterator")
     ("segdist" . "double")
     ("frac" . "double")
-    ("midpoint" . "auto")
+    ("midpoint" . "Point")
     ("next_point" . "Point"))
   "The types extracted from the trim_front example.")
 
@@ -219,30 +219,29 @@ int main () {
     (let ((wanted-names
            (convert 'set (mapcar #'car +trim-front-types+)))
           (scope-names
-           (convert 'set (mapcar {aget :name} (all-scopes *soft*)))))
+           (convert 'set
+                    (remove "Point"
+                            (mapcar {aget :name} (all-scopes *soft*))
+                            :test #'source-text=))))
       (is (empty? (set-difference scope-names wanted-names)))
       (is (empty? (set-difference wanted-names scope-names))))))
 
-(labels ((last-ids ()
-           "Get the last occurrence of each name."
-           (remove-duplicates
-            (collect-if (of-type 'cpp-identifier)
-                        (genome *soft*))
-            :from-end nil
-            :key #'source-text
-            :test #'equal))
-         (accesses ()
-           "Filter out everything whose name that isn't in the
+(deftest test-trim-front-decls ()
+  "Test that we get the right declaration for each identifier."
+  ;; Test that we have all and only the above identifiers.
+  (labels ((last-ids ()
+             "Get the last occurrence of each name."
+             (remove-duplicates (identifiers (genome *soft*))
+                                :from-end nil
+                                :test #'source-text=))
+           (accesses ()
+             "Filter out everything whose name that isn't in the
          result alist."
-           (filter (lambda (id)
-                     (member (source-text id) +trim-front-types+
-                             :key #'car
-                             :test #'equal))
-                   (last-ids))))
-
-  (deftest test-trim-front-decls ()
-    "Test that we get the right declaration for each identifier."
-    ;; Test that we have all and only the above identifiers.
+             (filter (lambda (id)
+                       (member id +trim-front-types+
+                               :key #'car
+                               :test #'source-text=))
+                     (last-ids))))
     (with-fixture trim-front
       (let* ((all-scopes (all-scopes *soft*)))
         (iter (for access in (accesses))
@@ -256,26 +255,39 @@ int main () {
                         (is (or (eql decl scope-decl)
                                 (descendant-of-p *soft*
                                                  scope-decl
-                                                 decl))))))))))
+                                                 decl)))))))))))
 
-  (deftest test-trim-front-types ()
-    "Test that we retrieve the correct type for each identifier."
-    (with-fixture trim-front
-      ;; Get the type for each access.
-      (iter (for access in (accesses))
-            (for access-source-text = (source-text access))
-            (let ((reference-type
-                   (assure string
-                     (aget access-source-text
-                           +trim-front-types+
-                           :test #'equal)))
-                  (extracted-type
-                   (assure (or null ast)
-                     (infer-type *soft* access))))
-              (is (string= reference-type (source-text extracted-type))
-                  "Mismatch for ~a: should be ~s, got ~s"
-                  access-source-text
-                  reference-type extracted-type))))))
+(defun test-trim-front-variable (name)
+  (with-fixture trim-front
+    ;; Get the type for each access.
+    (let* ((id (find "midpoint"
+                     (variable-declaration-ids *soft* (genome *soft*))
+                     :test #'source-text=))
+           (entry (assoc id
+                         +trim-front-types+
+                         :test #'source-text=)))
+      (is (source-text= (cdr entry) (infer-type *soft* id))))))
+
+(deftest test-trim-front-types (&key only)
+  "Test that we retrieve the correct type for each identifier."
+  (with-fixture trim-front
+    (let* ((ids (variable-declaration-ids *soft* (genome *soft*)))
+           ;; The only key is for interactive testing. E.g. tracing
+           ;; inference for a particular variable.
+           (ids (if only
+                    (filter (op (member _ only :test #'source-text=))
+                            ids)
+                    ids)))
+      (iter (for id in ids)
+            (when-let (entry (assoc id
+                                    +trim-front-types+
+                                    :test #'source-text=))
+              (let ((type (infer-type *soft* id)))
+                (is (source-text= (cdr entry) type)
+                    "Inferred ~a for variable ~a, should be ~a"
+                    (source-text type)
+                    (source-text id)
+                    (cdr entry))))))))
 
 (deftest test-expression-type ()
   (is (equal "double"
