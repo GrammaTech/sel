@@ -1407,6 +1407,8 @@ for the language.")
        (:root-ast java-program)
        (:statement-ast java-statement)
        (:string-ast java-string-literal)
+       (:type-identifier-ast java-type-identifier)
+       (:type-ast java-generic-type)
        (:unary-ast java-unary-expression)
        (:variable-declaration-ast java-local-variable-declaration
         java-variable-declarator)
