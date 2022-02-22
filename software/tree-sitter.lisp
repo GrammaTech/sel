@@ -6696,10 +6696,14 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
 
 (defgeneric definition-name (ast)
   (:documentation "Return a string that is the name of the things defined by a
-definition. Return NIL if AST is not a definition.")
+definition. Return NIL if AST is not a definition.  If more than one name is
+defined, return the first one.")
   (:method ((ast ast))
-    (when-let (name (definition-name-ast ast))
-      (source-text name))))
+    (let ((name (definition-name-ast ast)))
+      (etypecase name
+        (null nil)
+        (cons (source-text (car name)))
+        (t (source-text name))))))
 
 (defgeneric definition-name-ast (ast)
   (:documentation "Return an AST that is the name of the things
