@@ -7,7 +7,7 @@ SEL provides abstract syntax trees (ASTs) which can be used for
 programmatic source code transformation and (light) static analysis.
 The ASTs contain all original source information so they are
 technically concrete syntax trees (CSTs) not ASTs although we will
-refer to them as ASTs throughout.  Rather than abstracting the away
+refer to them as ASTs throughout.  Rather than abstracting away
 concrete information in the ASTs (as is typically done to ease static
 analysis), SEL provides generic functions which enable the generic
 treatment of full CSTs.
