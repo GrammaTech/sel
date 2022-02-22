@@ -9,6 +9,12 @@ trees (CSTs) not ASTs although we will refer to them as ASTs
 throughout.  Rather than abstracting the information in the ASTs, SEL
 provides generic functions which enable the generic treatment of CSTs.
 
+SEL's ASTs are built up as an applicative, immutable, functional tree
+data structure.[^functional-trees] This structure provides cheap --
+O(1) in time and space -- copy and undo of trees, tree modification in
+O(ln(n)) , and emerging support for static analysis via incrementally
+calculated attribute grammars.
+
 This document details SEL's use of tree-sitter to build its AST
 representation.
 
@@ -489,15 +495,10 @@ The sequence of steps is as follows:
     expansion subclass is found if needed. Otherwise, it simply checks
     if the class matches if there aren't any subclasses. If it fails to
     match, an error occurs.
-5.  An instance of the relevant class is instantiated and its slots
-    are populated with its named children, internal ASTs, and
-    surrounding text.  At this point the parse tree is rebuilt as an
-    applicative tree using functional-trees.[^functional-trees] This
-    structure provides support for cheap copy and undo of tree
-    modifications as well as emerging support for static analysis via
-    incrementally calculated attribute grammars. <!-- TODO: Confirm
-    this is the right place in the sequence to mention functional
-    treees? -->
+5.  At this point the parse tree is rebuilt as an applicative tree
+    using functional-trees.[^functional-trees] An instance of the
+    relevant class is instantiated and its slots are populated with
+    its named children, internal ASTs, and surrounding text.
 6.  The AST has its indentation converted from a string into a number.
 
 [^functional-trees]: https://github.com/grammatech/functional-trees
