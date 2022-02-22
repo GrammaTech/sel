@@ -319,11 +319,20 @@ SEL/SW/C-CPP>
 ```
 
 ## Parse Tree Transforms
-Frequently, the productions used in SEL for a language differ from the upstream
-tree-sitter ones. When this happens, the parse tree needs to be transformed to
-match what the SEL production expects. To do this, a specialization of
-transform-parse-tree is written. It takes a parse tree and modifies it to fit
-the expected SEL representation. The following is an example transformation:
+Frequently, the productions used in SEL for a language in some cases differ from
+the upstream tree-sitter ones in that they store different/more information.
+When this happens, the parse tree needs to be transformed to match what the SEL
+production expects. To do this, a specialization of transform-parse-tree is
+written. It takes a parse tree and modifies it to fit the expected SEL
+representation.
+
+An example of when this is needed is with the function_definition node in Python.
+It allows for an optional 'async' keyword before the 'def' but doesn't store any
+information about whether it occurred or not. When something isn't stored,
+structured text chooses an arbitrary part of the production which is valid. To
+address this, the corresponding rule is patched via a rule substitution in SEL
+to allow for the 'async' keyword to be stored in a slot. Then the following is
+the transformation used for the parse tree:
 
 ```lisp
 (defun modify-async-parse-tree (parse-tree)
@@ -364,7 +373,8 @@ method:
    ((:PASS-STATEMENT ((2 1) (6 1)) ((:PASS ((2 1) (6 1)) NIL)))))))
 ```
 
-<!-- TODO: Explain specifically why the latter is preferable to the former in the above example. -->
+When the transformed parse tree reaches AST creation, it will store the 'async'
+node in a slot. This allows the AST to correctly reproduce the source text.
 
 # Code Generation
 
