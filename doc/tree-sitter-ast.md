@@ -1,6 +1,10 @@
 ---
 title: "SEL's tree-sitter ASTs"
 ---
+<!-- pandoc -s tree-sitter-ast.md --defaults defaults.yaml --self-contained -o tree-sitter-ast.html -->
+<style>
+  html { font-size: 12pt; }
+</style>
 
 SEL provides abstract syntax trees (ASTs) which can be used for source
 code transformation and (light) static analysis.  The ASTs contain all

@@ -1,4 +1,5 @@
 strip-comments: True
 number-sections: True
 table-of-contents: True
+highlight-style: tango
 filters: [pandoc-include, tikz.lua, pandoc-xnos]
