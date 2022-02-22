@@ -41,9 +41,7 @@ SEL's usage:
   Previously, each language in SEL had a different front-end tools
   used to parse ASTs.  These front ends varied widely in their
   requirements (e.g., Clang needed a compilation database) fit to
-  SEL's needs and representation.  As an example, Python 3's AST
-  representation isn't the most ideal for SEL's use case.
-  <!-- TODO: specifically what about Python 3? -->
+  SEL's needs and representation.
 
 ## What does tree-sitter provide?
 
@@ -214,6 +212,127 @@ repeat/repetition.
     `else` clause no longer requires any analysis to determine if the
     source text is still valid.
 
+##### Choice Expansion Example
+
+The update expression in C++ has two forms--prefix and postfix--but both use
+the same set of fields. This becomes a problem when trying to match the slots
+during source text reproduction as its ambiguous which 'CHOICE' branch should be
+taken. To address this, each 'CHOICE' branch in the relevant production is
+expanded into its own subclass with its own production. For example, the
+production for update expressions in C++ is the following:
+
+```lisp
+(:UPDATE-EXPRESSION
+ (:TYPE . "PREC_RIGHT") (:VALUE . 13)
+ (:CONTENT
+  (:TYPE . "CHOICE")
+  (:MEMBERS
+   ((:TYPE . "SEQ")
+    (:MEMBERS
+     ((:TYPE . "FIELD") (:NAME . "operator")
+      (:CONTENT
+       (:TYPE . "CHOICE")
+       (:MEMBERS ((:TYPE . "STRING") (:VALUE . "--"))
+                 ((:TYPE . "STRING") (:VALUE . "++")))))
+     ((:TYPE . "FIELD") (:NAME . "argument")
+      (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))))
+   ((:TYPE . "SEQ")
+    (:MEMBERS
+     ((:TYPE . "FIELD") (:NAME . "argument")
+      (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
+     ((:TYPE . "FIELD") (:NAME . "operator")
+      (:CONTENT
+       (:TYPE . "CHOICE")
+       (:MEMBERS ((:TYPE . "STRING") (:VALUE . "--"))
+                 ((:TYPE . "STRING") (:VALUE . "++"))))))))))
+```
+
+It is separated into the following subclasses:
+
+```lisp
+;;; prefix
+(:UPDATE-EXPRESSION-0
+ (:TYPE . "PREC_RIGHT") (:VALUE . 13)
+ (:CONTENT
+  (:TYPE . "CHOICE")
+  (:MEMBERS
+   ((:TYPE . "SEQ")
+    (:MEMBERS
+     ((:TYPE . "FIELD") (:NAME . "operator")
+      (:CONTENT
+       (:TYPE . "CHOICE")
+       (:MEMBERS ((:TYPE . "STRING") (:VALUE . "--"))
+                 ((:TYPE . "STRING") (:VALUE . "++")))))
+     ((:TYPE . "FIELD") (:NAME . "argument")
+      (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression"))))))))
+
+;;; postfix
+(:UPDATE-EXPRESSION-1
+ (:TYPE . "PREC_RIGHT") (:VALUE . 13)
+ (:CONTENT
+  (:TYPE . "CHOICE")
+  (:MEMBERS
+   ((:TYPE . "SEQ")
+    (:MEMBERS
+     ((:TYPE . "FIELD") (:NAME . "argument")
+      (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
+     ((:TYPE . "FIELD") (:NAME . "operator")
+      (:CONTENT
+       (:TYPE . "CHOICE")
+       (:MEMBERS ((:TYPE . "STRING") (:VALUE . "--"))
+                 ((:TYPE . "STRING") (:VALUE . "++"))))))))))
+```
+
+The base update expression class becomes a superclass, and when the parse tree
+is transformed into an SEL representation, each subclass's production is tested
+until one matches.
+
+### Parse Tree Transforms
+Frequently, the productions used in SEL for a language differ from the upstream
+tree-sitter ones. When this happens, the parse tree needs to be transformed to
+match what the SEL production expects. To do this, a specialization of
+transform-parse-tree is written. It takes a parse tree and modifies it to fit
+the expected SEL representation. The following is an example transformation:
+
+```lisp
+(defun modify-async-parse-tree (parse-tree)
+  "Transform PARSE-TREE such that an async field is present for 'async'
+identifiers."
+  (with-modify-parse-tree (parse-tree)
+    (:async (label-as :async))))
+
+(defmethod transform-parse-tree
+    ((language (eql ':python)) (class (eql 'python-function-definition))
+     parse-tree &key)
+  (modify-async-parse-tree parse-tree))
+```
+
+This takes a parse tree and labels any :async node such that it is stored in the
+:async field. The following shows an example transformation performed by this
+method:
+
+```lisp
+;;; Parse Tree "def fun():\n  pass"
+(:FUNCTION-DEFINITION ((0 0) (6 1))
+ ((:ASYNC ((0 0) (5 0)) NIL) (:DEF ((6 0) (9 0)) NIL)
+  ((:NAME :IDENTIFIER) ((10 0) (13 0)) NIL)
+  ((:PARAMETERS :PARAMETERS) ((13 0) (15 0))
+   ((:|(| ((13 0) (14 0)) NIL) (:|)| ((14 0) (15 0)) NIL)))
+  (:|:| ((15 0) (16 0)) NIL)
+  ((:BODY :BLOCK) ((2 1) (6 1))
+   ((:PASS-STATEMENT ((2 1) (6 1)) ((:PASS ((2 1) (6 1)) NIL)))))))
+
+;;; Transformed Parse Tree
+(:FUNCTION-DEFINITION ((0 0) (6 1))
+ (((:ASYNC :ASYNC) ((0 0) (5 0)) NIL) (:DEF ((6 0) (9 0)) NIL)
+  ((:NAME :IDENTIFIER) ((10 0) (13 0)) NIL)
+  ((:PARAMETERS :PARAMETERS) ((13 0) (15 0))
+   ((:|(| ((13 0) (14 0)) NIL) (:|)| ((14 0) (15 0)) NIL)))
+  (:|:| ((15 0) (16 0)) NIL)
+  ((:BODY :BLOCK) ((2 1) (6 1))
+   ((:PASS-STATEMENT ((2 1) (6 1)) ((:PASS ((2 1) (6 1)) NIL)))))))
+```
+
 # Code Generation
 
 Much of the code building SEL's ASTs from tree-sitter's parser and
@@ -281,15 +400,68 @@ The code generation sequence is as follows:
        These are the rules where the correct reproduction of source text
        could be ambiguous due to lack of stored information.
 5. Add functionality to classes
-   1. Choice expansion subclasses are generated <!-- I don't know what there are -->
+   1. Choice expansion subclasses are generated
    2. Rules, choice expansion subclass information are attached to slots
       with class allocation.
    3. Several methods are generated.
-      1.  A conversion from a parse tree to a tree-sitter-ast.
-      2.  An output transformation which transfroms an AST into
+      1.  An output transformation which transfroms an AST into
           source-text. This inserts any implicit text.
+      2.  A method to determine which subclass is used by a parse tree.
 
+## Code Generation Examples
 
+### AST Class
+
+```lisp
+(define-node-class cpp-attribute-specifier (cpp-ast)
+  ((json-rule :initform
+              '((:type . "SEQ")
+                (:members
+                 ((:type . "STRING")
+                  (:value . "__attribute__"))
+                 ((:type . "SLOT")
+                  (:name . "INTERNAL-ASTS-0"))
+                 ((:type . "STRING") (:value . "("))
+                 ((:type . "SYMBOL")
+                  (:name . "argument_list"))
+                 ((:type . "STRING") (:value . ")"))))
+              :reader json-rule :allocation :class
+              :documentation
+              "A rule used to determine where inner ASTs are assigned.")
+   (pruned-rule :accessor pruned-rule :initform
+                '(:seq nil (:slot cpp-internal-asts-0)
+                  nil (:child cpp-argument-list) nil)
+                :allocation :class :documentation
+                "A rule used to order the children of this class.")
+   (slot-usage :accessor slot-usage :initform
+               '(children cpp-internal-asts-0)
+               :allocation :class :documentation
+               "A set of slots that are used in the pruned-rule.")
+   (cpp-internal-asts-0 :accessor cpp-internal-asts-0
+                        :initarg :cpp-internal-asts-0
+                        :initform nil)
+   (child-slots :initform
+                '((before-asts . 0) (children . 0)
+                  (cpp-internal-asts-0 . 0)
+                  (after-asts . 0))
+                :allocation :class))
+  (:documentation "Generated for attribute_specifier.")
+  (:method-options :skip-children-definition))
+```
+
+### Output Transformation
+
+```lisp
+(defmethod output-transformation
+    ((ast cpp-attribute-specifier) &rest rest &key
+     &aux (parse-stack (parse-order ast)))
+  (declare (ignorable parse-stack rest))
+  (flatten
+   (list (before-text ast)
+         (list "__attribute__" (pop parse-stack) "(" (pop parse-stack)
+               ")")
+         (after-text ast))))
+```
 # AST creation
 
 The actual process of parsing source text and creating SEL ASTs is
@@ -329,3 +501,49 @@ The sequence of steps is as follows:
 6.  The AST has its indentation converted from a string into a number.
 
 [^functional-trees]: https://github.com/grammatech/functional-trees
+
+## Example of Populated AST
+The following will show the structure of an AST that is converted from the
+following C source text:
+
+```c
+for /* comment */ (int i;;   ) {
+  if (++i) {
+    break;
+}
+```
+
+It contains a comment between two terminal tokens, whitespace after a terminal
+token, and a missing curly bracket. The following Lisp Repl interaction will show
+how and where these are stored in the following tree:
+
+```lisp
+SEL/SW/TS> (convert 'cpp-ast "for /* comment */ (int i;;   ) {
+  if (++i) {
+    break;
+}")
+#<CPP-TRANSLATION-UNIT 3135 :TEXT "for /* comment */ (i...">
+SEL/SW/TS> (def ast (find-if (of-type 'cpp-for-statement) *))
+AST
+;;; The body is converted into a source text fragment due to the missing '}' and
+;;; is stored in the cpp-body slot.
+SEL/SW/TS> (cpp-body ast)
+#<CPP-SOURCE-TEXT-FRAGMENT 3142 :TEXT "{">
+SEL/SW/TS> (text *)
+"{
+  if (++i) {
+    break;
+}"
+;;; The comment following the 'for' and preceding the '(' is stored in an
+;;; internal-asts slot.
+SEL/SW/TS> (cpp-internal-asts-0 ast)
+(#<CPP-COMMENT 3137 :TEXT "/* comment */">)
+;;; The comment following the 'for' and preceding the '(' is stored in an
+;;; internal-asts slot.
+SEL/SW/TS> (cpp-internal-asts-3 ast)
+(#<CPP-INNER-WHITESPACE 3141 :TEXT "   ">)
+;;; The initializer successfully parsed and is stored in the cpp-initializer
+;;; slot.
+SEL/SW/TS> (cpp-initializer ast)
+#<CPP-DECLARATION-0 3138 :TEXT "int i;">
+```
