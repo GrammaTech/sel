@@ -2,12 +2,9 @@
 (defpackage :software-evolution-library/software/elf
   (:nicknames :sel/software/elf :sel/sw/elf)
   (:use :gt/full
-        :elf
         :software-evolution-library
         :software-evolution-library/software/simple)
-  (:shadowing-import-from :common-lisp :type)
-  (:shadowing-import-from :software-evolution-library :size)
-  (:shadowing-import-from :elf :insert :ordering :data)
+  (:import-from :elf :read-elf :write-elf)
   (:export :elf
            :base
            :genome-bytes))

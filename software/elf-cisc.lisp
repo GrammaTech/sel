@@ -2,11 +2,17 @@
 (defpackage :software-evolution-library/software/elf-cisc
   (:nicknames :sel/software/elf-cisc :sel/sw/elf-cisc)
   (:use :gt/full
-        :elf
         :software-evolution-library
         :software-evolution-library/software/elf)
-  (:shadowing-import-from :elf :type :insert :ordering :data)
-  (:shadowing-import-from :software-evolution-library :size)
+  (:import-from :elf
+                :read-elf
+                :copy-elf
+                :csurf
+                :objdump
+                :named-section
+                :disassemble-section
+                :data
+                :int-to-bytes)
   (:export :elf-cisc
            :elf-csurf
            :elf-x86
@@ -54,7 +60,7 @@
 (defvar arm-nops
   (loop :for i :below 3 :collect
      (let ((width (expt 2 i)))
-       (coerce (elf::int-to-bytes
+       (coerce (int-to-bytes
                 (ecase width
                   (1 #x0)
                   (2 #x46C0)
@@ -178,7 +184,7 @@
          (let ((f  (+ place i)) (b (- place i)))
            (loop :while (and (> num-bytes 0) (< f length) (nop-p f genome))
               :do (del f))
-           (loop :while (and (> num-bytes 0) (> b 0) (nop-p b genome))
+           (loop :while (and (> num-bytes 0) (>= b 0) (nop-p b genome))
               :do (del b))))
       (values genome num-bytes))))
 
@@ -244,9 +250,9 @@
         ;; the larger instruction in the smaller hole.
         (if (> s1-size s2-size)
             (progn (rep s1 s2-value)
-                   (rep s2 s1-value))
+                   (rep (+ s2 (- s1-size s2-size)) s1-value))
             (progn (rep s2 s1-value)
-                   (rep s1 s2-value))))))
+                   (rep (+ s1 (- s2-size s1-size)) s2-value))))))
   (genome elf))
 
 (defmethod crossover ((a elf-cisc) (b elf-cisc))

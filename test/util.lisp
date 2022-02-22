@@ -5,6 +5,7 @@
         :software-evolution-library/utility/debug
         :software-evolution-library/utility/range
         :stefil+
+        :software-evolution-library/software/elf-cisc
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter)
   (:export :test
@@ -294,12 +295,7 @@ AST holding STMT is found.")
   (:teardown (setf *soft* nil)))
 
 (defixture gcd-elf
-  (:setup
-   (let ((arch (intern (string-upcase (subseq (shell "uname -m") 0 3)))))
-     (setf *gcd* (from-file (make-instance (case arch
-                                             (x86 'elf-x86)
-                                             (mips 'elf-mips)))
-                            (gcd-dir "gcd")))))
+  (:setup (setf *gcd* (from-file (make-instance 'elf-x86) (gcd-dir "gcd"))))
   (:teardown (setf *gcd* nil)))
 
 (defun fully-every (fn seq &rest other-seqs)

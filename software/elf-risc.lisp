@@ -2,17 +2,18 @@
 (defpackage :software-evolution-library/software/elf-risc
   (:nicknames :sel/software/elf-risc :sel/sw/elf-risc)
   (:use :gt/full
-        :elf
         :software-evolution-library
         :software-evolution-library/software/elf)
   (:shadowing-import-from :elf
-                          :int-to-bytes
-                          :size
-                          :type
+                          :read-elf
+                          :copy-elf
+                          :program-table
+                          :sections
+                          :named-section
+                          :filesz
                           :ph
-                          :insert
-                          :ordering
-                          :data)
+                          :data
+                          :type)
   (:export :elf-risc
            :risc-nop
            :elf-risc-max-displacement))
@@ -49,7 +50,7 @@
                                                (incf offset (elf:size sec)))
                                        'list))
                       'vector)))
-             (remove-if-not [{eql :load}  #'elf:type]
+             (remove-if-not [{eql :load}  #'type]
                             (sections new))))
         new))))
 
@@ -68,8 +69,8 @@
          #'concatenate 'list
          (mapcar #'data
                  (remove-if-not
-                  [{eql :load}  #'elf:type #'elf:ph]
-                  (remove-if-not #'elf:ph (sections elf))))))))
+                  [{eql :load}  #'type #'ph]
+                  (remove-if-not #'ph (sections elf))))))))
 
 (defmethod from-file ((elf elf-risc) path)
   "DOCFIXME"

@@ -13,7 +13,7 @@
   (:export :test-elf))
 (in-package :software-evolution-library/test/elf)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-elf "ELF representation." :silent)
+(defsuite test-elf "ELF representation.")
 
 (defun bytes (elf) (mappend [#'cdr {assoc :code}] (genome elf)))
 
@@ -48,12 +48,13 @@
 
 (deftest elf-edit-of-copy-does-not-change-original ()
   (with-fixture gcd-elf
-    (let ((orig-hash (sxhash (genome *gcd*)))
+    (let ((orig-hash (sxhash (genome-string *gcd*)))
           (ant (copy *gcd*)))
       (handler-case (mutate ant)
         (mutate (obj) (declare (ignorable obj)) nil))
-      (is (not (equal (sxhash (genome ant)) (sxhash (genome *gcd*)))))
-      (is (equal orig-hash (sxhash (genome *gcd*)))))))
+      (is (not (equal (sxhash (genome-string ant))
+                      (sxhash (genome-string *gcd*)))))
+      (is (equal orig-hash (sxhash (genome-string *gcd*)))))))
 
 (deftest elf-cut-changes-but-maintains-byte-length ()
   (with-fixture gcd-elf
@@ -78,17 +79,15 @@
 
 (deftest elf-replace-changes-but-maintains-length ()
   (with-fixture gcd-elf
-    (let* ((variant (copy *gcd*))
-           ;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
+    (let* (;; See FIND-SMALL in `elf-insertion-changes-but-maintains-lengthens'
            (to-copy
             (without-compiler-notes
              (position-if [{eql 1} #'length {aget :code}] (genome *gcd*))))
-           (new-genome (elf-replace
-                        variant 0 (copy-tree (nth to-copy (genome *gcd*))))))
-      (is (= (length (genome *gcd*))
-             (length new-genome)))
-      (is (not (equalp (format nil "~S" (genome *gcd*))
-                       (format nil "~S" new-genome)))))))
+           (variant (nest (copy *gcd* :genome)
+                          (elf-replace
+                           *gcd* 0 (copy-tree (nth to-copy (genome *gcd*)))))))
+      (is (= (length (bytes *gcd*)) (length (bytes variant))))
+      (is (not (equalp (bytes *gcd*) (bytes variant)))))))
 
 (deftest elf-swap-changes-but-maintains-length ()
   (with-fixture gcd-elf
