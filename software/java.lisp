@@ -14,6 +14,9 @@
 (create-tree-sitter-language "java")
 ;;;===================================================
 
+#+:TREE-SITTER-JAVA
+(progn
+
 (defvar *empty-statement-asts*
   '(java-block java-labeled-statement java-do-statement java-if-statement
     java-while-statement java-enhanced-for-statement java-constructor-body
@@ -73,3 +76,5 @@ ASTs that can have multiple statements in their body."
 
 (defmethod placeholder-type-p ((ast java-type-identifier))
   (equal (text ast) "var"))
+
+) ; #+:TREE-SITTER-JAVA
