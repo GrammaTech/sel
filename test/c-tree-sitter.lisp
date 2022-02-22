@@ -717,6 +717,22 @@ for (int i = 0; i < x; i++) {
               :test #'source-text=))
   (is (null (field-names (genome (from-string (make-instance 'c) "int x;"))))))
 
+(deftest definition-name-test ()
+  (let ((ast (convert 'c-ast "typedef enum e { A, B } e_t;")))
+    (is (equal "e" (definition-name 
+                    (find-if (of-type 'c-enum-specifier) ast))))
+    (is (equal "e_t" (definition-name 
+                    (find-if (of-type 'c-type-definition) ast)))))
+  (is (equal "s"
+             (definition-name
+              (find-if (of-type 'c-struct-specifier)
+                       (convert 'c-ast "struct s { int x, y; };")))))
+  (is (equal "u"
+             (definition-name
+              (find-if (of-type 'c-union-specifier)
+                       (convert 'c-ast "union u { int x, y; };"))))))
+  
+
 
 ;;;; variable-use-p tests
 (defun bulk-variable-use-p (obj variables)
