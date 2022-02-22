@@ -3,18 +3,21 @@ title: "SEL's tree-sitter ASTs"
 ---
 <!-- pandoc -s tree-sitter-ast.md --variable fontsize=12pt --defaults defaults.yaml --self-contained -o tree-sitter-ast.html -->
 
-SEL provides abstract syntax trees (ASTs) which can be used for source
-code transformation and (light) static analysis.  The ASTs contain all
-original source information so they are technically concrete syntax
-trees (CSTs) not ASTs although we will refer to them as ASTs
-throughout.  Rather than abstracting the information in the ASTs, SEL
-provides generic functions which enable the generic treatment of CSTs.
+SEL provides abstract syntax trees (ASTs) which can be used for
+programmatic source code transformation and (light) static analysis.
+The ASTs contain all original source information so they are
+technically concrete syntax trees (CSTs) not ASTs although we will
+refer to them as ASTs throughout.  Rather than abstracting the away
+concrete information in the ASTs (as is typically done to ease static
+analysis), SEL provides generic functions which enable the generic
+treatment of full CSTs.
 
-SEL's ASTs are built up as an applicative, immutable, functional tree
-data structure.[^functional-trees] This structure provides cheap --
-O(1) in time and space -- copy and undo of trees, tree modification in
-O(ln(n)) , and emerging support for static analysis via incrementally
-calculated attribute grammars.
+SEL's ASTs are constructed using an applicative, immutable, functional
+tree data structure.[^functional-trees] This structure provides cheap
+-- O(1) in time and space -- tree copy, tree modification in O(ln(n)),
+keeps historical trees for cheap undo of modifications, and provides
+emerging support for static analysis via incrementally calculated
+attribute grammars.
 
 This document details SEL's use of tree-sitter to build its AST
 representation.
@@ -28,12 +31,14 @@ From <https://tree-sitter.github.io/tree-sitter/>:
 > library. It can build a concrete syntax tree for a source file and
 > efficiently update the syntax tree as the source file is edited.
 
-SEL's usage:
+SEL's usage doesn't fit exactly with the intended/primary tree-sitter
+use case:
 
-- Doesn't use the incremental abilities.
+- SEL doesn't use the incremental abilities.
 
-- Software transformation and analysis which varies widely from the
-  primary upstream use for syntax highlighting.
+- SEL performs software transformation and analysis which requires
+  more structure and information than the primary intended use for
+  syntax highlighting.
 
 ## Benefits of tree-sitter
 
@@ -45,28 +50,34 @@ SEL's usage:
 
 - Fairly uniform representation across languages.
 
-  Previously, each language in SEL had a different front-end tools
-  used to parse ASTs.  These front ends varied widely in their
-  requirements (e.g., Clang needed a compilation database) fit to
-  SEL's needs and representation.
+  Previously, each language in SEL had a different front-end tool used
+  to parse ASTs.  These front ends varied widely in their
+  requirements, e.g., Clang for C/C++ needed a compilation database.
 
 ## What does tree-sitter provide?
 
 -   A shared object with the functionality to read a string and
     generate a CST.  This CST is fairly error-resilient.
 
--   JSON files which specify the structure of the CST.  Specifically:
+-   JSON files which specify the structure of the CST.  The ability to
+    programmatically read these specifications is central to SEL's use
+    of tree-sitter.  Specifically:
 
-    - node-types.json
+    `node-types.json`
+    :   Defines the AST classes parsed by tree-sitter.
 
-    - grammar.json (commonly referred to as "the JSON" in discussions)
+    `grammar.json`
+    :   Defines the grammars controlling parsing and defining legal
+        AST configurations.  (Commonly referred to as "the JSON" in
+        discussions.)
 
 ## Pain Points of tree-sitter
 
 - Tree-sitter has trouble parsing some languages, notably C++.
 
-- Frequently SEL needs to patch the ASTs that come from tree sitter to
-  store enough information to reproduce source text.
+- Frequently SEL needs to patch the ASTs produced by tree sitter to
+  store additional information required to reproduce the original
+  source text.
 
 
 # SEL Additions
@@ -77,13 +88,13 @@ Cross-language Mixins
     can be labeled as such.
 
     -   This allows for generic function implementations which can be
-        used across languages. As an example is the c/cpp mixin which
-        allows C and C++ to easily share code. ECMAScript is another
+        used across languages. For example, the C/C++ mixin which
+        allows C and C++ to easily share code.  ECMAScript is another
         example allowing multiple JavaScript languages to share their
         implementation.
 
-    -   Mixins are much simpler in lisp and multiple inheritance is much
-        simpler to leverage with CLOS.
+    -   Mixins are much simpler in Lisp and multiple inheritance is much
+        simpler to leverage with CLOS.[^CLOS]
 
 Source Text Reproduction
 
@@ -96,11 +107,10 @@ Modification of Grammar and Node Types
     functionality to transform parse trees after they are read into lisp
     such that they match the new grammar and definitions.
 
-    -   For example, there's an issue with newlines having a source
-        text range that is larger than one character. This causes
-        issues with languages which expect newlines in a
-        rule/production. This is commonly a problem with the C
-        preprocessor.
+    For example, there's an issue with newlines having a source text
+    range that is larger than one character. This causes issues with
+    languages which expect newlines in a rule/production. This is
+    commonly a problem with the C preprocessor.
 
 Validation of AST Structure
 
@@ -113,33 +123,30 @@ Validation of AST Structure
 Indentation Maintenance
 :   Indentation is stored as the number of spaces. A variable can be set
     to allow for tabs and how many spaces a tab uses. This allows for
-    the two most common identation styles--spaces and tabs + spaces. On
+    the two most common identation styles -- spaces and tabs + spaces. On
     top of this, insertion of new ASTs will maintain the correct amount
     of indentation. This functionality was developed to better support
     Python software.
 
+[^CLOS]: https://www.cs.cmu.edu/Groups/AI/html/cltl/clm/node260.html https://gigamonkeys.com/book/object-reorientation-classes.html
+
 # Structured Text
 
-## Interleaved Text (Previous Representation)
+SEL's system for the maintenance of the information required to
+produce source-text from ASTs is called "structured text."  This
+system is designed to reproduce the original source text exactly when
+no modification has been made to an AST, and to automatically maintain
+the ability to produce reasonable and parseable text.  For example,
+AST transforms to not explicitly have to worry about maintaining
+`,`-delimiters when modifying argument lists or maintaining
+`;`-delimiters when adding or removing statements.
 
--   ASTs are interleaved with strings in a list.
+Structured text assigns every child of an AST a named slot in the
+AST's class definition.  This allows for implicit text between
+children when printing ASTs back to source and enables automation of
+much of the toil of AST transformation.
 
--   Eventually evolved into "named childlren"
-    -   This assigned children their own named slot/field/member variable
-
--   This became very cumbersome to use and maintain the strings. As an
-    example, removing or adding the 'else' clause of an 'if'
-    statement required checking the interleaved text and patching it if
-    necessary.
-
-## Structured Text (Current Representation)
-
-Assigns every child a relevant slot in the AST's class definition.
-This allows for implicit text between children when printing ASTs back
-to source and allows automation of much of the toil of AST
-transformation.
-
-### Implicit Text
+## Implicit Text
 
 A large portion of text can be inferred based on the class of an AST.
 This is determined by its relevant rule/production in the grammar
@@ -149,7 +156,7 @@ Instead, this information is put into an output-transformation method
 which transforms an AST into its relevant string representation, i.e.,
 source text.
 
-### Before/After slots
+## Before/After slots
 
 The before and after text slots store whitespace, comments, and any
 other information that is, more or less, ignored by the grammar.
@@ -166,14 +173,14 @@ result.  E.g., both functions at the top level and statements within a
 function are often preceded by explanatory comments.  The above
 assures that these comments move with the code to which they apply.
 
-### Internal AST slots
+## Internal AST slots
 
 There are places where whitespace and comments occur which do not have
 any surrounding children. Instead of pushing it to children, it is
 instead stored in internal AST slots. Adding these slots to nodes is
 part of the code generation process.
 
-### Computed Text (Variable Part)
+## Computed Text (Variable Part)
 
 Variable text, such as function names and variable names, need to be
 computed and stored at AST creation. These can, however, have children
@@ -183,7 +190,7 @@ of their own, so they can't always be stored as only text.
     variable part. This maintains a list of ASTs instead of regressing
     back to the interleaved text representation.
 
-### Source Text Fragments
+## Source Text Fragments
 
 In some cases the the grammar can't be matched exactly. This may occur
 when a file is actively being edited. The resulting AST can no longer be
@@ -191,7 +198,7 @@ matched when validating the parent AST's rule. The parent is instead
 turned into a source text fragment AST which still allows for source
 text reproduction.
 
--   tree-sitter either adds a zero-width token to force a matching
+-   Tree-sitter either adds a zero-width token to force a matching
     rule/production or removes tokens from consideration until something
     does match.
 
@@ -199,9 +206,9 @@ text reproduction.
     incorrect when an error occurs, so source-text fragments protects
     against incorrect information.
 
-### Choice Expansion Subclasses
+## Choice Expansion Subclasses
 
-Each choice/alternation in the rule/production for node or AST is
+Each choice/alternation in the rule/production for a node or AST is
 expanded to create a new subclass for each branch that could be taken.
 This is done for every choice branch which is not in a
 repeat/repetition.
@@ -219,14 +226,15 @@ repeat/repetition.
     `else` clause no longer requires any analysis to determine if the
     source text is still valid.
 
-##### Choice Expansion Example
+#### Choice Expansion Example
 
-The update expression in C++ has two forms--prefix and postfix--but both use
-the same set of fields. This becomes a problem when trying to match the slots
-during source text reproduction as its ambiguous which 'CHOICE' branch should be
-taken. To address this, each 'CHOICE' branch in the relevant production is
-expanded into its own subclass with its own production. For example, the
-production for update expressions in C++ is the following:
+The update expression in C++ (i.e. `x++`) has two forms -- prefix and
+postfix -- but both use the same set of fields. This becomes a problem
+when trying to match the slots during source text reproduction as its
+ambiguous which 'CHOICE' branch should be taken. To address this, each
+'CHOICE' branch in the relevant production is expanded into its own
+subclass with its own production. For example, the production for
+update expressions in C++ is the following:
 
 ```lisp
 (:UPDATE-EXPRESSION
@@ -294,7 +302,23 @@ The base update expression class becomes a superclass, and when the parse tree
 is transformed into an SEL representation, each subclass's production is tested
 until one matches.
 
-### Parse Tree Transforms
+```lisp
+SEL/SW/C-CPP> (@ (cpp "x++;") 0)
+#<CPP-UPDATE-EXPRESSION-POSTFIX 8662 :TEXT "x++">
+SEL/SW/C-CPP> (@ (cpp "x--;") 0)
+#<CPP-UPDATE-EXPRESSION-POSTFIX 8672 :TEXT "x--">
+SEL/SW/C-CPP> (subtypep (type-of (@ (cpp "x--;") 0))
+                        'cpp-update-expression)
+T
+T
+SEL/SW/C-CPP> (subtypep (type-of (@ (cpp "x++;") 0))
+                        'cpp-update-expression)
+T
+T
+SEL/SW/C-CPP> 
+```
+
+## Parse Tree Transforms
 Frequently, the productions used in SEL for a language differ from the upstream
 tree-sitter ones. When this happens, the parse tree needs to be transformed to
 match what the SEL production expects. To do this, a specialization of
@@ -340,6 +364,8 @@ method:
    ((:PASS-STATEMENT ((2 1) (6 1)) ((:PASS ((2 1) (6 1)) NIL)))))))
 ```
 
+<!-- TODO: Explain specifically why the latter is preferable to the former in the above example. -->
+
 # Code Generation
 
 Much of the code building SEL's ASTs from tree-sitter's parser and
@@ -365,12 +391,12 @@ generates hundreds of KLoC of code.
 
 </center>
 
-The code generation process is shown below.
+The code generation process at SEL compile time is shown below.
 
 <center>
 
 <!-- !include code-generation.md -->
-![Code Generation](./figures/code-generation.svg)
+![Code generation compile time process.](./figures/code-generation.svg)
 
 </center>
 
@@ -417,67 +443,68 @@ The code generation sequence is as follows:
 
 ## Code Generation Examples
 
-### AST Class
+The following show examples of the generated code.
 
-```lisp
-(define-node-class cpp-attribute-specifier (cpp-ast)
-  ((json-rule :initform
-              '((:type . "SEQ")
-                (:members
-                 ((:type . "STRING")
-                  (:value . "__attribute__"))
-                 ((:type . "SLOT")
-                  (:name . "INTERNAL-ASTS-0"))
-                 ((:type . "STRING") (:value . "("))
-                 ((:type . "SYMBOL")
-                  (:name . "argument_list"))
-                 ((:type . "STRING") (:value . ")"))))
-              :reader json-rule :allocation :class
-              :documentation
-              "A rule used to determine where inner ASTs are assigned.")
-   (pruned-rule :accessor pruned-rule :initform
-                '(:seq nil (:slot cpp-internal-asts-0)
-                  nil (:child cpp-argument-list) nil)
-                :allocation :class :documentation
-                "A rule used to order the children of this class.")
-   (slot-usage :accessor slot-usage :initform
-               '(children cpp-internal-asts-0)
-               :allocation :class :documentation
-               "A set of slots that are used in the pruned-rule.")
-   (cpp-internal-asts-0 :accessor cpp-internal-asts-0
-                        :initarg :cpp-internal-asts-0
-                        :initform nil)
-   (child-slots :initform
-                '((before-asts . 0) (children . 0)
-                  (cpp-internal-asts-0 . 0)
-                  (after-asts . 0))
-                :allocation :class))
-  (:documentation "Generated for attribute_specifier.")
-  (:method-options :skip-children-definition))
-```
+First an automatically generated definition of an AST class.
+:   ```lisp
+    (define-node-class cpp-attribute-specifier (cpp-ast)
+      ((json-rule :initform
+                  '((:type . "SEQ")
+                    (:members
+                     ((:type . "STRING")
+                      (:value . "__attribute__"))
+                     ((:type . "SLOT")
+                      (:name . "INTERNAL-ASTS-0"))
+                     ((:type . "STRING") (:value . "("))
+                     ((:type . "SYMBOL")
+                      (:name . "argument_list"))
+                     ((:type . "STRING") (:value . ")"))))
+                  :reader json-rule :allocation :class
+                  :documentation
+                  "A rule used to determine where inner ASTs are assigned.")
+       (pruned-rule :accessor pruned-rule :initform
+                    '(:seq nil (:slot cpp-internal-asts-0)
+                      nil (:child cpp-argument-list) nil)
+                    :allocation :class :documentation
+                    "A rule used to order the children of this class.")
+       (slot-usage :accessor slot-usage :initform
+                   '(children cpp-internal-asts-0)
+                   :allocation :class :documentation
+                   "A set of slots that are used in the pruned-rule.")
+       (cpp-internal-asts-0 :accessor cpp-internal-asts-0
+                            :initarg :cpp-internal-asts-0
+                            :initform nil)
+       (child-slots :initform
+                    '((before-asts . 0) (children . 0)
+                      (cpp-internal-asts-0 . 0)
+                      (after-asts . 0))
+                    :allocation :class))
+      (:documentation "Generated for attribute_specifier.")
+      (:method-options :skip-children-definition))
+    ```
 
-### Output Transformation
+Second, an automatically generated output transformation.
+:   ```lisp
+    (defmethod output-transformation
+        ((ast cpp-attribute-specifier) &rest rest &key
+         &aux (parse-stack (parse-order ast)))
+      (declare (ignorable parse-stack rest))
+      (flatten
+       (list (before-text ast)
+             (list "__attribute__" (pop parse-stack) "(" (pop parse-stack)
+                   ")")
+             (after-text ast))))
+    ```
 
-```lisp
-(defmethod output-transformation
-    ((ast cpp-attribute-specifier) &rest rest &key
-     &aux (parse-stack (parse-order ast)))
-  (declare (ignorable parse-stack rest))
-  (flatten
-   (list (before-text ast)
-         (list "__attribute__" (pop parse-stack) "(" (pop parse-stack)
-               ")")
-         (after-text ast))))
-```
 # AST creation
 
-The actual process of parsing source text and creating SEL ASTs is
-shown in the following diagram.
+The actual process of parsing source text and creating SEL ASTs at SEL
+runtime is shown in the following diagram.
 
 <center>
 
 <!-- !include ast-creation.md -->
-![AST Creation](./figures/ast-creation.svg)
+![AST creation run time process.](./figures/ast-creation.svg)
 
 </center>
 
@@ -505,8 +532,8 @@ The sequence of steps is as follows:
 [^functional-trees]: https://github.com/grammatech/functional-trees
 
 ## Example of Populated AST
-The following will show the structure of an AST that is converted from the
-following C source text:
+The following shows the structure of an AST that is converted from
+this example C source text:
 
 ```c
 for /* comment */ (int i;;   ) {
@@ -515,9 +542,10 @@ for /* comment */ (int i;;   ) {
 }
 ```
 
-It contains a comment between two terminal tokens, whitespace after a terminal
-token, and a missing curly bracket. The following Lisp Repl interaction will show
-how and where these are stored in the following tree:
+Note that the above contains a comment between two terminal tokens,
+whitespace after a terminal token, and a missing curly bracket. The
+following Lisp Repl interaction shows how and where these are stored
+in the following tree:
 
 ```lisp
 SEL/SW/TS> (convert 'cpp-ast "for /* comment */ (int i;;   ) {
