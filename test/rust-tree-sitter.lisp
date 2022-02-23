@@ -128,8 +128,9 @@ pub unsafe fn auto() -> MmapChoice {
          (root (convert 'rust-ast source)))
     (is (equal source (source-text root)))))
 
-
-;;; Parsing tests.
+(deftest rust-round-trip-dereference ()
+  "Is the operator preserved in a Rust unary expression?"
+  (is (source-text= "*x;" (rust "*x;"))))
 
 (deftest rust-empty-argument-list ()
   "Does an empty argument list print as () and not (,)?"
@@ -141,9 +142,9 @@ pub unsafe fn auto() -> MmapChoice {
                          :children nil))))
     (is (source-text= "myfun()" ast))))
 
-(deftest rust-round-trip-dereference ()
-  "Is the operator preserved in a Rust unary expression?"
-  (is (source-text= "*x;" (rust "*x;"))))
+
+
+;;; Parsing tests.
 
 
 ;;; Whitespace tests.
