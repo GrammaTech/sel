@@ -390,10 +390,13 @@ If SUBTREE is a list do the same for each element."
 (define-compiler-macro ast-template* (template class &rest args)
   (with-gensyms (ast)
     `(match (ast-template ,template ,class ,@args)
-       ((and ,ast (type parse-error-ast))
+       ((and ,ast (or (type parse-error-ast) (type source-text-fragment)))
         ,(if (eq (uiop/utility:last-char template) #\;)
              ast
-             `(ast-template* ,(concatenate 'string template ";") ,class ,@args)))
+             `(match (ast-template* ,(concatenate 'string template ";") ,class ,@args)
+                ;; If we get another error/fragment, then return the original AST w/o the semicolon.
+                ((or (type parse-error-ast) (type source-text-fragment)) ast)
+                ((and it) it))))
        ((and ,ast (type ast))
         (first (children ,ast))))))
 
@@ -402,10 +405,13 @@ If SUBTREE is a list do the same for each element."
 This is useful for languages where the parser requires semicolons as
 delimiters (such as C or C++)."
   (match (apply #'ast-template template class args)
-    ((and ast (type parse-error-ast))
+    ((and ast (or (type parse-error-ast) (type source-text-fragment)))
      (if (eq (uiop/utility:last-char template) #\;)
          ast
-         (apply #'ast-template* (concatenate 'string template ";") class args)))
+         (match (apply #'ast-template* (concatenate 'string template ";") class args)
+           ;; If we get another error/fragment, then return the original AST w/o the semicolon.
+           ((or (type parse-error-ast) (type source-text-fragment)) ast)
+           ((and it) it))))
     ((and ast (type ast))
      (first (children ast)))))
 
