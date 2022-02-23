@@ -7,14 +7,12 @@
   (:import-from :elf
                 :read-elf
                 :copy-elf
-                :csurf
                 :objdump
                 :named-section
                 :disassemble-section
                 :data
                 :int-to-bytes)
   (:export :elf-cisc
-           :elf-csurf
            :elf-x86
            :elf-arm
            :elf-replace
@@ -32,10 +30,6 @@
               :copier copy-seq))
   (:documentation
    "Executable Linkable Format (ELF) binaries in complex instruction set architectures."))
-
-(define-software elf-csurf (elf-cisc)
-  ((sw-project :initarg :sw-project :accessor sw-project :initform nil))
-  (:documentation "DOCFIXME"))
 
 (define-software elf-x86 (elf-cisc) ()
   (:documentation "DOCFIXME"))
@@ -126,15 +120,6 @@
 (defmethod from-file ((elf elf-cisc) path)
   "DOCFIXME"
   (setf (base elf) (read-elf path 'objdump))
-  (multiple-value-bind (addresses genome) (parse-disasm elf ".text")
-    (setf (addresses elf) addresses)
-    (setf (genome elf) genome))
-  elf)
-
-(defmethod from-file ((elf elf-csurf) path)
-  "DOCFIXME"
-  (setf (base elf) (read-elf path 'csurf))
-  (setf (sw-project (base elf)) (sw-project elf))
   (multiple-value-bind (addresses genome) (parse-disasm elf ".text")
     (setf (addresses elf) addresses)
     (setf (genome elf) genome))
