@@ -863,7 +863,8 @@ searched to populate `*tree-sitter-language-files*'.")
        (rust-parameter (:mutable-specifier))
        (rust-unary-expression (:operator))
        (rust-generic-type (:turbofish-operator))
-       (rust-generic-type-with-turbofish (:turbofish-operator)))
+       (rust-generic-type-with-turbofish (:turbofish-operator))
+       (rust-range-expression (:operator)))
       (:javascript
        (javascript-function-declaration (:async))
        (javascript-export-statement (:default)))
@@ -1038,7 +1039,9 @@ for the language.")
         (rust-body :reader function-body))
        (rust-call-expression
         (rust-function :reader call-function)
-        (rust-arguments :reader call-arguments)))
+        (rust-arguments :reader call-arguments))
+       (rust-range-expression
+        (rust-operator :reader operator :initarg :operator)))
       ((:typescript-ts :typescript-tsx)
        ;; Anonymous function (function keyword).
        (typescript-ts-function
@@ -2776,6 +2779,16 @@ tree-sitter.")
          ;; parameter list.
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING"))))))
+       (:range-expression
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . ".."))
+           ((:TYPE . "STRING") (:VALUE . "..."))
+           ((:TYPE . "STRING") (:VALUE . "..="))))
+         :as "operator")
+        (:label
+         ((:TYPE . "STRING") (:VALUE . ".."))
+         :as "operator"))
        (:reference-expression
         (:label
          ((:TYPE . "CHOICE")

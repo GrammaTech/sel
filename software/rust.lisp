@@ -107,6 +107,11 @@ around generic-type-with-turbofish being aliased to generic-type."
   (with-modify-parse-tree (parse-tree)
     ((:|::|) (label-as :turbofish-operator))))
 
+(defmethod transform-parse-tree
+    ((language (eql :rust)) (class (eql 'rust-range-expression)) parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:|..| :|...| :|..=|) (label-as :operator))))
+
 
 ;;; Whitespace.
 

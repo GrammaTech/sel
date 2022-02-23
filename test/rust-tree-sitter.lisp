@@ -142,6 +142,19 @@ pub unsafe fn auto() -> MmapChoice {
                          :children nil))))
     (is (source-text= "myfun()" ast))))
 
+(deftest rust-range-operators ()
+  (let* ((sources
+          '("1..2;"
+            "3..;"
+            "..4;"
+            "..;"
+            "5..=6;"
+            ;; This parses as an assignment!
+            #+(or) "..=7;"))
+         (roots (mapcar (op (convert 'rust-ast _)) sources)))
+    (iter (for source in sources)
+          (for root in roots)
+          (is (string= source (source-text root))))))
 
 
 ;;; Parsing tests.
