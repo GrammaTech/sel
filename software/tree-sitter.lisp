@@ -635,7 +635,9 @@
            . #.(when (find-package :sel/sw/ts)
                  (let ((syms ()))
                    (do-external-symbols (s :sel/sw/ts)
-                     (push s syms))
+                     ;; Need uninterned symbols, lest fasls look for
+                     ;; packages that don't exist yet.
+                     (push (make-symbol (string s)) syms))
                    syms)))
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
