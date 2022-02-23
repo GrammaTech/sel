@@ -1752,7 +1752,21 @@ definitions.")
          (:seq (:slot python-internal-asts-0))))
        (python-argument-list
         (python-empty-argument-list
-         (:seq (:slot python-internal-asts-1))))))
+         (:seq (:slot python-internal-asts-1)))))
+      (:rust
+       ;; See
+       ;; <https://doc.rust-lang.org/reference/expressions/range-expr.html>.
+       ;; Note RangeInclusiveExpr and RangeToInclusiveExpr are not
+       ;; currently distinguished.
+       (rust-range-expression
+        (rust-range-expr
+         (:seq (:child rust--expression) (:field rust-operator rust-.. rust-... rust-..=) (:child rust--expression)))
+        (rust-range-from-expr
+         (:seq (:child rust--expression) (:field rust-operator rust-..)))
+        (rust-range-to-expr
+         (:seq (:field rust-operator rust-..) (:child rust--expression)))
+        (rust-range-full-expr
+         (:field rust-operator rust-..)))))
     "Give names to choice expansion subclasses having a certain collapsed rule.
 This isn't just for convenience; anonymous choice expansion subclasses
 are ignored by templates, whereas named ones are preserved.")
