@@ -202,27 +202,53 @@ to advance to the next file."
                                 :remove-empty-subseqs t)))
     (apply #'problematic-classes type dir files args)))
 
+(defgeneric format-tree (stream root &rest rest &key level format-fn
+                         &allow-other-keys)
+  (:documentation "Format ROOT and write to STREAM.
+:FORMAT-FN is a function that accepts a stream, ast, and current delimiter
+string.")
+  (:method (stream (root functional-tree-ast) &rest rest
+            &key (level 0) format-fn (format-delimiter "--|")
+            &allow-other-keys)
+    (if format-fn
+        (funcall format-fn stream root
+                 (repeat-sequence
+                  format-delimiter (* level (length format-delimiter))))
+        (format stream "~a~a~%" (repeat-sequence format-delimiter level)
+                (type-of root)))
+    (iter
+      (for child in (children root))
+      (apply #'format-tree stream child :level (1+ level) rest)))
+  (:method (stream (root tree-sitter-ast) &rest rest
+            &key (level 0) format-fn (format-delimiter "--|")
+            &allow-other-keys)
+    (if format-fn
+        (funcall format-fn stream root
+                 (repeat-sequence
+                  format-delimiter (* level (length format-delimiter))))
+        (format stream "~a~a~%" (repeat-sequence format-delimiter level)
+                (type-of root)))
+    (iter
+      (for child in (remove-if #'listp (parse-order root)))
+      (apply #'format-tree stream child :level (1+ level) rest))))
+
 (defun summarize-ast (ast &key (stream t) (indent 2))
   "Print a quick summary of an AST as a tree."
   (with-string (out stream)
     (labels ((source-text* (ast)
                (handler-case (source-text ast)
                  (error () "UNKNOWN")))
-             (summarize-ast (ast depth)
+             (summarize-ast (stream ast indent-string)
                (let ((lines (lines (source-text* ast) :count 2)))
-                 (format out "~&~a~a ~a~@[...~]"
-                         (make-string depth :initial-element #\Space)
+                 (format stream "~&~a~a ~a~@[...~]"
+                         indent-string
                          (type-of ast)
                          (first lines)
-                         (rest lines)))
-               (let ((children
-                      (typecase ast
-                        (alternative-ast
-                         (mapcar #'cdr (alternative-ast-child-alist ast)))
-                        (otherwise (children ast)))))
-                 (dolist (child children)
-                   (summarize-ast child (+ depth indent))))))
-      (summarize-ast ast 0))))
+                         (rest lines)))))
+      (format-tree
+       out ast
+       :format-delimiter (make-string indent :initial-element #\Space)
+       :format-fn #'summarize-ast))))
 
 (defun ambiguous-asts (software &key context)
   "Return a list that contains a list of an ambiguous AST and its contextualized
