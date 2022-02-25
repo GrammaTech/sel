@@ -395,7 +395,7 @@ If SUBTREE is a list do the same for each element."
              ast
              `(match (ast-template* ,(concatenate 'string template ";") ,class ,@args)
                 ;; If we get another error/fragment, then return the original AST w/o the semicolon.
-                ((or (type parse-error-ast) (type source-text-fragment)) ast)
+                ((or (type parse-error-ast) (type source-text-fragment)) ,ast)
                 ((and it) it))))
        ((and ,ast (type ast))
         (first (children ,ast))))))
