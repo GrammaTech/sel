@@ -159,7 +159,6 @@ An applicative tree structure is used to hold the ASTs."))
                 :reader alternative-ast-child-alist
                 :documentation "Child-Alist of the AST." :type list)
    (child-slot-specifiers
-    :initform nil
     :allocation :class)
    (default-children :initarg :default-children :initform nil
                      :reader alternative-ast-default-children
@@ -170,7 +169,7 @@ same language or several nodes which differ in language."))
 
 (defclass conflict-ast (alternative-ast)
   ((child-alist :reader conflict-ast-child-alist)
-   (child-slot-specifiers :allocation :class)
+   (child-slot-specifiers :allocation :class :initform nil)
    (default-children :reader conflict-ast-default-children))
   (:documentation "Node representing several possibilities for an AST.
 The mapping from a conflicted AST into a regular AST is as follows: for
