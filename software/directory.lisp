@@ -85,7 +85,7 @@
   (:method ((dir directory-ast) (path list))
     (when (emptyp path) (return-from filepath-to-treepath nil))
     (if-let ((index (position-if (op (string= (car path) (name _1))) (entries dir))))
-      (cons index (filepath-to-treepath (subdir dir (list (car path))) (cdr path)))
+      (cons index (filepath-to-treepath (get-path dir (list (car path))) (cdr path)))
       (error "subdirectory ~a not found in directory ~a" path (name dir))))
   (:method (dir (path pathname))
     (filepath-to-treepath dir (pathname-to-list path)))
@@ -94,25 +94,37 @@
 
 (defgeneric (setf get-path) (new directory path)
   (:documentation "Save NEW into PATH under DIRECTORY.")
-  (:method ((new ast) (obj directory-ast) (path list))
+  (:method (new (obj directory-ast) (path list))
     (econd
      ((every #'stringp path)
       (setf (@ obj (filepath-to-treepath obj path)) new))
      ((every #'integerp path)
       (setf (@ obj path) new))))
-  (:method ((new ast) (obj directory-ast) (path pathname))
+  (:method (new (obj directory-ast) (path pathname))
     (setf (get-path obj (pathname-to-list path)) new))
-  (:method ((new ast) (obj directory-ast) (path string))
+  (:method (new (obj directory-ast) (path string))
     (setf (get-path obj (pathname path)) new)))
 
 (defmethod (setf get-path) :before (new directory path)
   (ensure-path directory path))
 
+(defmethod (setf genome) (new (obj directory-project))
+  (setf (slot-value obj 'genome) new))
+
+(defmethod from-file ((obj directory-project) path)
+  (assert (probe-file path) (path) "~a does not exist." path)
+  (setf (project-dir obj) (canonical-pathname (truename path))
+        (genome obj) (make-instance 'directory-ast
+                                    :name (lastcar (pathname-directory (project-dir obj))))
+        (evolve-files obj) (collect-evolve-files obj)
+        (other-files obj) (collect-other-files obj))
+  obj)
+
 (defmethod collect-evolve-files :around ((obj directory-project))
   (let ((evolve-files (call-next-method)))
     (dolist (pair evolve-files evolve-files)
-      (destructuring-bind (path software-object) pair
-        (setf (get-path obj path) (genome software-object))))))
+      (destructuring-bind (path . software-object) pair
+        (setf (get-path (genome obj) path) (genome software-object))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
@@ -128,3 +140,12 @@
                                        (ignored-evolve-path-p obj)
                                        (pathname-relativize (project-dir obj) _1))))))
   result)
+
+#+run
+(defparameter commander.js (from-file (make-instance 'directory-project
+                                                     :ignore-paths '("node_modules/**/*"
+                                                                     "test/**/*"
+                                                                     "examples/**/*"
+                                                                     "coverage/**/*"
+                                                                     "docs/**/*"))
+                                      "~/Projects/commander.js/"))
