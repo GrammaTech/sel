@@ -146,6 +146,9 @@ around generic-type-with-turbofish being aliased to generic-type."
 (defmethod whitespace-between (s (x (eql :|}|)) (y rust-ast))
   " ")
 
+(defmethod whitespace-between (s (x rust-function-item) (y rust-function-item))
+  #.(fmt "~2%"))
+
 (defmethod whitespace-between/parent ((parent rust-ast)
                                       style
                                       (x (eql :|let|))
