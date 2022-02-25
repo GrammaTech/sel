@@ -27,6 +27,7 @@
            :pick-file
            :include-paths
            :include-paths-mixin
+           :text-file-p
            :find-include-files
            :directories-of-header-files))
 (in-package :software-evolution-library/software/project)
