@@ -163,7 +163,7 @@ Nested lists are not allowed as template arguments:~%~a"
             :initial-value template)
     names placeholders subtrees)))
 
-(defun check-ast-template (template class kwargs)
+(defun check-ast-template-validity (template class kwargs)
   "Compile-time validity checking for templates."
   (mvlet* ((template names placeholders
             (parse-ast-template template class kwargs))
@@ -195,13 +195,32 @@ Nested lists are not allowed as template arguments:~%~a"
          diff)))
     nil))
 
+(defun check-ast-template (template class kwargs &key tolerant)
+  (handler-bind ((error
+                  (lambda (e)
+                    (declare (ignore e))
+                    (when tolerant
+                      (unless (string$= ";" template)
+                        (handler-case
+                            (return-from check-ast-template
+                              (check-ast-template-validity
+                               (string+ template ";")
+                               class
+                               kwargs))
+                          (error (e)
+                            (error e))))))))
+    (check-ast-template-validity template class kwargs)))
+
+(define-symbol-macro %tolerant nil)
+
 (define-compiler-macro ast-template (&whole call template class &rest kwargs
                                             &environment env)
   "Compile-time validity checking for AST templates."
   (match (list template class)
     ((list (type string) (list 'quote class))
      (when (subtypep class 'tree-sitter-ast env)
-       (check-ast-template template class kwargs))))
+       (check-ast-template template class kwargs
+                           :tolerant (macroexpand-1 '%tolerant env)))))
   call)
 
 (defun ast-template (template class &rest args)
@@ -389,16 +408,17 @@ If SUBTREE is a list do the same for each element."
 
 (define-compiler-macro ast-template* (template class &rest args)
   (with-gensyms (ast)
-    `(match (ast-template ,template ,class ,@args)
-       ((and ,ast (or (type parse-error-ast) (type source-text-fragment)))
-        ,(if (eq (uiop/utility:last-char template) #\;)
-             ast
-             `(match (ast-template* ,(concatenate 'string template ";") ,class ,@args)
-                ;; If we get another error/fragment, then return the original AST w/o the semicolon.
-                ((or (type parse-error-ast) (type source-text-fragment)) ,ast)
-                ((and it) it))))
-       ((and ,ast (type ast))
-        (first (children ,ast))))))
+    `(symbol-macrolet ((%tolerant t))
+       (match (ast-template ,template ,class ,@args)
+         ((and ,ast (or (type parse-error-ast) (type source-text-fragment)))
+          ,(if (eq (uiop/utility:last-char template) #\;)
+               ast
+               `(match (ast-template* ,(concatenate 'string template ";") ,class ,@args)
+                  ;; If we get another error/fragment, then return the original AST w/o the semicolon.
+                  ((or (type parse-error-ast) (type source-text-fragment)) ,ast)
+                  ((and it) it))))
+         ((and ,ast (type ast))
+          (first (children ,ast)))))))
 
 (defun ast-template* (template class &rest args)
   "Like `ast-template', but return the first child of the created AST.
