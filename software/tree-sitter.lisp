@@ -326,8 +326,9 @@
 ;;;
 ;;; There is also a function, @code{ast-template*}, that behaves like
 ;;; @code{ast-template} except that it returns the first child of the
-;;; AST, rather than the whole AST. This is useful with languages
-;;; where expressions must be parsed as part of statements. Again, you
+;;; AST, rather than the whole AST. It can also supply a missing
+;;; semicolon if one is required. This is useful with languages where
+;;; expressions must be parsed as part of statements. Again, you
 ;;; probably don't want to use this function directly, since you can
 ;;; use starred versions of the language-specific shorthands.
 ;;;
@@ -335,6 +336,9 @@
 ;;;     => #<cpp-expression-statement "1+2;">
 ;;;
 ;;;     (cpp* "$X+$Y;" :x 1 :y 2)
+;;;     => #<cpp-binary-expression "1+2">
+;;;
+;;;     (cpp* "$X+$Y" :x 1 :y 2)
 ;;;     => #<cpp-binary-expression "1+2">
 ;;;
 ;;; By default metavariables look like @code{$X}, where the name can
