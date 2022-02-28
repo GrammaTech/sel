@@ -426,7 +426,10 @@ If SUBTREE is a list do the same for each element."
 (defun ast-template* (template class &rest args)
   "Like `ast-template', but return the first child of the created AST.
 This is useful for languages where the parser requires semicolons as
-delimiters (such as C or C++)."
+delimiters (such as C or C++).
+
+Furthermore, this variant is tolerant -- notably for languages where
+semicolons are required as delimiters the semicolon may be omitted."
   (match (apply #'ast-template template class args)
     ((and ast (or (type parse-error-ast) (type source-text-fragment)))
      (if (eq (uiop/utility:last-char template) #\;)
