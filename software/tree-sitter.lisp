@@ -7275,9 +7275,12 @@ return whether they are equal.")
   slot or an inner-asts slot."
   '(member :terminal :ast :extra-ast))
 
-(defgeneric get-representative-ast (alternative-ast parent-ast)
-  (:documentation "Get an AST in ALTERNATIVE-AST which can be used when
-structured-text methods require a structured-text AST.")
+(defgeneric get-representative-ast (child-ast parent-ast)
+  (:documentation "Get an AST in CHILD-AST which can be used when
+structured-text methods require a structured-text AST.
+
+By default just returns CHILD-AST.")
+  (:method ((child t) (parent t)) child)
   (:method ((ast conflict-ast) parent-ast)
     (some #'cadr (conflict-ast-child-alist ast))))
 
@@ -7304,9 +7307,7 @@ which slots are expected to be used."
              (box (unbox table)))
            (get-matchable-value (value)
              "Get a value that can be matched on by the tree-sitter rules."
-             (if (typep value 'alternative-ast)
-                 (get-representative-ast value ast)
-                 value))
+             (get-representative-ast value ast))
            (populate-slot->stack ()
              "Create a table that maps a slot name to its
               corresponding stack."
