@@ -103,6 +103,8 @@
       (is (= (length (bytes *gcd*)) (length (bytes variant))))
       (is (not (equalp (bytes *gcd*) (bytes variant)))))))
 
+;; This test may fail stochastically depending on the place selected.
+#+broken
 (deftest elf-swap-touching-last-element ()
   (with-fixture gcd-elf
     (let* ((variant (copy *gcd*))
