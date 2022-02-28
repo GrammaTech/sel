@@ -107,7 +107,15 @@
         (c/cpp-declarator ast)))
 
 (defmethod function-parameters ((ast c/cpp-function-definition))
-  (direct-children (c/cpp-parameters (c/cpp-declarator ast))))
+  ;; NOTE: the rule currently allows for any declarator. When
+  ;;       macros are involved, this can leave a definition without
+  ;;       a function declarator.
+  (when-let ((function-declarator
+              ;; NOTE: pointer declarators can be wrapped around the function
+              ;;       declarator.
+              (find-if (of-type 'c/cpp-function-declarator)
+                       (c/cpp-declarator ast))))
+    (direct-children (c/cpp-parameters function-declarator))))
 
 (defmethod call-arguments ((node c/cpp-call-expression))
   (direct-children (c/cpp-arguments node)))
@@ -178,7 +186,13 @@ pointer declarations which are nested on themselves."
   (list (c/cpp-declarator ast)))
 
 (defmethod outer-declarations ((ast c/cpp-function-definition))
-  (list (c/cpp-declarator (c/cpp-declarator ast))))
+  (when-let ((function-declarator
+              ;; NOTE: the rule currently allows for any declarator. When
+              ;;       macros are involved, this can leave a definition without
+              ;;       a function declarator.
+              (find-if (of-type 'c/cpp-function-declarator)
+                       (c/cpp-declarator ast))))
+    (outer-declarations function-declarator)))
 
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
   (find-enclosing '(or definition-ast cpp-class-specifier
@@ -649,6 +663,8 @@ Should return `:failure' in the base case.")
                                       (ast2 c/cpp-preproc-include))
   "")
 
+
+;;; Type Canonicalization
 (defgeneric canonicalize-declarator (declarator)
   (:documentation "Get a canonicalized form of DECLARATOR. This should be a
 list which is modeled after the representation presented at the following link:
