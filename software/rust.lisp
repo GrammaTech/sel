@@ -129,7 +129,9 @@ around generic-type-with-turbofish being aliased to generic-type."
   :< rust-primitive-type
   :& rust-ast
   rust-type-identifier rust-type-arguments
-  rust-identifier rust-parameters)
+  rust-identifier rust-parameters
+  rust-ast :!
+  :! rust-ast)
 
 (defmethod whitespace-between (s (x (eql :=)) (y rust-ast))
   " ")
