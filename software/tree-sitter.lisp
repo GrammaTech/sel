@@ -8055,9 +8055,11 @@ setting it if it isn't already set."
                  (for item in (cdr (butlast (output-transformation ast))))
                  (for previous-item previous item)
                  (for white-space =
-                      (whitespace-between/parent ast
-                                                 style
-                                                 previous-item item))
+                      (whitespace-between/parent
+                       ast
+                       style
+                       (get-representative-ast previous-item ast)
+                       (get-representative-ast item ast)))
                  (when (and recursive
                             (typep item '(and tree-sitter-ast
                                           (not terminal-symbol)))
