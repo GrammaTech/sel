@@ -496,9 +496,22 @@ languages allow you to use a pattern with the same name as shorthand:
 
 (defpattern ast-template* (template class &rest args)
   "Like `ast-template', but take the first child."
-  (ematch (pattern-expand-1 `(ast-template ,template ,class ,@args))
-    ((list* _ :children (list 'list pat) _)
-     pat)))
+  (let ((expansion
+         (block expansion
+           (handler-bind
+               ((error
+                 (lambda (e)
+                   (declare (ignore e))
+                   (when-let (expansion
+                              (ignore-errors
+                               (pattern-expand-1
+                                `(ast-template ,(ensure-suffix template ";")
+                                               ,class ,@args))))
+                     (return-from expansion expansion)))))
+             (pattern-expand-1 `(ast-template ,template ,class ,@args))))))
+    (ematch expansion
+      ((list* _ :children (list 'list pat) _)
+       pat))))
 
 (defmacro ast-from-template-aux (ast-template-fn template class &rest args)
   (let ((temps (make-gensym-list (length args))))

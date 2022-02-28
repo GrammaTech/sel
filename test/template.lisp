@@ -244,5 +244,14 @@ def $READ_NAME():
                       :x (make 'python-identifier :text "x")
                       :y (make 'python-identifier :text "y"))))))
 
-) ; #+(and :TREE-SITTER-CPP :TREE-SITTER-C
+(deftest test-insert-semicolons ()
+  (is (typep (cpp* "1") 'cpp-number-literal)))
+
+(deftest test-insert-semicolons-in-patterns ()
+  (is (equal '("1" "2")
+             (match (cpp* "1 + 2")
+               ((cpp* "$X + $Y" :x x :y y)
+                (list (source-text x) (source-text y)))))))
+
+) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON)
