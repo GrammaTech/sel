@@ -5600,7 +5600,9 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                ;; it.
                (maphash-keys
                 (lambda (subtype)
-                  (push ast-superclass (gethash subtype subtype->supertypes)))
+                  (symbol-macrolet ((subtype-hash
+                                      (gethash subtype subtype->supertypes)))
+                    (setf subtype-hash (append1 subtype-hash ast-superclass))))
                 subtype->supertypes)
                ;; Return for easier debugging.
                subtype->supertypes)
