@@ -1562,6 +1562,10 @@ for the language.")
         rust-identifier
         rust-primitive-type)
        (:integer-ast rust-integer-literal)
+       (:loop-ast
+        rust-for-expression
+        rust-loop-expression
+        rust-while-expression)
        (:parameter-ast rust-parameter)
        (:parameters-ast rust-parameters)
        (:parenthesized-expression-ast rust-parenthesized-expression)
