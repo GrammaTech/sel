@@ -608,6 +608,7 @@
            :java
            :text-fragment
            :choice-superclass
+           :tree-sitter-class-name
            :canonicalize-declarator
            :canonicalize-type
            ;; Styles
@@ -9394,3 +9395,26 @@ and AFTER-LIST."
                 ((typep before-value 'number) before-value)
                 ((typep after-value 'number) after-value)
                 (t (append before-value after-value)))))))
+
+(defun tree-sitter-class-name (class &key ignore-named)
+  "If CLASS is a choice subclass, or the name of a choice subclass,
+then get the tree-sitter class that that is its supertype, unless the
+choice subclass has been given a name."
+  (econd ((classp class)
+          (tree-sitter-class-name (class-name class)))
+         ((and (symbolp class)
+               (or ignore-named
+                   (scan "-\\d+$" (symbol-name class))))
+          (if-let* ((class (find-class-safe class))
+                    (superclass-slot
+                     (find-if [{eql 'choice-superclass}
+                               #'slot-definition-name]
+                              (progn (ensure-finalized class)
+                                     (class-slots class))))
+                    (quoted-value
+                     (slot-definition-initform superclass-slot)))
+            (ematch quoted-value
+              ((list 'quote (and symbol (type symbol)))
+               symbol))
+            class))
+         ((symbolp class) class)))
