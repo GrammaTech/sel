@@ -169,10 +169,11 @@ pub unsafe fn auto() -> MmapChoice {
 ;;; Whitespace tests.
 
 (defun check-patch-whitespace (rust)
-  (is (source-text= rust
-                    (patch-whitespace
-                     (convert 'rust-ast rust :deepest t)
-                     :prettify t))))
+  (is (equal rust
+             (source-text
+              (patch-whitespace
+               (convert 'rust-ast rust :deepest t)
+               :prettify t)))))
 
 (deftest test-rust-patch-whitespace ()
   ;; No space before semicolon.
@@ -199,6 +200,13 @@ pub unsafe fn auto() -> MmapChoice {
   ;; The convention that there is no space after : in a let, but there
   ;; is in a function parameter.
   (check-patch-whitespace "fn myfn(x: i32){}")
+  (is (search "x: f64"
+              (source-text
+               (patch-whitespace
+                (convert 'rust-ast
+                         "struct MyStruct { x: f64 }"
+                         :deepest t)
+                :prettify t))))
   ;; TODO Whitespace between an identifier and a equal signs. This
   ;; doesn't currently work because the output transformation looks
   ;; like \(<rust-identifier :text "x"> "" "="), which means working

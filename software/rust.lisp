@@ -164,4 +164,11 @@ around generic-type-with-turbofish being aliased to generic-type."
   "Leave a space after a colon, but only in a parameter."
   " ")
 
+(defmethod whitespace-between/parent ((parent rust-field-declaration)
+                                      style
+                                      (x (eql :|:|))
+                                      (y t))
+  "Leave a space after a colon, but only in a field declaration."
+  " ")
+
 ) ; #+:TREE-SITTER-RUST
