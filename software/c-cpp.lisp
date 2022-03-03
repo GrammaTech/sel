@@ -98,6 +98,149 @@
        (binary-expression->cast-expression ast-type ast)))))
 
 
+;;; Symbol Table
+
+(defun find-symbol-table-from-include (project include-ast)
+  ;; TODO: need a function to "clean" static symbols out of the tables in some
+  ;;       places.
+  (labels ((static-ast-p (software ast)
+             (let ((definition
+                     (find-enclosing
+                      (of-type '(or c/cpp-declaration c/cpp-function-definition))
+                      software ast)))
+               (find-if (op (source-text= "static" _))
+                        (append (c/cpp-pre-specifiers definition)
+                                (c/cpp-post-specifiers definition)))))
+           (remove-static-symbols (software symbol-table)
+             "Remove all symbols that are static in SOFTWARE from SYMBOL-TABLE."
+             (filter
+              (lambda (key value)
+                (declare (ignore key))
+                (not (when (eq software (cadr value))
+                       (static-ast-p software (car value)))))
+              symbol-table))
+           (trim-path-string (path-ast)
+             "Return the text of PATH-AST with the quotes around it removed."
+             (remove #\" (remove #\" (text path-ast)
+                                 :count 1)
+                     :from-end t
+                     :count 1))
+           (process-system-header (path-ast)
+             ;; TODO: use the clang header stuff?
+             ;;       Just return an empty map for now.
+             (declare (ignorable path-ast))
+             (empty-map))
+           (process-relative-header (path-ast)
+             "Get the corresponding symbol table for the relative path
+              represented by PATH-AST."
+             (if-let ((software
+                       (aget (trim-path-string path-ast)
+                             (sel/sw/project:evolve-files project)
+                             :test #'equal)))
+               (remove-static-symbols software
+                                      (symbol-table software (empty-map)))
+               (empty-map))))
+    (ematch include-ast
+      ((c/cpp-preproc-include
+        (c/cpp-path (and path (c/cpp-string-literal))))
+       (process-relative-header path))
+      ((c/cpp-preproc-include
+        (c/cpp-path (and path (c/cpp-system-lib-string))))
+       (process-system-header path)))))
+
+(defparameter *project* nil)
+(defparameter *software* nil)
+
+(def-attr-fun symbol-table (in)
+  "Compute the symbol table at this node."
+  ;; TODO: move this to a project file? May be fine here since there isn't a
+  ;;       c/cpp project. Just import the symbol
+  ;;       that we need?
+  (:method ((project sel/sw/project:project) &optional in)
+    (let ((*project* project))
+      (mapc (op (symbol-table _ in))
+            (mapcar #'cdr (sel/sw/project:evolve-files project)))
+      (empty-map)))
+  (:method ((software parseable) &optional in)
+    (let ((*software* software))
+      (symbol-table (genome software) in)))
+  ;; Default method: propagate down
+  (:method ((node root-ast) &optional in)
+    (reduce (lambda (in2 child)
+              (fset:map-union
+               (symbol-table child in2)
+               (outer-defs child)))
+            (children node)
+            :initial-value (fset:map-union in (inner-defs node))))
+  (:method ((node tree-sitter-ast) &optional in)
+    ;; This passes the full SYMBOL-TABLE down to the subtree
+    ;; (mapc-attrs-children #'symbol-table (list in) node)
+    ;; but this prunes off all the symbols not used in the subtree,
+    ;; which may make incrementalization easier.
+    (let ((amended-symbol-table (fset:map-union in (inner-defs node))))
+      (cond
+        ((scope-ast-p node)
+         (reduce (lambda (in2 child)
+                   (fset:map-union (symbol-table child in2)
+                                   (outer-defs child)))
+                 (children node)
+                 :initial-value amended-symbol-table)
+         in)
+        (t (mapc (op (symbol-table _ amended-symbol-table))
+                 (children node))
+           in))))
+  (:method ((node c/cpp-preproc-include) &optional in)
+    (declare (ignore in))
+    (if *project*
+        (find-symbol-table-from-include *project* node)
+        (call-next-method))))
+
+(defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
+  (labels ((extra-ast-types (language)
+             (mapcar (op (format-symbol 'sel/sw/ts "~a-~a" language _))
+                     (extra-asts language))))
+    (if (member node (append (extra-ast-types :c) (extra-ast-types :cpp))
+                :test #'typep)
+        (symbol-table node (empty-map))
+        (call-next-method))))
+
+(def-attr-fun outer-defs ()
+  "Map of outer definitions from a node"
+  (:method ((node node))
+    (convert 'fset:map
+             (mapcar (op (list (source-text _1) _1 *software*))
+                     (outer-declarations node)))))
+
+(def-attr-fun inner-defs ()
+  "Map of inner definitions from a node"
+  (:method ((node node))
+    (convert 'fset:map
+             (mapcar (op (list (source-text _1) _1 *software*))
+                     (inner-declarations node)))))
+
+(defmethod outer-declarations :around (ast)
+  (block outer-declaration
+    (handler-bind ((#+sbcl sb-pcl::no-applicable-method-error #-sbcl error
+                    (lambda (condition)
+                      (declare (ignorable condition))
+                      (when (find-if
+                             (of-type '(or source-text-fragment parse-error-ast))
+                             ast)
+                        (return-from outer-declaration)))))
+      (call-next-method))))
+
+(defmethod inner-declarations :around (ast)
+  (block inner-declaration
+    (handler-bind ((#+sbcl sb-pcl::no-applicable-method-error #-sbcl error
+                    (lambda (condition)
+                      (declare (ignorable condition))
+                      (when (find-if
+                             (of-type '(or source-text-fragment parse-error-ast))
+                             ast)
+                        (return-from inner-declaration)))))
+      (call-next-method))))
+
+
 ;;; Generics and Transformations
 (defmethod function-name ((ast c/cpp-function-definition))
   (nest (source-text)

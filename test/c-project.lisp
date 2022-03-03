@@ -12,7 +12,8 @@
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
-   :software-evolution-library/software/c-project)
+   :software-evolution-library/software/c-project
+   :functional-trees/attrs)
   #-windows (:shadowing-import-from :osicat
                                     :file-permissions :pathname-as-directory)
   (:export :test-c-project))
@@ -76,6 +77,15 @@
           (make-pathname :directory +include-processing-dir+))
          (include-paths *project*)
          (directories-of-header-files *project*)))
+  (:teardown (setf *project* nil)))
+
+(defixture symbol-table-project
+  (:setup
+   (setf *project*
+         (from-file 'c-project
+                    (make-pathname
+                     :directory (append1 +etc-dir+
+                                         "c-symbol-table-project")))))
   (:teardown (setf *project* nil)))
 
 (defmethod test-method ((obj simple) value)
@@ -218,3 +228,32 @@
            (let ((include-ast (second (convert 'list f1c))))
              (find-include-files *project* f1c include-ast))
            (list f1h))))))
+
+
+;;; Symbol Table
+
+(defun get-symbol-map (software symbols)
+  (labels ((symbol-list (software symbol)
+             (list symbol
+                   (stmt-with-text (genome software) symbol)
+                   software)))
+    (convert 'fset:map (mapcar (op (symbol-list software _)) symbols))))
+
+(deftest c-project-symbol-table-1 ()
+  "Included files have their symbols imported into the symbol table of the
+file including it."
+  (labels ((test-main.c ()
+             "Test that the symbols from file.h are available in main.c."
+             (let* ((software (aget "main.c" (evolve-files *project*)
+                                    :test #'equal))
+                    (target-ast (find-if (of-type 'c-preproc-include)
+                                         (genome software)))
+                    (included-software (aget "file.h" (evolve-files *project*)
+                                             :test #'equal)))
+               (is (equal? (sel/sw/ts::symbol-table target-ast)
+                           (get-symbol-map included-software
+                                           '("x" "function")))))))
+    (with-fixture symbol-table-project
+      (with-attr-table *project*
+        (sel/sw/ts::symbol-table *project* (empty-map))
+        (test-main.c)))))

@@ -421,6 +421,7 @@
   (:use :gt/full
         :babel
         :cl-json
+        :functional-trees/attrs
         :software-evolution-library
         :software-evolution-library/utility/json
         :software-evolution-library/utility/range

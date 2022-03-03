@@ -11,7 +11,8 @@
    :software-evolution-library/software/c
    :software-evolution-library/test/util-clang
    :software-evolution-library/components/file
-   :software-evolution-library/components/formatting)
+   :software-evolution-library/components/formatting
+   :functional-trees/attrs)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
   (:export :test-c-tree-sitter))
 (in-package :software-evolution-library/test/c-tree-sitter)
@@ -893,3 +894,34 @@ when its surrounding text is removed."
          (root (convert 'c-ast source))
          (case-statement (stmt-with-text root "case" :at-start t)))
     (is (= 2 (length (c-statements case-statement))))))
+
+
+;;; Symbol Table
+(deftest c-symbol-table-1 ()
+  "Symbol table only shows what has occurred before each AST at that occurs in
+the root AST."
+  (let* ((source "int a; int b; int c; return;")
+         (root (convert 'c-ast source))
+         (second-declaration-ast
+           (cadr (collect-if (of-type 'c-declaration) root)))
+         (return-ast
+           (find-if (of-type 'c-return-statement) root)))
+    (with-attr-table root
+      (sel/sw/ts::symbol-table root (empty-map))
+      (is (equal? (sel/sw/ts::symbol-table second-declaration-ast)
+                  (fset:map ("a" (list (stmt-with-text root "a") nil)))))
+      (is (equal? (sel/sw/ts::symbol-table return-ast)
+                  (fset:map ("a" (list (stmt-with-text root "a") nil))
+                            ("b" (list (stmt-with-text root "b") nil))
+                            ("c" (list (stmt-with-text root "c") nil))))))))
+
+(deftest c-symbol-table-2 ()
+  "The root symbol table contains all declarations that occur at the top level."
+  (let* ((source "int a; int b; int c; return;")
+         (root (convert 'c-ast source)))
+    (with-attr-table root
+      (sel/sw/ts::symbol-table root (empty-map))
+      (is (equal? (sel/sw/ts::symbol-table root)
+                  (fset:map ("a" (list (stmt-with-text root "a") nil))
+                            ("b" (list (stmt-with-text root "b") nil))
+                            ("c" (list (stmt-with-text root "c") nil))))))))
