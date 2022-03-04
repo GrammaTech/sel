@@ -8,8 +8,13 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable)
-  (:export :directory-ast
+  (:export :file-ast
+           :directory-ast
            :directory-project
+           :name
+           :entries
+           :contents
+           :get-path
            :evolve-files
            :other-files
            :ignore-paths
@@ -49,15 +54,17 @@
 
 (defun pathname-to-list (path)
   (check-type path pathname)
-  (append (cdr (pathname-directory path))
-          (when (pathname-name path)
-            (list
-             (if (pathname-type path)
-                 (string-join (list (pathname-name path) (pathname-type path)) ".")
-                 (pathname-name path))))))
+  (let ((filename (when (pathname-name path)
+                    (if (pathname-type path)
+                        (string-join (list (pathname-name path) (pathname-type path)) ".")
+                        (pathname-name path)))))
+    (values (append (cdr (pathname-directory path)) (list filename))
+            filename)))
 
 (defgeneric ensure-path (directory path)
   (:documentation "Ensure that PATH exists under DIRECTORY.")
+  (:method ((file file-ast) (path list))
+    (assert (emptyp path)))
   (:method ((dir directory-ast) (path list))
     (when (emptyp path) (return-from ensure-path dir))
     (if-let ((subdir (find-if (op (string= (car path) (name _1))) (entries dir))))
@@ -65,12 +72,18 @@
       (progn (push (make-instance 'directory-ast :name (car path)) (entries dir))
              (ensure-path dir path))))
   (:method (dir (path pathname))
-    (ensure-path dir (pathname-to-list path)))
+    (multiple-value-bind (directory-list filename) (pathname-to-list path)
+      (ensure-path dir (butlast directory-list))
+      (pushnew (make-instance 'file-ast :name filename)
+               (entries (fset:@ dir (butlast directory-list))))
+      dir))
   (:method (dir (path string))
     (ensure-path dir (pathname path))))
 
 (defgeneric get-path (directory path)
   (:documentation "Return the contents of PATH under DIRECTORY.")
+  (:method ((file file-ast) (path list))
+    (when (emptyp path) file))
   (:method ((dir directory-ast) (path list))
     (when (emptyp path) (return-from get-path dir))
     (if-let ((subdir (find-if (op (string= (car path) (name _1))) dir)))
@@ -83,7 +96,7 @@
 
 (defgeneric filepath-to-treepath (directory filepath)
   (:documentation "Ensure that PATH exists under DIRECTORY.")
-  (:method ((dir directory-ast) (path list))
+  (:method ((dir directory-or-file-ast) (path list))
     (when (emptyp path) (return-from filepath-to-treepath nil))
     (if-let ((index (position-if (op (string= (car path) (name _1))) (entries dir))))
       (cons index (filepath-to-treepath (get-path dir (list (car path))) (cdr path)))
@@ -106,9 +119,6 @@
   (:method (new (obj directory-ast) (path string))
     (setf (get-path obj (pathname path)) new)))
 
-(defmethod (setf get-path) :before (new directory path)
-  (ensure-path directory path))
-
 (defmethod (setf genome) (new (obj directory-project))
   (setf (slot-value obj 'genome) new))
 
@@ -125,7 +135,8 @@
   (let ((evolve-files (call-next-method)))
     (dolist (pair evolve-files evolve-files)
       (destructuring-bind (path . software-object) pair
-        (setf (get-path (genome obj) path) (genome software-object))))))
+        (ensure-path (genome obj) path)
+        (setf (contents (get-path (genome obj) path)) (genome software-object))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)

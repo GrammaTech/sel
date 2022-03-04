@@ -37,6 +37,12 @@
   (:teardown
    (setf *soft* nil)))
 
+(deftest can-ensure-a-path-under-a-directory ()
+  (let ((dir (make-instance 'directory-ast :name "foo")))
+    (is (sel/sw/directory::ensure-path dir "bar"))
+    (is (sel/sw/directory::get-path dir "bar"))
+    (is (subtypep (type-of (sel/sw/directory::get-path dir "bar")) 'file-ast))))
+
 (deftest can-load-a-javascript-directory ()
   (with-fixture fib-project-javascript
     (is (subtypep (type-of *soft*) 'directory-project))
@@ -58,3 +64,11 @@
     (let (function)
       (mapcar (op (when (subtypep (type-of _1) 'function-ast) (setf function _1))) *soft*)
       (is function))))
+
+(deftest can-index-into-the-genome-of-a-directory-to-get-to-file-asts ()
+  (with-fixture fib-project-javascript
+    (is (> (size (genome *soft*)) 100))))
+
+(deftest can-recurse-into-file-contents ()
+  (with-fixture fib-project-javascript
+    (is (= 1 (count-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*))))))
