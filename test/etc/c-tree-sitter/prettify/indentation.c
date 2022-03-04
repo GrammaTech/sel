@@ -3,7 +3,6 @@ int main () {
         for (;;) {
             if (1)
                 return 0;
-
         }
     }
 }

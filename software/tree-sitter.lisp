@@ -8065,7 +8065,9 @@ setting it if it isn't already set."
              (patch-whitespace (ast parents)
                (update-indentation ast parents)
                (iter
-                 (for item in (cdr (butlast (output-transformation ast))))
+                 (for item in (remove-if
+                               (conjoin #'stringp #'emptyp)
+                               (cdr (butlast (output-transformation ast)))))
                  (for previous-item previous item)
                  (for white-space =
                       (whitespace-between/parent
