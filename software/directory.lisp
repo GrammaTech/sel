@@ -52,6 +52,14 @@
    (child-slots :initform '(contents) :allocation :class))
   (:documentation "FT Node to hold a directory entry."))
 
+(defmethod print-object ((obj directory-or-file-ast) stream)
+  (if *print-readably*
+      (call-next-method)
+      (print-unreadable-object (obj stream :type t)
+        (format stream "~a~@[ ~a~]"
+                (serial-number obj)
+                (name obj)))))
+
 (defun pathname-to-list (path)
   (check-type path pathname)
   (let ((filename (when (pathname-name path)
