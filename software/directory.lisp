@@ -47,9 +47,9 @@
   (:documentation "FT Node to hold a directory entry."))
 
 (define-node-class file-ast (directory-or-file-ast)
-  ((contents :accessor contents :initarg :contents :initform nil :type (or null node)
+  ((contents :accessor contents :initarg :contents :initform nil :type list
              :documentation "Contents of the file.")
-   (child-slots :initform '((contents . 0)) :allocation :class))
+   (child-slots :initform '(contents) :allocation :class))
   (:documentation "FT Node to hold a directory entry."))
 
 (defun pathname-to-list (path)
@@ -136,7 +136,8 @@
     (dolist (pair evolve-files evolve-files)
       (destructuring-bind (path . software-object) pair
         (ensure-path (genome obj) path)
-        (setf (contents (get-path (genome obj) path)) (genome software-object))))))
+        (setf (contents (get-path (genome obj) path))
+              (list (genome software-object)))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
