@@ -8,7 +8,8 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable)
-  (:export :directory
+  (:export :directory-ast
+           :directory-project
            :evolve-files
            :other-files
            :ignore-paths
@@ -28,11 +29,11 @@
   objects.
 
 - evolve-files and other-files (from project) hold software objects"))
-
-(defclass directory-or-file-ast (node ast)
-  ((name :accessor name :initarg :name :type string
-         :documentation "Name of the directory"))
-  (:documentation "Node to hold a directory or a file."))
+(eval-always
+ (defclass directory-or-file-ast (node ast)
+   ((name :accessor name :initarg :name :type string
+          :documentation "Name of the directory"))
+   (:documentation "Node to hold a directory or a file.")))
 
 (define-node-class directory-ast (directory-or-file-ast)
   ((entries :accessor entries :initarg :entries :initform nil :type list
