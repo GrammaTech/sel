@@ -141,12 +141,3 @@
                                        (ignored-evolve-path-p obj)
                                        (pathname-relativize (project-dir obj) _1))))))
   result)
-
-#+run
-(defparameter commander.js (from-file (make-instance 'directory-project
-                                                     :ignore-paths '("node_modules/**/*"
-                                                                     "test/**/*"
-                                                                     "examples/**/*"
-                                                                     "coverage/**/*"
-                                                                     "docs/**/*"))
-                                      "~/Projects/commander.js/"))
