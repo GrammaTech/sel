@@ -89,3 +89,12 @@
                   (mapcar (op (prog1 nil (push (serial-number _) result))) (genome *soft*))
                   result)))
     (is (equal? (convert 'list *soft*) (convert 'list (genome *soft*))))))
+
+(deftest collect-all-string-asts-from-a-project ()
+  (with-fixture fib-project-javascript
+    (is (every (op (typep _ 'string-ast))
+               (reduce (lambda (acc node)
+                         (when (typep node 'string-ast)
+                           (push node acc))
+                         acc)
+                       *soft*)))))
