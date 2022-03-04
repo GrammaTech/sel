@@ -161,3 +161,23 @@
                                        (ignored-evolve-path-p obj)
                                        (pathname-relativize (project-dir obj) _1))))))
   result)
+
+;;; Override project-specific defmethods that leverage evolve-files
+;;; and instead implement these directly against the genome.
+
+(defmethod lookup ((obj directory-project) key)
+  ;; Enables the use of the `@' macro directly against projects.
+  (lookup (genome obj) key))
+
+(defmethod lookup ((obj directory-ast) (key string))
+  ;; Enables the use of the `@' macro directly against projects.
+  (find-if (op (string= key (name _))) (entries obj)))
+
+(defmethod mapc (function (obj directory-project) &rest more)
+  (apply 'mapc function (genome obj) more))
+
+(defmethod mapcar (function (obj directory-project) &rest more)
+  (apply 'mapcar function (genome obj) more))
+
+(defmethod convert ((to-type (eql 'list)) (obj directory-project) &rest more)
+  (apply 'convert to-type (genome obj) more))

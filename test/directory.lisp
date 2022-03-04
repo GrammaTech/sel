@@ -42,7 +42,6 @@
     (is (sel/sw/directory::ensure-path dir "bar"))
     (is (sel/sw/directory::get-path dir "bar"))
     (is (subtypep (type-of (sel/sw/directory::get-path dir "bar")) 'file-ast))))
-
 (deftest can-load-a-javascript-directory ()
   (with-fixture fib-project-javascript
     (is (subtypep (type-of *soft*) 'directory-project))
@@ -71,4 +70,22 @@
 
 (deftest can-recurse-into-file-contents ()
   (with-fixture fib-project-javascript
-    (is (= 1 (count-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*))))))
+    (is (= 1 (count-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*))))
+    (is (find-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*)))))
+
+(deftest invoke-sequence-methods-on-project-genomes ()
+  (with-fixture fib-project-typescript
+    (is (equal? (@ *soft* '(0 0 1)) (@ (genome *soft*) '(0 0 1))))
+    (is (equal? (let (result)
+                  (mapc (op (push (serial-number _) result)) *soft*)
+                  result)
+                (let (result)
+                  (mapc (op (push (serial-number _) result)) (genome *soft*))
+                  result)))
+    (is (equal? (let (result)
+                  (mapcar (op (prog1 nil (push (serial-number _) result))) *soft*)
+                  result)
+                (let (result)
+                  (mapcar (op (prog1 nil (push (serial-number _) result))) (genome *soft*))
+                  result)))
+    (is (equal? (convert 'list *soft*) (convert 'list (genome *soft*))))))
