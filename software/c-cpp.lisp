@@ -103,23 +103,7 @@
 (defun find-symbol-table-from-include (project include-ast)
   ;; TODO: need a function to "clean" static symbols out of the tables in some
   ;;       places.
-  (labels ((static-ast-p (software ast)
-             (let ((definition
-                     (find-enclosing
-                      (of-type '(or c/cpp-declaration c/cpp-function-definition))
-                      software ast)))
-               (find-if (op (source-text= "static" _))
-                        (append (c/cpp-pre-specifiers definition)
-                                (c/cpp-post-specifiers definition)))))
-           (remove-static-symbols (software symbol-table)
-             "Remove all symbols that are static in SOFTWARE from SYMBOL-TABLE."
-             (filter
-              (lambda (key value)
-                (declare (ignore key))
-                (not (when (eq software (cadr value))
-                       (static-ast-p software (car value)))))
-              symbol-table))
-           (trim-path-string (path-ast)
+  (labels ((trim-path-string (path-ast)
              "Return the text of PATH-AST with the quotes around it removed."
              (remove #\" (remove #\" (text path-ast)
                                  :count 1)
@@ -137,8 +121,7 @@
                        (aget (trim-path-string path-ast)
                              (sel/sw/project:evolve-files project)
                              :test #'equal)))
-               (remove-static-symbols software
-                                      (symbol-table software (empty-map)))
+               (symbol-table software (empty-map))
                (empty-map))))
     (ematch include-ast
       ((c/cpp-preproc-include
