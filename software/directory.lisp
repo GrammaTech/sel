@@ -35,7 +35,7 @@
 
 - evolve-files and other-files (from project) hold software objects"))
 (eval-always
- (defclass directory-or-file-ast (node ast)
+ (defclass directory-or-file-ast (functional-tree-ast)
    ((name :accessor name :initarg :name :type string
           :documentation "Name of the directory"))
    (:documentation "Node to hold a directory or a file.")))
@@ -83,7 +83,7 @@
     (multiple-value-bind (directory-list filename) (pathname-to-list path)
       (ensure-path dir (butlast directory-list))
       (pushnew (make-instance 'file-ast :name filename)
-               (entries (fset:@ dir (butlast directory-list))))
+               (entries (@ dir (butlast directory-list))))
       dir))
   (:method (dir (path string))
     (ensure-path dir (pathname path))))

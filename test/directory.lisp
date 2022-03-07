@@ -42,6 +42,7 @@
     (is (sel/sw/directory::ensure-path dir "bar"))
     (is (sel/sw/directory::get-path dir "bar"))
     (is (subtypep (type-of (sel/sw/directory::get-path dir "bar")) 'file-ast))))
+
 (deftest can-load-a-javascript-directory ()
   (with-fixture fib-project-javascript
     (is (subtypep (type-of *soft*) 'directory-project))
@@ -74,6 +75,11 @@
     (is (find-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*)))))
 
 (deftest invoke-sequence-methods-on-project-genomes ()
+  ;; This test checks that we're invoking sequence methods on project
+  ;; genomes and NOT going through the defmethod of mapcar/mapc on
+  ;; projects that invokes the function over the EVOLVE-FILEs of the
+  ;; object.  Hence the use of mapc/mapcar with result in the below
+  ;; instead of just using reduce.
   (with-fixture fib-project-typescript
     (is (equal? (@ *soft* '(0 0 1)) (@ (genome *soft*) '(0 0 1))))
     (is (equal? (let (result)
@@ -92,9 +98,10 @@
 
 (deftest collect-all-string-asts-from-a-project ()
   (with-fixture fib-project-javascript
-    (is (every (op (typep _ 'string-ast))
-               (reduce (lambda (acc node)
-                         (when (typep node 'string-ast)
-                           (push node acc))
-                         acc)
-                       *soft*)))))
+    (let ((all-strings (reduce (lambda (acc node)
+                                 (if (typep node 'string-ast)
+                                     (cons node acc)
+                                     acc))
+                               *soft*)))
+      (is all-strings)
+      (is (every (op (typep _ 'string-ast)) all-strings)))))
