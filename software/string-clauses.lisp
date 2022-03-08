@@ -19,6 +19,7 @@
     sel/software/tree-sitter::json-rule
     sel/software/tree-sitter::slot-usage
     sel/software/tree-sitter:choice-superclass
+    sel/software/tree-sitter::choice-subclasses
     fset::serial-number
     ;; The next two are specific to CCL.
     fset::next-serial-number
