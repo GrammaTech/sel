@@ -134,6 +134,16 @@ similar matches, and elipses for matching series of ASTs."
                                (string*= "LIST_" (lastcar subpattern)))
                           (push (cons 'list* subpattern) result)
                           (push (cons 'list subpattern) result)))))
+               ((match val
+                  ((and _
+                        (type ast)
+                        (access #'source-text
+                                (ppcre #.(string+ "^" +metavariable-prefix+
+                                                  "(LIST_[A-Z0-9_]+)$")
+                                       name)))
+                   (push
+                    `(access #'children ,(make-wild-symbol name))
+                    result))))
                (t (push (convert 'match val) result))))))
        (nreverse result)))))
 
