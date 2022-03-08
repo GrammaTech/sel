@@ -89,8 +89,17 @@ similar matches, and elipses for matching series of ASTs."
            wild-symbol)))
     ((ast :text (ppcre "^[\"']?=~/(.+)/[\"']?$" re))
      `(ast :text (ppcre ,re)))
-    ((string-ast :children (list* (ast :text (ppcre "^[\"']?=~/(.+)/[\"']?$" re)) rest))
+    ((string-ast :children (list* (ast :text (ppcre "^[\"']?=~/(.+)/[\"']?$" re)) _))
      `(ast :text (ppcre ,re)))
+    ;; For a list metavariable, we want the shallowest match with the
+    ;; same source text.
+    ((and _
+          (type ast)
+          (access #'source-text
+                  (ppcre #.(string+ "^" +metavariable-prefix+
+                                    "(LIST_[A-Z0-9_]+)$")
+                         name)))
+     (make-wild-symbol name))
     (otherwise
      (let ((result '())
            (slot-names

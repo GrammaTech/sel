@@ -7,6 +7,7 @@
         :software-evolution-library/software/javascript
         :software-evolution-library/software/c
         :software-evolution-library/software/cpp
+        :software-evolution-library/software/rust
         :software-evolution-library/test/util
         :stefil+))
 (in-package :software-evolution-library/test/template)
@@ -18,7 +19,8 @@
          (cpp-tree-sitter-available-p)))
 
 #+(and :TREE-SITTER-CPP :TREE-SITTER-C
-       :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON)
+       :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON
+       :TREE-SITTER-RUST)
 (progn
 
 (deftest test-template-as-shorthand ()
@@ -253,5 +255,29 @@ def $READ_NAME():
                ((cpp* "$X + $Y" :x x :y y)
                 (list (source-text x) (source-text y)))))))
 
+(defun make-derive (traits)
+  (rust "#[derive(@ARGS)]"
+        :args
+        (mapcar (op (make 'rust-meta-item
+                          :children
+                          (list (make 'rust-identifier :text (source-text _)))))
+                traits)))
+
+(deftest test-make-derive ()
+  "Test that list elements are inserted as direct children of the
+surrounding container."
+  (is (source-text=
+       "#[derive(PartialEq, PartialOrd)]"
+       (make-derive '("PartialEq" "PartialOrd")))))
+
+(deftest test-match-derive ()
+  "Test that list elements are inserted as direct children of the
+surrounding container."
+  (ematch (make-derive '("PartialEq" "PartialOrd"))
+    ((rust "#[derive(@ARGS)]" :args args)
+     (is (every #'source-text=
+                args
+                '("PartialEq" "PartialOrd"))))))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
-  ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON)
+                                        ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)

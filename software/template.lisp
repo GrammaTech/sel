@@ -350,6 +350,14 @@ with `@') can also be used as Trivia patterns for destructuring.
              (values 'children offset))
             ((cons slot (and offset (type number)))
              (values slot offset))))
+        (minimize-path (ast path)
+          "Find the shallowest parent of AST with the same source text."
+          (if (null path) path
+              (let ((child (lookup ast path))
+                    (parent-path (butlast path)))
+                (if (source-text= child (lookup ast parent-path))
+                    (minimize-path ast parent-path)
+                    path))))
         (insert-subtree (ast path subtree)
           (typecase subtree
             (string
@@ -358,8 +366,12 @@ with `@') can also be used as Trivia patterns for destructuring.
              ;; parsing phase.
              ast)
             (list
-             (multiple-value-bind (slot offset)
-                 (slot+offset (lastcar path))
+             ;; NB We want to "minimize" the path when inserting a
+             ;; list because we want to insert elements as immediate
+             ;; children to the container, without intermediate ASTs.
+             (mvlet* ((path (minimize-path ast path))
+                      (slot offset
+                       (slot+offset (lastcar path))))
                (unless slot
                  (error "Attempt to insert a list into a non-list location: ~a"
                         path))
