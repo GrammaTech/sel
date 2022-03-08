@@ -871,7 +871,7 @@ number will automatically be promoted).")
 (defun default-select-best (group &key (predicate *fitness-predicate*))
   "Return the members of GROUP with most PREDICATE fitness.
 Default selection function for `tournament'."
-  (remove-if-not [{= (fitness (extremum group predicate :key #'fitness))}
+  (remove-if-not [{equal (fitness (extremum group predicate :key #'fitness))}
                   #'fitness]
                  group))
 
