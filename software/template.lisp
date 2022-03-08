@@ -351,11 +351,13 @@ with `@') can also be used as Trivia patterns for destructuring.
             ((cons slot (and offset (type number)))
              (values slot offset))))
         (minimize-path (ast path)
-          "Find the shallowest parent of AST with the same source text."
+          "Find the shallowest parent of AST with the same source
+text, assuming it is one of a list of children."
           (if (null path) path
               (let ((child (lookup ast path))
                     (parent-path (butlast path)))
-                (if (source-text= child (lookup ast parent-path))
+                (if (and (source-text= child (lookup ast parent-path))
+                         (not (symbolp (lastcar parent-path))))
                     (minimize-path ast parent-path)
                     path))))
         (insert-subtree (ast path subtree)
