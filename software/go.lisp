@@ -16,6 +16,9 @@
 (create-tree-sitter-language "go")
 ;;;===================================================
 
+#:TREE-SITTER-GO
+(progn
+  
 (defmethod function-name ((ast golang-function-declaration))
   (source-text (golang-name ast)))
 (defmethod function-name ((ast golang-method-declaration))
@@ -80,3 +83,5 @@
   (list (golang-name ast)))
 (defmethod definition-name-ast ((ast golang-labeled-statement))
   (list (golang-label ast)))
+
+)
