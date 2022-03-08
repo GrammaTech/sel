@@ -16,7 +16,7 @@
 (create-tree-sitter-language "go")
 ;;;===================================================
 
-#:TREE-SITTER-GO
+#+:TREE-SITTER-GO
 (progn
   
 (defmethod function-name ((ast golang-function-declaration))
