@@ -267,6 +267,9 @@ def $READ_NAME():
   "Test that list elements are inserted as direct children of the
 surrounding container."
   (is (source-text=
+       "#[derive(Clone)]"
+       (make-derive '("Clone"))))
+  (is (source-text=
        "#[derive(PartialEq, PartialOrd)]"
        (make-derive '("PartialEq" "PartialOrd")))))
 

@@ -59,8 +59,6 @@ Generic so a different syntax can be used per-language.")
     ;; helpful since an "empty" whatever usually parses as a distinct
     ;; class.
     (cond ((null list) "")
-          ((single list)
-           (template-subtree ast (car list)))
           ;; For individual subtrees that are strings, rather than
           ;; parsing them on their own we insert them into the template
           ;; (not the AST) so they get parsed in place. But doing the
