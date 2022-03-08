@@ -6136,9 +6136,11 @@ Note that this won't always pick the correct subclass."
              (return result))
             (t
              (change-class ast superclass)
-             (error 'rule-matching-error
-                    :rule-matching-error-rule (pruned-rule ast)
-                    :rule-matching-error-ast ast)))))))
+             (cerror "Return the invalid AST"
+                     'rule-matching-error
+                     :rule-matching-error-rule (pruned-rule ast)
+                     :rule-matching-error-ast ast)
+             ast))))))
 
 (defgeneric output-transformation
     (ast &rest rest &key &allow-other-keys)
