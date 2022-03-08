@@ -1325,6 +1325,8 @@ for the language.")
        (:c/cpp-preproc-function-def
         c-preproc-function-def
         cpp-preproc-function-def)
+       (:c/cpp-preproc-if c-preproc-if cpp-preproc-if)
+       (:c/cpp-preproc-ifdef c-preproc-ifdef cpp-preproc-ifdef)
        (:c/cpp-preproc-include c-preproc-include cpp-preproc-include)
        (:c/cpp-preproc-params c-preproc-params cpp-preproc-params)
        (:c/cpp-primitive-type c-primitive-type cpp-primitive-type)

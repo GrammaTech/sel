@@ -134,6 +134,15 @@
 (defparameter *project* nil)
 (defparameter *software* nil)
 
+(defun propagate-declarations-down (ast in)
+  "Propagate the symbol table declarations own through AST's children."
+  (reduce (lambda (in2 child)
+            (fset:map-union
+             (symbol-table child in2)
+             (outer-defs child)))
+          (children ast)
+          :initial-value (fset:map-union in (inner-defs ast))))
+
 (def-attr-fun symbol-table (in)
   "Compute the symbol table at this node."
   ;; TODO: move this to a project file? May be fine here since there isn't a
@@ -147,31 +156,24 @@
   (:method ((software parseable) &optional in)
     (let ((*software* software))
       (symbol-table (genome software) in)))
-  ;; Default method: propagate down
   (:method ((node root-ast) &optional in)
-    (reduce (lambda (in2 child)
-              (fset:map-union
-               (symbol-table child in2)
-               (outer-defs child)))
-            (children node)
-            :initial-value (fset:map-union in (inner-defs node))))
+    (propagate-declarations-down node in))
+  (:method ((node c/cpp-preproc-if) &optional in)
+    (propagate-declarations-down node in))
+  (:method ((node c/cpp-preproc-ifdef) &optional in)
+    (propagate-declarations-down node in))
+  (:method ((node c/cpp-preproc-elif) &optional in)
+    (propagate-declarations-down node in))
+  (:method ((node c/cpp-preproc-else) &optional in)
+    (propagate-declarations-down node in))
   (:method ((node tree-sitter-ast) &optional in)
-    ;; This passes the full SYMBOL-TABLE down to the subtree
-    ;; (mapc-attrs-children #'symbol-table (list in) node)
-    ;; but this prunes off all the symbols not used in the subtree,
-    ;; which may make incrementalization easier.
-    (let ((amended-symbol-table (fset:map-union in (inner-defs node))))
-      (cond
-        ((scope-ast-p node)
-         (reduce (lambda (in2 child)
-                   (fset:map-union (symbol-table child in2)
-                                   (outer-defs child)))
-                 (children node)
-                 :initial-value amended-symbol-table)
-         in)
-        (t (mapc (op (symbol-table _ amended-symbol-table))
-                 (children node))
-           in))))
+    (cond
+      ((scope-ast-p node)
+       (propagate-declarations-down node in)
+       in)
+      (t (mapc (op (symbol-table _ (fset:map-union in (inner-defs node))))
+               (children node))
+         in)))
   (:method ((node c/cpp-preproc-include) &optional in)
     (declare (ignore in))
     (if *project*
