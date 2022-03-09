@@ -338,17 +338,7 @@ with `@') can also be used as Trivia patterns for destructuring.
             (name-paths (name)
               (placeholder-paths (name-placeholder name)))))
    (labels
-       ((slot+offset (step)
-          "Return the slot and the offset for STEP, a step in a path."
-          (match step
-            ((and offset (type number))
-             ;; TODO This may no longer be valid if
-             ;; functional-trees stops giving the
-             ;; children slot special treatment.
-             (values 'children offset))
-            ((cons slot (and offset (type number)))
-             (values slot offset))))
-        (minimize-path (ast path)
+       ((minimize-path (ast path)
           "Find the shallowest parent of AST with the same source
 text, assuming it is one of a list of children.
 
@@ -398,23 +388,14 @@ path that is just a slot reference, without an offset."
              ;; parsing phase.
              ast)
             (list
-             (mvlet* ((path (minimize-path ast path))
-                      (slot offset
-                       (slot+offset (lastcar path))))
-               (unless slot
-                 (error "Attempt to insert a list into a non-list location: ~a"
-                        path))
-               (let ((parent (lookup ast (butlast path))))
-                 (symbol-macrolet ((orig (slot-value parent slot)))
-                   (setf orig
-                         (append
-                          (take offset orig)
-                          subtree
-                          (drop (1+ offset) orig)))
-                   ;; Change the class if necessary.
-                   (output-transformation parent)
-                   (patch-whitespace parent)
-                   ast))))
+             (let* ((path (minimize-path ast path))
+                    (ast (with ast path (lastcar subtree)))
+                    (ast (splice ast path (butlast subtree)))
+                    (parent (lookup ast (butlast path))))
+               ;; Change the parent's class if necessary.
+               (output-transformation parent)
+               (patch-whitespace parent)
+               ast))
             (t (with ast path subtree))))
         (copy-subtree (subtree target)
           "Copy SUBTREE, preserving before and after text from TARGET.
