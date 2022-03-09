@@ -350,7 +350,39 @@ with `@') can also be used as Trivia patterns for destructuring.
              (values slot offset))))
         (minimize-path (ast path)
           "Find the shallowest parent of AST with the same source
-text, assuming it is one of a list of children."
+text, assuming it is one of a list of children.
+
+This is for use with list metavariables. Minimizing the path when
+replacing a list metavariable lets us insert elements as immediate
+children to their intended container, without intermediate ASTs. E.g.
+a template for a function with a `(@PARAMS)` clause will probably be
+parsed like this:
+
+    parameter-list (A)
+      parameter    (B)
+        identifier (C)
+
+The actual metavariable is at C. If we just inserted the children in
+place of the metavariable, we would end up with an invalid tree:
+
+    parameter-list (A)
+      parameter    (B)
+        new-parameters...
+
+We want to insert children at A, not B. So, before inserting, we walk
+back up the tree from C to B based on the fact that they have the same
+source text.
+
+    parameter-list (A)
+      new-parameters...
+
+A further complication is when the whole container has the same source
+text as the metavariablee, e.g. a Python lambda:
+
+    lambda @PARAMS:
+
+To guard against this we stop minimizing when we find a step in the
+path that is just a slot reference, without an offset."
           (if (null path) path
               (let ((child (lookup ast path))
                     (parent-path (butlast path)))
@@ -366,9 +398,6 @@ text, assuming it is one of a list of children."
              ;; parsing phase.
              ast)
             (list
-             ;; NB We want to "minimize" the path when inserting a
-             ;; list because we want to insert elements as immediate
-             ;; children to the container, without intermediate ASTs.
              (mvlet* ((path (minimize-path ast path))
                       (slot offset
                        (slot+offset (lastcar path))))
