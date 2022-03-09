@@ -19,7 +19,11 @@
 
 ;;; Utility
 
+;;; Confirm that go-specific methods for three language-independent generic
+;;; functions are doing the right thing
 (deftest function-declaration.1 ()
+  ;;; Test of function-name, function-parameters, and function-body on
+  ;;; golang-function-declaration nodes
   (let* ((a (convert 'golang-ast "func f(x int32, y int32) int32 { return x+y; g(); x=1; continue; break; }"))
          (fd (find-if (of-type 'golang-function-declaration) a)))
     (is (equal (function-name fd) "f"))
@@ -32,6 +36,8 @@
       (is (typep b 'golang-block))
       (is (eql (length (direct-children b)) 5))
       (is (typep (@ b 0) 'golang-return-statement))
+      ;; Also, tests of no-fallthrough
+      ;; no-fallthrough should be true if the statement transfer control elsewhere
       (is (no-fallthrough b))
       (is (no-fallthrough (@ b 0)))
       (is (not (no-fallthrough (@ b 1))))
@@ -40,6 +46,8 @@
       (is (no-fallthrough (@ b 4))))))
 
 (deftest method-declaration.1 ()
+  ;;; Test of function-name and function-parameters on
+  ;;; golang-method-declaration nodes
   (let* ((a (convert 'golang-ast "func (p *Pointer) f(x int32, z *uint32) { }"))
          (fd (find-if (of-type 'golang-method-declaration) a)))
     (is (equal (function-name fd) "f"))
@@ -49,6 +57,7 @@
       (is (equal (source-text (car p)) "x int32"))
       (is (equal (source-text (cadr p)) "z *uint32")))))
 
+;;; Tests of field-names on golang-field-declarations
 (deftest field-names.1 ()
   (let* ((str (format nil "type foo struct {~% f1 uint32~% f2 *A~% }~%"))
          (a (convert 'golang-ast str))
@@ -57,9 +66,3 @@
     (is (eql (length fds) 2))
     (is (equal (field-names (car fds)) '("f1")))
     (is (equal (field-names (cadr fds)) '("f2")))))
-                            
-    
-         
-    
-      
-    

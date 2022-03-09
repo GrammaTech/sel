@@ -970,6 +970,13 @@ for the language.")
        (cpp-binary-expression
         (cpp-left :reader lhs :initarg :lhs)
         (cpp-right :reader rhs :initarg :rhs)))
+      (:golang
+       (golang-const-spec
+        (golang-name :reader definition-name-ast))
+       (golang-function-declaration
+        (golang-body :reader function-body))
+       (golang-method-declaration
+        (golang-body :reader function-body)))
       (:java
        (java-method-declaration
         (java-name :reader function-name)

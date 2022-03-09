@@ -32,11 +32,6 @@
 (defmethod call-arguments ((ast golang-call-expression))
   (direct-children (golang-arguments ast)))
 
-(defmethod function-body ((ast golang-function-declaration))
-  (golang-body ast))
-(defmethod function-body ((ast golang-method-declaration))
-  (golang-body ast))
-
 (defmethod no-fallthrough ((ast golang-break-statement)) t)
 (defmethod no-fallthrough ((ast golang-continue-statement)) t)
 (defmethod no-fallthrough ((ast golang-goto-statement)) t)
@@ -77,8 +72,6 @@
   (only-identifiers (golang-name ast)))
 (defmethod definition-name-ast ((ast golang-const-declaration))
   (mappend #'definition-name-ast (children ast)))
-(defmethod definition-name-ast ((ast golang-const-spec))
-  (golang-name ast))
 (defmethod definition-name-ast ((ast golang-function-declaration))
   (list (golang-name ast)))
 (defmethod definition-name-ast ((ast golang-labeled-statement))
