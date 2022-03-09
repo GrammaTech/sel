@@ -373,13 +373,13 @@ text as the metavariablee, e.g. a Python lambda:
 
 To guard against this we stop minimizing when we find a step in the
 path that is just a slot reference, without an offset."
-          (if (null path) path
-              (let ((child (lookup ast path))
-                    (parent-path (butlast path)))
-                (if (and (source-text= child (lookup ast parent-path))
-                         (not (symbolp (lastcar parent-path))))
-                    (minimize-path ast parent-path)
-                    path))))
+          (unless (null path)
+            (let ((child (lookup ast path))
+                  (parent-path (butlast path)))
+              (if (and (source-text= child (lookup ast parent-path))
+                       (not (symbolp (lastcar parent-path))))
+                  (minimize-path ast parent-path)
+                  path))))
         (insert-subtree (ast path subtree)
           (typecase subtree
             (string

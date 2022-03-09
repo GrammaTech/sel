@@ -283,4 +283,4 @@ surrounding container."
                 '("PartialEq" "PartialOrd"))))))
 
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
-                                        ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
+  ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
