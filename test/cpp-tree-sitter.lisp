@@ -761,6 +761,11 @@ int first = xs.front();"))))
    (convert 'cpp-ast
             "iterator emplace(const_iterator position, Args&&... args);")))
 
+(deftest cpp-member-function-definition-delete ()
+  "A function member function that is deleted can be parsed and reproduced."
+  (let ((source "class A : public B { void operator=(A const&) = delete; };"))
+    (is (source-text= source (convert 'cpp-ast source)))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.

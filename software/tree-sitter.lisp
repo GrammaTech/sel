@@ -3905,7 +3905,7 @@ up due to aliases."
                "Ensure that RULE begins with a 'CHOICE'."
                (if (string= "CHOICE" (aget :type rule))
                    rule
-                   `((:TYPE . "CHOICE") (:MEMBERS ,@rule))))
+                   `((:TYPE . "CHOICE") (:MEMBERS ,rule))))
              (add-aliases (rule aliased-content)
                ;; NOTE: an error here indicates a case that hasn't
                ;;       been considered yet.
@@ -3920,7 +3920,7 @@ up due to aliases."
                   `((:TYPE . "CHOICE")
                     (:MEMBERS
                      ,@(aget :members rule)
-                     ,@(gethash
+                     ,(gethash
                         (make-keyword
                          (convert-name language-prefix
                                        (aget :name aliased-content)))
@@ -3935,13 +3935,13 @@ up due to aliases."
                "Update the rule specified by RULE-NAME such that it considers
                 ALIASED-CONTENT to be a valid, match-able state of the rule."
                (symbol-macrolet ((rule (gethash rule-key rule-table)))
-                 (let ((result (add-aliases
-                                (ensure-choice rule) aliased-content)))
+                 (let ((result (add-aliases (ensure-choice rule)
+                                            aliased-content)))
                    ;; NOTE: this is working around using string-case above
                    ;;       and is purposefully avoiding certain alias content.
                    (unless (or (member nil result)
                                (null result))
-                     (setf rule (list result)))))))
+                     (setf rule result))))))
       (iter
         (for (nil rule) in-hashtable rule-table)
         (walk-json (lambda (subtree)
@@ -4205,11 +4205,11 @@ matches as the root of the AST."
                    ("SEQ" (handle-seq rule path preceding-terminal?))
                    ("STRING" (handle-string rule path preceding-terminal?))
                    ("SYMBOL")))))
-      (handle-rule (car transformed-json-rule) nil)
+      (handle-rule transformed-json-rule nil)
       (list
        (insert-internal-ast-slots
         language-prefix
-        (car transformed-json-rule)
+        transformed-json-rule
         insert-paths
         class-name
         class-name->class-definition
@@ -5464,7 +5464,7 @@ subclass based on the order of the children were read in."
                       (new-grammar (areplace :rules rules grammar))
                       (rule-table (alist-hash-table
                                    (mapcar (lambda (rule)
-                                             (list (car rule) (cdr rule)))
+                                             (cons (car rule) (cdr rule)))
                                            rules))))
                  (iter
                    (iter:with root-rule-name = (caar (aget :rules grammar)))
