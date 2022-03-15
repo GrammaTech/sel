@@ -4119,11 +4119,22 @@ matches as the root of the AST."
     (declare (special in-field-flag*))
     (labels ((handle-choice (rule path &optional preceding-terminal?)
                "Handle RULE as a 'CHOICE' rule."
-               (iter
-                 (for i upfrom 0)
-                 (for member in (aget :members rule))
-                 (thereis
-                  (handle-rule member (cons i path) preceding-terminal?))))
+               ;; TODO: prefer one internal slot before the choice or inlined
+               ;;       into an enclosing sequence. Address this if having more
+               ;;       than one internal slot becomes a problem; it is likely
+               ;;       non-trivial to implement.
+               (find-if
+                #'identity
+                (iter
+                  (for i upfrom 0)
+                  (for member in (aget :members rule))
+                  (collect
+                      ;; NOTE: handle-rule will recursively traverse the tree
+                      ;;       pushing the position of any place that requires
+                      ;;       an internal AST slot to insert-paths. Because of
+                      ;;       this, handle-rule needs to be called on every
+                      ;;       child of the choice rule without exiting early.
+                      (handle-rule member (cons i path) preceding-terminal?)))))
              (handle-seq (rule path &optional preceding-terminal?)
                "Handle RULE as a 'SEQ' rule."
                (iter

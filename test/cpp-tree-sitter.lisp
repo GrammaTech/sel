@@ -766,6 +766,12 @@ int first = xs.front();"))))
   (let ((source "class A : public B { void operator=(A const&) = delete; };"))
     (is (source-text= source (convert 'cpp-ast source)))))
 
+(deftest cpp-friend-declaration-parses ()
+  "A class definition with a friend struct declaration can be parsed and
+reproduced as source text."
+  (let ((source "class X {friend struct Val;};"))
+    (is (source-text= source (convert 'cpp-ast source)))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.
