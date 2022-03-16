@@ -865,6 +865,7 @@ searched to populate `*tree-sitter-language-files*'.")
        (rust-let-declaration (:mutable-specifier))
        (rust-self-parameter (:borrow))
        (rust-reference-expression (:mutable-specifier))
+       (rust-reference-type (:mutable-specifier))
        (rust-parameter (:mutable-specifier))
        (rust-unary-expression (:operator))
        (rust-generic-type (:turbofish-operator))
@@ -2822,6 +2823,12 @@ tree-sitter.")
          ((:TYPE . "STRING") (:VALUE . ".."))
          :as "operator"))
        (:reference-expression
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "mutable_specifier"))
+           ((:TYPE . "BLANK"))))
+         :as "mutable_specifier"))
+       (:reference-type
         (:label
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "mutable_specifier"))
