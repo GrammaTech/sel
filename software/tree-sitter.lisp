@@ -452,6 +452,17 @@
            :*tree-sitter-language-files*
            :ast-type-to-rebind-p
            :ast-mixin-subclasses
+
+           :matching-error
+           :rule-matching-error
+           :rule-matching-error-rule
+           :rule-matching-error-ast
+           :parse-tree-matching-error
+           :parse-tree-matching-error-superclass
+           :parse-tree-matching-error-parse-tree
+           :parse-tree-matching-error-subclasses
+           :parse-tree-matching-error-child-types
+
            :javascript
            :python
            :source-text-fragment
