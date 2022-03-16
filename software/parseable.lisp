@@ -592,7 +592,9 @@ optionally writing to STREAM.")
     ;; problems as the number of ASTs is very large.
     (mapc (lambda (ast)
             (apply #'source-text ast args))
-          (children ast))))
+          (children ast)))
+  (:method ((software parseable) &rest args &key)
+    (apply #'source-text (genome software) args)))
 
 (defgeneric source-text= (x y)
   (:documentation "Return T if X and Y have the same source text under `string='.")
