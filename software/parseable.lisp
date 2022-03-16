@@ -1569,19 +1569,14 @@ MUTATION to SOFTWARE.
 
 
 ;;; General mutation methods
-(defmethod apply-mutation ((software parseable)
+(defmethod apply-mutation :around ((software parseable)
                            (mutation parseable-mutation))
   "Apply MUTATION to SOFTWARE, returning the resulting SOFTWARE.
 * SOFTWARE object to be mutated
 * MUTATION mutation to be performed
 "
   (restart-case
-      (apply-mutation-ops software
-                      ;; Sort operations latest-first so they
-                      ;; won't step on each other.
-                      (sort (recontextualize-mutation software mutation)
-                            {path-later-p software}
-                            :key [{aget :stmt1} #'cdr]))
+      (call-next-method)
     (skip-mutation ()
       :report "Skip mutation and return nil"
       (values nil 1))
@@ -1592,6 +1587,19 @@ MUTATION to SOFTWARE.
       :report "Apply another mutation before re-attempting mutations"
       (mutate software)
       (apply-mutation software mutation))))
+
+(defmethod apply-mutation ((software parseable)
+                           (mutation parseable-mutation))
+  "Apply MUTATION to SOFTWARE, returning the resulting SOFTWARE.
+* SOFTWARE object to be mutated
+* MUTATION mutation to be performed
+"
+  (apply-mutation-ops software
+                      ;; Sort operations latest-first so they
+                      ;; won't step on each other.
+                      (sort (recontextualize-mutation software mutation)
+                            {path-later-p software}
+                            :key [{aget :stmt1} #'cdr])))
 
 (defmethod apply-mutation ((obj parseable) (op list))
   "Apply OPS to SOFTWARE, returning the resulting SOFTWARE.
