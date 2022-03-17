@@ -144,10 +144,13 @@
 (-> alias-language (string-designator &rest t &key &allow-other-keys)
   (values symbol &optional))
 (defun alias-language (alias &rest rest &key &allow-other-keys)
-  (case-let (language (apply #'language-alias->language-symbol alias rest))
-    (c (find-c))
-    (cpp (find-cpp))
-    (t language)))
+  (let ((language (apply #'language-alias->language-symbol alias rest)))
+    (cond
+      ((string= 'c language)
+       (find-c))
+      ((string= 'cpp language)
+       (find-cpp))
+      (t language))))
 
 (-> pathname-language ((or string pathname)) symbol)
 (defun pathname-language (p &aux (p (pathname p)))
