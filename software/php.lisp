@@ -13,3 +13,12 @@
 ;;;===================================================
 (create-tree-sitter-language "php")
 ;;;===================================================
+
+(define-alias-mappings ("php")
+  'php)
+
+
+#+:TREE-SITTER-PHP
+(progn
+
+) ; #+:TREE-SITTER-PHP

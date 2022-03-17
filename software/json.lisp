@@ -14,3 +14,12 @@
 ;;;===================================================
 (create-tree-sitter-language "json")
 ;;;===================================================
+
+(define-alias-mappings ("json")
+  'json)
+
+
+#+:TREE-SITTER-JSON
+(progn
+
+) ; #+:TREE-SITTER-JSON

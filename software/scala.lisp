@@ -13,3 +13,12 @@
 ;;;===================================================
 (create-tree-sitter-language "scala")
 ;;;===================================================
+
+(define-alias-mappings ("scala")
+  'scala)
+
+
+#+:TREE-SITTER-SCALA
+(progn
+
+) ; #+:TREE-SITTER-SCALA

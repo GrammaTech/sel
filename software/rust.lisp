@@ -14,6 +14,10 @@
 (create-tree-sitter-language "rust")
 ;;;===================================================
 
+(define-alias-mappings ("rs" "rust")
+  'rust)
+
+
 #+:TREE-SITTER-RUST
 (progn
 

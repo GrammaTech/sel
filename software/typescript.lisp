@@ -58,6 +58,10 @@ specialized on `typescript-tsx'."
       :readonly)
      (label-as :modifiers))))
 
+(define-alias-mappings ("ts" "tsx" "typescript")
+  'typescript)
+
+
 #+:TREE-SITTER-TYPESCRIPT/TYPESCRIPT
 (progn
 
@@ -243,4 +247,4 @@ specialized on `typescript-tsx'."
   (defmethod function-body ((ast typescript-ts-arrow-function))
     (typescript-ts-body ast))
 
-)
+) ; #+TREE-SITTER-TYPESCRIPT

@@ -13,3 +13,12 @@
 ;;;===================================================
 (create-tree-sitter-language "julia")
 ;;;===================================================
+
+(define-alias-mappings ("jl" "julia")
+  'julia)
+
+
+#+:TREE-SITTER-JULIA
+(progn
+
+) ; #+:TREE-SITTER-JULIA

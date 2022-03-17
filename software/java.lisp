@@ -14,6 +14,10 @@
 (create-tree-sitter-language "java")
 ;;;===================================================
 
+(define-alias-mappings ("java")
+  'java)
+
+
 #+:TREE-SITTER-JAVA
 (progn
 

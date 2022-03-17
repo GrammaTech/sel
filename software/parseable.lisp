@@ -119,7 +119,10 @@
            :prop-ref
            :with-ast-property
            :dump-ast-properties
-           :clear-ast-properties))
+           :clear-ast-properties
+           ;; Language inference
+           :language-alias->language-symbol
+           :define-alias-mappings))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1923,3 +1926,32 @@ locations."
 (defun ast-end (software ast)
   "Return the end of AST in software, as a source location."
   (nth-value 1 (ast-start+end software ast)))
+
+
+;;; Language to symbol mapping
+
+;;; TODO: figure out if this is the best place for language alias functionality.
+;;;       Considering that all supported languages stem from parseable, it may at
+;;;       least be a reasonable place.
+(defgeneric language-alias->language-symbol (alias-string &key &allow-other-keys)
+  (:documentation "Return the class symbol which corresponds to the language
+represented by ALIAS-STRING.")
+  (:method (alias-string &key &allow-other-keys)
+    nil)
+  (:method ((alias-string string) &rest rest &key &allow-other-keys)
+    ;; NOTE: this is interning arbitrary input into the keyword package.
+    (apply #'language-alias->language-symbol
+           (make-keyword (string-upcase alias-string))
+           rest))
+  (:method ((alias-string (eql 'text)) &key &allow-other-keys)
+    'simple))
+
+(defmacro define-alias-mappings ((&rest alias-strings) &body body)
+  `(progn
+     ,@(iter
+         (for string in alias-strings)
+         (collect
+             `(defmethod language-alias->language-symbol
+                  ((alias-string (eql ,(make-keyword (string-upcase string))))
+                   &key &allow-other-keys)
+                ,@body)))))

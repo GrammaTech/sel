@@ -13,3 +13,12 @@
 ;;;===================================================
 (create-tree-sitter-language "c-sharp")
 ;;;===================================================
+
+(define-alias-mappings ("c-sharp" "cs")
+  'c-sharp)
+
+
+#+:TREE-SITTER-C-SHARP
+(progn
+
+) ; #+:TREE-SITTER-C-SHARP

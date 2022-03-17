@@ -14,7 +14,7 @@
    :software-evolution-library/software/clang-project
    :software-evolution-library/software/c-project
    :software-evolution-library/software/cpp-project
-   :software-evolution-library/software/tree-sitter)
+   :software-evolution-library/software/all-tree-sitter)
   (:import-from :software-evolution-library/software/clang :clang)
   (:export :test-cl))
 (in-package :software-evolution-library/test/command-line)

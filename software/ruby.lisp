@@ -13,3 +13,12 @@
 ;;;===================================================
 (create-tree-sitter-language "ruby")
 ;;;===================================================
+
+(define-alias-mappings ("rb" "ruby")
+  'ruby)
+
+
+#+:TREE-SITTER-RUBY
+(progn
+
+) ; #+:TREE-SITTER-RUBY

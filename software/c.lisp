@@ -16,6 +16,10 @@
 ;;; !! Language generated in c-cpp !!
 ;;;===================================================
 
+(define-alias-mappings ("c" "cc")
+  'c)
+
+
 #+:TREE-SITTER-C
 (progn
 

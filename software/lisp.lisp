@@ -1786,3 +1786,8 @@ later than."
   (defun rewrite-double-arrow-in-place (file)
     (string-to-file (source-text (rewrite-double-arrow
                                   (from-file (make-instance 'lisp) file))) file)))
+
+
+;;; Language to symbol mapping
+(define-alias-mappings ("cl" "common lisp" "lisp")
+  'lisp)

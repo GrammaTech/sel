@@ -6589,3 +6589,14 @@ template brackets < and >."
                  (inc? l))))
       (when (< pos end)
         (cpp-scan* nil)))))
+
+
+;;; Language to symbol mapping
+#-TREE-SITTER-C
+(define-alias-mappings ("c" "cc")
+  'c)
+
+#-TREE-SITTER-CPP
+(define-alias-mappings
+    ("c plus plus" "c++" "c-plus-plus" "cp" "cpp" "cxx" "hpp")
+  'cpp)

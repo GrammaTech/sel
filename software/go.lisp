@@ -16,6 +16,10 @@
 (create-tree-sitter-language "go")
 ;;;===================================================
 
+(define-alias-mappings ("go" "golang")
+  'golang)
+
+
 #+:TREE-SITTER-GO
 (progn
   
@@ -77,4 +81,4 @@
 (defmethod definition-name-ast ((ast golang-labeled-statement))
   (list (golang-label ast)))
 
-)
+) ; #+:TREE-SITTER-GO

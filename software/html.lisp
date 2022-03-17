@@ -13,3 +13,12 @@
 ;;;===================================================
 (create-tree-sitter-language "html")
 ;;;===================================================
+
+(define-alias-mappings ("html")
+  'html)
+
+
+#+:TREE-SITTER-HTML
+(progn
+
+) ; #+:TREE-SITTER-HTML

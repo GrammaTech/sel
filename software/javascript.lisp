@@ -15,6 +15,10 @@
 (create-tree-sitter-language "javascript")
 ;;;===================================================
 
+(define-alias-mappings ("javascript" "js" "mjs")
+  'javascript)
+
+
 #+:TREE-SITTER-JAVASCRIPT
 (progn
 

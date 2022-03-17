@@ -139,60 +139,11 @@
 (defclass lisp-git-project (lisp-project git-project) ())
 
 
-;;;; Language-related tables.
+;;;; Language-related utility
 
-(def +language-alias-table+
-  (dictq equalp
-         "c plus plus" cpp
-         "c" c
-         "cc" c
-         "c#" c-sharp
-         "c++" cpp
-         "c-plus-plus" cpp
-         "c-sharp" c-sharp
-         "cl" lisp
-         "common lisp" lisp
-         "cp" cpp
-         "cpp" cpp
-         "cs" c-sharp
-         "css" css
-         "cxx" cpp
-         "go" golang
-         "golang" golang
-         "hpp" cpp
-         "html" html
-         "java" java
-         "javascript" javascript
-         "jl" julia
-         "js" javascript
-         "json" json
-         "julia" julia
-         "lisp" lisp
-         ;; Javascript module file.
-         "mjs" javascript
-         "php" php
-         "py" python
-         "python" python
-         "rb" ruby
-         "rs" rust
-         "ruby" ruby
-         "rust" rust
-         "scala" scala
-         "text" simple
-         "ts" typescript
-         "tsx" typescript
-         "typescript" typescript)
-  "Case-insensitive hash table from aliases (names, extensions) to languages.")
-
-;;; Assert that every language names itself.
-(iter (for (nil v) in-hashtable +language-alias-table+)
-      (unless (eql v 'simple)
-        (assert (eql v (gethash (string v) +language-alias-table+))
-                () "Missing self-alias: ~a" v)))
-
-(-> alias-language (string-designator) symbol)
+(-> alias-language (string-designator) (values symbol &optional))
 (defun alias-language (alias)
-  (case-let (language (gethash (string alias) +language-alias-table+))
+  (case-let (language (language-alias->language-symbol alias))
     (c (find-c))
     (cpp (find-cpp))
     (t language)))

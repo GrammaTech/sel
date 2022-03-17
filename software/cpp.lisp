@@ -45,6 +45,10 @@
     "<" ">" "<=" ">=" "==" "!="
     "&" "^" "|"))
 
+(define-alias-mappings
+    ("c plus plus" "c++" "c-plus-plus" "cp" "cpp" "cxx" "hpp")
+  'cpp)
+
 
 #+:TREE-SITTER-CPP
 (progn
@@ -999,4 +1003,5 @@ iterator we want the type of the container's elements."
 
 
 ;;; Whitespace rules
+
 ) ; #+:TREE-SITTER-CPP

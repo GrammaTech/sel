@@ -13,3 +13,12 @@
 ;;;===================================================
 (create-tree-sitter-language "css")
 ;;;===================================================
+
+(define-alias-mappings ("css")
+  'css)
+
+
+#+:TREE-SITTER-CSS
+(progn
+
+) ; #+:TREE-SITTER-CSS
