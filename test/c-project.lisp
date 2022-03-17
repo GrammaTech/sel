@@ -234,9 +234,7 @@
 
 (defun get-symbol-map (software symbols)
   (labels ((symbol-list (software symbol)
-             (list symbol
-                   (stmt-with-text (genome software) symbol)
-                   software)))
+             (list symbol (stmt-with-text (genome software) symbol))))
     (convert 'fset:map (mapcar (op (symbol-list software _)) symbols))))
 
 (deftest c-project-symbol-table-1 ()
@@ -250,10 +248,10 @@ file including it."
                                          (genome software)))
                     (included-software (aget "file.h" (evolve-files *project*)
                                              :test #'equal)))
-               (is (equal? (sel/sw/ts::symbol-table target-ast)
+               (is (equal? (symbol-table target-ast)
                            (get-symbol-map included-software
                                            '("x" "function")))))))
     (with-fixture symbol-table-project
       (with-attr-table *project*
-        (sel/sw/ts::symbol-table *project* (empty-map))
+        (symbol-table *project* (empty-map))
         (test-main.c)))))

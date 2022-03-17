@@ -909,11 +909,11 @@ the root AST."
     (with-attr-table root
       (sel/sw/ts::symbol-table root (empty-map))
       (is (equal? (sel/sw/ts::symbol-table second-declaration-ast)
-                  (fset:map ("a" (list (stmt-with-text root "a") nil)))))
+                  (fset:map ("a" (list (stmt-with-text root "a"))))))
       (is (equal? (sel/sw/ts::symbol-table return-ast)
-                  (fset:map ("a" (list (stmt-with-text root "a") nil))
-                            ("b" (list (stmt-with-text root "b") nil))
-                            ("c" (list (stmt-with-text root "c") nil))))))))
+                  (fset:map ("a" (list (stmt-with-text root "a")))
+                            ("b" (list (stmt-with-text root "b")))
+                            ("c" (list (stmt-with-text root "c")))))))))
 
 (deftest c-symbol-table-2 ()
   "The root symbol table contains all declarations that occur at the top level."
@@ -922,6 +922,6 @@ the root AST."
     (with-attr-table root
       (sel/sw/ts::symbol-table root (empty-map))
       (is (equal? (sel/sw/ts::symbol-table root)
-                  (fset:map ("a" (list (stmt-with-text root "a") nil))
-                            ("b" (list (stmt-with-text root "b") nil))
-                            ("c" (list (stmt-with-text root "c") nil))))))))
+                  (fset:map ("a" (list (stmt-with-text root "a")))
+                            ("b" (list (stmt-with-text root "b")))
+                            ("c" (list (stmt-with-text root "c")))))))))

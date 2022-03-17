@@ -630,6 +630,8 @@
            :parse-tolerant
            :wildcard?
            :ellipsis-match
+           ;; Attributes
+           :symbol-table
            ;; template.lisp
            :ast-template
            :ast-template*
@@ -6667,12 +6669,32 @@ argument destructuring (e.g. ECMAScript).")
   (:documentation "Return a list of variable declarations affecting inner scopes.")
   (:method ((ast ast)) nil)
   (:method ((ast function-ast))
-    (mappend #'parameter-names (function-parameters ast))))
+    (mappend #'parameter-names (function-parameters ast)))
+  (:method :around (ast)
+    (handler-bind ((#+sbcl sb-pcl::no-applicable-method-error #-sbcl error
+                    (lambda (condition)
+                      (declare (ignorable condition))
+                      (when (find-if
+                             (of-type '(or source-text-fragment parse-error-ast))
+                             ast)
+                        (return-from inner-declarations)))))
+      (call-next-method))))
 
 (defgeneric outer-declarations (ast)
   (:documentation
    "Return a list of variable declarations affecting outer scopes.")
-  (:method ((ast ast)) nil))
+  (:method ((ast ast)) nil)
+  (:method :around (ast)
+    ;; NOTE: this is to work around ASTs which may not have the expected ASTs
+    ;;       in respective slots.
+    (handler-bind ((#+sbcl sb-pcl::no-applicable-method-error #-sbcl error
+                    (lambda (condition)
+                      (declare (ignorable condition))
+                      (when (find-if
+                             (of-type '(or source-text-fragment parse-error-ast))
+                             ast)
+                        (return-from outer-declarations)))))
+      (call-next-method))))
 
 (defgeneric lhs (ast)
   (:documentation "Return the left-hand side of an AST."))
@@ -9333,6 +9355,46 @@ Otherwise, returns PARSE-TREE."
 Otherwise, return PARSE-TREE."
   (with-modify-parse-tree (parse-tree)
     (:|...| (rename-type-to :variadic-declaration))))
+
+
+;;; Symbol Table
+(defun propagate-declarations-down (ast in)
+  "Propagate the symbol table declarations own through AST's children."
+  (reduce (lambda (in2 child)
+            (map-union
+             (symbol-table child in2)
+             (outer-defs child)))
+          (children ast)
+          :initial-value (map-union in (inner-defs ast))))
+
+(def-attr-fun symbol-table (in)
+  "Compute the symbol table at this node."
+  (:method ((software parseable) &optional in)
+    (symbol-table (genome software) in))
+  (:method ((node root-ast) &optional in)
+    (propagate-declarations-down node in))
+  (:method ((node tree-sitter-ast) &optional in)
+    (cond
+      ((scope-ast-p node)
+       (propagate-declarations-down node in)
+       in)
+      (t (mapc (op (symbol-table _ (map-union in (inner-defs node))))
+               (children node))
+         in))))
+
+(def-attr-fun outer-defs ()
+  "Map of outer definitions from a node"
+  (:method ((node node))
+    (convert 'fset:map
+             (mapcar (op (list (source-text _1) _1))
+                     (outer-declarations node)))))
+
+(def-attr-fun inner-defs ()
+  "Map of inner definitions from a node"
+  (:method ((node node))
+    (convert 'fset:map
+             (mapcar (op (list (source-text _1) _1))
+                     (inner-declarations node)))))
 
 
 ;;; Contextualization

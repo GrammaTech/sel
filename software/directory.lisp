@@ -182,3 +182,18 @@
 
 (defmethod convert ((to-type (eql 'list)) (obj directory-project) &rest more)
   (apply 'convert to-type (genome obj) more))
+
+
+;;; Symbol Table
+(defmethod symbol-table ((node directory-ast) &optional in)
+    (mapc (op (symbol-table _ in)) (entries node))
+    (empty-map))
+
+(defmethod symbol-table((node file-ast) &optional in)
+  (mapc (op (symbol-table _ in)) (car (contents node)))
+  (empty-map))
+
+(defmethod symbol-table ((project directory-project) &optional in)
+  (mapc (op (symbol-table _ in))
+        (mapcar #'cdr (evolve-files project)))
+  (empty-map))
