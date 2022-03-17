@@ -141,25 +141,17 @@
 
 ;;;; Language-related utility
 
-(-> alias-language (string-designator) (values symbol &optional))
-(defun alias-language (alias)
-  (case-let (language (language-alias->language-symbol alias))
+(-> alias-language (string-designator &rest t &key &allow-other-keys)
+  (values symbol &optional))
+(defun alias-language (alias &rest rest &key &allow-other-keys)
+  (case-let (language (apply #'language-alias->language-symbol alias rest))
     (c (find-c))
     (cpp (find-cpp))
     (t language)))
 
 (-> pathname-language ((or string pathname)) symbol)
 (defun pathname-language (p &aux (p (pathname p)))
-  (let ((type (pathname-type p)))
-    (let ((guess (alias-language type)))
-      ;; .d.ts files are interface files used by JavaScript projects
-      ;; so they can be consumed by TypeScript projects. They are
-      ;; evidence for JavaScript, not TypeScript.
-      (if (and (eql guess 'typescript)
-               (equal (pathname-type p) "ts")
-               (string$= ".d" (pathname-name p)))
-          'javascript
-          guess))))
+  (alias-language (pathname-type p) :pathname p))
 
 
 ;;;; Functions to handle command line options and arguments.

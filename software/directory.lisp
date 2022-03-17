@@ -3,7 +3,6 @@
   (:nicknames :sel/software/directory :sel/sw/directory)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/command-line
         :software-evolution-library/software/simple
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/project
@@ -149,7 +148,9 @@
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
-                  (op (let ((language (guess-language _1)))
+                  (op (let ((language (language-alias->language-symbol
+                                       (pathname-type _1)
+                                       :pathname _1)))
                         (push (cons (pathname-relativize (project-dir obj) _1)
                                     (from-file (make-instance (if (find-class-safe language)
                                                                   language

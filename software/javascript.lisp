@@ -18,6 +18,20 @@
 (define-alias-mappings ("javascript" "js" "mjs")
   'javascript)
 
+(defmethod language-alias->language-symbol :around
+    ((alias-string (eql :ts))
+     &rest rest &key pathname &allow-other-keys)
+  (declare (ignorable rest))
+  (let ((next-value (call-next-method)))
+    ;; .d.ts files are interface files used by JavaScript projects
+    ;; so they can be consumed by TypeScript projects. They are
+    ;; evidence for JavaScript, not TypeScript.
+    (if (and pathname
+             (equal (pathname-type pathname) "ts")
+             (string$= ".d" (pathname-name pathname)))
+        'javascript
+        next-value)))
+
 
 #+:TREE-SITTER-JAVASCRIPT
 (progn
