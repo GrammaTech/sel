@@ -7,6 +7,11 @@
         :software-evolution-library/software/parseable))
 (in-package :software-evolution-library/software/tree-sitter)
 
+(defvar *tolerant* nil
+  "When non-nil, use tolerant parsing for templates.")
+
+(define-symbol-macro %tolerant nil)
+
 (defgeneric template-placeholder (ast name)
   (:documentation "Generate a placeholder for NAME.
 
@@ -161,7 +166,7 @@ Nested lists are not allowed as template arguments:~%~a"
             :initial-value template)
     names placeholders subtrees)))
 
-(defun check-ast-template-validity (template class kwargs &key tolerant)
+(defun check-ast-template-validity (template class kwargs &key (tolerant *tolerant*))
   "Compile-time validity checking for templates."
   (mvlet* ((template names placeholders
             (parse-ast-template template class kwargs))
@@ -199,10 +204,8 @@ Nested lists are not allowed as template arguments:~%~a"
          diff)))
     nil))
 
-(defun check-ast-template (template class kwargs &key tolerant)
-  (check-ast-template-validity template class kwargs :tolerant t))
-
-(define-symbol-macro %tolerant nil)
+(defun check-ast-template (template class kwargs &key (tolerant *tolerant*))
+  (check-ast-template-validity template class kwargs :tolerant tolerant))
 
 (define-compiler-macro ast-template (&whole call template class &rest kwargs
                                             &environment env)
@@ -316,7 +319,9 @@ with `@') can also be used as Trivia patterns for destructuring.
                    :initial-value template))
           (ast
            (assure ast
-             (convert class template :deepest t)))
+             (if *tolerant*
+                 (parse-tolerant class template)
+                 (convert class template :deepest t))))
           (placeholder-paths
            (iter (for p in placeholders)
                  (for targets = (placeholder-targets p ast))
@@ -422,18 +427,9 @@ If SUBTREE is a list do the same for each element."
            :initial-value ast)))
 
 (define-compiler-macro ast-template* (template class &rest args)
-  (with-gensyms (ast)
-    `(symbol-macrolet ((%tolerant t))
-       (match (ast-template ,template ,class ,@args)
-         ((and ,ast (or (type parse-error-ast) (type source-text-fragment)))
-          ,(if (eq (uiop/utility:last-char template) #\;)
-               ast
-               `(match (ast-template* ,(concatenate 'string template ";") ,class ,@args)
-                  ;; If we get another error/fragment, then return the original AST w/o the semicolon.
-                  ((or (type parse-error-ast) (type source-text-fragment)) ,ast)
-                  ((and it) it))))
-         ((and ,ast (type ast))
-          (first (children ,ast)))))))
+  `(let ((*tolerant* t))
+     (symbol-macrolet ((%tolerant t))
+       (ast-template ,template ,class ,@args))))
 
 (defun ast-template* (template class &rest args)
   "Like `ast-template', but return the first child of the created AST.
@@ -442,16 +438,8 @@ delimiters (such as C or C++).
 
 Furthermore, this variant is tolerant -- notably for languages where
 semicolons are required as delimiters the semicolon may be omitted."
-  (match (apply #'ast-template template class args)
-    ((and ast (or (type parse-error-ast) (type source-text-fragment)))
-     (if (eq (uiop/utility:last-char template) #\;)
-         ast
-         (match (apply #'ast-template* (concatenate 'string template ";") class args)
-           ;; If we get another error/fragment, then return the original AST w/o the semicolon.
-           ((or (type parse-error-ast) (type source-text-fragment)) ast)
-           ((and it) it))))
-    ((and ast (type ast))
-     (first (children ast)))))
+  (let ((*tolerant* t))
+    (apply #'ast-template template class args)))
 
 (defpattern ast-template (template class &rest args)
   "Match TEMPLATE as a pattern using CLASS and ARGS.
@@ -471,7 +459,7 @@ languages allow you to use a pattern with the same name as shorthand:
                                   :sel/sw/ts
                                   :error t))
            (pattern
-            (convert 'match template :language language :tolerant nil))
+            (convert 'match template :language language :tolerant *tolerant*))
            (template names placeholders subtrees
             (parse-ast-template template class args))
            (dummy (allocate-instance (find-class class)))
@@ -514,35 +502,8 @@ languages allow you to use a pattern with the same name as shorthand:
 
 (defpattern ast-template* (template class &rest args)
   "Like `ast-template', but take the first child."
-  (flet ((valid? (ast)
-           (typep ast '(not (or parse-error-ast source-text-fragment)))))
-    (let* ((template2 (ensure-suffix template ";"))
-           (expansion
-            (block expansion
-              (handler-bind
-                  ((error
-                    (lambda (e)
-                      (declare (ignore e))
-                      (when-let (expansion
-                                 (ignore-errors
-                                  (pattern-expand-1
-                                   `(ast-template ,template2 ,class ,@args))))
-                        (return-from expansion expansion)))))
-                (let ((expansion1
-                       (pattern-expand-1
-                        `(ast-template ,template ,class ,@args))))
-                  (cond ((valid? (convert class template :deepest t))
-                         expansion1)
-                        ((string$= ";" template)
-                         (pattern-expand-1 `(ast-template ,template ,class ,@args)))
-                        ((valid? (convert class template2 :deepest t))
-                         (pattern-expand-1
-                          `(ast-template ,template2 ,class ,@args)))
-                        (t
-                         expansion1)))))))
-      (ematch expansion
-        ((list* _ :children (list 'list pat) _)
-         pat)))))
+  (let ((*tolerant* t))
+    (pattern-expand-1 `(ast-template ,template ,class ,@args))))
 
 (defmacro ast-from-template-aux (ast-template-fn template class &rest args)
   (let ((temps (make-gensym-list (length args))))
