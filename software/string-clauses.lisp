@@ -66,7 +66,7 @@
   (:method ((ast t) (string string))
     "Fall back to non-tolerant parsing."
     (convert (class-name-of ast) string :deepest t))
-  (:method ((ast c-like-ast) (string string))
+  (:method ((ast c-like-syntax-ast) (string string))
     "For a C-like language, tolerant parsing means adding a semicolon."
     (let* ((class (class-name-of ast))
            (result (convert class string :deepest t)))

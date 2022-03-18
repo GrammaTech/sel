@@ -491,13 +491,13 @@
            :bitfield
            ;; Cross-language Mix-ins
            :c/cpp
-           :c-like
+           :c-like-syntax
            :ecma
            :typescript
            :ecma-ast
            :typescript-ast
            :c/cpp-ast
-           :c-like-ast
+           :c-like-syntax-ast
            :parse-error-ast
            :comment-ast
            :definition-ast
@@ -767,7 +767,8 @@ searched to populate `*tree-sitter-language-files*'.")
     ()
     (:documentation "Mix-in class for tree-sitter TypeScript variants."))
 
-  (define-software c-like ()
+  ;; It might be useful to break this down into mixins.
+  (define-software c-like-syntax ()
     ()
     (:documentation "Mix-in class for software that uses C-like syntax.
 
@@ -787,35 +788,35 @@ comments with /* and */, etc."))
     ()
     (:documentation "Mix-in class for C and C++ ASTs."))
 
-  (defclass c-like-ast ()
+  (defclass c-like-syntax-ast ()
     ()
     (:documentation "Mix-in class for ASTs in languages that use C-like syntax.
 
-See `c-like' for more discussion of what \"C-like\" means."))
+See `c-like-syntax' for more discussion of what \"C-like\" means."))
 
   (defparameter *tree-sitter-software-superclasses*
-    '((:c compilable normal-scope c/cpp c-like)
-      (:cpp compilable normal-scope c/cpp c-like)
-      (:go c-like)
-      (:java c-like)
-      (:javascript normal-scope ecma c-like)
-      (:rust c-like)
-      (:typescript-ts typescript c-like)
-      (:typescript-tsx typescript c-like)))
+    '((:c compilable normal-scope c/cpp c-like-syntax)
+      (:cpp compilable normal-scope c/cpp c-like-syntax)
+      (:go c-like-syntax)
+      (:java c-like-syntax)
+      (:javascript normal-scope ecma c-like-syntax)
+      (:rust c-like-syntax)
+      (:typescript-ts typescript c-like-syntax)
+      (:typescript-tsx typescript c-like-syntax)))
 
   (defparameter *tree-sitter-software-direct-slots* '()
     "Alist of direct slots for software classes, such as `python' or
     `c'.")
 
   (defparameter *tree-sitter-base-ast-superclasses*
-    '((:c c/cpp-ast c-like-ast)
-      (:cpp c/cpp-ast c-like-ast)
-      (:go c-like-ast)
-      (:java c-like-ast)
-      (:javascript ecma-ast c-like-ast)
-      (:rust c-like-ast)
-      (:typescript-ts typescript-ast c-like-ast)
-      (:typescript-tsx typescript-ast c-like-ast))
+    '((:c c/cpp-ast c-like-syntax-ast)
+      (:cpp c/cpp-ast c-like-syntax-ast)
+      (:go c-like-syntax-ast)
+      (:java c-like-syntax-ast)
+      (:javascript ecma-ast c-like-syntax-ast)
+      (:rust c-like-syntax-ast)
+      (:typescript-ts typescript-ast c-like-syntax-ast)
+      (:typescript-tsx typescript-ast c-like-syntax-ast))
     "Alist of superclasses for the base class of a language (e.g.
     `python-ast').")
 
