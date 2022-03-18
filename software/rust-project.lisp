@@ -7,12 +7,13 @@
         :software-evolution-library
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project
-        :software-evolution-library/software/tree-sitter)
+        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/directory)
   (:export :rust-project))
 (in-package :software-evolution-library/software/rust-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software rust-project (parseable-project) ()
+(define-software rust-project (directory-project parseable-project) ()
   (:documentation "Project specialization for rust software objects."))
 
 (defmethod initialize-instance :after ((rust-project rust-project) &key)

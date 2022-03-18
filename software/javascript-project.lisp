@@ -23,7 +23,8 @@
         :software-evolution-library/software/javascript
         :software-evolution-library/software/typescript
         :software-evolution-library/software/parseable-project
-        :software-evolution-library/software/project)
+        :software-evolution-library/software/project
+        :software-evolution-library/software/directory)
   (:import-from :jsown)
   (:import-from :software-evolution-library/software/parseable
                 :source-text)
@@ -32,7 +33,7 @@
 (in-package :software-evolution-library/software/javascript-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software javascript-project (parseable-project) ()
+(define-software javascript-project (directory-project parseable-project) ()
   (:documentation "Project specialization for javascript software objects."))
 
 (define-software typescript-project (javascript-project) ()

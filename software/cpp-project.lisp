@@ -10,7 +10,8 @@
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/compilable
-        :software-evolution-library/software/tree-sitter)
+        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/directory)
   (:export :cpp-project))
 (in-package :software-evolution-library/software/cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -19,7 +20,8 @@
   '("h" "cpp" "cp" "cc")
   "List of extensions we will consider for evolving.")
 
-(define-software cpp-project (parseable-project compilable include-paths-mixin)
+(define-software cpp-project
+    (directory-project parseable-project compilable include-paths-mixin)
   ()
   (:documentation "Project specialization for c++ software objects."))
 
