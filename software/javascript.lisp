@@ -15,8 +15,7 @@
 (create-tree-sitter-language "javascript")
 ;;;===================================================
 
-(define-alias-mappings ("javascript" "js" "mjs")
-  'javascript)
+(define-language-alias-mappings javascript ("javascript" "js" "mjs"))
 
 (defmethod language-alias->language-symbol :around
     ((alias-string (eql :ts))

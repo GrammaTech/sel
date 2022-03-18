@@ -25,3 +25,5 @@
 ;;;===================================================
 (create-tree-sitter-language "commonlisp")
 ;;;===================================================
+
+(define-language-alias-mappings lisp ("asd" "cl" "common lisp" "lisp"))

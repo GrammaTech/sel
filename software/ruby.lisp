@@ -14,8 +14,7 @@
 (create-tree-sitter-language "ruby")
 ;;;===================================================
 
-(define-alias-mappings ("rb" "ruby")
-  'ruby)
+(define-language-alias-mappings ruby ("rb" "ruby"))
 
 
 #+:TREE-SITTER-RUBY

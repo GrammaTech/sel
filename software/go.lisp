@@ -16,8 +16,7 @@
 (create-tree-sitter-language "go")
 ;;;===================================================
 
-(define-alias-mappings ("go" "golang")
-  'golang)
+(define-language-alias-mappings golang ("go" "golang"))
 
 
 #+:TREE-SITTER-GO

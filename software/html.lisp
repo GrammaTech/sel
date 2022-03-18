@@ -14,8 +14,7 @@
 (create-tree-sitter-language "html")
 ;;;===================================================
 
-(define-alias-mappings ("html")
-  'html)
+(define-language-alias-mappings html ("html"))
 
 
 #+:TREE-SITTER-HTML

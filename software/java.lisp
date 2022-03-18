@@ -14,8 +14,7 @@
 (create-tree-sitter-language "java")
 ;;;===================================================
 
-(define-alias-mappings ("java")
-  'java)
+(define-language-alias-mappings java ("java"))
 
 
 #+:TREE-SITTER-JAVA

@@ -14,8 +14,7 @@
 (create-tree-sitter-language "scala")
 ;;;===================================================
 
-(define-alias-mappings ("scala")
-  'scala)
+(define-language-alias-mappings scala ("scala"))
 
 
 #+:TREE-SITTER-SCALA

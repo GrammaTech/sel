@@ -6593,10 +6593,8 @@ template brackets < and >."
 
 ;;; Language to symbol mapping
 #-TREE-SITTER-C
-(define-alias-mappings ("c" "cc")
-  'c)
+(define-language-alias-mappings c ("c"))
 
 #-TREE-SITTER-CPP
-(define-alias-mappings
-    ("c plus plus" "c++" "c-plus-plus" "cp" "cpp" "cxx" "hpp")
-  'cpp)
+(define-language-alias-mappings
+    cpp ("c plus plus" "c++" "c-plus-plus" "cc" "cp" "cpp" "cxx" "hpp"))

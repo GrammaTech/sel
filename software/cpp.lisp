@@ -45,9 +45,8 @@
     "<" ">" "<=" ">=" "==" "!="
     "&" "^" "|"))
 
-(define-alias-mappings
-    ("c plus plus" "c++" "c-plus-plus" "cp" "cpp" "cxx" "hpp")
-  'cpp)
+(define-language-alias-mappings
+    cpp ("c plus plus" "c++" "c-plus-plus" "cc" "cp" "cpp" "cxx" "hpp"))
 
 
 #+:TREE-SITTER-CPP

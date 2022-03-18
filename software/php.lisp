@@ -14,8 +14,7 @@
 (create-tree-sitter-language "php")
 ;;;===================================================
 
-(define-alias-mappings ("php")
-  'php)
+(define-language-alias-mappings php ("php"))
 
 
 #+:TREE-SITTER-PHP

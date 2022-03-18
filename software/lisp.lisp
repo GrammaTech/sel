@@ -1789,5 +1789,4 @@ later than."
 
 
 ;;; Language to symbol mapping
-(define-alias-mappings ("cl" "common lisp" "lisp")
-  'lisp)
+(define-language-alias-mappings lisp ("asd" "cl" "common lisp" "lisp"))

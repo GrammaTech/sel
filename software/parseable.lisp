@@ -122,7 +122,7 @@
            :clear-ast-properties
            ;; Language inference
            :language-alias->language-symbol
-           :define-alias-mappings))
+           :define-language-alias-mappings))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1939,19 +1939,19 @@ represented by ALIAS-STRING.")
   (:method (alias-string &key &allow-other-keys)
     nil)
   (:method ((alias-string string) &rest rest &key &allow-other-keys)
-    ;; NOTE: this is interning arbitrary input into the keyword package.
     (apply #'language-alias->language-symbol
-           (make-keyword (string-upcase alias-string))
+           (find-keyword (string-upcase alias-string))
            rest))
   (:method ((alias-string (eql 'text)) &key &allow-other-keys)
     'simple))
 
-(defmacro define-alias-mappings ((&rest alias-strings) &body body)
+(defmacro define-language-alias-mappings (return-symbol (&rest alias-strings))
   `(progn
      ,@(iter
-         (for string in alias-strings)
+         (for string in (adjoin (string `,return-symbol) alias-strings
+                                :test #'equal))
          (collect
              `(defmethod language-alias->language-symbol
                   ((alias-string (eql ,(make-keyword (string-upcase string))))
                    &key &allow-other-keys)
-                ,@body)))))
+                ',return-symbol)))))

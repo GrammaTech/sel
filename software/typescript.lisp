@@ -58,8 +58,7 @@ specialized on `typescript-tsx'."
       :readonly)
      (label-as :modifiers))))
 
-(define-alias-mappings ("ts" "tsx" "typescript")
-  'typescript)
+(define-language-alias-mappings typescript ("ts" "tsx" "typescript"))
 
 
 #+:TREE-SITTER-TYPESCRIPT/TYPESCRIPT

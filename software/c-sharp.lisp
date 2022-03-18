@@ -14,8 +14,7 @@
 (create-tree-sitter-language "c-sharp")
 ;;;===================================================
 
-(define-alias-mappings ("c-sharp" "cs")
-  'c-sharp)
+(define-language-alias-mappings c-sharp ("c-sharp" "cs"))
 
 
 #+:TREE-SITTER-C-SHARP

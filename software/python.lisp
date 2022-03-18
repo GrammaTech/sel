@@ -15,8 +15,7 @@
 (create-tree-sitter-language "python")
 ;;;===================================================
 
-(define-alias-mappings ("py" "python")
-  'python)
+(define-language-alias-mappings python ("py" "python"))
 
 
 #+:TREE-SITTER-PYTHON

@@ -14,8 +14,7 @@
 (create-tree-sitter-language "julia")
 ;;;===================================================
 
-(define-alias-mappings ("jl" "julia")
-  'julia)
+(define-language-alias-mappings julia ("jl" "julia"))
 
 
 #+:TREE-SITTER-JULIA

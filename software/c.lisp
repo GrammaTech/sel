@@ -16,8 +16,7 @@
 ;;; !! Language generated in c-cpp !!
 ;;;===================================================
 
-(define-alias-mappings ("c" "cc")
-  'c)
+(define-language-alias-mappings c ("c"))
 
 
 #+:TREE-SITTER-C
