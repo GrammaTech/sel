@@ -432,12 +432,10 @@ If SUBTREE is a list do the same for each element."
        (ast-template ,template ,class ,@args))))
 
 (defun ast-template* (template class &rest args)
-  "Like `ast-template', but return the first child of the created AST.
-This is useful for languages where the parser requires semicolons as
-delimiters (such as C or C++).
+  "Like `ast-template', but parse tolerantly.
 
-Furthermore, this variant is tolerant -- notably for languages where
-semicolons are required as delimiters the semicolon may be omitted."
+This is useful for languages where the parser requires semicolons as
+delimiters (such as C or C++)."
   (let ((*tolerant* t))
     (apply #'ast-template template class args)))
 
@@ -501,7 +499,7 @@ languages allow you to use a pattern with the same name as shorthand:
     (sublis '((ellipsis-match . _)) tree)))
 
 (defpattern ast-template* (template class &rest args)
-  "Like `ast-template', but take the first child."
+  "Like `ast-template', but tolerant."
   (let ((*tolerant* t))
     (pattern-expand-1 `(ast-template ,template ,class ,@args))))
 
