@@ -71,11 +71,15 @@
     (let* ((class (class-name-of ast))
            (result (convert class string :deepest t)))
       (if (typep result '(or parse-error-ast source-text-fragment))
-          (@ (convert class
-                      (concatenate 'string string ";")
-                      :deepest t)
-             '(0))
-          result))))
+          (let ((result2
+                 ;; Not deepest!
+                 (convert class
+                          (concatenate 'string string ";"))))
+            (or (find-deepest (op (source-text= _ string)) result2)
+                (@ result2 '(0))))
+          (or (find-deepest (op (source-text= _ string))
+                            result)
+              result)))))
 
 (defun wildcard? (node)
   "Is NODE a wildcard (symbol that starts with WILD_)?"
