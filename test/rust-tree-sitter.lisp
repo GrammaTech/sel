@@ -168,10 +168,10 @@ pub unsafe fn auto() -> MmapChoice {
           (is (string= source (source-text root))))))
 
 (deftest rust-range-expression-subclasses ()
-  (is (typep (rust* "0..10;")  'rust-range-expr))
-  (is (typep (rust* "..;")     'rust-range-full-expr))
-  (is (typep (rust* "0..;")    'rust-range-from-expr))
-  (is (typep (rust* "..10;")   'rust-range-to-expr)))
+  (is (typep (rust* "0..10")  'rust-range-expr))
+  (is (typep (rust* "..")     'rust-range-full-expr))
+  (is (typep (rust* "0..")    'rust-range-from-expr))
+  (is (typep (rust* "..10")   'rust-range-to-expr)))
 
 
 ;;; Parsing tests.
