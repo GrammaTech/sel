@@ -481,7 +481,7 @@ languages allow you to use a pattern with the same name as shorthand:
                                   :sel/sw/ts
                                   :error t))
            (pattern
-            (convert 'match template :language language))
+            (convert 'match template :language language :tolerant nil))
            (template names placeholders subtrees
             (parse-ast-template template class args))
            (dummy (allocate-instance (find-class class)))

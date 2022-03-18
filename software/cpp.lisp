@@ -336,12 +336,15 @@
       ;; NOTE: perform blanket transformation for now.
       (function-declarator->init-declarator ast))))
 
-(defmethod ast-for-match ((language (eql 'cpp))
-                          string software context)
-  (@ (convert (language-ast-class language)
-              (concatenate 'string string ";")
-              :deepest t)
-     '(0)))
+(defmethod parse-tolerant ((class (eql 'cpp-ast)) string)
+  (let ((result
+         (convert class string :deepest t)))
+    (if (typep result '(or parse-error-ast source-text-fragment))
+        (@ (convert class
+                    (concatenate 'string string ";")
+                    :deepest t)
+           '(0))
+        result)))
 
 (defclass cpp-variadic-declaration
     (cpp-parameter-declaration cpp-identifier)

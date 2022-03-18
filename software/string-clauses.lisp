@@ -43,16 +43,26 @@
   (:method ((node parse-error-ast) (result list))
     (equal (source-text node) "...")))
 
-(defgeneric ast-for-match (language string software context)
-  (:method :around (language string software context)
+(defgeneric ast-for-match (language string &key software context tolerant)
+  (:method :around (language string &key software context tolerant)
     (let ((string (disarm-metavariables language string)))
       (if (and software context)
           (parse-in-context software context string)
-          (call-next-method language string software context))))
-  (:method (language string software context)
+          (if tolerant
+              (parse-tolerant (language-ast-class language)
+                              string)
+              (call-next-method language string
+                                :software software
+                                :context context)))))
+  (:method (language string &key software context tolerant)
+    (declare (ignore software context tolerant))
     (convert (language-ast-class language)
              string
              :deepest t)))
+
+(defgeneric parse-tolerant (class string)
+  (:method (class (string string))
+    (convert class string :deepest t)))
 
 (defun wildcard? (node)
   "Is NODE a wildcard (symbol that starts with WILD_)?"
@@ -176,10 +186,12 @@ in context."
 
 (defmethod convert :around
     ((to-type (eql 'match)) (clause string)
-     &key language software context &allow-other-keys)
+     &key language software context (tolerant t) &allow-other-keys)
   (if language
-      (convert 'match (ast-for-match language clause software
-                                     context))
+      (convert 'match (ast-for-match language clause
+                                     :software software
+                                     :context context
+                                     :tolerant tolerant))
       (call-next-method)))
 
 (defmethod convert :around

@@ -626,6 +626,7 @@
            :c-style-indentation
            ;; string-clauses.lisp
            :ast-for-match
+           :parse-tolerant
            :wildcard?
            :ellipsis-match
            ;; template.lisp
