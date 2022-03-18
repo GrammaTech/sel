@@ -524,22 +524,35 @@ languages allow you to use a pattern with the same name as shorthand:
 
 (defpattern ast-template* (template class &rest args)
   "Like `ast-template', but take the first child."
-  (let ((expansion
-         (block expansion
-           (handler-bind
-               ((error
-                 (lambda (e)
-                   (declare (ignore e))
-                   (when-let (expansion
-                              (ignore-errors
-                               (pattern-expand-1
-                                `(ast-template ,(ensure-suffix template ";")
-                                               ,class ,@args))))
-                     (return-from expansion expansion)))))
-             (pattern-expand-1 `(ast-template ,template ,class ,@args))))))
-    (ematch expansion
-      ((list* _ :children (list 'list pat) _)
-       pat))))
+  (flet ((valid? (ast)
+           (typep ast '(not (or parse-error-ast source-text-fragment)))))
+    (let* ((template2 (ensure-suffix template ";"))
+           (expansion
+            (block expansion
+              (handler-bind
+                  ((error
+                    (lambda (e)
+                      (declare (ignore e))
+                      (when-let (expansion
+                                 (ignore-errors
+                                  (pattern-expand-1
+                                   `(ast-template ,template2 ,class ,@args))))
+                        (return-from expansion expansion)))))
+                (let ((expansion1
+                       (pattern-expand-1
+                        `(ast-template ,template ,class ,@args))))
+                  (cond ((valid? (convert class template :deepest t))
+                         expansion1)
+                        ((string$= ";" template)
+                         (pattern-expand-1 `(ast-template ,template ,class ,@args)))
+                        ((valid? (convert class template2 :deepest t))
+                         (pattern-expand-1
+                          `(ast-template ,template2 ,class ,@args)))
+                        (t
+                         expansion1)))))))
+      (ematch expansion
+        ((list* _ :children (list 'list pat) _)
+         pat)))))
 
 (defmacro ast-from-template-aux (ast-template-fn template class &rest args)
   (let ((temps (make-gensym-list (length args))))

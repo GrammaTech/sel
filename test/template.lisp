@@ -282,5 +282,10 @@ surrounding container."
                 args
                 '("PartialEq" "PartialOrd"))))))
 
+(deftest test-match-not-invalid ()
+  "Regression test that ast-for-match isn't used when expanding templates."
+  (is (match (cpp* "true")
+        ((cpp* "true") t))))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
