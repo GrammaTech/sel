@@ -100,35 +100,6 @@
 
 ;;; Symbol Table
 
-(defun find-symbol-table-from-include (project include-ast)
-  (labels ((trim-path-string (path-ast)
-             "Return the text of PATH-AST with the quotes around it removed."
-             (remove #\" (remove #\" (text path-ast)
-                                 :count 1)
-                     :from-end t
-                     :count 1))
-           (process-system-header (path-ast)
-             ;; TODO: use the clang header stuff?
-             ;;       Just return an empty map for now.
-             (declare (ignorable path-ast))
-             (empty-map))
-           (process-relative-header (path-ast)
-             "Get the corresponding symbol table for the relative path
-              represented by PATH-AST."
-             (if-let ((software
-                       (aget (trim-path-string path-ast)
-                             (sel/sw/project:evolve-files project)
-                             :test #'equal)))
-               (symbol-table software (empty-map))
-               (empty-map))))
-    (ematch include-ast
-      ((c/cpp-preproc-include
-        (c/cpp-path (and path (c/cpp-string-literal))))
-       (process-relative-header path))
-      ((c/cpp-preproc-include
-        (c/cpp-path (and path (c/cpp-system-lib-string))))
-       (process-system-header path)))))
-
 (defmethod symbol-table ((node c/cpp-preproc-if) &optional in)
   (propagate-declarations-down node in))
 
@@ -140,12 +111,6 @@
 
 (defmethod symbol-table ((node c/cpp-preproc-else) &optional in)
   (propagate-declarations-down node in))
-
-(defmethod symbol-table ((node c/cpp-preproc-include) &optional in)
-  (declare (ignore in))
-  (if *project*
-      (find-symbol-table-from-include *project* node)
-      (call-next-method)))
 
 ;;; TODO: move this into tree-sitter.lisp. Probably need something constructed
 ;;;       at compile-time to have a full list of extra-ast-types.

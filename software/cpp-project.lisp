@@ -11,6 +11,7 @@
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/compilable
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/c-cpp-project
         :software-evolution-library/software/directory)
   (:export :cpp-project))
 (in-package :software-evolution-library/software/cpp-project)
