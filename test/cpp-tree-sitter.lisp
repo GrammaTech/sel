@@ -40,18 +40,6 @@
   (:teardown (nix *soft*)))
 
 
-;;; Template tests.
-
-#+tree-sitter-cpp
-(deftest test-starred-template-variant ()
-  (is (typep
-       (ematch (cpp* "($EXPR);" :expr 1)
-         ((and ast (cpp* "($EXPR);" :expr expr))
-          (is (typep ast 'cpp-parenthesized-expression))
-          expr))
-       'cpp-number-literal)))
-
-
 ;;; Analysis tests
 
 (deftest test-scopes ()

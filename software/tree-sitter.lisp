@@ -495,11 +495,13 @@
            :bitfield
            ;; Cross-language Mix-ins
            :c/cpp
+           :c-like
            :ecma
            :typescript
            :ecma-ast
            :typescript-ast
            :c/cpp-ast
+           :c-like-ast
            :parse-error-ast
            :comment-ast
            :definition-ast
@@ -769,6 +771,14 @@ searched to populate `*tree-sitter-language-files*'.")
     ()
     (:documentation "Mix-in class for tree-sitter TypeScript variants."))
 
+  (define-software c-like ()
+    ()
+    (:documentation "Mix-in class for software that uses C-like syntax.
+
+C-like syntax means semicolons for delimiters, braces for blocks,
+parentheses after the function name for function application, block
+comments with /* and */, etc."))
+
   (defclass ecma-ast ()
     ()
     (:documentation "Mix-in class for tree-sitter ECMAScript ASTs."))
@@ -781,23 +791,35 @@ searched to populate `*tree-sitter-language-files*'.")
     ()
     (:documentation "Mix-in class for C and C++ ASTs."))
 
+  (defclass c-like-ast ()
+    ()
+    (:documentation "Mix-in class for ASTs in languages that use C-like syntax.
+
+See `c-like' for more discussion of what \"C-like\" means."))
+
   (defparameter *tree-sitter-software-superclasses*
-    '((:c compilable normal-scope c/cpp)
-      (:cpp compilable normal-scope c/cpp)
-      (:javascript normal-scope ecma)
-      (:typescript-ts typescript)
-      (:typescript-tsx typescript)))
+    '((:c compilable normal-scope c/cpp c-like)
+      (:cpp compilable normal-scope c/cpp c-like)
+      (:go c-like)
+      (:java c-like)
+      (:javascript normal-scope ecma c-like)
+      (:rust c-like)
+      (:typescript-ts typescript c-like)
+      (:typescript-tsx typescript c-like)))
 
   (defparameter *tree-sitter-software-direct-slots* '()
     "Alist of direct slots for software classes, such as `python' or
     `c'.")
 
   (defparameter *tree-sitter-base-ast-superclasses*
-    '((:typescript-ts typescript-ast)
-      (:typescript-tsx typescript-ast)
-      (:javascript ecma-ast)
-      (:c c/cpp-ast)
-      (:cpp c/cpp-ast))
+    '((:c c/cpp-ast c-like-ast)
+      (:cpp c/cpp-ast c-like-ast)
+      (:go c-like-ast)
+      (:java c-like-ast)
+      (:javascript ecma-ast c-like-ast)
+      (:rust c-like-ast)
+      (:typescript-ts typescript-ast c-like-ast)
+      (:typescript-tsx typescript-ast c-like-ast))
     "Alist of superclasses for the base class of a language (e.g.
     `python-ast').")
 
@@ -2372,16 +2394,16 @@ are ignored by templates, whereas named ones are preserved.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . ",")) ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ">"))))
        (:BLOCK
-        (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "STRING") (:VALUE . "{"))
-         ((:TYPE . "REPEAT") (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ;; Replace _expression with new class.
-           ((:TYPE . "SYMBOL") (:NAME . "implicit_return_expression"))
-           ((:TYPE . "BLANK"))))
-         ((:TYPE . "STRING") (:VALUE . "}"))))
+           (:TYPE . "SEQ")
+         (:MEMBERS
+          ((:TYPE . "STRING") (:VALUE . "{"))
+          ((:TYPE . "REPEAT") (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))
+          ((:TYPE . "CHOICE")
+           (:MEMBERS
+            ;; Replace _expression with new class.
+            ((:TYPE . "SYMBOL") (:NAME . "implicit_return_expression"))
+            ((:TYPE . "BLANK"))))
+          ((:TYPE . "STRING") (:VALUE . "}"))))
        ;; Wrapper class.
        (:IMPLICIT-RETURN-EXPRESSION
         (:TYPE . "SYMBOL")

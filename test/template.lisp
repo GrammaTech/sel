@@ -287,5 +287,13 @@ surrounding container."
   (is (match (cpp* "true")
         ((cpp* "true") t))))
 
+(deftest test-starred-template-variant ()
+  (is (typep
+       (ematch (cpp* "($EXPR)" :expr 1)
+         ((and ast (cpp* "($EXPR)" :expr expr))
+          (is (typep ast 'cpp-parenthesized-expression))
+          expr))
+       'cpp-number-literal)))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)

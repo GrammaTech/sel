@@ -61,8 +61,21 @@
              :deepest t)))
 
 (defgeneric parse-tolerant (class string)
-  (:method (class (string string))
-    (convert class string :deepest t)))
+  (:method ((class symbol) (string string))
+    (parse-tolerant (make class) string))
+  (:method ((ast t) (string string))
+    "Fall back to non-tolerant parsing."
+    (convert (class-name-of ast) string :deepest t))
+  (:method ((ast c-like-ast) (string string))
+    "For a C-like language, tolerant parsing means adding a semicolon."
+    (let* ((class (class-name-of ast))
+           (result (convert class string :deepest t)))
+      (if (typep result '(or parse-error-ast source-text-fragment))
+          (@ (convert class
+                      (concatenate 'string string ";")
+                      :deepest t)
+             '(0))
+          result))))
 
 (defun wildcard? (node)
   "Is NODE a wildcard (symbol that starts with WILD_)?"
