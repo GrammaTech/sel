@@ -161,11 +161,14 @@ Nested lists are not allowed as template arguments:~%~a"
             :initial-value template)
     names placeholders subtrees)))
 
-(defun check-ast-template-validity (template class kwargs)
+(defun check-ast-template-validity (template class kwargs &key tolerant)
   "Compile-time validity checking for templates."
   (mvlet* ((template names placeholders
             (parse-ast-template template class kwargs))
-           (ast (convert class template :deepest t)))
+           (ast
+            (if tolerant
+                (parse-tolerant class template)
+                (convert class template :deepest t))))
     ;; Check that there are no source text fragments. Note that we
     ;; don't check that there are no parse errors, because the overall
     ;; template can still be valid if the metavariables are the parse
@@ -197,20 +200,7 @@ Nested lists are not allowed as template arguments:~%~a"
     nil))
 
 (defun check-ast-template (template class kwargs &key tolerant)
-  (handler-bind ((error
-                  (lambda (e)
-                    (declare (ignore e))
-                    (when tolerant
-                      (unless (string$= ";" template)
-                        (handler-case
-                            (return-from check-ast-template
-                              (check-ast-template-validity
-                               (string+ template ";")
-                               class
-                               kwargs))
-                          (error (e)
-                            (error e))))))))
-    (check-ast-template-validity template class kwargs)))
+  (check-ast-template-validity template class kwargs :tolerant t))
 
 (define-symbol-macro %tolerant nil)
 
