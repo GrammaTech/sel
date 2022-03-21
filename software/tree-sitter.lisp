@@ -448,6 +448,8 @@
            :*tree-sitter-language-files*
            :ast-type-to-rebind-p
            :ast-mixin-subclasses
+           :ast-language-class
+           :language-ast-class
 
            :matching-error
            :rule-matching-error
@@ -5905,6 +5907,18 @@ Unlike the `children` methods which collects all children of an AST from any slo
                          name-prefix))
                (:method-options :skip-children-definition))
 
+             (defmethod language-ast-class ((lang (eql ',(make-class-name))))
+               ',(make-class-name "ast"))
+
+             (defmethod language-ast-class ((lang ,(make-class-name)))
+               ',(make-class-name "ast"))
+
+             (defmethod ast-language-class ((ast ,(make-class-name "ast")))
+               ',(make-class-name))
+
+             (defmethod ast-language-class ((ast (eql ',(make-class-name "ast"))))
+               ',(make-class-name))
+
              ;; TODO: the error and comment classes may be created by some
              ;;       languages?
              ;; NOTE: the following are to handle results returned from
@@ -6080,6 +6094,13 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
 (defmethod pruned-rule ((ast t)) nil)
 (defmethod slot-usage ((ast t)) nil)
+
+(defgeneric language-ast-class (language-name)
+  (:documentation "Get the name of the superclass common to all AST
+  classes for LANGUAGE."))
+
+(defgeneric ast-language-class (ast)
+  (:documentation "Get the name of the language for AST."))
 
 (defgeneric extra-asts (language)
   (:method (language) nil)

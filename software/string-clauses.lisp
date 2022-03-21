@@ -177,11 +177,6 @@ similar matches, and elipses for matching series of ASTs."
                (t (push (convert 'match val) result))))))
        (nreverse result)))))
 
-(defun language-ast-class (language)
-  "Get the topmost superclass common to all AST classes for LANGUAGE."
-  (intern (string-join (list language "AST") #\-)
-          (find-package :sel/sw/ts)))
-
 (defun parse-in-context (software ast clause)
   "Parse CLAUSE, a string, as if it appeared in the same location as
 AST.
