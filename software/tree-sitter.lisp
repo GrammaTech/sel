@@ -1310,6 +1310,8 @@ for the language.")
        (:c/cpp-if-statement c-if-statement cpp-if-statement)
        (:c/cpp-init-declarator c-init-declarator cpp-init-declarator)
        (:c/cpp-initializer-pair c-initializer-pair cpp-initializer-pair)
+       (:c/cpp-macro-forward-declaration
+        c-macro-forward-declaration cpp-macro-forward-declaration)
        (:c/cpp-number-literal c-number-literal cpp-number-literal)
        (:c/cpp-parameter-declaration c-parameter-declaration
         cpp-parameter-declaration)
@@ -1347,6 +1349,8 @@ for the language.")
        (:c/cpp-system-lib-string c-system-lib-string cpp-system-lib-string)
        (:c/cpp-type-definition c-type-definition cpp-type-definition)
        (:c/cpp-type-descriptor c-type-descriptor cpp-type-descriptor)
+       (:c/cpp-type-forward-declaration
+        c-type-forward-declaration cpp-type-forward-declaration)
        (:c/cpp-type-identifier c-type-definition cpp-type-identifier)
        (:c/cpp-type-qualifier c-type-qualifier cpp-type-qualifier)
        (:c/cpp-unary-expression c-unary-expression cpp-unary-expression)
@@ -1942,7 +1946,21 @@ are ignored by templates, whereas named ones are preserved.")
          ((:TYPE . "SEQ")
           (:MEMBERS
            ((:TYPE . "SYMBOL") (:NAME . "_type_specifier"))
-           ((:TYPE . "SYMBOL") (:NAME . "empty_statement")))))))
+           ((:TYPE . "SYMBOL") (:NAME . "empty_statement"))))))
+       ;; TODO: add type-forward-declaration and macro-forward-declaration here.
+       ;;       They'll be very similar to expression-statement. Make sure that
+       ;;       _statement is added to their superclasses to ensure this will
+       ;;       work.
+       (:TYPE-FORWARD-DECLARATION
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+         ((:TYPE . "STRING") (:VALUE . ";"))))
+       (:MACRO-FORWARD-DECLARATION
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+         ((:TYPE . "STRING") (:VALUE . ";")))))
       (:c
        ;; These are specific to C.
        (:-DECLARATION-SPECIFIERS (:TYPE . "SEQ")
@@ -2003,7 +2021,23 @@ are ignored by templates, whereas named ones are preserved.")
          ((:TYPE . "STRING") (:VALUE . ":"))
          ((:TYPE . "FIELD")
           (:NAME . "statement")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement"))))))
+          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))))
+       (:-NON-CASE-STATEMENT (:TYPE . "CHOICE")
+        (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "labeled_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "compound_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "expression_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "if_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "switch_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "do_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "while_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "for_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "return_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "break_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "continue_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "goto_statement"))
+         ;; Add support for type and macro forward declarations.
+         ((:TYPE . "SYMBOL") (:NAME . "type_forward_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "macro_forward_declaration")))))
       (:cpp
        ;; These are specific to C++.
        (:REFERENCE-DECLARATOR
@@ -2136,7 +2170,29 @@ are ignored by templates, whereas named ones are preserved.")
               ((:type . "FIELD")
                (:name . "suffix_identifier")
                (:content
-                (:TYPE . "SYMBOL") (:NAME . "identifier")))))))))))
+                (:TYPE . "SYMBOL") (:NAME . "identifier"))))))))))
+       (:-NON-CASE-STATEMENT (:TYPE . "CHOICE")
+        (:MEMBERS
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "labeled_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "compound_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "expression_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "if_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "switch_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "do_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "while_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "for_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "return_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "break_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "continue_statement"))
+           ((:TYPE . "SYMBOL") (:NAME . "goto_statement"))))
+         ((:TYPE . "SYMBOL") (:NAME . "co_return_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "co_yield_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "for_range_loop"))
+         ((:TYPE . "SYMBOL") (:NAME . "try_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "throw_statement"))
+         ((:TYPE . "SYMBOL") (:NAME . "type_forward_declaration"))
+         ((:TYPE . "SYMBOL") (:NAME . "macro_forward_declaration")))))
       (:java
        (:MODIFIERS (:TYPE . "REPEAT1")
         (:CONTENT
@@ -2905,11 +2961,55 @@ All tests are done with `EQUAL'.")
     '((:c
        ;; This is to get around _EMPTY_DECLARATION inlining a semicolon
        ;; without any further information to reproduce it.
-       ((:type . "empty_statement") (:named . T)))
+       ((:type . "empty_statement") (:named . T))
+       ((:type . "type_forward_declaration") (:named . T))
+       ((:type . "macro_forward_declaration") (:named . T))
+       ((:TYPE . "_statement") (:NAMED . T)
+        (:SUBTYPES ((:TYPE . "break_statement") (:NAMED . T))
+         ((:TYPE . "case_statement") (:NAMED . T))
+         ((:TYPE . "compound_statement") (:NAMED . T))
+         ((:TYPE . "continue_statement") (:NAMED . T))
+         ((:TYPE . "do_statement") (:NAMED . T))
+         ((:TYPE . "expression_statement") (:NAMED . T))
+         ((:TYPE . "for_statement") (:NAMED . T))
+         ((:TYPE . "goto_statement") (:NAMED . T))
+         ((:TYPE . "if_statement") (:NAMED . T))
+         ((:TYPE . "labeled_statement") (:NAMED . T))
+         ((:TYPE . "return_statement") (:NAMED . T))
+         ((:TYPE . "switch_statement") (:NAMED . T))
+         ((:TYPE . "while_statement") (:NAMED . T))
+         ;; Add type and macro forward declarations
+         ((:TYPE . "type_forward_declaration") (:NAMED . T))
+         ((:TYPE . "macro_forward_declaration") (:NAMED . T)))))
       (:cpp
        ;; This is to get around _EMPTY_DECLARATION inlining a semicolon
        ;; without any further information to reproduce it.
-       ((:type . "empty_statement") (:named . T)))
+       ((:type . "empty_statement") (:named . T))
+       ((:type . "type_forward_declaration") (:named . T))
+       ((:type . "macro_forward_declaration") (:named . T))
+       ((:TYPE . "_statement") (:NAMED . T)
+        (:SUBTYPES
+         ((:TYPE . "break_statement") (:NAMED . T))
+         ((:TYPE . "case_statement") (:NAMED . T))
+         ((:TYPE . "co_return_statement") (:NAMED . T))
+         ((:TYPE . "co_yield_statement") (:NAMED . T))
+         ((:TYPE . "compound_statement") (:NAMED . T))
+         ((:TYPE . "continue_statement") (:NAMED . T))
+         ((:TYPE . "do_statement") (:NAMED . T))
+         ((:TYPE . "expression_statement") (:NAMED . T))
+         ((:TYPE . "for_range_loop") (:NAMED . T))
+         ((:TYPE . "for_statement") (:NAMED . T))
+         ((:TYPE . "goto_statement") (:NAMED . T))
+         ((:TYPE . "if_statement") (:NAMED . T))
+         ((:TYPE . "labeled_statement") (:NAMED . T))
+         ((:TYPE . "return_statement") (:NAMED . T))
+         ((:TYPE . "switch_statement") (:NAMED . T))
+         ((:TYPE . "throw_statement") (:NAMED . T))
+         ((:TYPE . "try_statement") (:NAMED . T))
+         ((:TYPE . "while_statement") (:NAMED . T))
+         ;; Add type and macro forward declarations
+         ((:TYPE . "type_forward_declaration") (:NAMED . T))
+         ((:TYPE . "macro_forward_declaration") (:NAMED . T)))))
       (:java
        ;; This is to get around STATEMENT allowing a semicolon
        ;; without any further information to reproduce it.
