@@ -27,7 +27,7 @@
                        (lines synopsis :keep-eols t)))))
 
 (defun extract-header-synopsis (header)
-  (let* ((file (path-join *std-header-dir* (pathname-name header))))
+  (let ((file (path-join *std-header-dir* header)))
     (cond
       ;; As of 2022-01-26, execution doesn't have a synopsis.
       ((equal (pathname-name file) "execution") nil)
