@@ -221,6 +221,12 @@ pointer declarations which are nested on themselves."
                        (c/cpp-declarator ast))))
     (outer-declarations function-declarator)))
 
+(defmethod outer-declarations ((ast c/cpp-macro-forward-declaration))
+  (list (car (direct-children ast))))
+
+(defmethod outer-declarations ((ast c/cpp-type-forward-declaration))
+  (list (car (direct-children ast))))
+
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
   (find-enclosing '(or definition-ast cpp-class-specifier
                     c/cpp-primitive-type)

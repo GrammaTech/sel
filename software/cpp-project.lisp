@@ -21,8 +21,7 @@
   '("h" "cpp" "cp" "cc")
   "List of extensions we will consider for evolving.")
 
-(define-software cpp-project
-    (directory-project parseable-project compilable include-paths-mixin)
+(define-software cpp-project (c/cpp-project)
   ()
   (:documentation "Project specialization for c++ software objects."))
 
@@ -52,4 +51,3 @@
                     (member (pathname-type file) *cpp-extensions*
                             :test 'equal))))))
   result)
-

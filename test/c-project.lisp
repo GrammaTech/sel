@@ -12,6 +12,7 @@
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
+   :software-evolution-library/software/c-cpp-project
    :software-evolution-library/software/c-project
    :functional-trees/attrs)
   #-windows (:shadowing-import-from :osicat
@@ -230,6 +231,27 @@
            (list f1h))))))
 
 
+;;; System Headers
+(deftest c-project-system-headers-1 ()
+  "System headers are populated lazily."
+  (with-fixture symbol-table-project
+    (with-slots (system-headers) (genome *project*)
+      (is (null system-headers))
+      (get-system-header *project* "stdio.h")
+      (is (find-if (op (equal (header-name _) "stdio.h"))
+                   system-headers)))))
+
+(deftest c-project-system-headers-2 ()
+  "System headers that can't be found create an entry without children."
+  (with-fixture symbol-table-project
+    (with-slots (system-headers) (genome *project*)
+      (let ((system-header (get-system-header *project* "doesn't-exist")))
+        (is (null (children system-header)))
+        (is (eq system-header
+                (find-if (op (equal (header-name _) "doesn't-exist"))
+                         system-headers)))))))
+
+
 ;;; Symbol Table
 
 (defun get-symbol-map (software symbols)
@@ -251,6 +273,29 @@ file including it."
                (is (equal? (symbol-table target-ast)
                            (get-symbol-map included-software
                                            '("x" "function")))))))
+    (with-fixture symbol-table-project
+      (with-attr-table *project*
+        (symbol-table *project* (empty-map))
+        (test-main.c)))))
+
+(deftest c-project-symbol-table-2 ()
+  "Included system files have their symbols imported into the symbol table of the
+file including it."
+  (labels ((test-main.c ()
+             "Test that a symbol from stdio.h is in the symbol table in main.c."
+             (let* ((software (aget "main.c" (evolve-files *project*)
+                                    :test #'equal))
+                    (target-ast (second
+                                 (collect-if (of-type 'c-preproc-include)
+                                             (genome software))))
+                    (system-header
+                      (find-if (op (equal (header-name _) "stdio.h"))
+                               (system-headers (genome *project*))))
+                    (target-symbol-table (symbol-table target-ast)))
+               (is (lookup target-symbol-table "printf"))
+               (is (find-if (op (eq (car (lookup target-symbol-table "printf"))
+                                    _))
+                            system-header)))))
     (with-fixture symbol-table-project
       (with-attr-table *project*
         (symbol-table *project* (empty-map))

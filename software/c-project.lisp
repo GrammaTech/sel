@@ -21,8 +21,7 @@
   '("c" "h")
   "List of extensions we will consider for evolving.")
 
-(define-software c-project
-    (directory-project parseable-project compilable include-paths-mixin)
+(define-software c-project (c/cpp-project)
   ()
   (:documentation "Project specialization for c software objects."))
 
