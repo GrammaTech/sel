@@ -414,10 +414,30 @@
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql :cpp)) (class (eql 'cpp-operator-name)) parse-tree &key)
-  (with-modify-parse-tree (parse-tree)
-    (#.(mapcar #'make-keyword +cpp-operator-names+)
-       (label-as :name))))
+    ((language (eql :cpp)) (class (eql 'cpp-operator-name)) parse-tree &key
+     &aux (children (parse-tree-children parse-tree)))
+  (labels ((transform-quotes-operator ()
+             (with-modify-parse-tree (parse-tree)
+               ((:|""|)
+                (label-as :name))
+               ((:identifier)
+                (label-as :suffix-identifier))))
+           (transform-new/delete-operator ()
+             (with-modify-parse-tree (parse-tree)
+               ((:new :delete)
+                (label-as :name))
+               ((:|[]|)
+                (label-as :array))))
+           (transform-operator ()
+             (with-modify-parse-tree (parse-tree)
+               (#.(mapcar #'make-keyword +cpp-operator-names+)
+                  (label-as :name)))))
+    (cond
+      ((find-if (op (eql :|""| (car _))) children)
+       (transform-quotes-operator))
+      ((find-if (op (member (car _) '(:new :delete))) children)
+       (transform-new/delete-operator))
+      (t (transform-operator)))))
 
 (defmethod transform-parse-tree
     ((language (eql :cpp)) (class (eql 'cpp-sized-type-specifier))

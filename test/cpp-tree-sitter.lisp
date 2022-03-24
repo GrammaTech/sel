@@ -813,7 +813,10 @@ class MyF
 (deftest test-cpp-operator-name ()
   (can-parse 'cpp "bool operator+() {}")
   (can-parse 'cpp "bool operator<() {}")
-  (can-parse 'cpp "bool operator>() {}"))
+  (can-parse 'cpp "bool operator>() {}")
+  (can-parse 'cpp "bool operator \"\" x() {}")
+  (can-parse 'cpp "bool operator new () {}")
+  (can-parse 'cpp "bool operator delete[] () {}"))
 
 (deftest test-cpp-field-expression ()
   (can-parse 'cpp "config.put();")
