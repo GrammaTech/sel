@@ -1608,7 +1608,7 @@ for the language.")
         rust-for-expression
         rust-loop-expression
         rust-while-expression)
-       (:parameter-ast rust-parameter)
+       (:parameter-ast rust-parameter rust-self-parameter)
        (:parameters-ast rust-parameters)
        (:parenthesized-expression-ast rust-parenthesized-expression)
        (:return-ast rust-return-expression)

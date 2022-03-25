@@ -173,6 +173,14 @@ pub unsafe fn auto() -> MmapChoice {
   (is (typep (rust* "0..")    'rust-range-from-expr))
   (is (typep (rust* "..10")   'rust-range-to-expr)))
 
+(deftest rust-self-parameter-is-parameter ()
+  (is (every (of-type 'parameter-ast)
+             (children
+              (rust-parameters
+               (convert 'rust-ast
+                        "fn myfun(&self, x:i32) -> {}"
+                        :deepest t))))))
+
 
 ;;; Parsing tests.
 
