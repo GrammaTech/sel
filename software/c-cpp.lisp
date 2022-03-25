@@ -202,6 +202,8 @@ pointer declarations which are nested on themselves."
 
 (defmethod declarator-name-ast ((ast c/cpp-identifier))
   ast)
+(defmethod declarator-name-ast ((ast c/cpp-field-identifier))
+  ast)
 (defmethod declarator-name-ast ((ast c/cpp-type-identifier))
   ast)
 (defmethod declarator-name-ast ((ast c/cpp-init-declarator))
@@ -216,6 +218,12 @@ pointer declarations which are nested on themselves."
   (declarator-name-ast (c/cpp-declarator ast)))
 
 (defmethod declaration-type ((ast c/cpp-function-definition))
+  (c/cpp-type ast))
+(defmethod declaration-type ((ast c/cpp-field-declaration))
+  (c/cpp-type ast))
+(defmethod declaration-type ((ast c/cpp-parameter-declaration))
+  (c/cpp-type ast))
+(defmethod declaration-type ((ast c/cpp-declaration))
   (c/cpp-type ast))
 
 (defmethod field-names ((ast c/cpp-field-declaration))
