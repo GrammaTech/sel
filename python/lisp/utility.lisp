@@ -58,7 +58,7 @@ the trailing characters of the symbol string SYMNAME."
              (stable-sort pairs #'> :key [#'length #'car]))
          (t ,symname)))
 
-(-> python-identifier-chars (string) string)
+(-> python-identifier-chars (string) (values string &optional))
 (defun python-identifier-chars (typename)
   "Replace special chars in AST TYPENAMEs not valid in python identifiers."
   (symname-find-replace$ (regex-replace "^C/CPP" typename "CXX")

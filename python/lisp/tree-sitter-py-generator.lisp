@@ -37,7 +37,7 @@
   :documentation "List of language-agnostic AST classes which should always
 be part of the python API.")
 
-(-> handle-languages-argument (string) list)
+(-> handle-languages-argument (string) (values list &optional))
 (defun handle-languages-argument (languages)
   "Transform the input comma-delimited source languages into a list of
 language-specific AST types."
@@ -57,7 +57,7 @@ language-specific AST types."
   "Remove duplicates from l, from right to left."
   (remove-duplicates l :from-end t))
 
-(-> tree-sitter-symbols () list)
+(-> tree-sitter-symbols () (values list &optional))
 (defun tree-sitter-symbols ()
   "Return the symbols in the tree-sitter package sorted lexicographically."
   (let ((pkg (find-package :sel/sw/tree-sitter)))

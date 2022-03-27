@@ -189,22 +189,22 @@ function name from the API followed by the arguments."
             (handle-request request *standard-output*))))
 
 ;;;; API:
-(-> int/from-string (string string boolean) fixnum)
+(-> int/from-string (string string boolean) (values ast &optional))
 (defun int/from-string (source-text language deepest)
   (convert (language-to-ast-symbol language)
            source-text
            :deepest deepest))
 
-(-> int/--del-- (ast) boolean)
+(-> int/--del-- (ast) t)
 (defun int/--del-- (ast)
   (deallocate-ast ast))
 
-(-> int/--copy-- (ast) fixnum)
+(-> int/--copy-- (ast) (values fixnum &optional))
 (defun int/--copy-- (ast)
   "Shallow copy AST in a manner conforming to python's `copy.copy`."
   (allocate-ast ast))
 
-(-> int/copy (ast list) ast)
+(-> int/copy (ast &rest list) (values ast &optional))
 (defun int/copy (ast &rest args)
   "Copy AST with optional keyword ARGS mapping child slots to new values."
   (labels ((handle-slot-name-argument (arg)
@@ -220,24 +220,24 @@ function name from the API followed by the arguments."
 (-> int/gc (list) null)
 (defun int/gc (oids) (mapcar #'deallocate-ast oids) nil)
 
-(-> int/parent (ast ast) ast)
+(-> int/parent (ast ast) (values (or ast null) &optional))
 (defun int/parent (root ast) (get-parent-ast root ast))
 
-(-> int/children (ast) list)
+(-> int/children (ast) (values list &optional))
 (defun int/children (ast) (children ast))
 
-(-> int/ast-path (ast ast) list)
+(-> int/ast-path (ast ast) (values list &optional))
 (defun int/ast-path (root ast)
   (cl-to-python-ast-path (ast-path root ast)))
 
-(-> int/lookup (ast list) (or ast null))
+(-> int/lookup (ast list) (values (or ast null) &optional))
 (defun int/lookup (root path)
   (lookup root (python-to-cl-ast-path path)))
 
-(-> int/source-text (ast) string)
+(-> int/source-text (ast) (values string &optional))
 (defun int/source-text (ast) (source-text ast))
 
-(-> int/child-slots (ast) list)
+(-> int/child-slots (ast) (values list &optional))
 (defun int/child-slots (ast)
   (mapcar «list [{cl-to-python-slot-name ast} #'car] #'cdr»
           (remove-if #'internal-child-slot-p (child-slots ast))))
@@ -246,7 +246,7 @@ function name from the API followed by the arguments."
 (defun int/child-slot (ast slot-name)
   (slot-value ast (safe-intern (python-to-cl-slot-name ast slot-name))))
 
-(-> int/ast-at-point (ast integer integer) ast)
+(-> int/ast-at-point (ast integer integer) (values (or ast null) &optional))
 (defun int/ast-at-point (ast line column)
   (lastcar (asts-containing-source-location ast
                                             (make-instance 'source-location
@@ -256,33 +256,33 @@ function name from the API followed by the arguments."
 (defun int/language (ast)
   (cl-to-python-ast-language (ast-language ast)))
 
-(-> int/imports (ast ast) list)
+(-> int/imports (ast ast) (values list &optional))
 (defun int/imports (root ast)
   (imports root ast))
 
-(-> int/function-name (ast) string)
+(-> int/function-name (ast) (values string &optional))
 (defun int/function-name (ast) (function-name ast))
 
-(-> int/function-parameters (ast) list)
+(-> int/function-parameters (ast) (values list &optional))
 (defun int/function-parameters (ast) (function-parameters ast))
 
-(-> int/function-body (ast) ast)
+(-> int/function-body (ast) (values ast &optional))
 (defun int/function-body (ast) (function-body ast))
 
-(-> int/provided-by (ast ast) string)
+(-> int/provided-by (ast ast) (values (or string null) &optional))
 (defun int/provided-by (root ast) (provided-by root ast))
 
-(-> int/call-function (ast) ast)
+(-> int/call-function (ast) (values ast &optional))
 (defun int/call-function (ast) (call-function ast))
 
-(-> int/call-arguments (ast) list)
+(-> int/call-arguments (ast) (values list &optional))
 (defun int/call-arguments (ast) (call-arguments ast))
 
-(-> int/refcount (ast) fixnum)
+(-> int/refcount (ast) (values fixnum &optional))
 (defun int/refcount (ast)
   (refcount ast))
 
-(-> int/get-vars-in-scope (ast ast boolean) list)
+(-> int/get-vars-in-scope (ast ast boolean) (values list &optional))
 (defun int/get-vars-in-scope (root ast keep-globals)
   (get-vars-in-scope (make-instance (safe-intern (ast-language ast))
                                     :genome root)
@@ -298,19 +298,19 @@ function name from the API followed by the arguments."
                              (list (line (end range))
                                    (column (end range))))))))
 
-(-> int/cut (ast ast) ast)
+(-> int/cut (ast ast) (values ast &optional))
 (defun int/cut (root pt)
   (less root (ast-path root pt)))
 
-(-> int/insert (ast ast ast) ast)
+(-> int/insert (ast ast ast) (values ast &optional))
 (defun int/insert (root pt ast)
   (insert root (ast-path root pt) (tree-copy ast)))
 
-(-> int/replace (ast ast ast) ast)
+(-> int/replace (ast ast ast) (values ast &optional))
 (defun int/replace (root pt ast)
   (with root (ast-path root pt) (tree-copy ast)))
 
-(-> int/ast-template (string string list) ast)
+(-> int/ast-template (string string &rest list) (values ast &optional))
 (defun int/ast-template (template language &rest args)
   (apply #'ast-template
          template
@@ -319,7 +319,7 @@ function name from the API followed by the arguments."
              (mappend #'handle-keyword-argument args)
              args)))
 
-(-> int/asts-from-template (string string list) list)
+(-> int/asts-from-template (string string &rest list) (values list &optional))
 (defun int/asts-from-template (template language &rest args)
   (handler-bind ((trivia.level2.impl::wildcard
                    (lambda (c)
@@ -339,7 +339,7 @@ function name from the API followed by the arguments."
                             (string-upcase (python-to-cl-ast-language language))
                             "-AST")))
 
-(-> keyword-arguments-p (list) boolean)
+(-> keyword-arguments-p (list) (values boolean &optional))
 (defun keyword-arguments-p (args)
   "Returns true if ARGS represents a list of keyword arguments (kwargs)."
   (every «and #'alist-pair-p [#'stringp #'first]» args))
@@ -350,7 +350,7 @@ function name from the API followed by the arguments."
   (cons (make-keyword (string-upcase (replace-all (car arg) "_" "-")))
         (cdr arg)))
 
-(-> cl-to-python-ast-path (list) list)
+(-> cl-to-python-ast-path (list) (values list &optional))
 (defun cl-to-python-ast-path (path)
   "Translate the Lisp AST PATH to a python representation."
   (labels ((helper (part)
@@ -360,7 +360,7 @@ function name from the API followed by the arguments."
                (cons (list (helper (car part)) (helper (cdr part)))))))
     (mapcar #'helper path)))
 
-(-> python-to-cl-ast-path (list) list)
+(-> python-to-cl-ast-path (list) (values list &optional))
 (defun python-to-cl-ast-path (path)
   "Translate the python AST PATH to a Lisp representation."
   (labels ((helper (part)
