@@ -405,27 +405,29 @@ class AST:
         def transform_helper(
             transformer: Callable[["AST"], Optional[LiteralOrAST]],
             root: "AST",
-            ast: "AST",
+            path: List = [],
         ) -> "AST":
             """Recursive helper function implementing the transform method."""
 
-            # Get the result of calling the TRANSFORMER on AST.
+            # Transform the children of the AST node at PATH.
+            new_root = root
+            for child in new_root.lookup(path).children:
+                new_root = transform_helper(transformer, new_root, root.ast_path(child))
+
+            # Get the result of calling the TRANSFORMER on the AST at PATH.
+            ast = new_root.lookup(path)
             transformed = transformer(ast) or ast
             transformed = AST._ensure_ast(transformed, language=root.language)
 
             # Replace the current AST if there is a new TRANSFORMER result.
-            if root == ast:
-                root = transformed  # special case for root node
+            if path == []:
+                new_root = transformed  # special case for root node
             elif transformed != ast:
-                root = AST.replace(root, ast, transformed)
+                new_root = AST.replace(new_root, ast, transformed)
 
-            # Transform the children of the transformed AST node.
-            for child in transformed.children:
-                root = transform_helper(transformer, root, child)
+            return new_root
 
-            return root
-
-        return transform_helper(transformer, root, root)
+        return transform_helper(transformer, root)
 
     # AST mutation helpers/sanity checks
     @staticmethod

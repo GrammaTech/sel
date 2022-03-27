@@ -336,6 +336,21 @@ class TransformTestDriver(unittest.TestCase):
         self.assertEqual(transformed.source_text, expected)
 
 
+class CCastExpressionTransformTestDriver(unittest.TestCase):
+    def setUp(self):
+        text = slurp(DATA_DIR / "transform" / "ccast-original.c")
+        self.root = AST.from_string(text, ASTLanguage.C)
+
+    def test_remove_cast(self):
+        def remove_cast(ast: AST):
+            if isinstance(ast, CCastExpression):
+                return ast.value
+
+        transformed = AST.transform(self.root, remove_cast)
+        expected = slurp(DATA_DIR / "transform" / "ccast-transformed.c")
+        self.assertEqual(transformed.source_text, expected)
+
+
 class FunctionTestDriver(unittest.TestCase):
     # Function asts
     # Function name
