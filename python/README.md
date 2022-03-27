@@ -341,6 +341,25 @@ accessed using the slot name as a python property accessor or by using
 'print'
 ```
 
+Beyond direct child lookup, an AST path composed of the names of the
+child slots and, when the child slot is a list, a position in this list
+may be used to lookup ASTs at arbritrary depths in the tree using the
+`lookup` method.  Additionally, an AST's path in a tree may be found
+directly using the `ast_path` method, as shown below:
+
+```python
+>>> root = asts.AST.from_string(
+...     "print(x)",
+...     language=asts.ASTLanguage.Python,
+...     deepest=True
+... )
+>>> x = root.lookup(['PYTHON-ARGUMENTS', ['CHILDREN', 0]])
+>>> x.source_text
+'x'
+>>> root.ast_path(x)
+['PYTHON-ARGUMENTS', ['CHILDREN', 0]]
+```
+
 Finally, parent trees may be accessed using the `parent` and `parents`
 methods, as shown below.  Please note that these methods require the
 root of the subtree as a parameter.

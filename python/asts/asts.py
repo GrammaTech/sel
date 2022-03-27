@@ -258,6 +258,14 @@ class AST:
         """Return the source ranges (line, col) for AST its recursive children"""
         return _interface.dispatch(AST.ast_source_ranges.__name__, self)
 
+    def ast_path(self, child: "AST") -> List:
+        """Return the path to CHILD in SELF."""
+        return _interface.dispatch(AST.ast_path.__name__, self, child) or []
+
+    def lookup(self, path: List) -> Optional["AST"]:
+        """Return the AST at PATH in SELF, if possible."""
+        return _interface.dispatch(AST.lookup.__name__, self, path)
+
     def child_slot_arity(self, slot: str) -> Optional[int]:
         """Return the arity of the AST's child slot."""
         pairs = [pair for pair in self.child_slots if pair[0].lower() == slot.lower()]

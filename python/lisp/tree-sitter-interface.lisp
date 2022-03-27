@@ -226,6 +226,14 @@ function name from the API followed by the arguments."
 (-> int/children (ast) list)
 (defun int/children (ast) (children ast))
 
+(-> int/ast-path (ast ast) list)
+(defun int/ast-path (root ast)
+  (cl-to-python-ast-path (ast-path root ast)))
+
+(-> int/lookup (ast list) (or ast null))
+(defun int/lookup (root path)
+  (lookup root (python-to-cl-ast-path path)))
+
 (-> int/source-text (ast) string)
 (defun int/source-text (ast) (source-text ast))
 
@@ -341,3 +349,23 @@ function name from the API followed by the arguments."
   "Translate the python keyword argument (ARG) to a Lisp keyword argument."
   (cons (make-keyword (string-upcase (replace-all (car arg) "_" "-")))
         (cdr arg)))
+
+(-> cl-to-python-ast-path (list) list)
+(defun cl-to-python-ast-path (path)
+  "Translate the Lisp AST PATH to a python representation."
+  (labels ((helper (part)
+             (etypecase part
+               (number part)
+               (symbol (symbol-name part))
+               (cons (list (helper (car part)) (helper (cdr part)))))))
+    (mapcar #'helper path)))
+
+(-> python-to-cl-ast-path (list) list)
+(defun python-to-cl-ast-path (path)
+  "Translate the python AST PATH to a Lisp representation."
+  (labels ((helper (part)
+             (etypecase part
+               (number part)
+               (string part (find-symbol (string-upcase part)))
+               (list (cons (helper (car part)) (helper (lastcar part)))))))
+    (mapcar #'helper path)))

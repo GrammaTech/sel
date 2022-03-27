@@ -35,6 +35,18 @@ class BinaryOperationTestDriver(unittest.TestCase):
         self.assertEqual([[1, 2], [1, 4]], ranges[4])
         self.assertEqual([[1, 4], [1, 7]], ranges[5])
 
+    # AST path
+    def test_ast_path(self):
+        self.assertEqual(
+            self.root.ast_path(self.binop), [["CHILDREN", 0], ["CHILDREN", 0]]
+        )
+
+    # AST lookup
+    def test_ast_lookup(self):
+        self.assertEqual(
+            self.root.lookup([["CHILDREN", 0], ["CHILDREN", 0]]), self.binop
+        )
+
     # AST children
     def test_children(self):
         self.assertEqual(3, len(self.binop.children))
