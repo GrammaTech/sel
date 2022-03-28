@@ -632,6 +632,7 @@
            :ellipsis-match
            ;; Attributes
            :symbol-table
+           :namespace
            ;; template.lisp
            :ast-template
            :ast-template*
@@ -9474,7 +9475,7 @@ Otherwise, return PARSE-TREE."
     (symbol-table (genome software) in))
   (:method ((node root-ast) &optional in)
     (propagate-declarations-down node in))
-  (:method ((node tree-sitter-ast) &optional in)
+  (:method ((node functional-tree-ast) &optional in)
     (cond
       ((scope-ast-p node)
        (propagate-declarations-down node in)
@@ -9496,6 +9497,25 @@ Otherwise, return PARSE-TREE."
     (convert 'fset:map
              (mapcar (op (list (source-text _1) _1))
                      (inner-declarations node)))))
+
+
+;;; Namespace
+(def-attr-fun namespace (in)
+  "Compute the namespace at this node."
+  (:method ((ast functional-tree-ast) &optional in)
+    (mapcar (op (namespace _ in))
+            (children ast))
+    in)
+  (:method ((software software) &optional in)
+    (namespace (genome software) in)
+    in))
+
+(defmethod attr-missing ((fn-name (eql 'namespace)) node
+                         &aux (attrs-root (attrs-root *attrs*)))
+  (if-let ((root (find-if (of-type 'root-ast)
+                          (get-parent-asts attrs-root node))))
+    (namespace root "")
+    (namespace attrs-root "")))
 
 
 ;;; Contextualization

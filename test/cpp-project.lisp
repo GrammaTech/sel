@@ -6,12 +6,14 @@
    #+gt :testbot
    :software-evolution-library/test/util
    :stefil+
+   :functional-trees/attrs
    :software-evolution-library
    :software-evolution-library/software/simple
    :software-evolution-library/software/compilable
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
+   :software-evolution-library/software/c-cpp-project
    :software-evolution-library/software/cpp-project)
   #-windows (:shadowing-import-from :osicat
                                     :file-permissions :pathname-as-directory)
@@ -68,6 +70,15 @@
   (:teardown (setf *project* nil
                    *mutation-stats* nil)))
 
+(defixture cpp-symbol-table-project
+  (:setup
+   (setf *project*
+         (from-file 'cpp-project
+                    (make-pathname
+                     :directory (append1 +etc-dir+
+                                         "cpp-symbol-table-project")))))
+  (:teardown (setf *project* nil)))
+
 (defmethod test-method ((obj simple) value)
   value)
 
@@ -113,3 +124,27 @@
 (deftest cpp-project-can-build ()
   (with-fixture cpp-sample-project
     (is (phenome *project*))))
+
+
+;;; Symbol Table
+(deftest cpp-project-symbol-table-1 ()
+  "Included system files have their namespace qualified symbols imported into the
+symbol table of the file including it."
+  (labels ((test-main.cc ()
+             "Test that a symbol from stdio.h is in the symbol table in main.c."
+             (let* ((software (aget "main.cc" (evolve-files *project*)
+                                    :test #'equal))
+                    (target-ast (find-if (of-type 'cpp-preproc-include)
+                                         (genome software)))
+                    (system-header
+                      (find-if (op (equal (header-name _) "iostream"))
+                               (system-headers (genome *project*))))
+                    (target-symbol-table (symbol-table target-ast)))
+               (is (lookup target-symbol-table "std::cout"))
+               (is (find-if (op (eq (car (lookup target-symbol-table
+                                                 "std::cout"))
+                                    _))
+                            system-header)))))
+    (with-fixture cpp-symbol-table-project
+      (with-attr-table *project*
+        (test-main.cc)))))

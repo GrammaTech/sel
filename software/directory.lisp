@@ -197,3 +197,18 @@
   (mapc (op (symbol-table _ in))
         (mapcar #'cdr (evolve-files project)))
   (empty-map))
+
+
+;;; Namespace
+(defmethod namespace ((node directory-ast) &optional in)
+    (mapc (op (namespace _ in)) (entries node))
+    in)
+
+(defmethod namespace((node file-ast) &optional in)
+  (mapc (op (namespace _ in)) (car (contents node)))
+  in)
+
+(defmethod namespace ((project directory-project) &optional in)
+  (mapc (op (namespace _ in))
+        (mapcar #'cdr (evolve-files project)))
+  in)

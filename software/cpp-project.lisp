@@ -4,6 +4,7 @@
   (:nicknames :sel/software/cpp-project :sel/sw/cpp-project)
   (:use :gt/full
         :cl-json
+        :functional-trees/attrs
         :software-evolution-library
         :software-evolution-library/software/simple
         :software-evolution-library/software/parseable
@@ -51,3 +52,21 @@
                     (member (pathname-type file) *cpp-extensions*
                             :test 'equal))))))
   result)
+
+#+:TREE-SITTER-CPP
+(progn
+
+(defmethod attr-missing ((fn-name (eql 'namespace)) (node cpp-ast))
+  (let* ((attrs-root (attrs-root *attrs*))
+         (parents (get-parent-asts attrs-root node))
+         (root (find-if (of-type 'root-ast) parents)))
+    (cond
+      ;; TODO: having to check for whether it's an extra AST may be a bug from
+      ;;       somewhere else.
+      ((and (null parents)
+            (typep node '(or comment-ast parse-error-ast source-text-fragment)))
+       (namespace node ""))
+      (root (namespace root ""))
+      (t (namespace attrs-root "")))))
+
+) ; #+:TREE-SITTER-CPP

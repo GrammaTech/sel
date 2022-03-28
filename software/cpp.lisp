@@ -610,25 +610,6 @@
   (make 'cpp-ast)
   "Dummy AST for an unnamed namespace.")
 
-(defmethod outer-declarations ((ast cpp-namespace-definition))
-  (let ((name (cpp-name ast)))
-    (etypecase name
-      ;; TODO An unnamed namespace exposes all its definitions.
-      (null nil)
-      (cpp-identifier (list name))
-      ;; E.g. namespace A::B {}
-      (cpp-namespace-definition-name
-       (children name)))))
-
-(defmethod inner-declarations ((ast cpp-namespace-definition))
-  (let ((name (cpp-name ast)))
-    (etypecase name
-      (null (list +unnamed-namespace-ast+))
-      (cpp-identifier (list name))
-      ;; E.g. namespace A::B {}
-      (cpp-namespace-definition-name
-       (children name)))))
-
 (defmethod parameter-names ((ast cpp-parameter-declaration))
   ;; Note that currently (2021) C++ allows destructuring ("structured
   ;; bindings") in blocks but not in parameter declarations.
@@ -640,6 +621,14 @@
       ;; We don't want identifiers from type declarations.
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
+
+(defmethod outer-declarations ((ast cpp-namespace-definition))
+  (match ast
+    ((cpp-namespace-definition
+      (cpp-body
+       (cpp-declaration-list (direct-children children))))
+     (mappend (op (outer-declarations _))
+              children))))
 
 (defun requalify (qualifiers initial)
   "Given a list of names (or template types) to use as qualifiers, and
@@ -1015,5 +1004,58 @@ iterator we want the type of the container's elements."
 
 
 ;;; Whitespace rules
+
+
+;;; Namespace Attr
+
+(defmethod namespace ((ast cpp-namespace-definition)
+                      &optional in
+                      &aux (name (cpp-name ast)))
+  (labels ((get-namespace (ast)
+             ;; NOTE: tree-sitter-cpp doesn't currently handle
+             ;;       inline namespaces
+             ;; TODO: look at implicit namespaces and incorporate or factor
+             ;;       out what is needed from there.
+             (cond
+               ;; Anonyous namespace
+               ((not name) in)
+               ((emptyp in) #1=(text name))
+               (t (string+ in "::" #1#)))))
+    (mapcar {namespace _ (get-namespace ast)}
+            (children ast))
+    in))
+
+
+;;; Symbol Table
+(defmethod symbol-table ((node cpp-ast) &optional in
+                         &aux (namespace (namespace node)))
+  (cond
+    ((scope-ast-p node)
+     (propagate-declarations-down node in)
+     in)
+    (t (mapc (op (symbol-table _ (map-union in (inner-defs node))))
+             (children node))
+       in)))
+
+(defmethod symbol-table ((node cpp-namespace-definition) &optional in)
+  (propagate-declarations-down node in))
+
+(defun qualify-declared-ast-name (declared-ast)
+  (let* ((source-text (source-text declared-ast))
+         (namespace (namespace declared-ast))
+         (qualified-name (if (emptyp namespace)
+                             source-text
+                             (string+ namespace "::" source-text))))
+    (list qualified-name declared-ast)))
+
+(defmethod outer-defs ((node cpp-ast))
+  (convert 'fset:map
+           (mapcar #'qualify-declared-ast-name
+                   (outer-declarations node))))
+
+(defmethod inner-defs ((node cpp-ast))
+  (convert 'fset:map
+           (mapcar #'qualify-declared-ast-name
+                   (inner-declarations node))))
 
 ) ; #+:TREE-SITTER-CPP

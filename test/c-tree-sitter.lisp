@@ -907,10 +907,10 @@ the root AST."
          (return-ast
            (find-if (of-type 'c-return-statement) root)))
     (with-attr-table root
-      (sel/sw/ts::symbol-table root (empty-map))
-      (is (equal? (sel/sw/ts::symbol-table second-declaration-ast)
+      (symbol-table root (empty-map))
+      (is (equal? (symbol-table second-declaration-ast)
                   (fset:map ("a" (list (stmt-with-text root "a"))))))
-      (is (equal? (sel/sw/ts::symbol-table return-ast)
+      (is (equal? (symbol-table return-ast)
                   (fset:map ("a" (list (stmt-with-text root "a")))
                             ("b" (list (stmt-with-text root "b")))
                             ("c" (list (stmt-with-text root "c")))))))))
@@ -920,8 +920,7 @@ the root AST."
   (let* ((source "int a; int b; int c; return;")
          (root (convert 'c-ast source)))
     (with-attr-table root
-      (sel/sw/ts::symbol-table root (empty-map))
-      (is (equal? (sel/sw/ts::symbol-table root)
+      (is (equal? (symbol-table root (empty-map))
                   (fset:map ("a" (list (stmt-with-text root "a")))
                             ("b" (list (stmt-with-text root "b")))
                             ("c" (list (stmt-with-text root "c")))))))))

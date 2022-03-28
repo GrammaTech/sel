@@ -233,10 +233,9 @@
 
 ;;; System Headers
 (deftest c-project-system-headers-1 ()
-  "System headers are populated lazily."
+  "System headers are populated at project creation."
   (with-fixture symbol-table-project
     (with-slots (system-headers) (genome *project*)
-      (is (null system-headers))
       (get-system-header *project* "stdio.h")
       (is (find-if (op (equal (header-name _) "stdio.h"))
                    system-headers)))))

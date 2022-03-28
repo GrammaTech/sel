@@ -114,6 +114,7 @@
 
 ;;; TODO: move this into tree-sitter.lisp. Probably need something constructed
 ;;;       at compile-time to have a full list of extra-ast-types.
+;;; TODO: actually, just use a mixin instead if this isn't a work around a bug.
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
   (labels ((extra-ast-types (language)
              (mapcar (op (format-symbol 'sel/sw/ts "~a-~a" language _))
@@ -121,7 +122,7 @@
     (if (member node (append (extra-ast-types :c) (extra-ast-types :cpp))
                 :test #'typep)
         (symbol-table node (empty-map))
-        (call-next-method))))
+        (symbol-table (attrs-root *attrs*) (empty-map)))))
 
 
 

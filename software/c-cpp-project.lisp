@@ -49,12 +49,6 @@ by the symbol-table attribute."))
                 :allocation :class))
   (:documentation "Node for representing system headers."))
 
-(defmethod from-file :around ((obj c/cpp-project) path)
-  (let ((result (call-next-method)))
-    (setf #1=(genome result) (make-instance 'c/cpp-root
-                                            :project-directory #1#))
-    result))
-
 (defgeneric get-system-header (project system-header-string)
   (:method (project system-header-string) nil)
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING
@@ -62,6 +56,9 @@ and add it to PROJECT."))
 
 #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
 (progn
+
+
+;;; System Headers
 
 (defun process-system-header
       (project path-string
@@ -191,11 +188,28 @@ and add it to PROJECT."))
       system-header
       (populate-header-entry project path-string))))
 
+(defun trim-path-string (path-ast &aux (text (text path-ast)))
+  "Return the text of PATH-AST with the quotes around it removed."
+  (subseq text 1 (1- (length text))))
+
+(defmethod from-file :around ((project c/cpp-project) file)
+  (labels ((maybe-populate-header (ast)
+             (match ast
+               ((c/cpp-preproc-include
+                 (c/cpp-path (and path (c/cpp-system-lib-string))))
+                (get-system-header project (trim-path-string path))))))
+    (let ((result (call-next-method)))
+      (setf #1=(genome result) (make-instance 'c/cpp-root
+                                              :project-directory #1#))
+      (mapc #'maybe-populate-header project)
+      result)))
+
+
+
+;;; Symbol Table
+
 (defun find-symbol-table-from-include (project include-ast)
-  (labels ((trim-path-string (path-ast &aux (text (text path-ast)))
-             "Return the text of PATH-AST with the quotes around it removed."
-             (subseq text 1 (1- (length text))))
-           (process-system-header (project path-ast)
+  (labels ((process-system-header (project path-ast)
              (if-let ((system-header
                        (get-system-header
                         project (trim-path-string path-ast))))

@@ -5,6 +5,7 @@
     :gt/full
     :software-evolution-library/test/util
     :stefil+
+    :functional-trees/attrs
     :software-evolution-library
     :software-evolution-library/software/parseable
     :software-evolution-library/software/tree-sitter
@@ -1267,3 +1268,17 @@ different orders."
   (with-canonical-type=-test ("void f1 (int g1(float, double), h1(int(x, y)));"
                               "void f2 (int g2(float, double), h1(int(x, y)));")
     (is-canonical-type= target-ast1 target-ast2)))
+
+
+;;; Symbol table
+
+(deftest cpp-symbol-table-1 ()
+  "Symbol-table contains qualified identifiers."
+  (let* ((source "int x; namespace a { int y; namespace b { int z; } } return;")
+         (root (convert' cpp-ast source))
+         (target-ast (find-if (of-type 'cpp-return-statement) root)))
+    (with-attr-table root
+      (is (equal? (symbol-table target-ast)
+                  (fset:map ("x" (list (stmt-with-text root "x")))
+                            ("a::y" (list (stmt-with-text root "y")))
+                            ("a::b::z" (list (stmt-with-text root "z")))))))))
