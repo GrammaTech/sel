@@ -207,7 +207,10 @@ pointer declarations which are nested on themselves."
       (c/cpp-body
        (c/cpp-enumerator-list
         (direct-children enumerators))))
-     (cons name (mapcar #'c/cpp-name enumerators)))))
+     (let ((enumerator-names (mapcar #'c/cpp-name enumerators)))
+       (if name
+           (cons name enumerator-names)
+           enumerator-names)))))
 
 (defmethod outer-declarations ((ast c/cpp-function-declarator))
   (list (c/cpp-declarator ast)))
