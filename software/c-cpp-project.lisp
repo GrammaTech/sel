@@ -68,7 +68,7 @@ and add it to PROJECT."))
              "Get the synopsis string from the header represented
               by PATH-STRING."
              (handler-bind
-                 ((#+sbcl sb-ext:file-does-not-exist #-sbcl error
+                 ((#+sbcl sb-ext:file-does-not-exist #-sbcl file-error
                    (lambda (condition)
                      (declare (ignorable condition))
                      (return-from get-synopsis-string))))
@@ -118,7 +118,7 @@ and add it to PROJECT."))
                    (push (pop lines) markup-lines))
                (finally
                 (return
-                  (reduce #'string+
+                  (apply #'string+
                           (intersperse #.(format nil "~%")
                                        (reverse (flatten markup-lines))))))))
            (transform-into-forward-declaration (ast comment declaration-type)
@@ -131,7 +131,7 @@ and add it to PROJECT."))
                  (direct-children (list symbol-ast))
                  (before-asts
                   (list (c/cpp-comment
-                         (text (guard text (equal comment text)))))))
+                         (text (and text (equal comment)))))))
                 (convert class-ast `((:class . ,declaration-type)
                                      (:children ,symbol-ast)
                                      (:before-text . ,before-text)

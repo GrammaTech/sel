@@ -184,31 +184,39 @@
   (apply 'convert to-type (genome obj) more))
 
 
+;;; Attrs
+(defmacro define-attr-methods (attr-name (&rest optional-args)
+                               &body return-body)
+  "Create a set of attr methods for ATTR-NAME that has optional arguments
+OPTIONAL-ARGS and returns the ending value of RETURN-BODY. `node' is defined
+for forms inside RETURN-BODY and holds the current AST."
+  `(progn
+     (defmethod ,attr-name ((node directory-ast)
+                            ,@(when optional-args
+                                `(&optional ,@optional-args)))
+       (mapc (op (symbol-table _ in)) (entries node))
+       ,@return-body)
+
+     (defmethod ,attr-name ((node file-ast)
+                            ,@(when optional-args
+                                `(&optional ,@optional-args)))
+       (mapc (op (symbol-table _ in)) (entries node))
+       ,@return-body)
+
+     (defmethod ,attr-name ((node directory-project)
+                            ,@(when optional-args
+                                `(&optional ,@optional-args)))
+       (mapc (op (symbol-table _ in))
+             (mapcar #'cdr (evolve-files node)))
+       ,@return-body)))
+
+
 ;;; Symbol Table
-(defmethod symbol-table ((node directory-ast) &optional in)
-    (mapc (op (symbol-table _ in)) (entries node))
-    (empty-map))
 
-(defmethod symbol-table((node file-ast) &optional in)
-  (mapc (op (symbol-table _ in)) (car (contents node)))
-  (empty-map))
-
-(defmethod symbol-table ((project directory-project) &optional in)
-  (mapc (op (symbol-table _ in))
-        (mapcar #'cdr (evolve-files project)))
+(define-attr-methods symbol-table (in)
   (empty-map))
 
 
 ;;; Namespace
-(defmethod namespace ((node directory-ast) &optional in)
-    (mapc (op (namespace _ in)) (entries node))
-    in)
-
-(defmethod namespace((node file-ast) &optional in)
-  (mapc (op (namespace _ in)) (car (contents node)))
-  in)
-
-(defmethod namespace ((project directory-project) &optional in)
-  (mapc (op (namespace _ in))
-        (mapcar #'cdr (evolve-files project)))
-  in)
+(define-attr-methods namespace (in)
+  "")

@@ -6773,7 +6773,7 @@ argument destructuring (e.g. ECMAScript).")
   (:method ((ast function-ast))
     (mappend #'parameter-names (function-parameters ast)))
   (:method :around (ast)
-    (handler-bind ((#+sbcl sb-pcl::no-applicable-method-error #-sbcl error
+    (handler-bind ((no-applicable-method-error
                     (lambda (condition)
                       (declare (ignorable condition))
                       (when (find-if
@@ -6789,7 +6789,7 @@ argument destructuring (e.g. ECMAScript).")
   (:method :around (ast)
     ;; NOTE: this is to work around ASTs which may not have the expected ASTs
     ;;       in respective slots.
-    (handler-bind ((#+sbcl sb-pcl::no-applicable-method-error #-sbcl error
+    (handler-bind ((no-applicable-method-error
                     (lambda (condition)
                       (declare (ignorable condition))
                       (when (find-if
