@@ -606,7 +606,6 @@
            :declarator-name
            :enclosing-definition
            :ast-imports
-           :imports
            :provided-by
            :comparisonp
            :aliasee
@@ -634,6 +633,9 @@
            :ellipsis-match
            ;; Attributes
            :namespace
+           :imports
+           :with-attr-table-for
+           :attr-table-for
            ;; Symbol Table
            :symbol-table
            :multi-map-symbol-table-union
@@ -6956,12 +6958,26 @@ Every element in the list has the following form:
 (full-name alias/nickname named-imports)")
   (:method ((ast t)) nil))
 
-(defun imports (root node)
+(defun attr-table-for (root)
+  (if (and (boundp '*attrs*)
+           (eql (attrs-root *attrs*) root))
+      *attrs*
+      (ft/attrs::make-attrs :root root)))
+
+(defmacro with-attr-table-for (root &body body)
+  "Like `with-attr-table', but if the appropriate attr table is
+  already bound, reuse it."
+  `(let ((*attrs* (attr-table-for ,root)))
+     ,@body))
+
+(defun imports (software node)
   "Return a list of the imports available in SOFTWARE at AST.
 Every element in the list has the following form:
     (full-name alias/nickname named-imports)"
-  (with-attr-table root
-    (imports-attr node)))
+  (if (boundp '*attrs*)
+      (imports-attr node)
+      (with-attr-table software
+        (imports-attr node))))
 
 (def-attr-fun imports-attr (in)
   "Compute the imports available from a node."

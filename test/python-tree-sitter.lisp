@@ -115,8 +115,13 @@
   (:teardown
    (setf *soft* nil)))
 
+(defmacro with-fixture/attrs (fixture &body body)
+  `(with-fixture ,fixture
+     (with-attr-table-for *soft*
+       ,@body)))
+
 (defmacro with-scopes-file ((filename software-var genome-var)
-                              &body body)
+                            &body body)
   `(let* ((,software-var (from-file
                           (make-instance 'python)
                           (make-pathname :name ,filename
@@ -742,7 +747,7 @@ and keyword parameters with defaults."
    (setf *soft* nil)))
 
 (deftest python-imports ()
-  (with-fixture python-import
+  (with-fixture/attrs python-import
     ;; Import returns: (full-name alias/nickname named-imports)
     (is (equalp '(("os") ("sys" nil "byteorder"))
                 (imports *soft* (stmt-with-text *soft* "byteorder()"))))
@@ -758,7 +763,7 @@ and keyword parameters with defaults."
                 (imports *soft* (stmt-with-text *soft* "obj.str()"))))))
 
 (deftest python-provided-by ()
-  (with-fixture python-import
+  (with-fixture/attrs python-import
     ;; Explicitly imported at the top and called without a namespace chain.
     (is (string= "sys" (provided-by *soft* (stmt-with-text *soft* "byteorder()"
                                                            :at-start t))))
