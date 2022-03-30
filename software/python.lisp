@@ -106,16 +106,17 @@ are created if they're present in PARSE-TREE."
               (python-name ast))
       (list (list (source-text (python-module-name ast)) nil "*"))))
 
-(defmethod provided-by ((software python) ast)
-  (provided-by (genome software) ast))
+(defmethod provided-by-attr ((software python))
+  (provided-by-attr (genome software)))
 
-(defmethod provided-by ((root python-ast) (ast python-identifier))
+(defmethod provided-by-attr ((ast python-identifier)
+                             &aux (root (attr-root*)))
   (if (member (source-text ast) (built-ins root) :test #'equal)
       "builtins"
       (car (find-if [{equal (source-text ast)} #'third] (imports root ast)))))
 
-(defmethod provided-by ((root python-ast) (ast python-attribute)
-                        &aux (*attrs* (attr-table-for root)))
+(defmethod provided-by-attr ((ast python-attribute)
+                             &aux (root (attr-root*)))
   (labels ((top-attribute (root ast)
              "Return the last ancestor of AST which is an attribute AST."
              (let ((parent (get-parent-ast root ast)))
@@ -150,15 +151,15 @@ are created if they're present in PARSE-TREE."
     (or (attribute-aliased-import root ast)
         (attribute-unaliased-import root ast))))
 
-(defmethod provided-by ((root python-ast) (ast python-expression-statement))
-  (provided-by root (first (children ast))))
+(defmethod provided-by-attr ((ast python-expression-statement))
+  (provided-by-attr (first (children ast))))
 
-(defmethod provided-by ((root python-ast) (ast python-call))
-  (provided-by root (call-function ast)))
+(defmethod provided-by-attr ((ast python-call))
+  (provided-by-attr (call-function ast)))
 
-(defmethod provided-by ((root python-ast) (ast python-ast)) nil)
+(defmethod provided-by-attr ((ast python-ast)) nil)
 
-(defmethod provided-by :around ((root python-ast) (ast python-ast))
+(defmethod provided-by-attr :around ((ast python-ast))
   (when-let ((result (call-next-method)))
     (string-left-trim "." result)))
 

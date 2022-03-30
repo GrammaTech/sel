@@ -636,6 +636,7 @@
            :imports
            :with-attr-table-for
            :attr-table-for
+           :attr-root*
            ;; Symbol Table
            :symbol-table
            :multi-map-symbol-table-union
@@ -6964,6 +6965,9 @@ Every element in the list has the following form:
       *attrs*
       (ft/attrs::make-attrs :root root)))
 
+(defun attr-root* ()
+  (attrs-root *attrs*))
+
 (defmacro with-attr-table-for (root &body body)
   "Like `with-attr-table', but if the appropriate attr table is
   already bound, reuse it."
@@ -7005,9 +7009,12 @@ Every element in the list has the following form:
 (defmethod attr-missing ((name (eql 'imports-attr)) node)
   (imports-attr (attrs-root *attrs*) nil))
 
-(define-generic-analysis provided-by (software ast)
-  (:documentation
-   "Return the library, package, or system in SOFTWARE providing AST."))
+(defun provided-by (software ast)
+  "Return the library, package, or system in SOFTWARE providing AST."
+  (with-attr-table-for software
+    (provided-by-attr ast)))
+
+(def-attr-fun provided-by-attr ())
 
 (defgeneric comparisonp (ast)
   (:documentation "Is AST a comparison?")
