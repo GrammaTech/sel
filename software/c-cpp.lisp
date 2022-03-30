@@ -657,18 +657,20 @@ Should return `:failure' in the base case.")
             (lhs c/cpp-pointer-declarator)
             (rhs c/cpp-pointer-expression))
     (if (typep (c/cpp-operator rhs) 'cpp-&)
-        (aliasee sw (c/cpp-argument rhs))
+        (with-attr-table-for sw
+          (aliasee (c/cpp-argument rhs)))
         (call-next-method)))
   (:method ((sw c/cpp)
             (lhs c/cpp-pointer-declarator)
             (rhs identifier-ast))
     ;; Assigning a pointer variable to a pointer variable.
-    (let ((aliasee (aliasee sw rhs)))
-      (if (not (eql aliasee (get-declaration-id 'variable sw rhs)))
-          aliasee
-          (call-next-method)))))
+    (with-attr-table-for sw
+      (let ((aliasee (aliasee rhs)))
+        (if (not (eql aliasee (get-declaration-id 'variable sw rhs)))
+            aliasee
+            (call-next-method))))))
 
-(defmethod aliasee ((sw c/cpp) (id identifier-ast))
+(defmethod aliasee ((id identifier-ast) &aux (sw (attr-root*)))
   (ematch (get-initialization-ast id)
     ((c/cpp-init-declarator (lhs lhs) (rhs rhs))
      (let ((result (initializer-aliasee sw lhs rhs)))
@@ -676,45 +678,47 @@ Should return `:failure' in the base case.")
            (get-declaration-id 'variable sw id)
            result)))
     ((c/cpp-assignment-expression (rhs rhs))
-     (aliasee sw rhs))
+     (aliasee rhs))
     (otherwise nil)))
 
 (defmethod alias-set ((sw c/cpp) (plain-var c/cpp-ast))
-  (when-let (id (get-declaration-id 'variable sw plain-var))
-    (iter (for ast in-tree (genome sw))
-          (when (and (typep ast 'identifier-ast)
-                     (eql (aliasee sw ast) id))
-            (set-collect (get-declaration-id 'variable sw ast) into set))
-          (finally (return (convert 'list (less set plain-var)))))))
+  (with-attr-table-for sw
+    (when-let (id (get-declaration-id 'variable sw plain-var))
+      (iter (for ast in-tree (genome sw))
+            (when (and (typep ast 'identifier-ast)
+                       (eql (aliasee ast) id))
+              (set-collect (get-declaration-id 'variable sw ast) into set))
+            (finally (return (convert 'list (less set plain-var))))))))
 
 
 (defmethod collect-arg-uses ((sw c/cpp) (target identifier-ast)
                              &optional alias)
-  (labels ((get-decl (obj var)
-             (get-declaration-id 'variable
-                                 obj
-                                 (or (and alias (aliasee obj var))
-                                         var)))
-           (occurs-as-object? (ast target)
-             (match ast
-               ((call-ast
-                 (call-function
-                  (cpp-field-expression
-                   (cpp-argument arg))))
-                (eql (get-decl sw arg) target))))
-           (occurs-as-arg? (ast target)
-             (match ast
-               ((call-ast (call-arguments (and args (type list))))
-                (member target
-                        (filter (of-type 'identifier-ast) args)
-                        :key (op (get-decl sw _)))))))
-    (let ((target (get-decl sw target)))
-      (iter (for ast in-tree (genome sw))
-            ;; The outer loop will recurse, so we don't
-            ;; need to recurse here.
-            (when (or (occurs-as-object? ast target)
-                      (occurs-as-arg? ast target))
-              (collect ast))))))
+  (with-attr-table-for sw
+    (labels ((get-decl (obj var)
+               (get-declaration-id 'variable
+                                   obj
+                                   (or (and alias (aliasee var))
+                                       var)))
+             (occurs-as-object? (ast target)
+               (match ast
+                 ((call-ast
+                   (call-function
+                    (cpp-field-expression
+                     (cpp-argument arg))))
+                  (eql (get-decl sw arg) target))))
+             (occurs-as-arg? (ast target)
+               (match ast
+                 ((call-ast (call-arguments (and args (type list))))
+                  (member target
+                          (filter (of-type 'identifier-ast) args)
+                          :key (op (get-decl sw _)))))))
+      (let ((target (get-decl sw target)))
+        (iter (for ast in-tree (genome sw))
+              ;; The outer loop will recurse, so we don't
+              ;; need to recurse here.
+              (when (or (occurs-as-object? ast target)
+                        (occurs-as-arg? ast target))
+                (collect ast)))))))
 
 
 ;;;; Whitespace

@@ -997,12 +997,14 @@ iterator we want the type of the container's elements."
 (defmethod initializer-aliasee ((sw cpp)
                                 (lhs cpp-reference-declarator)
                                 (rhs cpp-pointer-expression))
-  (if (typep (cpp-operator rhs) 'cpp-*)
-      (aliasee sw (cpp-argument rhs))
-      (call-next-method)))
+  (with-attr-table-for sw
+    (if (typep (cpp-operator rhs) 'cpp-*)
+        (aliasee (cpp-argument rhs))
+        (call-next-method))))
 
 (defmethod initializer-aliasee ((sw cpp) (lhs cpp-reference-declarator) rhs)
-  (aliasee sw rhs))
+  (with-attr-table-for sw
+    (aliasee rhs)))
 
 
 
