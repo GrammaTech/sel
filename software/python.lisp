@@ -114,7 +114,8 @@ are created if they're present in PARSE-TREE."
       "builtins"
       (car (find-if [{equal (source-text ast)} #'third] (imports root ast)))))
 
-(defmethod provided-by ((root python-ast) (ast python-attribute))
+(defmethod provided-by ((root python-ast) (ast python-attribute)
+                        &aux (*attrs* (attr-table-for root)))
   (labels ((top-attribute (root ast)
              "Return the last ancestor of AST which is an attribute AST."
              (let ((parent (get-parent-ast root ast)))
