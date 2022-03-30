@@ -7232,14 +7232,15 @@ Returns a second value to represent certainty; returning NIL, T means
 they are definitely not the same; returning NIL, NIL means
 uncertainty.")
   (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
-    (let ((decl1 (get-declaration-id 'variable obj id1))
-          (decl2 (get-declaration-id 'variable obj id2)))
-      (cond ((not (and decl1 decl2))
-             (values nil nil))
-            ((eql decl1 decl2)
-             (values t t))
-            (t
-             (values nil t))))))
+    (with-attr-table-for obj
+      (let ((decl1 (get-declaration-id 'variable obj id1))
+            (decl2 (get-declaration-id 'variable obj id2)))
+        (cond ((not (and decl1 decl2))
+               (values nil nil))
+              ((eql decl1 decl2)
+               (values t t))
+              (t
+               (values nil t)))))))
 
 (defgeneric same-place-p (software ast1 ast2)
   (:documentation "T if AST1 and AST2 share the same storage.
@@ -7247,9 +7248,10 @@ uncertainty.")
 Differs from `same-variable-p' in that it takes references and
 pointers into account in languages that support them.")
   (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
-    (let ((aliasee1 (or (aliasee obj id1) id1))
-          (aliasee2 (or (aliasee obj id2) id2)))
-      (same-variable-p obj aliasee1 aliasee2))))
+    (with-attr-table-for obj
+      (let ((aliasee1 (or (aliasee id1) id1))
+            (aliasee2 (or (aliasee id2) id2)))
+        (same-variable-p obj aliasee1 aliasee2)))))
 
 (define-generic-analysis collect-var-uses (software ast &key &allow-other-keys)
   (:documentation "Collect uses of IDENTIFIER in SOFTWARE.")
@@ -7328,21 +7330,22 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.")
 
 If ALIAS is non-nil, resolve aliases during the search.")
   (:method ((obj software) (target identifier-ast) &optional alias)
-    (flet ((get-decl (obj var)
-             (get-declaration-id 'variable
-                                 obj
-                                 (or (and alias (aliasee obj var))
-                                     var))))
-      (let ((target (get-decl obj target)))
-        (iter (for ast in-tree (genome obj))
-              ;; The outer loop will recurse, so we don't
-              ;; need to recurse here.
-              (match ast
-                ((call-ast (call-arguments (and args (type list))))
-                 (when (member target
-                               (filter (of-type 'identifier-ast) args)
-                               :key (op (get-decl obj _)))
-                   (collect ast)))))))))
+    (with-attr-table-for obj
+      (flet ((get-decl (obj var)
+               (get-declaration-id 'variable
+                                   obj
+                                   (or (and alias (aliasee var))
+                                       var))))
+        (let ((target (get-decl obj target)))
+          (iter (for ast in-tree (genome obj))
+                ;; The outer loop will recurse, so we don't
+                ;; need to recurse here.
+                (match ast
+                  ((call-ast (call-arguments (and args (type list))))
+                   (when (member target
+                                 (filter (of-type 'identifier-ast) args)
+                                 :key (op (get-decl obj _)))
+                     (collect ast))))))))))
 
 
 ;;;; Cross-language generics and methods
@@ -7463,9 +7466,8 @@ return whether they are equal.")
   (:method ((type1 canonical-type) (type2 canonical-type) &key)
     (eql type1 type2)))
 
-(define-generic-analysis aliasee (software ast)
-  (:documentation
-   "If AST is a pointer variable, resolve the plain variable it points to."))
+(def-attr-fun aliasee ()
+  "If AST is a pointer variable, the plain variable it points to.")
 
 (define-generic-analysis alias-set (software ast)
   (:documentation

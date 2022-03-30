@@ -398,12 +398,13 @@ dereferenced pointer."
              (next-point
               (find-if (op (equal (source-text _) "next_point"))
                        (genome sw))))
-        (is (typep next-point 'identifier-ast))
-        (let ((aliasee (aliasee sw next-point)))
-          (is (typep aliasee 'identifier-ast))
-          (is (string= "p2" (source-text aliasee)))
-          (let ((alias-set (alias-set sw aliasee)))
-            (is (member next-point alias-set))))))))
+        (with-attr-table-for sw
+          (is (typep next-point 'identifier-ast))
+          (let ((aliasee (aliasee next-point)))
+            (is (typep aliasee 'identifier-ast))
+            (is (string= "p2" (source-text aliasee)))
+            (let ((alias-set (alias-set sw aliasee)))
+              (is (member next-point alias-set)))))))))
 
 (def +alias-fragment+
   (fmt "~
@@ -427,7 +428,7 @@ dereferenced pointer."
         (is (typep alias 'identifier-ast))
         (finishes
          (get-initialization-ast alias))
-        (is (eql pl (aliasee sw alias)))))))
+        (is (eql pl (aliasee alias)))))))
 
 (deftest test-reference-aliasee ()
   (test-aliasee-is-plain-var "r"))
