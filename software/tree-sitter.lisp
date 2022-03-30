@@ -605,6 +605,7 @@
            :definition-name-ast
            :declarator-name
            :enclosing-definition
+           :ast-imports
            :imports
            :provided-by
            :comparisonp
@@ -6713,7 +6714,7 @@ should be rebound.")
                  value))
     (list value)))
 
-(define-generic-analysis statements-in-scope (software scope ast)
+(defgeneric statements-in-scope (software scope ast)
   (:documentation "Return all child statements of SCOPE prior to AST.")
   (:method (obj (scope ast) (ast ast))
     (iter (for c in (remove nil (children scope)))
@@ -6955,10 +6956,44 @@ Return NIL on the empty list.")
   (:documentation "Find the enclosing definition AST in which AST resides,
 or NIL if none."))
 
-(define-generic-analysis imports (software ast &key)
-  (:documentation "Return a list of the imports available in SOFTWARE at AST.
+(defgeneric ast-imports (ast)
+  (:documentation "Return a list of imports provided by AST.
 Every element in the list has the following form:
-    (full-name alias/nickname named-imports)"))
+(full-name alias/nickname named-imports)")
+  (:method ((ast t)) nil))
+
+(defun imports (root node)
+  "Return a list of the imports available in SOFTWARE at AST.
+Every element in the list has the following form:
+    (full-name alias/nickname named-imports)"
+  (with-attr-table root
+    (imports-attr node)))
+
+(def-attr-fun imports-attr (in)
+  "Compute the imports available from a node."
+  (:method ((software parseable) &optional in)
+    (imports-attr (genome software) in))
+  (:method ((node root-ast) &optional in)
+    (propagate-imports node in))
+  (:method ((node functional-tree-ast) &optional in)
+    (cond
+      ((scope-ast-p node)
+       (propagate-imports node in)
+       in)
+      (t (mapc (op (imports-attr _ (append in (ast-imports node))))
+               (children node))
+         in))))
+
+(defun propagate-imports (node in)
+  (reduce (lambda (in2 child)
+            (append
+             (imports-attr child in2)
+             (ast-imports child)))
+          (children node)
+          :initial-value in))
+
+(defmethod attr-missing ((name (eql 'imports-attr)) node)
+  (imports-attr (attrs-root *attrs*) nil))
 
 (define-generic-analysis provided-by (software ast)
   (:documentation

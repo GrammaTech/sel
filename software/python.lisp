@@ -91,32 +91,20 @@ are created if they're present in PARSE-TREE."
 (defmethod initialize-instance :after ((self python-empty-parameters) &key)
   (setf (text self) "()"))
 
-(defmethod imports ((software python) (ast python-ast) &key)
-  (imports (genome software) ast))
+(defmethod ast-imports ((ast python-import-statement))
+  (mapcar #'ast-imports (python-name ast)))
 
-(defmethod imports ((root python-module) (ast python-ast) &key
-                    &aux (parent (get-parent-ast root ast)))
-  (append (imports root parent)
-          (mappend #'ast-imports (take-until {eq ast} (children parent)))))
+(defmethod ast-imports ((ast python-dotted-name))
+  (list (source-text ast)))
 
-(defmethod imports ((root python-module) (ast python-module) &key) nil)
+(defmethod ast-imports ((ast python-aliased-import))
+  (list (source-text (python-name ast)) (source-text (python-alias ast))))
 
-(defgeneric ast-imports (ast)
-  (:documentation "Return a list of imports provided by AST.
-Every element in the list has the following form:
-(full-name alias/nickname named-imports)")
-  (:method ((ast t)) nil)
-  (:method ((ast python-import-statement))
-    (mapcar #'ast-imports (python-name ast)))
-  (:method ((ast python-dotted-name))
-    (list (source-text ast)))
-  (:method ((ast python-aliased-import))
-    (list (source-text (python-name ast)) (source-text (python-alias ast))))
-  (:method ((ast python-import-from-statement))
-    (if (python-name ast)
-        (mapcar [{list (source-text (python-module-name ast)) nil} #'source-text]
-                (python-name ast))
-        (list (list (source-text (python-module-name ast)) nil "*")))))
+(defmethod ast-imports ((ast python-import-from-statement))
+  (if (python-name ast)
+      (mapcar [{list (source-text (python-module-name ast)) nil} #'source-text]
+              (python-name ast))
+      (list (list (source-text (python-module-name ast)) nil "*"))))
 
 (defmethod provided-by ((software python) ast)
   (provided-by (genome software) ast))
