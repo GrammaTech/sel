@@ -215,6 +215,28 @@ int main () {
       (is (empty? (set-difference scope-names wanted-names)))
       (is (empty? (set-difference wanted-names scope-names))))))
 
+(deftest test-relevant-declaration-type ()
+  (let* ((sw (from-string 'cpp "int x = 0;
+int myfun1 () { return 1; }
+int myfun2 () { return x; }
+mytype myfun3 (mytype y) { return y; }"))
+         (types
+          '(("myfun1" . function-declaration-ast)
+            ("myfun2" . function-declaration-ast)
+            ("myfun3" . function-declaration-ast)
+            ("x" . variable-declaration-ast)
+            ("y" . variable-declaration-ast)
+            ("mytype" . type-declaration-ast)
+            ("int" . type-declaration-ast))))
+    (with-attr-table-for sw
+      (iter (for node in-tree (genome sw))
+            (let ((relevant-type (relevant-declaration-type node))
+                  (wanted-type (aget (source-text node) types :test #'equal)))
+              (is (eql wanted-type
+                       relevant-type)
+                  "Wrong type for ~a: wanted ~a, got ~a"
+                  node wanted-type relevant-type))))))
+
 (deftest test-trim-front-decls ()
   "Test that we get the right declaration for each identifier."
   ;; Test that we have all and only the above identifiers.
@@ -231,10 +253,10 @@ int main () {
                                :key #'car
                                :test #'source-text=))
                      (last-ids))))
-    (with-fixture trim-front
+    (with-fixture/attrs trim-front
       (let* ((all-scopes (all-scopes *soft*)))
         (iter (for access in (accesses))
-              (for decl-type = (relevant-declaration-type *soft* access))
+              (for decl-type = (relevant-declaration-type access))
               (for decl = (get-declaration-ast decl-type *soft* access))
               (is (typep decl 'ast))
               (iter (for scope in all-scopes)
