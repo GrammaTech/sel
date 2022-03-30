@@ -799,6 +799,9 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
 (defmethod function-body ((ast python-function-definition)) (python-body ast))
 
+(defmethod definition-name-ast ((ast python-function-definition))
+  (python-name ast))
+
 ;; NB There is no single "operator" for a chained comparison.
 (defmethod lhs ((ast python-comparison-operator))
   (if (single (python-operators ast))
