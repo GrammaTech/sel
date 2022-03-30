@@ -7181,13 +7181,13 @@ or `type-declaration-ast'.")
      ;; Default to a variable declaration.
      'variable-declaration-ast)))
 
-(define-generic-analysis get-initialization-ast (software ast)
-  (:documentation "Find where AST is initialized.
+(def-attr-fun get-initialization-ast ()
+  "Find where AST is initialized.
 
 This is useful when languages allow a single declaration to initialize
 more than one variable, and for languages that allow declaration and
-initialization to be separate.")
-  (:method ((obj t) (ast t))
+initialization to be separate."
+  (:method ((ast t) &aux (obj (attr-root*)))
     (when-let (id (get-declaration-id 'variable obj ast))
       (find-enclosing 'variable-initialization-ast
                       obj
