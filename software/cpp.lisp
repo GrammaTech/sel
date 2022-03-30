@@ -627,8 +627,11 @@
     ((cpp-namespace-definition
       (cpp-body
        (cpp-declaration-list (direct-children children))))
-     (mappend (op (outer-declarations _))
-              children))))
+     (let ((declarations-values-list
+             (reduce #'outer-declarations-merge children
+                     :initial-value nil)))
+       (values (car declarations-values-list)
+            (cadr declarations-values-list))))))
 
 (defun requalify (qualifiers initial)
   "Given a list of names (or template types) to use as qualifiers, and
@@ -1027,35 +1030,37 @@ iterator we want the type of the container's elements."
 
 
 ;;; Symbol Table
-(defmethod symbol-table ((node cpp-ast) &optional in
-                         &aux (namespace (namespace node)))
-  (cond
-    ((scope-ast-p node)
-     (propagate-declarations-down node in)
-     in)
-    (t (mapc (op (symbol-table _ (map-union in (inner-defs node))))
-             (children node))
-       in)))
+
+(define-constant +cpp-multi-declaration-keys+ '(:function)
+  :test #'equal
+  :documentation
+  "A set of keys which indicate that several definitions for a symbol may be
+available to use at any point in a C++ AST.")
+
+(defmethod multi-declaration-keys ((root cpp-ast)) +cpp-multi-declaration-keys+)
 
 (defmethod symbol-table ((node cpp-namespace-definition) &optional in)
   (propagate-declarations-down node in))
 
 (defun qualify-declared-ast-name (declared-ast)
   (let* ((source-text (source-text declared-ast))
-         (namespace (namespace declared-ast))
-         (qualified-name (if (emptyp namespace)
-                             source-text
-                             (string+ namespace "::" source-text))))
-    (list qualified-name declared-ast)))
+         (namespace (namespace declared-ast)))
+    (if (emptyp namespace)
+        source-text
+        (string+ namespace "::" source-text))))
 
 (defmethod outer-defs ((node cpp-ast))
-  (convert 'fset:map
-           (mapcar #'qualify-declared-ast-name
-                   (outer-declarations node))))
+  (mvlet ((declarations namespaces (outer-declarations node)))
+    (convert 'fset:map
+             (convert-grouped-namespaces
+              (group-by-namespace declarations namespaces)
+              :source-text-fun #'qualify-declared-ast-name))))
 
 (defmethod inner-defs ((node cpp-ast))
-  (convert 'fset:map
-           (mapcar #'qualify-declared-ast-name
-                   (inner-declarations node))))
+  (mvlet ((declarations namespaces (inner-declarations node)))
+    (convert 'fset:map
+             (convert-grouped-namespaces
+              (group-by-namespace declarations namespaces)
+              :source-text-fun #'qualify-declared-ast-name))))
 
 ) ; #+:TREE-SITTER-CPP

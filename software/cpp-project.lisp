@@ -56,6 +56,9 @@
 #+:TREE-SITTER-CPP
 (progn
 
+(defmethod multi-declaration-keys ((root cpp-project))
+  +cpp-multi-declaration-keys+)
+
 (defmethod attr-missing ((fn-name (eql 'namespace)) (node cpp-ast))
   (let* ((attrs-root (attrs-root *attrs*))
          (parents (get-parent-asts attrs-root node))

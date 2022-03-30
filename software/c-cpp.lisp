@@ -100,6 +100,11 @@
 
 ;;; Symbol Table
 
+(defmethod symbol-table-union ((root c/cpp-ast) table-1 table-2 &key)
+  (multi-map-symbol-table-union
+   table-1 table-2
+   :allow-multiple (multi-declaration-keys root)))
+
 (defmethod symbol-table ((node c/cpp-preproc-if) &optional in)
   (propagate-declarations-down node in))
 
@@ -124,6 +129,35 @@
         (symbol-table node (empty-map))
         (symbol-table (attrs-root *attrs*) (empty-map)))))
 
+(defun group-by-namespace (declarations namespaces)
+  (let ((table (make-hash-table)))
+    (mapc (op (push _ (gethash _ table))) declarations namespaces)
+    (hash-table-alist table)))
+
+(defun convert-grouped-namespaces (grouped-namespaces
+                                   &key (source-text-fun #'source-text))
+  "Convert grouped-namespaces into a grouping of
+(namespace . source-text/declaration-map)."
+  (labels ((create-source-text-map (declarations)
+             (mapcar (op (list (funcall source-text-fun _1) _1))
+                     declarations)))
+    (mapcar
+     (lambda (grouping)
+       (cons (car grouping)
+             (convert 'fset:map (create-source-text-map (cdr grouping)))))
+     grouped-namespaces)))
+
+(defmethod outer-defs ((node c/cpp-ast))
+  (mvlet ((declarations namespaces (outer-declarations node)))
+    (convert 'fset:map
+             (convert-grouped-namespaces
+              (group-by-namespace declarations namespaces)))))
+
+(defmethod inner-defs ((node c/cpp-ast))
+  (mvlet ((declarations namespaces (inner-declarations node)))
+    (convert 'fset:map
+             (convert-grouped-namespaces
+              (group-by-namespace declarations namespaces)))))
 
 
 ;;; Generics and Transformations
@@ -154,35 +188,59 @@
 (defmethod no-fallthrough ((ast c/cpp-break-statement)) t)
 
 (defmethod inner-declarations ((ast c/cpp-function-declarator))
-  (remove-if-not {typep _ 'c/cpp-parameter-declaration}
-                 (convert 'list (c/cpp-parameters ast))))
+  (let ((declarations
+          (remove-if-not {typep _ 'c/cpp-parameter-declaration}
+                         (convert 'list (c/cpp-parameters ast)))))
+    (values declarations
+            (repeat-sequence '(:variable) (length declarations)))))
 
 (defmethod outer-declarations ((ast c/cpp-declaration))
-  (flatten
-   (iter (for d in (c/cpp-declarator ast))
-     (collect
-      (match d
-        ((type c/cpp-identifier) d)
-        ((type (or c/cpp-array-declarator c/cpp-pointer-declarator))
-         (outer-declarations d))
-        ((c/cpp-init-declarator
-          (c/cpp-declarator
-           (cpp-reference-declarator
-            (direct-children (list r)))))
-         r)
-        ((c/cpp-init-declarator
-          (c/cpp-declarator
-           (c/cpp-pointer-declarator
-            (c/cpp-declarator d))))
-         d)
-           ;; Special handling for uninitialized variables.
-        (otherwise (c/cpp-declarator d)))))))
+  (labels ((get-declarations (d)
+             (match d
+               ((type c/cpp-identifier)
+                (values (list d) '(:variable)))
+               ((type (or c/cpp-array-declarator c/cpp-pointer-declarator
+                          c/cpp-function-declarator))
+                (outer-declarations d))
+               ((c/cpp-init-declarator
+                 (c/cpp-declarator
+                  (cpp-reference-declarator
+                   (direct-children (list r)))))
+                (values (list r) '(:variable)))
+               ((c/cpp-init-declarator
+                 (c/cpp-declarator
+                  (c/cpp-pointer-declarator
+                   (c/cpp-declarator d))))
+                (values (list d) '(:variable)))
+               ;; Special handling for uninitialized variables.
+               (otherwise
+                (values (list (c/cpp-declarator d)) '(:variable))))))
+    (iter
+      (for d in (c/cpp-declarator ast))
+      (mvlet ((declarations namespaces (get-declarations d)))
+        (appending declarations into declarations-accumulator)
+        (appending namespaces into namespaces-accumulator))
+      (finally (return (values declarations-accumulator
+                               namespaces-accumulator))))))
+
+(defun outer-declarations-merge (merged ast)
+  (mvlet ((declarations namespaces (outer-declarations ast)))
+    (list (append declarations (car merged))
+          (append namespaces (cadr merged)))))
 
 (defmethod inner-declarations ((ast c/cpp-compound-statement))
-  (mappend #'outer-declarations (children ast)))
+  (let ((declarations-values-list
+          (reduce #'outer-declarations-merge (children ast)
+                  :initial-value nil)))
+    (values (car declarations-values-list)
+            (cadr declarations-values-list))))
 
 (defmethod inner-declarations ((ast cpp-declaration-list))
-  (mappend #'outer-declarations (children ast)))
+  (let ((declarations-values-list
+          (reduce #'outer-declarations-merge (children ast)
+                  :initial-value nil)))
+    (values (car declarations-values-list)
+            (cadr declarations-values-list))))
 
 (defun get-nested-declaration (ast)
   "Get the declaration nested in AST. This is useful for array and
@@ -193,13 +251,16 @@ pointer declarations which are nested on themselves."
         (outer-declarations declarator))))
 
 (defmethod outer-declarations ((ast c/cpp-array-declarator))
-  (get-nested-declaration ast))
+  (values (get-nested-declaration ast)
+          '(:variable)))
 
 (defmethod outer-declarations ((ast c/cpp-pointer-declarator))
-  (get-nested-declaration ast))
+  (values (get-nested-declaration ast)
+          '(:variable)))
 
 (defmethod outer-declarations ((ast c/cpp-struct-specifier))
-  (list (c/cpp-name ast)))
+  (values (list (c/cpp-name ast))
+          '(:type)))
 
 (defmethod outer-declarations ((ast c/cpp-enum-specifier))
   (match ast
@@ -208,13 +269,20 @@ pointer declarations which are nested on themselves."
       (c/cpp-body
        (c/cpp-enumerator-list
         (direct-children enumerators))))
-     (let ((enumerator-names (mapcar #'c/cpp-name enumerators)))
+     (let* ((enumerator-names (mapcar #'c/cpp-name enumerators))
+            (length (length enumerator-names)))
        (if name
-           (cons name enumerator-names)
-           enumerator-names)))))
+           ;; TODO: this is likely incorrect for C.
+           (values (cons name enumerator-names)
+                   (cons :type #1=(repeat-sequence '(:variable) length)))
+           (values enumerator-names
+                   #1#))))))
 
 (defmethod outer-declarations ((ast c/cpp-function-declarator))
-  (list (c/cpp-declarator ast)))
+  ;; TODO: in regards to function overloading, may need to add a keyword argument
+  ;;       to the multi map union to support it.
+  (values (list (c/cpp-declarator ast))
+          '(:function)))
 
 (defmethod outer-declarations ((ast c/cpp-function-definition))
   (when-let ((function-declarator
@@ -223,13 +291,16 @@ pointer declarations which are nested on themselves."
               ;;       a function declarator.
               (find-if (of-type 'c/cpp-function-declarator)
                        (c/cpp-declarator ast))))
-    (outer-declarations function-declarator)))
+    (values (outer-declarations function-declarator)
+            '(:function))))
 
 (defmethod outer-declarations ((ast c/cpp-macro-forward-declaration))
-  (list (car (direct-children ast))))
+  (values (list (car (direct-children ast)))
+          '(:macro)))
 
 (defmethod outer-declarations ((ast c/cpp-type-forward-declaration))
-  (list (car (direct-children ast))))
+  (values (list (car (direct-children ast)))
+          '(:type)))
 
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
   (find-enclosing '(or definition-ast cpp-class-specifier

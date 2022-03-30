@@ -208,6 +208,11 @@ and add it to PROJECT."))
 
 ;;; Symbol Table
 
+(defmethod symbol-table-union ((root c/cpp-project) table-1 table-2 &key)
+  (multi-map-symbol-table-union
+   table-1 table-2
+   :allow-multiple (multi-declaration-keys root)))
+
 (defun find-symbol-table-from-include (project include-ast)
   (labels ((process-system-header (project path-ast)
              (if-let ((system-header

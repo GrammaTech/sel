@@ -1279,6 +1279,26 @@ different orders."
          (target-ast (find-if (of-type 'cpp-return-statement) root)))
     (with-attr-table root
       (is (equal? (symbol-table target-ast)
-                  (fset:map ("x" (list (stmt-with-text root "x")))
-                            ("a::y" (list (stmt-with-text root "y")))
-                            ("a::b::z" (list (stmt-with-text root "z")))))))))
+                  (convert
+                   'fset:map
+                   `((:variable
+                      .
+                      ,(fset:map
+                        ("x" (list (stmt-with-text root "x")))
+                        ("a::y" (list (stmt-with-text root "y")))
+                        ("a::b::z" (list (stmt-with-text root "z"))))))))))))
+
+(deftest cpp-symbol-table-2 ()
+  "Symbol-table contains all functions that are in scope."
+  (let* ((source "void x (int y) { } void x (float y) {  } return;")
+         (root (convert' cpp-ast source))
+         (target-ast (find-if (of-type 'cpp-return-statement) root)))
+    (with-attr-table root
+      (is (equal? (symbol-table target-ast)
+                  (convert
+                   'fset:map
+                   `((:function
+                      .
+                      ,(fset:map
+                        ("x" (collect-if (op (equal (source-text _) "x"))
+                                         root)))))))))))

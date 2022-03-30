@@ -253,10 +253,16 @@
 
 ;;; Symbol Table
 
-(defun get-symbol-map (software symbols)
-  (labels ((symbol-list (software symbol)
+(defun get-symbol-map (software symbol-alist)
+  (labels ((symbol-list (symbol)
              (list symbol (stmt-with-text (genome software) symbol))))
-    (convert 'fset:map (mapcar (op (symbol-list software _)) symbols))))
+    (convert 'fset:map
+             (mapcar
+              (lambda (pair)
+                (list* (car pair)
+                       (convert 'fset:map
+                                (mapcar #'symbol-list (cdr pair)))))
+              symbol-alist))))
 
 (deftest c-project-symbol-table-1 ()
   "Included files have their symbols imported into the symbol table of the
@@ -271,7 +277,8 @@ file including it."
                                              :test #'equal)))
                (is (equal? (symbol-table target-ast)
                            (get-symbol-map included-software
-                                           '("x" "function")))))))
+                                           '((:variable "x")
+                                             (:function "function"))))))))
     (with-fixture symbol-table-project
       (with-attr-table *project*
         (symbol-table *project* (empty-map))
@@ -280,7 +287,10 @@ file including it."
 (deftest c-project-symbol-table-2 ()
   "Included system files have their symbols imported into the symbol table of the
 file including it."
-  (labels ((test-main.c ()
+  (labels ((find-function (symbol-table name)
+             (lookup (lookup symbol-table :function)
+                     name))
+           (test-main.c ()
              "Test that a symbol from stdio.h is in the symbol table in main.c."
              (let* ((software (aget "main.c" (evolve-files *project*)
                                     :test #'equal))
@@ -290,9 +300,9 @@ file including it."
                     (system-header
                       (find-if (op (equal (header-name _) "stdio.h"))
                                (system-headers (genome *project*))))
-                    (target-symbol-table (symbol-table target-ast)))
-               (is (lookup target-symbol-table "printf"))
-               (is (find-if (op (eq (car (lookup target-symbol-table "printf"))
+                    (symbol-table (symbol-table target-ast)))
+               (is (find-function symbol-table "printf"))
+               (is (find-if (op (eq (car (find-function symbol-table "printf"))
                                     _))
                             system-header)))))
     (with-fixture symbol-table-project

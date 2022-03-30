@@ -286,10 +286,6 @@ field."
                      (genome obj)
                      scope)))))
 
-(defmethod outer-declarations ((ast c-function-declarator))
-  ;; Special handling for uninitialized variables.
-  (list (c-declarator ast)))
-
 ;;; TODO: add this for C++. It is likely more complicated with classes.
 (defmethod child-variable-use-p
     ((obj c/cpp) (child identifier-ast) (parent c-field-expression)

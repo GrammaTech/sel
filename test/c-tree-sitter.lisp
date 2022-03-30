@@ -909,11 +909,19 @@ the root AST."
     (with-attr-table root
       (symbol-table root (empty-map))
       (is (equal? (symbol-table second-declaration-ast)
-                  (fset:map ("a" (list (stmt-with-text root "a"))))))
+                  (convert 'fset:map
+                           `((:variable
+                              .
+                              ,(fset:map
+                                ("a" (list (stmt-with-text root "a")))))))))
       (is (equal? (symbol-table return-ast)
-                  (fset:map ("a" (list (stmt-with-text root "a")))
-                            ("b" (list (stmt-with-text root "b")))
-                            ("c" (list (stmt-with-text root "c")))))))))
+                  (convert 'fset:map
+                           `((:variable
+                              .
+                              ,(fset:map
+                                ("a" (list (stmt-with-text root "a")))
+                                ("b" (list (stmt-with-text root "b")))
+                                ("c" (list (stmt-with-text root "c"))))))))))))
 
 (deftest c-symbol-table-2 ()
   "The root symbol table contains all declarations that occur at the top level."
@@ -921,6 +929,10 @@ the root AST."
          (root (convert 'c-ast source)))
     (with-attr-table root
       (is (equal? (symbol-table root (empty-map))
-                  (fset:map ("a" (list (stmt-with-text root "a")))
-                            ("b" (list (stmt-with-text root "b")))
-                            ("c" (list (stmt-with-text root "c")))))))))
+                  (convert 'fset:map
+                           `((:variable
+                              .
+                              ,(fset:map
+                                ("a" (list (stmt-with-text root "a")))
+                                ("b" (list (stmt-with-text root "b")))
+                                ("c" (list (stmt-with-text root "c"))))))))))))

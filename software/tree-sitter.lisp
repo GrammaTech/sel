@@ -487,6 +487,7 @@
            :system-header-names
            :cpp-variadic-declaration
            :cpp-canonical-type
+           :+cpp-multi-declaration-keys+
            ;; C/Cpp
            :c/cpp-canonical-type
            :specifier
@@ -631,8 +632,12 @@
            :wildcard?
            :ellipsis-match
            ;; Attributes
-           :symbol-table
            :namespace
+           ;; Symbol Table
+           :symbol-table
+           :multi-map-symbol-table-union
+           :symbol-table-union
+           :multi-declaration-keys
            ;; template.lisp
            :ast-template
            :ast-template*
@@ -5938,8 +5943,9 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                  ,(make-class-name "ast"))
 
              (define-node-class ,(make-class-name "ast")
-                 (tree-sitter-ast ,@(mapcar [#'car #'ensure-list]
-                                            base-ast-superclasses))
+                 (,@(mapcar [#'car #'ensure-list]
+                            base-ast-superclasses)
+                  tree-sitter-ast)
                ;; NOTE: ensure there is always a children slot.
                ;;       This is important for classes that don't have
                ;;       it but can have comments mixed in.
@@ -6784,7 +6790,8 @@ argument destructuring (e.g. ECMAScript).")
 
 (defgeneric outer-declarations (ast)
   (:documentation
-   "Return a list of variable declarations affecting outer scopes.")
+   "Return a list of variable declarations affecting outer scopes. This can
+return more information as values depending on the language.")
   (:method ((ast ast)) nil)
   (:method :around (ast)
     ;; NOTE: this is to work around ASTs which may not have the expected ASTs
@@ -9460,14 +9467,64 @@ Otherwise, return PARSE-TREE."
 
 
 ;;; Symbol Table
-(defun propagate-declarations-down (ast in)
+
+
+(defgeneric multi-declaration-keys (root)
+  (:documentation "MULTI-DECLARATION-KEYS returns a list of keys which should not
+ choose one value over another when there is a conflict between two keys in a
+symbol table while merging; instead, it merges the two values together. For
+example,'(:function) may be passed for C++ tables to indicate that functions
+can be overloaded and all declarations should be kept for resolution at a later
+time. It will produce something similar to the following:
+'((:function ((x ast-1 ast-4) (y ast-2 ast-3)))).")
+  (:method (root) nil))
+
+(defun multi-map-symbol-table-union
+    (shadowable-table shadowing-table &key allow-multiple
+     &aux (keys (fset:union (domain shadowable-table)
+                            (domain shadowing-table)))
+       map-list)
+  "Merge the maps in SHADOWABLE-TABLE and SHADOWING-TABLE. Each map is an fset
+map which maps a key to another fset map. For example,
+'((:function (('x ast-1) ('y ast-2)))).
+For each key, the associated map for each table is merged together. Note that
+SHADOWING-TABLE's values will shadow SHADOWABLE-TABLE's values when necessary.
+
+ALLOW-MULTIPLE is a list keys that allow multiple definitions and is documented
+by MULTI-DECLARATION-KEYS."
+  (labels ((merge-function (key allow-multiple)
+             (lambda (shadowable-value shadowing-value)
+               (if (member key allow-multiple)
+                   (append shadowing-value shadowable-value)
+                   shadowing-value))))
+    (do-set (key keys (convert 'fset:map map-list))
+      (let* ((shadowable-subtable (@ shadowable-table key))
+             (shadowing-subtable (@ shadowing-table key))
+             (merged-table (if (and shadowable-subtable shadowing-subtable)
+                               (map-union shadowable-subtable
+                                          shadowing-subtable
+                                          (merge-function
+                                           key
+                                           allow-multiple))
+                               (or shadowable-subtable
+                                   shadowing-subtable))))
+        (push (cons key merged-table) map-list)))))
+
+(defgeneric symbol-table-union (root symbol-table-1 symbol-table-2 &key)
+  (:documentation "Return the union of SYMBOL-TABLE-1 and SYMBOL-TABLE-2.")
+  (:method (root symbol-table-1 symbol-table-2 &key &allow-other-keys)
+    (map-union symbol-table-1 symbol-table-2)))
+
+(defun propagate-declarations-down
+    (ast in &aux (root (attrs-root *attrs*)))
   "Propagate the symbol table declarations own through AST's children."
   (reduce (lambda (in2 child)
-            (map-union
+            (symbol-table-union
+             root
              (symbol-table child in2)
              (outer-defs child)))
           (children ast)
-          :initial-value (map-union in (inner-defs ast))))
+          :initial-value (symbol-table-union root in (inner-defs ast))))
 
 (def-attr-fun symbol-table (in)
   "Compute the symbol table at this node."
@@ -9480,7 +9537,9 @@ Otherwise, return PARSE-TREE."
       ((scope-ast-p node)
        (propagate-declarations-down node in)
        in)
-      (t (mapc (op (symbol-table _ (map-union in (inner-defs node))))
+      (t (mapc (op (symbol-table _ (symbol-table-union (attrs-root *attrs*)
+                                                       in
+                                                       (inner-defs node))))
                (children node))
          in))))
 

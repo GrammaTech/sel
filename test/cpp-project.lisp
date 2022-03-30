@@ -130,7 +130,9 @@
 (deftest cpp-project-symbol-table-1 ()
   "Included system files have their namespace qualified symbols imported into the
 symbol table of the file including it."
-  (labels ((test-main.cc ()
+  (labels ((lookup-variable (symbol-table name)
+             (lookup (lookup symbol-table :variable) name))
+           (test-main.cc ()
              "Test that a symbol from stdio.h is in the symbol table in main.c."
              (let* ((software (aget "main.cc" (evolve-files *project*)
                                     :test #'equal))
@@ -140,9 +142,9 @@ symbol table of the file including it."
                       (find-if (op (equal (header-name _) "iostream"))
                                (system-headers (genome *project*))))
                     (target-symbol-table (symbol-table target-ast)))
-               (is (lookup target-symbol-table "std::cout"))
-               (is (find-if (op (eq (car (lookup target-symbol-table
-                                                 "std::cout"))
+               (is (lookup-variable target-symbol-table "std::cout"))
+               (is (find-if (op (eq (car (lookup-variable target-symbol-table
+                                                          "std::cout"))
                                     _))
                             system-header)))))
     (with-fixture cpp-symbol-table-project
