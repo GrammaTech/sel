@@ -615,9 +615,9 @@ iterator from a call on a dereferenced element."
         :test #'source-text=))
 
 (deftest test-assignments ()
-  (with-fixture trim-front
+  (with-fixture/attrs trim-front
     (with-analysis-cache ()
-      (flet ((assigned (var) (assignments *soft* var)))
+      (flet ((assigned (var) (assignments var)))
         (is (not (assigned (find-soft-var "dist"))))
         (is (assigned (find-soft-var "p1")))
         (is (assigned (find-soft-var "p2")))
