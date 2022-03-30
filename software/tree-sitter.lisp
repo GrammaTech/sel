@@ -7337,20 +7337,38 @@ more than one thing (destructuring).")
     (when-let (assignee (assignee ast))
       (list assignee))))
 
-(define-generic-analysis assignments (software ast)
-  (:documentation "Return a list of ASTs in SOFTWARE that assign to TARGET.
-TARGET should be the actual declaration ID (from `get-declaration-id'.")
-  (:method ((sw software) (target identifier-ast))
-    (iter (for ast in-tree (genome sw))
-          (unless (ancestor-of-p sw target ast)
-            (when (some (lambda (assignee)
-                          (member target
-                                  (identifiers assignee)
-                                  :key (op (get-declaration-id 'variable sw _))))
-                        (assignees ast))
-              (collect ast)))))
-  (:method ((sw software) (target ast))
-    (assignments sw (get-declaration-id 'variable sw target))))
+(def-attr-fun assignees-table ()
+  "Build a lookup table from assignees to their assigners."
+  ;; This is a "synthesized attribute", built from the bottom-up.
+  (:method ((software parseable))
+    (assignees-table (genome software)))
+  (:method ((assigner assignment-ast))
+    (reduce (lambda (map assignee)
+              (with map assignee (cons assigner (lookup map assignee))))
+            (mappend (lambda (assignee)
+                       (filter-map (op (get-declaration-id
+                                        'variable
+                                        (attr-root*) _))
+                                   (identifiers assignee)))
+                     (assignees assigner))
+            :initial-value (call-next-method)))
+  (:method ((ast ast))
+    (reduce #'map-union
+            (mapcar #'assignees-table (children ast))
+            :initial-value (empty-map))))
+
+(defmethod attr-missing ((attr (eql 'assignees-table)) node)
+  (assignees-table (attr-root*)))
+
+(def-attr-fun assignments ()
+  "Return a list of ASTs that assign to TARGET.
+TARGET should be the actual declaration ID (from `get-declaration-id'.)"
+  (:method ((target identifier-ast))
+    (values
+     (lookup (assignees-table (attr-root*))
+             (get-declaration-id 'variable (attr-root*) target))))
+  (:method ((target t))
+    nil))
 
 (define-generic-analysis collect-arg-uses (software ast &optional alias)
   (:documentation "Collect function calls in SOFTWARE with TARGET as an argument.
@@ -9670,8 +9688,7 @@ by MULTI-DECLARATION-KEYS."
     (namespace (genome software) in)
     in))
 
-(defmethod attr-missing ((fn-name (eql 'namespace)) node
-                         &aux (attrs-root (attrs-root *attrs*)))
+(defmethod attr-missing ((fn-name (eql 'namespace)) node &aux (attr-root*))
   (if-let ((root (find-if (of-type 'root-ast)
                           (get-parent-asts attrs-root node))))
     (namespace root "")
