@@ -115,11 +115,6 @@
   (:teardown
    (setf *soft* nil)))
 
-(defmacro with-fixture/attrs (fixture &body body)
-  `(with-fixture ,fixture
-     (with-attr-table-for *soft*
-       ,@body)))
-
 (defmacro with-scopes-file ((filename software-var genome-var)
                             &body body)
   `(let* ((,software-var (from-file

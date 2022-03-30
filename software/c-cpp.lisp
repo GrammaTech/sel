@@ -605,6 +605,14 @@ it to be placed in the corresponding AST slot."
 determined by looking at PARENT.")
   (:method (obj child parent &key &allow-other-keys) nil))
 
+(defmethod relevant-declaration-type ((node c/cpp-field-expression)
+                                      &optional type)
+  ;; E.g. if TYPE is function-declaration-ast, that's true of the
+  ;; field, but the argument is still a variable.
+  (relevant-declaration-type (cpp-field node) type)
+  (relevant-declaration-type (cpp-argument node) 'variable-declaration-ast)
+  type)
+
 ;;; TODO: variable-use-p isn't fleshed out completely for C++.
 (defmethod variable-use-p ((obj c/cpp) identifier &key &allow-other-keys)
   nil)

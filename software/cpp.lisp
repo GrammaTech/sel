@@ -979,20 +979,21 @@ iterator we want the type of the container's elements."
                     (lookup-qualified-declaration qname method))
                    ((and type (identifier-ast))
                     (lookup-in-std-headers nil type)))))))
-    (let ((decl (call-next-method)))
-      (cond ((typep decl
-                    ;; TODO No distinguished class for a field
-                    ;; declaration with a function declarator.
-                    '(or function-declaration-ast
-                      cpp-field-declaration))
-             decl)
-            ((not (eql 'function-declaration-ast
-                       (relevant-declaration-type obj ast)))
-             decl)
-            ((typep ast 'identifier-ast)
-             (lookup-qualified-name ast))
-            ((typep ast 'cpp-field-expression)
-             (lookup-field-method-declaration ast))))))
+    (with-attr-table-for obj
+      (let ((decl (call-next-method)))
+        (cond ((typep decl
+                      ;; TODO No distinguished class for a field
+                      ;; declaration with a function declarator.
+                      '(or function-declaration-ast
+                        cpp-field-declaration))
+               decl)
+              ((not (eql 'function-declaration-ast
+                         (relevant-declaration-type ast)))
+               decl)
+              ((typep ast 'identifier-ast)
+               (lookup-qualified-name ast))
+              ((typep ast 'cpp-field-expression)
+               (lookup-field-method-declaration ast)))))))
 
 (defmethod initializer-aliasee ((sw cpp)
                                 (lhs cpp-reference-declarator)

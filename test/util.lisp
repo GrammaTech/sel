@@ -63,7 +63,8 @@
            :gcd-elf
            :test-ast-source-ranges-for-files
            :test-single-ast-source-ranges
-           :expand-wildcard))
+           :expand-wildcard
+           :with-fixture/attrs))
 (in-package :software-evolution-library/test/util)
 (in-readtable :curry-compose-reader-macros)
 
@@ -187,10 +188,17 @@
                            path))
 
 
+;;; Helper macros.
+(defmacro with-fixture/attrs (fixture &body body)
+  `(with-fixture ,fixture
+     (with-attr-table-for *soft*
+       ,@body)))
+
+
 ;;;; Helper functions.
 (defun c-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::c))
-                (error (e) (declare (ignorable e)) nil)))
+    (error (e) (declare (ignorable e)) nil)))
 
 (defun cpp-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::cpp))
