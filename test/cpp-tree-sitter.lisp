@@ -386,7 +386,8 @@ y = 2;")))
                                    (and (typep ast 'identifier-ast)
                                         (equal (source-text ast) "y")))
                                  (genome sw)))))
-    (is (equal "y = 2" (source-text (get-initialization-ast sw y))))))
+    (with-attr-table-for sw
+      (is (equal "y = 2" (source-text (get-initialization-ast y)))))))
 
 (deftest test-reference-pointer-expression-aliasee ()
   "Test that we get the aliasee for a reference initialized with a
@@ -422,10 +423,11 @@ dereferenced pointer."
                         (genome sw)))
            (alias (find-if (op (equal (source-text _) alias-name))
                            (genome sw))))
-      (is (typep alias 'identifier-ast))
-      (finishes
-       (get-initialization-ast sw alias))
-      (is (eql pl (aliasee sw alias))))))
+      (with-attr-table-for sw
+        (is (typep alias 'identifier-ast))
+        (finishes
+         (get-initialization-ast alias))
+        (is (eql pl (aliasee sw alias)))))))
 
 (deftest test-reference-aliasee ()
   (test-aliasee-is-plain-var "r"))
@@ -444,9 +446,11 @@ dereferenced pointer."
     (let* ((sw (from-string 'cpp +alias-fragment+))
            (pl (find-if (op (equal (source-text _) "pl"))
                         (genome sw))))
-      (is (typep pl 'identifier-ast))
-      (get-initialization-ast sw pl)
-      (is (length= 4 (alias-set sw pl))))))
+      (with-attr-table-for sw
+        (is (typep pl 'identifier-ast))
+        (is (typep (get-initialization-ast pl)
+                   'cpp-init-declarator))
+        (is (length= 4 (alias-set sw pl)))))))
 
 (deftest test-infer-auto-type-from-function ()
   (let* ((sw (from-string 'cpp (fmt "~

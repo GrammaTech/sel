@@ -356,8 +356,8 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-id ((type t) (obj c/cpp) (ast c/cpp-pointer-expression))
   (get-declaration-id type obj (c/cpp-argument ast)))
 
-(defmethod get-initialization-ast ((obj c/cpp) (ast c/cpp-pointer-expression))
-  (get-initialization-ast obj (c/cpp-argument ast)))
+(defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
+  (get-initialization-ast (c/cpp-argument ast)))
 
 (defmethod get-declaration-ast ((type t) (obj c/cpp) (ast c/cpp-pointer-expression))
   (get-declaration-ast type obj (c/cpp-argument ast)))
@@ -456,7 +456,7 @@ pointer declarations which are nested on themselves."
                             (and (typep ast2 'identifier-ast)
                                  (equal (source-text ast2) id-text)))))))))
 
-(defmethod get-initialization-ast ((obj cpp) (ast ast))
+(defmethod get-initialization-ast ((ast cpp-ast) &aux (obj (attr-root*)))
   "Find the assignment for an unitialized variable."
   (or (call-next-method)
       (when-let* ((id (get-declaration-id 'variable obj ast))
@@ -669,7 +669,7 @@ Should return `:failure' in the base case.")
           (call-next-method)))))
 
 (defmethod aliasee ((sw c/cpp) (id identifier-ast))
-  (ematch (get-initialization-ast sw id)
+  (ematch (get-initialization-ast id)
     ((c/cpp-init-declarator (lhs lhs) (rhs rhs))
      (let ((result (initializer-aliasee sw lhs rhs)))
        (if (eql result :failure)
