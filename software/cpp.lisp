@@ -1022,6 +1022,12 @@ iterator we want the type of the container's elements."
             (children ast))
     in))
 
+(defmethod namespace ((ast cpp-qualified-identifier) &optional in)
+  "No scope (e.g. `::x`) means the global scope."
+  (declare (ignore in))
+  (if (null (cpp-scope ast)) ""
+      (call-next-method)))
+
 
 ;;; Symbol Table
 
