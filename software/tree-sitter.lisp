@@ -7904,7 +7904,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 (defun evolution-candidate-ast-p (ast)
   "Returns true iff the ast is one which we will select for mutations."
-  (not (or (typep ast 'inner-whitespace) (typep ast 'comment-ast))))
+  (typep ast '(not (or inner-whitespace comment-ast root-ast))))
 
 (defun evolution-candidate-asts (software
                                  &key (filter

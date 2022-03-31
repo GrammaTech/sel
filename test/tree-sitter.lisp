@@ -18,7 +18,8 @@
                 :position-after-leading-newline
                 :inner-parent
                 :surrounding-text-transform
-                :preserve-properties))
+                :preserve-properties
+                :evolution-candidate-ast-p))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -318,3 +319,13 @@ indentation slots in :before and :after groupings."
       (iter
         (for (key . value) in outer-value)
         (is (equal value (aget key outer-expected-value)))))))
+
+
+;;; Mutation target selection
+(deftest tree-sitter-evolution-candidate-ast-p ()
+  (is (nest (equal 6)
+            (length)
+            (remove-if-not #'evolution-candidate-ast-p)
+            (convert 'list)
+            (genome)
+            (from-string (make-instance 'c) "void foo() { /* comment */ }"))))
