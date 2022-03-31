@@ -158,8 +158,7 @@ int main () {
     int f () {
       return ::x;
     }
-  }
-}"))
+  }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (string*= "x = 1" (source-text (get-declaration-ast
                                         'variable
