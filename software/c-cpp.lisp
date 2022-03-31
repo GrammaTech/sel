@@ -456,7 +456,7 @@ pointer declarations which are nested on themselves."
                             (and (typep ast2 'identifier-ast)
                                  (equal (source-text ast2) id-text)))))))))
 
-(defmethod get-initialization-ast ((ast cpp-ast) &aux (obj (attr-root*)))
+(defmethod get-initialization-ast ((ast cpp-ast) &aux (obj (attrs-root*)))
   "Find the assignment for an unitialized variable."
   (or (call-next-method)
       (when-let* ((id (get-declaration-id 'variable obj ast))
@@ -678,7 +678,7 @@ Should return `:failure' in the base case.")
             aliasee
             (call-next-method))))))
 
-(defmethod aliasee ((id identifier-ast) &aux (sw (attr-root*)))
+(defmethod aliasee ((id identifier-ast) &aux (sw (attrs-root*)))
   (ematch (get-initialization-ast id)
     ((c/cpp-init-declarator (lhs lhs) (rhs rhs))
      (let ((result (initializer-aliasee sw lhs rhs)))
