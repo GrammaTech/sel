@@ -1009,6 +1009,7 @@ iterator we want the type of the container's elements."
                       &optional in
                       &aux (name (cpp-name ast)))
   (labels ((get-namespace (ast)
+             (declare (ignore ast))
              ;; NOTE: tree-sitter-cpp doesn't currently handle
              ;;       inline namespaces
              ;; TODO: look at implicit namespaces and incorporate or factor
