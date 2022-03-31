@@ -413,19 +413,18 @@ y = 2;")))
 (deftest test-reference-pointer-expression-aliasee ()
   "Test that we get the aliasee for a reference initialized with a
 dereferenced pointer."
-  (with-analysis-cache ()
-    (with-fixture trim-front
-      (let* ((sw *soft*)
-             (next-point
-              (find-if (op (equal (source-text _) "next_point"))
-                       (genome sw))))
-        (with-attr-table-for sw
-          (is (typep next-point 'identifier-ast))
-          (let ((aliasee (aliasee next-point)))
-            (is (typep aliasee 'identifier-ast))
-            (is (string= "p2" (source-text aliasee)))
-            (let ((alias-set (alias-set aliasee)))
-              (is (member next-point alias-set)))))))))
+  (with-fixture/attrs trim-front
+    (let* ((sw *soft*)
+           (next-point
+            (find-if (op (equal (source-text _) "next_point"))
+                     (genome sw))))
+      (with-attr-table-for sw
+        (is (typep next-point 'identifier-ast))
+        (let ((aliasee (aliasee next-point)))
+          (is (typep aliasee 'identifier-ast))
+          (is (string= "p2" (source-text aliasee)))
+          (let ((alias-set (alias-set aliasee)))
+            (is (member next-point alias-set))))))))
 
 (def +alias-fragment+
   (fmt "~
@@ -439,17 +438,16 @@ dereferenced pointer."
 }"))
 
 (defun test-aliasee-is-plain-var (alias-name)
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp +alias-fragment+))
-           (pl (find-if (op (equal (source-text _) "pl"))
-                        (genome sw)))
-           (alias (find-if (op (equal (source-text _) alias-name))
-                           (genome sw))))
-      (with-attr-table-for sw
-        (is (typep alias 'identifier-ast))
-        (finishes
-         (get-initialization-ast alias))
-        (is (eql pl (aliasee alias)))))))
+  (let* ((sw (from-string 'cpp +alias-fragment+))
+         (pl (find-if (op (equal (source-text _) "pl"))
+                      (genome sw)))
+         (alias (find-if (op (equal (source-text _) alias-name))
+                         (genome sw))))
+    (with-attr-table-for sw
+      (is (typep alias 'identifier-ast))
+      (finishes
+       (get-initialization-ast alias))
+      (is (eql pl (aliasee alias))))))
 
 (deftest test-reference-aliasee ()
   (test-aliasee-is-plain-var "r"))
@@ -464,15 +462,14 @@ dereferenced pointer."
   (test-aliasee-is-plain-var "q"))
 
 (deftest test-alias-set ()
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp +alias-fragment+))
-           (pl (find-if (op (equal (source-text _) "pl"))
-                        (genome sw))))
-      (with-attr-table-for sw
-        (is (typep pl 'identifier-ast))
-        (is (typep (get-initialization-ast pl)
-                   'cpp-init-declarator))
-        (is (length= 4 (alias-set pl)))))))
+  (let* ((sw (from-string 'cpp +alias-fragment+))
+         (pl (find-if (op (equal (source-text _) "pl"))
+                      (genome sw))))
+    (with-attr-table-for sw
+      (is (typep pl 'identifier-ast))
+      (is (typep (get-initialization-ast pl)
+                 'cpp-init-declarator))
+      (is (length= 4 (alias-set pl))))))
 
 (deftest test-infer-auto-type-from-function ()
   (let* ((sw (from-string 'cpp (fmt "~
@@ -487,8 +484,7 @@ auto z = myfun(1, 2);")))
     (is (source-text= "int" (infer-type sw z)))))
 
 (deftest test-struct-in-scope ()
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp (fmt "~
+  (let* ((sw (from-string 'cpp (fmt "~
 struct whatsit {};
 
 whatsit myfun() {
@@ -496,21 +492,20 @@ whatsit myfun() {
 }
 
 auto x = myfun();")))
-           (scopes (all-scopes sw))
-           (x (find "x" (identifiers (genome sw)) :test #'source-text=))
-           (struct (get-declaration-ast t sw (infer-type sw x))))
-      ;; We get the struct as a scope.
-      (is (find "whatsit" scopes :test #'equal :key (op (aget :name _))))
-      (is (typep x 'identifier-ast))
-      ;; We infer the type of `x' from the type of `myfun'.
-      (is (source-text= "whatsit" (infer-type sw x)))
-      ;; We get the declaration of `whatsit'.
-      (is (typep struct 'cpp-struct-specifier))
-      (is (source-text= (definition-name struct) "whatsit")))))
+         (scopes (all-scopes sw))
+         (x (find "x" (identifiers (genome sw)) :test #'source-text=))
+         (struct (get-declaration-ast t sw (infer-type sw x))))
+    ;; We get the struct as a scope.
+    (is (find "whatsit" scopes :test #'equal :key (op (aget :name _))))
+    (is (typep x 'identifier-ast))
+    ;; We infer the type of `x' from the type of `myfun'.
+    (is (source-text= "whatsit" (infer-type sw x)))
+    ;; We get the declaration of `whatsit'.
+    (is (typep struct 'cpp-struct-specifier))
+    (is (source-text= (definition-name struct) "whatsit"))))
 
 (deftest test-resolve-method-call-to-field-decl ()
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp (fmt "~
+  (let* ((sw (from-string 'cpp (fmt "~
 struct Point {
   double x,y;
   double Distance(const Point&), other_function();
@@ -521,25 +516,25 @@ auto p1 = new Point{0.0, 0.0};
 auto p2 = new Point{0.0, 1.0};
 
 auto d = p1->Distance(p2);")))
-           (call (find-if (of-type 'call-ast) (genome sw)))
-           (field-expr (call-function call))
-           (field-decl (get-declaration-ast 'function sw field-expr)))
-      ;; We get the type of `p1' (`Point').
-      (is (source-text= "Point"
-                        (infer-type sw (get-declaration-ast
-                                        'variable
-                                        sw field-expr))))
-      ;; We get the declaration of the `Point' type.
-      #+(or) (is (get-declaration-ast 'type sw
-                                      (infer-type sw (get-declaration-id
-                                                      'variable sw field-expr))))
-      ;; We get the declaration of the `Distance' field in `Point'.
-      #+(or) (is (typep field-decl 'cpp-field-declaration))
-      #+(or) (is (member "Distance" (field-names field-decl)
-                         :test #'source-text=))
-      ;; Finally we infer the type of the call.
-      ;; (is (source-text= "double" (infer-type sw call)))
-      )))
+         (call (find-if (of-type 'call-ast) (genome sw)))
+         (field-expr (call-function call))
+         (field-decl (get-declaration-ast 'function sw field-expr)))
+    ;; We get the type of `p1' (`Point').
+    (is (source-text= "Point"
+                      (infer-type sw (get-declaration-ast
+                                      'variable
+                                      sw field-expr))))
+    ;; We get the declaration of the `Point' type.
+    #+(or) (is (get-declaration-ast 'type sw
+                                    (infer-type sw (get-declaration-id
+                                                    'variable sw field-expr))))
+    ;; We get the declaration of the `Distance' field in `Point'.
+    #+(or) (is (typep field-decl 'cpp-field-declaration))
+    #+(or) (is (member "Distance" (field-names field-decl)
+                       :test #'source-text=))
+    ;; Finally we infer the type of the call.
+    ;; (is (source-text= "double" (infer-type sw call)))
+    ))
 
 (def +iterator-container-type-sw+
   (fmt "~
@@ -563,51 +558,48 @@ double myfun(std::list<Point>& pts) {
   "Test that we correctly infer the type of a field expression call
 both when it uses a dot (not a dereference) and when it dereferences
 with an arrow, even when the infererence passes through both."
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
-           (calls (collect-if (of-type 'call-ast) (genome sw))))
-      (is (length= 2 calls))
-      (destructuring-bind (call1 call2) calls
-        (is (source-text= call1 "pts.begin()"))
-        (is (source-text= call2 "p1->Distance(p2)"))
-        (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
-        (is (source-text= (infer-type sw call2) "double"))))))
+  (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
+         (calls (collect-if (of-type 'call-ast) (genome sw))))
+    (is (length= 2 calls))
+    (destructuring-bind (call1 call2) calls
+      (is (source-text= call1 "pts.begin()"))
+      (is (source-text= call2 "p1->Distance(p2)"))
+      (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
+      (is (source-text= (infer-type sw call2) "double")))))
 
 (deftest test-resolve-iterator-container-type ()
   "Test that we can resolve the type of the elements of the container
 of a std iterator."
-  (with-analysis-cache ()
-    (let ((sw (from-string 'cpp +iterator-container-type-sw+)))
-      (flet ((get-decl (name)
-               (get-declaration-id
-                'variable
-                sw
-                (find-if (op (source-text= name _)) sw))))
-        (is (source-text= "Point" (infer-type sw (get-decl "po"))))
-        (is (source-text= "std::list<Point>" (infer-type sw (get-decl "pts"))))
-        (is (source-text= "double" (infer-type sw (get-decl "d"))))
-        (is (string*= "iterator"
-                      (source-text
-                       (infer-type sw (get-decl "p1")))))))))
+  (let ((sw (from-string 'cpp +iterator-container-type-sw+)))
+    (flet ((get-decl (name)
+             (get-declaration-id
+              'variable
+              sw
+              (find-if (op (source-text= name _)) sw))))
+      (is (source-text= "Point" (infer-type sw (get-decl "po"))))
+      (is (source-text= "std::list<Point>" (infer-type sw (get-decl "pts"))))
+      (is (source-text= "double" (infer-type sw (get-decl "d"))))
+      (is (string*= "iterator"
+                    (source-text
+                     (infer-type sw (get-decl "p1"))))))))
 
 (deftest test-resolve-method-call-to-iterator-container-type ()
   "Test that can infer the type of the elements of a container of an
 iterator from a call on a dereferenced element."
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
-           (call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
-           (field-expr (call-function call))
-           (field-decl (is (get-declaration-ast 'function sw field-expr))))
-      ;; We get the type of `p1' (`Point') in `p1->Distance(p2)'.
-      (is (source-text= "Point" (infer-type sw field-expr)))
-      ;; We get the declaration of the `Point' type.
-      (is (get-declaration-ast 'type sw (infer-type sw field-expr)))
-      ;; We get the declaration of the `Distance' field in `Point'.
-      (is (typep field-decl 'cpp-field-declaration))
-      (is (member "Distance" (field-names field-decl)
-                  :test #'source-text=))
-      ;; Finally we infer the type of the call.
-      (is (source-text= "double" (infer-type sw call))))))
+  (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
+         (call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
+         (field-expr (call-function call))
+         (field-decl (is (get-declaration-ast 'function sw field-expr))))
+    ;; We get the type of `p1' (`Point') in `p1->Distance(p2)'.
+    (is (source-text= "Point" (infer-type sw field-expr)))
+    ;; We get the declaration of the `Point' type.
+    (is (get-declaration-ast 'type sw (infer-type sw field-expr)))
+    ;; We get the declaration of the `Distance' field in `Point'.
+    (is (typep field-decl 'cpp-field-declaration))
+    (is (member "Distance" (field-names field-decl)
+                :test #'source-text=))
+    ;; Finally we infer the type of the call.
+    (is (source-text= "double" (infer-type sw call)))))
 
 (defun find-soft-var (name)
   (find name (identifiers (genome *soft*))
@@ -615,29 +607,27 @@ iterator from a call on a dereferenced element."
 
 (deftest test-assignments ()
   (with-fixture/attrs trim-front
-    (with-analysis-cache ()
-      (flet ((assigned (var) (assignments var)))
-        (is (not (assigned (find-soft-var "dist"))))
-        (is (assigned (find-soft-var "p1")))
-        (is (assigned (find-soft-var "p2")))
-        (is (not (assigned (find-soft-var "result"))))
-        (is (assigned (find-soft-var "d")))
-        (is (not (assigned (find-soft-var "next_point"))))
-        (is (not (assigned (find-soft-var "segdist"))))
-        (is (not (assigned (find-soft-var "frac"))))
-        (is (not (assigned (find-soft-var "midpoint"))))))))
+    (flet ((assigned (var) (assignments var)))
+      (is (not (assigned (find-soft-var "dist"))))
+      (is (assigned (find-soft-var "p1")))
+      (is (assigned (find-soft-var "p2")))
+      (is (not (assigned (find-soft-var "result"))))
+      (is (assigned (find-soft-var "d")))
+      (is (not (assigned (find-soft-var "next_point"))))
+      (is (not (assigned (find-soft-var "segdist"))))
+      (is (not (assigned (find-soft-var "frac"))))
+      (is (not (assigned (find-soft-var "midpoint")))))))
 
 (deftest test-collect-arg-uses ()
   (with-fixture trim-front
-    (with-analysis-cache ()
-      (is (length= 2 (collect-arg-uses *soft* (find-soft-var "next_point"))))
-      (is (length= 0 (collect-arg-uses *soft* (find-soft-var "p2"))))
-      (is (length= 2 (collect-arg-uses *soft*
-                                       (find-soft-var "p2")
-                                       t)))
-      ;; This last one is really a caching test.
-      (is (length= 0 (collect-arg-uses *soft*
-                                       (find-soft-var "p2")))))))
+    (is (length= 2 (collect-arg-uses *soft* (find-soft-var "next_point"))))
+    (is (length= 0 (collect-arg-uses *soft* (find-soft-var "p2"))))
+    (is (length= 2 (collect-arg-uses *soft*
+                                     (find-soft-var "p2")
+                                     t)))
+    ;; This last one is really a caching test.
+    (is (length= 0 (collect-arg-uses *soft*
+                                     (find-soft-var "p2"))))))
 
 (deftest test-infer-type-loop-terminates ()
   (with-fixture/attrs trim-front

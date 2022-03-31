@@ -50,10 +50,6 @@
            :parseable-replace
            :parseable-cut
            :parseable-nop
-           ;; Static analysis.
-           :with-analysis-cache
-           :make-analysis-cache
-           :define-generic-analysis
            ;; Generic functions.
            :roots
            :interleaved-text
@@ -644,96 +640,6 @@ optionally writing to STREAM.")
                    (cons ast accum)
                    accum))
              tree))))
-
-
-;;; Caching of static analyses.
-
-(defun make-prop-table ()
-  (tg:make-weak-hash-table
-   :weakness :key
-   :weakness-matters t
-   :test #'eq))
-
-(defvar *prop-table*
-  (make-prop-table))
-
-(defun clear-ast-properties ()
-  (clrhash *prop-table*))
-
-(defun ast-properties (ast)
-  (check-type ast ast)
-  (ensure-gethash ast *prop-table*
-                  (make-hash-table :test #'equal)))
-
-(defun prop-ref (ast &rest key)
-  (check-type ast ast)
-  (gethash key (ast-properties ast)))
-
-(defun (setf prop-ref) (value ast &rest key)
-  (check-type ast ast)
-  (setf (gethash key (ast-properties ast)) value))
-
-(defun call/ast-property (fn ast key)
-  (values-list
-   (multiple-value-bind (value value?) (prop-ref ast key)
-     (if value? value
-         (setf (prop-ref ast key)
-               (multiple-value-list (funcall fn)))))))
-
-(defmacro with-ast-property ((ast &rest props) &body body)
-  (with-thunk (body)
-    `(call/ast-property ,body ,ast (list ,@props))))
-
-(defun dump-ast-properties (&optional ast)
-  (if ast
-      (hash-table-alist (ast-properties ast))
-      (let ((alist (hash-table-alist *prop-table*)))
-        (mapcar (op (cons (car _1) (hash-table-alist (cdr _1))))
-                alist))))
-
-(defmacro with-analysis-cache ((&key (analysis-cache '(make-prop-table)))
-                               &body body)
-  "Invoke BODY with a local table for AST properties.
-
-AST properties in BODY are isolated from the global table of AST
-properties.
-
-If you want a persistent property table to use across multiple
-analyses, you can allocate one with `make-analysis-cache' and pass it
-as the symbol table argument to `with-analysis-cache':
-
-    (with-analysis-cache (:analysis-cache my-table)
-      ...)"
-  `(let ((*prop-table* (or ,analysis-cache (make-prop-table))))
-     ,@body))
-
-(defmacro define-generic-analysis (name lambda-list &body clauses)
-  "Define a generic analysis.
-This has the same syntax as `defgeneric', but within the dynamic
-extent of a `with-analysis-cache` form, the function will be
-implicitly memoized based on its required, &optional, and &rest (but
-not &key) parameters."
-  (when (assoc :method-combination clauses)
-    (error "Cannot specify a method combination for a generic analysis."))
-  (multiple-value-bind (req opt rest keys)
-      (parse-ordinary-lambda-list lambda-list)
-    (unless (subsetp '(software ast) req)
-      (error "~s must have arguments named SOFTWARE and AST."
-             name))
-    (unless req
-      (error "A generic analysis must have required arguments."))
-    `(defgeneric ,name ,lambda-list
-       (:method-combination standard/context)
-       (:method :context ,lambda-list
-         (declare (ignore ,@(mapcar #'cadar keys)))
-         (with-ast-property (ast ',name
-                                 ;; We don't include the software to
-                                 ;; avoid circularities.
-                                 ,@(remove-if (op (member _'(ast software))) req)
-                                 ,@(mapcar #'car opt)
-                                 ,@(ensure-list rest))
-           (call-next-method)))
-       ,@clauses)))
 
 
 ;;; parseable software objects
