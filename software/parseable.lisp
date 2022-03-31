@@ -872,7 +872,7 @@ tree that preserves how scopes are nested, use `scope-tree'.")
           (find-if predicate scope :key key))
         scopes))
 
-(define-generic-analysis get-vars-in-scope (software ast &optional keep-globals)
+(defgeneric get-vars-in-scope (software ast &optional keep-globals)
   (:documentation "Return all variables in enclosing scopes."))
 
 (defgeneric parse-asts (software &optional source-text)
