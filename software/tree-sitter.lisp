@@ -7324,7 +7324,7 @@ pointers into account in languages that support them.")
 (defgeneric assignees (ast)
   (:documentation "Get the ASTs that AST assigns to.
 
-This is like `assignee', but handles the cast of an AST assigning to
+This is like `assignee', but handles the case of an AST assigning to
 more than one thing (destructuring).")
   (:method ((ast t)) nil)
   (:method ((ast ast))
