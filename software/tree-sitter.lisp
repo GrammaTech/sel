@@ -7980,9 +7980,9 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 (defun pick-2-moveable (software)
   (iter (for i from 1 to *max-targeter-moveable-tries*)
-    (when-let ((pick (pick-2-replaceable software)))
+    (when-let ((pick (pick-2-swappable software)))
       ;; make sure the old can be cut
-      (if (check-ast-cut (genome software) (first pick))
+      (if (check-ast-cut (genome software) (second pick))
           (leave pick)))))
 
 (defun pick-1-cuttable (software)
