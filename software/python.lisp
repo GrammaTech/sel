@@ -110,13 +110,13 @@ are created if they're present in PARSE-TREE."
   (provided-by-attr (genome software)))
 
 (defmethod provided-by-attr ((ast python-identifier)
-                             &aux (root (attr-root*)))
+                             &aux (root (attrs-root*)))
   (if (member (source-text ast) (built-ins root) :test #'equal)
       "builtins"
       (car (find-if [{equal (source-text ast)} #'third] (imports root ast)))))
 
 (defmethod provided-by-attr ((ast python-attribute)
-                             &aux (root (attr-root*)))
+                             &aux (root (attrs-root*)))
   (labels ((top-attribute (root ast)
              "Return the last ancestor of AST which is an attribute AST."
              (let ((parent (get-parent-ast root ast)))

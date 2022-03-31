@@ -636,7 +636,7 @@
            :imports
            :with-attr-table-for
            :attr-table-for
-           :attr-root*
+           :attrs-root*
            ;; Symbol Table
            :symbol-table
            :multi-map-symbol-table-union
@@ -6965,7 +6965,7 @@ Every element in the list has the following form:
       *attrs*
       (ft/attrs::make-attrs :root root)))
 
-(defun attr-root* ()
+(defun attrs-root* ()
   (attrs-root *attrs*))
 
 (defmacro with-attr-table-for (root &body body)
@@ -7200,7 +7200,7 @@ meaningful declaration.)")
     type))
 
 (defmethod attr-missing ((name (eql 'relevant-declaration-type)) node)
-  (relevant-declaration-type (attr-root*) nil))
+  (relevant-declaration-type (attrs-root*) nil))
 
 (def-attr-fun get-initialization-ast ()
   "Find where AST is initialized.
@@ -7208,7 +7208,7 @@ meaningful declaration.)")
 This is useful when languages allow a single declaration to initialize
 more than one variable, and for languages that allow declaration and
 initialization to be separate."
-  (:method ((ast t) &aux (obj (attr-root*)))
+  (:method ((ast t) &aux (obj (attrs-root*)))
     (when-let (id (get-declaration-id 'variable obj ast))
       (find-enclosing 'variable-initialization-ast
                       obj
@@ -7342,7 +7342,7 @@ more than one thing (destructuring).")
             (mappend (lambda (assignee)
                        (filter-map (op (get-declaration-id
                                         'variable
-                                        (attr-root*) _))
+                                        (attrs-root*) _))
                                    (identifiers assignee)))
                      (assignees assigner))
             :initial-value (call-next-method)))
@@ -7352,15 +7352,15 @@ more than one thing (destructuring).")
             :initial-value (empty-map))))
 
 (defmethod attr-missing ((attr (eql 'assignees-table)) node)
-  (assignees-table (attr-root*)))
+  (assignees-table (attrs-root*)))
 
 (def-attr-fun assignments ()
   "Return a list of ASTs that assign to TARGET.
 TARGET should be the actual declaration ID (from `get-declaration-id'.)"
   (:method ((target identifier-ast))
     (values
-     (lookup (assignees-table (attr-root*))
-             (get-declaration-id 'variable (attr-root*) target))))
+     (lookup (assignees-table (attrs-root*))
+             (get-declaration-id 'variable (attrs-root*) target))))
   (:method ((target t))
     nil))
 
@@ -9674,7 +9674,8 @@ by MULTI-DECLARATION-KEYS."
     (namespace (genome software) in)
     in))
 
-(defmethod attr-missing ((fn-name (eql 'namespace)) node &aux (attr-root*))
+(defmethod attr-missing ((fn-name (eql 'namespace)) node
+                         &aux (attrs-root (attrs-root*)))
   (if-let ((root (find-if (of-type 'root-ast)
                           (get-parent-asts attrs-root node))))
     (namespace root "")
