@@ -105,6 +105,9 @@
    table-1 table-2
    :allow-multiple (multi-declaration-keys root)))
 
+(defmethod symbol-table-union ((root c/cpp) table-1 table-2 &key)
+  (symbol-table-union (genome root) table-1 table-2))
+
 (defmethod symbol-table ((node c/cpp-preproc-if) &optional in)
   (propagate-declarations-down node in))
 
