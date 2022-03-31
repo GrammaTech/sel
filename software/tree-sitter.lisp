@@ -7506,14 +7506,16 @@ return whether they are equal.")
   (:method ((type1 canonical-type) (type2 canonical-type) &key)
     (eql type1 type2)))
 
+;;; TODO Consider rewriting aliasee to propagate down from the top
+;;; (like symbol-table does) and alias-set to propagate backwards?
+
 (def-attr-fun aliasee ()
   "If AST is a pointer variable, the plain variable it points to.")
 
-(define-generic-analysis alias-set (software ast)
-  (:documentation
-   "Get the declarations \(as identifiers, as in `get-declaration-id')
+(def-attr-fun alias-set ()
+  "Get the declarations \(as identifiers, as in `get-declaration-id')
    of variables in SOFTWARE that are aliases \(pointers or referenes)
-   for PLAIN-VAR."))
+   for PLAIN-VAR.")
 
 
 ;;;; Structured text
