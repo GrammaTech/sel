@@ -935,13 +935,8 @@ iterator we want the type of the container's elements."
   "When we can't find declaration in the file, look in standard library headers."
   (labels ((lookup-in-std-headers (quals fn-name)
              ;; Memoize as a header-decl property.
-             (with-ast-property (ast :header-decl)
-               (iter (for header in (system-header-names obj))
-                     (when-let (decl
-                                (lookup-in-std-header header quals fn-name))
-                       ;; Also store the name of the header file.
-                       (setf (prop-ref ast :header) header)
-                       (return decl)))))
+             (iter (for header in (system-header-names obj))
+                   (thereis (lookup-in-std-header header quals fn-name))))
            (lookup-qualified-name (ast)
              (lookup-in-std-headers
               (namespace-qualifiers obj ast)
