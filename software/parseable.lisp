@@ -116,7 +116,6 @@
            :indentablep
            :combine-all-conflict-asts
            :ast-source-range
-           :prop-ref
            :with-ast-property
            :dump-ast-properties
            :clear-ast-properties
