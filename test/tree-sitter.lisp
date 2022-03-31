@@ -19,7 +19,8 @@
                 :inner-parent
                 :surrounding-text-transform
                 :preserve-properties
-                :evolution-candidate-ast-p))
+                :evolution-candidate-ast-p
+                :check-ast-swappable))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -335,3 +336,15 @@ indentation slots in :before and :after groupings."
     (is (signals no-mutation-targets
                  (nest (apply-mutation c)
                        (make-instance 'tree-sitter-swap :object c))))))
+
+(deftest tree-sitter-check-ast-swappable ()
+  (let ((root (convert 'c-ast "void foo() { int a; int b; }")))
+    (is (not (check-ast-swappable root
+                                  (stmt-with-text root "int a;")
+                                  (stmt-with-text root "a"))))
+    (is (not (check-ast-swappable root
+                                  (stmt-with-text root "a")
+                                  (stmt-with-text root "int a;"))))
+    (is (check-ast-swappable root
+                             (stmt-with-text root "int a;")
+                             (stmt-with-text root "int b;")))))

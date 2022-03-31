@@ -6208,8 +6208,11 @@ repeats.")
   "Given a root, and 2 asts (members of the root tree), see if 2 asts can
  be swapped. If so, returns the mutated root, otherwise returns NIL."
   (handler-case
+      ;; if ast1 and ast2 are not subtrees of each other,
       ;; go ahead and try the mutation
-      (swap root ast1 ast2)
+      (and (not (find ast1 ast2))
+           (not (find ast2 ast1))
+           (swap root ast1 ast2))
     (rule-matching-error () nil)))
 
 (defun check-ast-insertable (root ast new-ast)
