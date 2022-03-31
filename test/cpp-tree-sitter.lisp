@@ -281,7 +281,7 @@ mytype myfun3 (mytype y) { return y; }"))
 
 (deftest test-trim-front-types (&key only)
   "Test that we retrieve the correct type for each identifier."
-  (with-fixture trim-front
+  (with-fixture/attrs trim-front
     (let* ((ids (variable-declaration-ids *soft* (genome *soft*)))
            ;; The only key is for interactive testing. E.g. tracing
            ;; inference for a particular variable.
@@ -425,7 +425,7 @@ dereferenced pointer."
           (let ((aliasee (aliasee next-point)))
             (is (typep aliasee 'identifier-ast))
             (is (string= "p2" (source-text aliasee)))
-            (let ((alias-set (alias-set sw aliasee)))
+            (let ((alias-set (alias-set aliasee)))
               (is (member next-point alias-set)))))))))
 
 (def +alias-fragment+
@@ -473,7 +473,7 @@ dereferenced pointer."
         (is (typep pl 'identifier-ast))
         (is (typep (get-initialization-ast pl)
                    'cpp-init-declarator))
-        (is (length= 4 (alias-set sw pl)))))))
+        (is (length= 4 (alias-set pl)))))))
 
 (deftest test-infer-auto-type-from-function ()
   (let* ((sw (from-string 'cpp (fmt "~
@@ -641,7 +641,7 @@ iterator from a call on a dereferenced element."
                                        (find-soft-var "p2")))))))
 
 (deftest test-infer-type-loop-terminates ()
-  (with-fixture trim-front
+  (with-fixture/attrs trim-front
     (finishes (infer-type *soft* (find-soft-var "midpoint")))))
 
 (deftest test-lookup-in-std-header ()
