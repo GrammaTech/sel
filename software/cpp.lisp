@@ -644,13 +644,20 @@ an identifier to qualify, build a `cpp-qualified-identifier' AST."
           :initial-value initial
           :from-end t))
 
+(def-attr-fun decl-qualifiers (qualifiers)
+  (:method ((ast t) &optional qualifiers)
+    qualifiers))
+
+(defmethod attr-missing ((name (eql 'decl-qualifiers)) node)
+  (decl-qualifiers node nil))
+
 (defmethod resolve-declaration-type :around ((obj cpp)
                                              (decl cpp-ast)
                                              (ast cpp-ast))
   "Possibly qualify the type of AST according to AST's namespace qualification."
   (let ((result (call-next-method)))
     (requalify
-     (prop-ref ast :decl-qualifiers)
+     (decl-qualifiers ast)
      result)))
 
 (defmethod resolve-declaration-type ((obj cpp)
@@ -954,8 +961,7 @@ iterator we want the type of the container's elements."
                              (append1 quals name-as-qualifier)
                              method)))
                  ;; Store the qualifiers as a property of the AST.
-                 (setf (prop-ref ast :decl-qualifiers)
-                       (append1 quals name))
+                 (decl-qualifiers ast (append1 quals name))
                  decl)))
            (lookup-field-method-declaration (field)
              (let-match (((cpp-field-expression
