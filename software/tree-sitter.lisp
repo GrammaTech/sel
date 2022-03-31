@@ -1358,6 +1358,7 @@ for the language.")
         c-subscript-expression cpp-subscript-expression)
        (:c/cpp-switch-statement c-switch-statement cpp-switch-statement)
        (:c/cpp-system-lib-string c-system-lib-string cpp-system-lib-string)
+       (:c/cpp-translation-unit c-translation-unit cpp-translation-unit)
        (:c/cpp-type-definition c-type-definition cpp-type-definition)
        (:c/cpp-type-descriptor c-type-descriptor cpp-type-descriptor)
        (:c/cpp-type-forward-declaration
