@@ -20,7 +20,8 @@
                 :surrounding-text-transform
                 :preserve-properties
                 :evolution-candidate-ast-p
-                :check-ast-swappable))
+                :check-ast-swappable
+                :operation-matches-rule-p))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -348,3 +349,17 @@ indentation slots in :before and :after groupings."
     (is (check-ast-swappable root
                              (stmt-with-text root "int a;")
                              (stmt-with-text root "int b;")))))
+
+(deftest tree-sitter-operation-matches-rule-p ()
+  (let ((root (convert 'c-ast "void foo() { int a; int b; }")))
+    (is (operation-matches-rule-p #'less root
+                                  (stmt-with-text root "int a;")))
+    (is (operation-matches-rule-p #'with root
+                                  (stmt-with-text root "int b;")
+                                  (tree-copy (stmt-with-text root "int a;"))))
+    (is (not (operation-matches-rule-p #'less root
+                                       (stmt-with-text root "()"))))
+    (is (not (operation-matches-rule-p #'with root
+                                       (stmt-with-text root "()")
+                                       (tree-copy (stmt-with-text root
+                                                                  "int a;")))))))

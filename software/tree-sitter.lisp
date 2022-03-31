@@ -6189,49 +6189,46 @@ repeats.")
         (children-parser ast rule slots)
       (rule-matching-error () nil))))
 
+(defun operation-matches-rule-p (operation root ast1 &optional ast2)
+  "Check performing operation on root and test if mutated subtree(s) contain
+any rule-matching-errors. If no rule-matching-errors are found, return non-NIL."
+  (let ((ast-parent-path1 (butlast (ast-path root ast1)))
+        (ast-parent-path2 (when ast2 (butlast (ast-path root ast2))))
+        (new-root (apply operation root ast1 (when ast2 (list ast2)))))
+    (and (matches-rule (lookup new-root ast-parent-path1))
+         (if ast-parent-path2
+             (matches-rule (lookup new-root ast-parent-path2))
+             t))))
+
 (defun check-ast-replacement (root ast new-ast)
   "Given a root, an ast (a member of the root tree), and new-ast,
  an ast which is not a member, see if the new-ast is a valid replacement
- for ast. If so, returns the mutated root, otherwise returns NIL."
+ for ast. If so, returns non-NIL."
   ;; optimization: See if the new ast can be parsed by the previous ast's
   ;; pruned-rule. If not we assume it will error during mutation attempt.
   (if (and (slot-exists-p ast 'pruned-rule) (pruned-rule ast))
       (unless (and (slot-exists-p new-ast 'pruned-rule) (pruned-rule new-ast))
         (matches-rule new-ast (pruned-rule ast))
         (return-from check-ast-replacement nil)))
-  (handler-case
-      ;; go ahead and try the mutation
-      (with root ast new-ast)
-    (rule-matching-error () nil)))
+  (operation-matches-rule-p #'with root ast new-ast))
 
 (defun check-ast-swappable (root ast1 ast2)
   "Given a root, and 2 asts (members of the root tree), see if 2 asts can
- be swapped. If so, returns the mutated root, otherwise returns NIL."
-  (handler-case
-      ;; if ast1 and ast2 are not subtrees of each other,
-      ;; go ahead and try the mutation
-      (and (not (find ast1 ast2))
-           (not (find ast2 ast1))
-           (swap root ast1 ast2))
-    (rule-matching-error () nil)))
+ be swapped. If so, returns returns non-NIL."
+  (and (not (find ast1 ast2))
+       (not (find ast2 ast1))
+       (operation-matches-rule-p #'swap root ast1 ast2)))
 
 (defun check-ast-insertable (root ast new-ast)
   "Given a root, an ast (a member of the root tree), and new-ast,
  an ast which is not a member, see if the new-ast can be inserted
- at ast. If so, returns the mutated root, otherwise returns NIL."
-  (handler-case
-      ;; go ahead and try the mutation
-      (insert root ast new-ast)
-    (rule-matching-error () nil)))
+ at ast. If so, returns non-NIL."
+  (operation-matches-rule-p #'insert root ast new-ast))
 
 (defun check-ast-cut (root ast)
   "Given a root, an ast (a member of the root tree), see if the selected
- ast can be cut, without a rule error. If so, returns the mutated root,
- otherwise returns NIL."
-  (handler-case
-      ;; go ahead and try the mutation
-      (less root ast)
-    (rule-matching-error () nil)))
+ ast can be cut, without a rule error. If so, returns non-NIL."
+  (operation-matches-rule-p #'less root ast))
 
 (defun change-to-subclass (ast subclasses)
   "Dynamically change the class until a subclass matches on a rule.
