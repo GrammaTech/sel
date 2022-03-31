@@ -329,3 +329,9 @@ indentation slots in :before and :after groupings."
             (convert 'list)
             (genome)
             (from-string (make-instance 'c) "void foo() { /* comment */ }"))))
+
+(deftest tree-sitter-mutation-signals-no-mutation-targets ()
+  (let ((c (from-string (make-instance 'c) ";")))
+    (is (signals no-mutation-targets
+                 (nest (apply-mutation c)
+                       (make-instance 'tree-sitter-swap :object c))))))

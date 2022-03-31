@@ -7933,7 +7933,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                (funcall stmt-pool software)))))
 
 (defun pick-2-replaceable (software)
-  (let* ((asts (evolution-candidate-asts software)))
+  (when-let ((asts (evolution-candidate-asts software)))
     (do* ((old (random-elt asts) (random-elt asts))
           (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
@@ -7947,7 +7947,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                 old-tries 0)))))
 
 (defun pick-2-insertable (software)
-  (let* ((asts (evolution-candidate-asts software)))
+  (when-let ((asts (evolution-candidate-asts software)))
     (do* ((old (random-elt asts) (random-elt asts))
           (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
@@ -7962,7 +7962,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 (defun pick-2-swappable (software)
   "Return a random target of two asts which can be swapped in the software."
-  (let* ((asts (evolution-candidate-asts software)))
+  (when-let ((asts (evolution-candidate-asts software)))
     (do* ((ast1 (random-elt asts) (random-elt asts))
           (ast2 (random-elt asts))
           (ast1-tries 0 (+ ast1-tries 1))
@@ -7977,13 +7977,13 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 (defun pick-2-moveable (software)
   (iter (for i from 1 to *max-targeter-moveable-tries*)
-    (let* ((pick (pick-2-replaceable software)))
+    (when-let ((pick (pick-2-replaceable software)))
       ;; make sure the old can be cut
       (if (check-ast-cut (genome software) (first pick))
           (leave pick)))))
 
 (defun pick-1-cuttable (software)
-  (let* ((asts (evolution-candidate-asts software)))
+  (when-let ((asts (evolution-candidate-asts software)))
     (do* ((old (random-elt asts) (random-elt asts))
           (old-tries 0 (+ old-tries 1))
           (valid #1=(check-ast-cut (genome software) old) #1#))
@@ -8016,6 +8016,14 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
    "Replace a randomly selected ast with a compatible ast from the same tree."))
 
 (define-mutation tree-sitter-nop (tree-sitter-mutation) ())
+
+(defmethod apply-mutation :around ((software tree-sitter)
+                                   (mutation tree-sitter-mutation))
+  (unless (targets mutation)
+    (error 'no-mutation-targets
+           :obj software
+           :text "No suitable ASTs for mutation."))
+  (call-next-method))
 
 (defmethod apply-mutation ((software tree-sitter)
                            (mutation tree-sitter-replace))
