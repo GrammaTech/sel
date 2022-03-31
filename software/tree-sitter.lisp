@@ -7079,7 +7079,7 @@ Every element in the list has the following form:
         (list ast)
         (get-unbound-children))))
 
-(define-generic-analysis variable-use-p (software ast &key &allow-other-keys)
+(defgeneric variable-use-p (software ast &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in SOFTWARE as a variable."))
 
 ;;; Expand shorthands at compile time.
@@ -7281,7 +7281,7 @@ pointers into account in languages that support them.")
             (aliasee2 (or (aliasee id2) id2)))
         (same-variable-p obj aliasee1 aliasee2)))))
 
-(define-generic-analysis collect-var-uses (software ast &key &allow-other-keys)
+(defgeneric collect-var-uses (software ast &key &allow-other-keys)
   (:documentation "Collect uses of IDENTIFIER in SOFTWARE.")
   (:method ((obj normal-scope) (identifier identifier-ast)
             &key &aux after-decl-flag)
@@ -7371,7 +7371,7 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.)"
   (:method ((target t))
     nil))
 
-(define-generic-analysis collect-arg-uses (software ast &optional alias)
+(defgeneric collect-arg-uses (software ast &optional alias)
   (:documentation "Collect function calls in SOFTWARE with TARGET as an argument.
 
 If ALIAS is non-nil, resolve aliases during the search.")
