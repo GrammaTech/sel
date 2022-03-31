@@ -871,7 +871,10 @@ iterator we want the type of the container's elements."
   (:documentation "Namespace qualifiers derived from surrounding namespaces.")
   (:method ((obj cpp) ast)
     (with-attr-table-for obj
-      (split "::" (namespace ast)))))
+      (if (ast-path obj ast)
+          (split "::" (namespace ast))
+          ;; XXX
+          nil))))
 
 (defgeneric namespace-qualifiers (obj ast)
   (:documentation "Final namespace qualifiers, derived by resolving
