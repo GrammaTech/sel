@@ -870,17 +870,8 @@ iterator we want the type of the container's elements."
 (defgeneric implicit-namespace-qualifiers (obj ast)
   (:documentation "Namespace qualifiers derived from surrounding namespaces.")
   (:method ((obj cpp) ast)
-    (reverse
-     (iter (for ns in (find-all-enclosing 'cpp-namespace-definition obj ast))
-           (match ns
-             ;; Unnamed namespace.
-             ((cpp-namespace-definition :cpp-name nil))
-             ((cpp-namespace-definition
-               :cpp-name (and name (type cpp-identifier)))
-              (collecting name))
-             ((cpp-namespace-definition
-               :cpp-name (and name (type cpp-namespace-definition-name)))
-              (appending (children name))))))))
+    (with-attr-table-for obj
+      (split "::" (namespace ast)))))
 
 (defgeneric namespace-qualifiers (obj ast)
   (:documentation "Final namespace qualifiers, derived by resolving
