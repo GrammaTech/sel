@@ -522,6 +522,7 @@
            :variable-declaration-ast
            :function-declaration-ast
            :type-declaration-ast
+           :macro-declaration-ast
            :variable-initialization-ast
            :assignment-ast
            :identifier-ast
@@ -3465,6 +3466,9 @@ Superclass of every generated LANGUAGE-comment class."))
 
  (defclass type-declaration-ast (declaration-ast) ()
    (:documentation "Mix-in for AST classes that are type declarations."))
+
+ (defclass macro-declaration-ast (declaration-ast) ()
+   (:documentation "Mix-in for AST classes that are macro declarations."))
 
  (defclass class-ast (type-declaration-ast) ()
    (:documentation "Mix-in for AST classes that are class declarations."))
