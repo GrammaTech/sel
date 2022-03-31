@@ -6,6 +6,7 @@
    :software-evolution-library/test/util
    :stefil+
    :software-evolution-library
+   :software-evolution-library/software/c
    :software-evolution-library/software/parseable
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/components/file
