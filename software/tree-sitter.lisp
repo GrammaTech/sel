@@ -9697,6 +9697,10 @@ by MULTI-DECLARATION-KEYS."
              (mapcar (op (list (source-text _1) _1))
                      (inner-declarations node)))))
 
+(defgeneric qualify-declared-ast-name (ast)
+  (:method ((ast ast))
+    (source-text ast)))
+
 
 ;;; Namespace
 (def-attr-fun namespace (in)
