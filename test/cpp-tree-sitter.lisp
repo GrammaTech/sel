@@ -227,7 +227,7 @@ mytype myfun3 (mytype y) { return y; }"))
             ("y" . variable-declaration-ast)
             ("mytype" . type-declaration-ast)
             ("int" . type-declaration-ast))))
-    (with-attr-table-for sw
+    (with-attr-table sw
       (iter (for node in-tree (genome sw))
             (let ((relevant-type (relevant-declaration-type node))
                   (wanted-type (aget (source-text node) types :test #'equal)))
@@ -407,7 +407,7 @@ y = 2;")))
                                    (and (typep ast 'identifier-ast)
                                         (equal (source-text ast) "y")))
                                  (genome sw)))))
-    (with-attr-table-for sw
+    (with-attr-table sw
       (is (equal "y = 2" (source-text (get-initialization-ast y)))))))
 
 (deftest test-reference-pointer-expression-aliasee ()
@@ -418,7 +418,7 @@ dereferenced pointer."
            (next-point
             (find-if (op (equal (source-text _) "next_point"))
                      (genome sw))))
-      (with-attr-table-for sw
+      (with-attr-table sw
         (is (typep next-point 'identifier-ast))
         (let ((aliasee (aliasee next-point)))
           (is (typep aliasee 'identifier-ast))
@@ -443,7 +443,7 @@ dereferenced pointer."
                       (genome sw)))
          (alias (find-if (op (equal (source-text _) alias-name))
                          (genome sw))))
-    (with-attr-table-for sw
+    (with-attr-table sw
       (is (typep alias 'identifier-ast))
       (finishes
        (get-initialization-ast alias))
@@ -465,7 +465,7 @@ dereferenced pointer."
   (let* ((sw (from-string 'cpp +alias-fragment+))
          (pl (find-if (op (equal (source-text _) "pl"))
                       (genome sw))))
-    (with-attr-table-for sw
+    (with-attr-table sw
       (is (typep pl 'identifier-ast))
       (is (typep (get-initialization-ast pl)
                  'cpp-init-declarator))

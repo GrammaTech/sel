@@ -635,8 +635,6 @@
            ;; Attributes
            :namespace
            :imports
-           :with-attr-table-for
-           :attr-table-for
            :attrs-root*
            ;; Symbol Table
            :symbol-table
@@ -6978,7 +6976,7 @@ Every element in the list has the following form:
 (defun attrs-root* ()
   (attrs-root *attrs*))
 
-(defmacro with-attr-table-for (root &body body)
+(defmacro with-attr-table (root &body body)
   "Like `with-attr-table', but if the appropriate attr table is
   already bound, reuse it."
   `(let ((*attrs* (attr-table-for ,root)))
@@ -7021,7 +7019,7 @@ Every element in the list has the following form:
 
 (defun provided-by (software ast)
   "Return the library, package, or system in SOFTWARE providing AST."
-  (with-attr-table-for software
+  (with-attr-table software
     (provided-by-attr ast)))
 
 (def-attr-fun provided-by-attr ())
@@ -7265,7 +7263,7 @@ Returns a second value to represent certainty; returning NIL, T means
 they are definitely not the same; returning NIL, NIL means
 uncertainty.")
   (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
-    (with-attr-table-for obj
+    (with-attr-table obj
       (let ((decl1 (get-declaration-id 'variable obj id1))
             (decl2 (get-declaration-id 'variable obj id2)))
         (cond ((not (and decl1 decl2))
@@ -7281,7 +7279,7 @@ uncertainty.")
 Differs from `same-variable-p' in that it takes references and
 pointers into account in languages that support them.")
   (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
-    (with-attr-table-for obj
+    (with-attr-table obj
       (let ((aliasee1 (or (aliasee id1) id1))
             (aliasee2 (or (aliasee id2) id2)))
         (same-variable-p obj aliasee1 aliasee2)))))
@@ -7381,7 +7379,7 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.)"
 
 If ALIAS is non-nil, resolve aliases during the search.")
   (:method ((obj software) (target identifier-ast) &optional alias)
-    (with-attr-table-for obj
+    (with-attr-table obj
       (flet ((get-decl (obj var)
                (get-declaration-id 'variable
                                    obj
@@ -7440,7 +7438,7 @@ By default this first tries `expression-type', then invokes
 `get-declaration-ast'.")
   (:method-combination standard/context)
   (:method ((software t) (ast t))
-    (with-attr-table-for software
+    (with-attr-table software
       (flet ((infer-type-from-declaration ()
                (let ((decl-type (relevant-declaration-type ast)))
                  (when-let (decl (get-declaration-ast decl-type software ast))
