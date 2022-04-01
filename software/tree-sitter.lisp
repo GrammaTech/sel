@@ -7199,22 +7199,20 @@ meaningful declaration.)")
     (mapc (op (relevant-declaration-type _ type))
           (children ast))
     (or type 'variable-declaration-ast))
+  (:method ((ast type-identifier-ast) &optional type)
+    "Override the method for identifier ast."
+    (call-next-method ast 'type-declaration-ast))
   (:method ((call call-ast) &optional type)
     ;; The relevant declaration type for a call function is a
     ;; function (unless it's a method).
     (relevant-declaration-type (call-function call) 'function-declaration-ast)
-    (mapc (op (relevant-declaration-type _ type))
-          (remove (call-function call)
-                  (children call)))
-    nil)
+    (call-next-method)
+    type)
   (:method ((fn function-declaration-ast) &optional type)
     ;; The relevant declaration for a function name is a function.
     (relevant-declaration-type (definition-name-ast fn)
                                'function-declaration-ast)
-    (mapc (op (relevant-declaration-type _ type))
-          (remove (definition-name-ast fn)
-                  (children fn)))
-    nil))
+    (call-next-method)))
 
 (defmethod attr-missing ((name (eql 'relevant-declaration-type)) node)
   (relevant-declaration-type (attrs-root*) nil))
