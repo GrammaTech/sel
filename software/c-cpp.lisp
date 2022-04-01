@@ -368,16 +368,22 @@ pointer declarations which are nested on themselves."
 (defmethod field-names ((ast c/cpp-enumerator))
   (list (c/cpp-name ast)))
 
-(defmethod get-declaration-id ((type t) (obj c/cpp) (ast c/cpp-pointer-expression))
+(defmethod get-declaration-id
+    :around
+    ((type t) (obj c/cpp) (ast c/cpp-pointer-expression))
   (get-declaration-id type obj (c/cpp-argument ast)))
 
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
 
-(defmethod get-declaration-ast ((type t) (obj c/cpp) (ast c/cpp-pointer-expression))
+(defmethod get-declaration-ast
+    :around
+    ((type t) (obj c/cpp) (ast c/cpp-pointer-expression))
   (get-declaration-ast type obj (c/cpp-argument ast)))
 
-(defmethod get-declaration-ast ((type t) (obj c/cpp) (ast c/cpp-type-descriptor))
+(defmethod get-declaration-ast
+    :around
+    ((type t) (obj c/cpp) (ast c/cpp-type-descriptor))
   (get-declaration-ast type obj (c/cpp-type ast)))
 
 (defmethod infer-type ((obj software) (ast c/cpp-field-expression))
@@ -404,6 +410,11 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-ast ((type (eql 'variable-declaration-ast))
                                 (obj software)
                                 (ast c/cpp-field-expression))
+  (get-declaration-ast :variable obj ast))
+
+(defmethod get-declaration-ast ((type (eql :variable))
+                                (obj software)
+                                (ast c/cpp-field-expression))
   (get-declaration-ast type obj (c/cpp-argument ast)))
 
 (defmethod get-declaration-ast ((type (eql 'function-declaration-ast))
@@ -418,7 +429,7 @@ pointer declarations which are nested on themselves."
                ;; declarations.
                (infer-type obj ast))
               ;; Get the declaration of the type of the argument.
-              (type-decl (get-declaration-ast 'type obj type))
+              (type-decl (get-declaration-ast :type obj type))
               ;; The name of the field we're looking for.
               (target-field-name (source-text (c/cpp-field ast))))
     (match type-decl
@@ -441,7 +452,7 @@ pointer declarations which are nested on themselves."
                ;; declarations.
                (infer-type obj ast))
               ;; Get the declaration of the type of the argument.
-              (type-decl (get-declaration-ast 'type obj type))
+              (type-decl (get-declaration-ast :type obj type))
               ;; The name of the field we're looking for.
               (target-field-name (source-text (c/cpp-field ast))))
     (match type-decl
@@ -454,7 +465,9 @@ pointer declarations which are nested on themselves."
                               field-names
                               :test #'source-text=)))))))
 
-(defmethod get-declaration-id ((type t) (obj c/cpp) (field c/cpp-field-expression))
+(defmethod get-declaration-id
+    :around
+    ((type t) (obj c/cpp) (field c/cpp-field-expression))
   (get-declaration-id type obj (c/cpp-argument field)))
 
 (defmethod get-declaration-id ((type t) (obj c/cpp) (id identifier-ast))
@@ -474,7 +487,7 @@ pointer declarations which are nested on themselves."
 (defmethod get-initialization-ast ((ast cpp-ast) &aux (obj (attrs-root*)))
   "Find the assignment for an unitialized variable."
   (or (call-next-method)
-      (when-let* ((id (get-declaration-id 'variable obj ast))
+      (when-let* ((id (get-declaration-id :variable obj ast))
                   (decl
                    (find-enclosing 'variable-declaration-ast obj id)))
         (let ((id-text (source-text id)))
@@ -689,7 +702,7 @@ Should return `:failure' in the base case.")
     ;; Assigning a pointer variable to a pointer variable.
     (with-attr-table sw
       (let ((aliasee (aliasee rhs)))
-        (if (not (eql aliasee (get-declaration-id 'variable sw rhs)))
+        (if (not (eql aliasee (get-declaration-id :variable sw rhs)))
             aliasee
             (call-next-method))))))
 
@@ -700,7 +713,7 @@ Should return `:failure' in the base case.")
        ((c/cpp-init-declarator (lhs lhs) (rhs rhs))
         (let ((result (initializer-aliasee sw lhs rhs)))
           (if (eql result :failure)
-              (get-declaration-id 'variable sw id)
+              (get-declaration-id :variable sw id)
               result)))
        ((c/cpp-assignment-expression (rhs rhs))
         (aliasee rhs))
@@ -710,11 +723,12 @@ Should return `:failure' in the base case.")
 (defmethod alias-set ((plain-var c/cpp-ast))
   (let ((sw (attrs-root*)))
     (with-attr-table sw
+      ;; breaks TEST-REFERENCE-POINTER-EXPRESSION-ALIASEE
       (when-let (id (get-declaration-id 'variable sw plain-var))
         (iter (for ast in-tree (genome sw))
               (when (and (typep ast 'identifier-ast)
                          (eql (aliasee ast) id))
-                (set-collect (get-declaration-id 'variable sw ast) into set))
+                (set-collect (get-declaration-id :variable sw ast) into set))
               (finally (return (convert 'list (less set plain-var)))))))))
 
 
@@ -722,6 +736,7 @@ Should return `:failure' in the base case.")
                              &optional alias)
   (with-attr-table sw
     (labels ((get-decl (obj var)
+               ;; breaks test-collect-arg-uses
                (get-declaration-id 'variable
                                    obj
                                    (or (and alias (aliasee var))

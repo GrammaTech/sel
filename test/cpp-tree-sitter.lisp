@@ -128,7 +128,7 @@ int main () {
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (string*= "x = 0" (source-text (get-declaration-ast
-                                        'variable
+                                        :variable
                                         cpp qid))))))
 
 (deftest test-namespace-qualify-2 ()
@@ -145,7 +145,7 @@ int main () {
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (string*= "x = 0" (source-text (get-declaration-ast
-                                        'variable
+                                        :variable
                                         cpp qid))))))
 
 (deftest test-namespace-qualify-3 ()
@@ -161,7 +161,7 @@ int main () {
   }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
     (is (string*= "x = 1" (source-text (get-declaration-ast
-                                        'variable
+                                        :variable
                                         cpp qid))))))
 
 (deftest test-namespace-deepest-match ()
@@ -183,7 +183,7 @@ int main () {
   }
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 1" (source-text (get-declaration-ast 'variable
+    (is (string*= "x = 1" (source-text (get-declaration-ast :variable
                                                             cpp qid))))))
 
 (def +trim-front-types+
@@ -357,13 +357,13 @@ auto y = x;~
   (let* ((sw (from-string 'cpp (fmt "int& y = x;")))
          (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
     (is (string= (source-text id) "y"))
-    (is (typep (get-declaration-ast t sw id) 'cpp-declaration))))
+    (is (typep (get-declaration-ast :variable sw id) 'cpp-declaration))))
 
 (deftest test-get-declaration-ast/pointer ()
   (let* ((sw (from-string 'cpp (fmt "int* y = x;")))
          (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
     (is (string= (source-text id) "y"))
-    (is (typep (get-declaration-ast t sw id) 'c/cpp-pointer-declarator))))
+    (is (typep (get-declaration-ast :variable sw id) 'c/cpp-declaration))))
 
 (deftest test-get-declaration-ast/pointer-expression ()
   (let* ((sw (from-string 'cpp (fmt "~
@@ -378,8 +378,8 @@ int y = *x;
            (rhs
             (only-elt
              (cpp-declarator
-              (get-declaration-ast t sw y))))))
-      (is (equal (source-text (get-declaration-ast t sw ptr-expr))
+              (get-declaration-ast :variable sw y))))))
+      (is (equal (source-text (get-declaration-ast :variable sw ptr-expr))
                  "int *x;")))))
 
 (deftest test-infer-type/primitive-type-pointer ()
@@ -494,7 +494,7 @@ whatsit myfun() {
 auto x = myfun();")))
          (scopes (all-scopes sw))
          (x (find "x" (identifiers (genome sw)) :test #'source-text=))
-         (struct (get-declaration-ast t sw (infer-type sw x))))
+         (struct (get-declaration-ast :type sw (infer-type sw x))))
     ;; We get the struct as a scope.
     (is (find "whatsit" scopes :test #'equal :key (op (aget :name _))))
     (is (typep x 'identifier-ast))
@@ -518,7 +518,7 @@ auto p2 = new Point{0.0, 1.0};
 auto d = p1->Distance(p2);")))
          (call (find-if (of-type 'call-ast) (genome sw)))
          (field-expr (call-function call))
-         (field-decl (get-declaration-ast 'function sw field-expr)))
+         (field-decl (get-declaration-ast :function sw field-expr)))
     ;; We get the type of `p1' (`Point').
     (is (source-text= "Point"
                       (infer-type sw (get-declaration-ast
@@ -571,17 +571,18 @@ with an arrow, even when the infererence passes through both."
   "Test that we can resolve the type of the elements of the container
 of a std iterator."
   (let ((sw (from-string 'cpp +iterator-container-type-sw+)))
-    (flet ((get-decl (name)
-             (get-declaration-id
-              'variable
-              sw
-              (find-if (op (source-text= name _)) sw))))
-      (is (source-text= "Point" (infer-type sw (get-decl "po"))))
-      (is (source-text= "std::list<Point>" (infer-type sw (get-decl "pts"))))
-      (is (source-text= "double" (infer-type sw (get-decl "d"))))
-      (is (string*= "iterator"
-                    (source-text
-                     (infer-type sw (get-decl "p1"))))))))
+    (with-attr-table sw
+      (flet ((get-decl (name)
+               (get-declaration-id
+                'variable
+                sw
+                (find-if (op (source-text= name _)) sw))))
+        (is (source-text= "Point" (infer-type sw (get-decl "po"))))
+        (is (source-text= "std::list<Point>" (infer-type sw (get-decl "pts"))))
+        (is (source-text= "double" (infer-type sw (get-decl "d"))))
+        (is (string*= "iterator"
+                      (source-text
+                       (infer-type sw (get-decl "p1")))))))))
 
 (deftest test-resolve-method-call-to-iterator-container-type ()
   "Test that can infer the type of the elements of a container of an
@@ -590,16 +591,18 @@ iterator from a call on a dereferenced element."
          (call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
          (field-expr (call-function call))
          (field-decl (is (get-declaration-ast 'function sw field-expr))))
-    ;; We get the type of `p1' (`Point') in `p1->Distance(p2)'.
-    (is (source-text= "Point" (infer-type sw field-expr)))
-    ;; We get the declaration of the `Point' type.
-    (is (get-declaration-ast 'type sw (infer-type sw field-expr)))
-    ;; We get the declaration of the `Distance' field in `Point'.
-    (is (typep field-decl 'cpp-field-declaration))
-    (is (member "Distance" (field-names field-decl)
-                :test #'source-text=))
-    ;; Finally we infer the type of the call.
-    (is (source-text= "double" (infer-type sw call)))))
+    (with-attr-table sw
+      (symbol-table field-decl)
+      ;; We get the type of `p1' (`Point') in `p1->Distance(p2)'.
+      (is (source-text= "Point" (infer-type sw field-expr)))
+      ;; We get the declaration of the `Point' type.
+      (is (get-declaration-ast :type sw (infer-type sw field-expr)))
+      ;; We get the declaration of the `Distance' field in `Point'.
+      (is (typep field-decl 'cpp-field-declaration))
+      (is (member "Distance" (field-names field-decl)
+                  :test #'source-text=))
+      ;; Finally we infer the type of the call.
+      (is (source-text= "double" (infer-type sw call))))))
 
 (defun find-soft-var (name)
   (find name (identifiers (genome *soft*))
