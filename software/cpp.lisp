@@ -883,23 +883,26 @@ iterator we want the type of the container's elements."
           ;; XXX
           nil))))
 
+(defun combine-namespace-qualifiers (explicit implicit)
+  (if-let ((tail (member :global explicit)))
+    (rest tail)
+    (if explicit
+        (let ((index (search explicit implicit
+                             :key #'source-text
+                             :test #'equal
+                             :from-end t)))
+          (append (take (or index 0) implicit)
+                  explicit))
+        implicit)))
+
 (defgeneric namespace-qualifiers (obj ast)
   (:documentation "Final namespace qualifiers, derived by resolving
   explicit (relative) namespace qualifiers relative to
   implicit (absolute) ones.")
   (:method ((obj cpp) ast)
-    (let ((explicit (explicit-namespace-qualifiers ast)))
-      (if-let ((tail (member :global explicit)))
-        (rest tail)
-        (let ((implicit (implicit-namespace-qualifiers obj ast)))
-          (if explicit
-              (let ((index (search explicit implicit
-                                   :key #'source-text
-                                   :test #'equal
-                                   :from-end t)))
-                (append (take (or index 0) implicit)
-                        explicit))
-              implicit))))))
+    (combine-namespace-qualifiers
+     (explicit-namespace-qualifiers ast)
+     (implicit-namespace-qualifiers obj ast))))
 
 (defgeneric unqualified-name (name)
   (:documentation "Remove namespace qualifications from NAME.")
