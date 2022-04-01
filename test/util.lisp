@@ -7,7 +7,8 @@
         :stefil+
         :software-evolution-library/software/elf-cisc
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/tree-sitter)
+        :software-evolution-library/software/tree-sitter
+        :functional-trees/attrs)
   (:export :test
            :+etc-dir+
            :+gcd-dir+
@@ -191,7 +192,7 @@
 ;;; Helper macros.
 (defmacro with-fixture/attrs (fixture &body body)
   `(with-fixture ,fixture
-     (with-attr-table-for *soft*
+     (with-attr-table *soft*
        ,@body)))
 
 

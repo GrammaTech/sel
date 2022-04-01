@@ -668,14 +668,14 @@ Should return `:failure' in the base case.")
             (lhs c/cpp-pointer-declarator)
             (rhs c/cpp-pointer-expression))
     (if (typep (c/cpp-operator rhs) 'cpp-&)
-        (with-attr-table-for sw
+        (with-attr-table sw
           (aliasee (c/cpp-argument rhs)))
         (call-next-method)))
   (:method ((sw c/cpp)
             (lhs c/cpp-pointer-declarator)
             (rhs identifier-ast))
     ;; Assigning a pointer variable to a pointer variable.
-    (with-attr-table-for sw
+    (with-attr-table sw
       (let ((aliasee (aliasee rhs)))
         (if (not (eql aliasee (get-declaration-id 'variable sw rhs)))
             aliasee
@@ -697,7 +697,7 @@ Should return `:failure' in the base case.")
 
 (defmethod alias-set ((plain-var c/cpp-ast))
   (let ((sw (attrs-root*)))
-    (with-attr-table-for sw
+    (with-attr-table sw
       (when-let (id (get-declaration-id 'variable sw plain-var))
         (iter (for ast in-tree (genome sw))
               (when (and (typep ast 'identifier-ast)
@@ -708,7 +708,7 @@ Should return `:failure' in the base case.")
 
 (defmethod collect-arg-uses ((sw c/cpp) (target identifier-ast)
                              &optional alias)
-  (with-attr-table-for sw
+  (with-attr-table sw
     (labels ((get-decl (obj var)
                (get-declaration-id 'variable
                                    obj

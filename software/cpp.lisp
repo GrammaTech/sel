@@ -877,7 +877,7 @@ iterator we want the type of the container's elements."
 (defgeneric implicit-namespace-qualifiers (obj ast)
   (:documentation "Namespace qualifiers derived from surrounding namespaces.")
   (:method ((obj cpp) ast)
-    (with-attr-table-for obj
+    (with-attr-table obj
       (if (ast-path obj ast)
           (split "::" (namespace ast))
           ;; XXX
@@ -974,7 +974,7 @@ iterator we want the type of the container's elements."
                     (lookup-qualified-declaration qname method))
                    ((and type (identifier-ast))
                     (lookup-in-std-headers nil type)))))))
-    (with-attr-table-for obj
+    (with-attr-table obj
       (let ((decl (call-next-method)))
         (cond ((typep decl
                       ;; TODO No distinguished class for a field
@@ -993,13 +993,13 @@ iterator we want the type of the container's elements."
 (defmethod initializer-aliasee ((sw cpp)
                                 (lhs cpp-reference-declarator)
                                 (rhs cpp-pointer-expression))
-  (with-attr-table-for sw
+  (with-attr-table sw
     (if (typep (cpp-operator rhs) 'cpp-*)
         (aliasee (cpp-argument rhs))
         (call-next-method))))
 
 (defmethod initializer-aliasee ((sw cpp) (lhs cpp-reference-declarator) rhs)
-  (with-attr-table-for sw
+  (with-attr-table sw
     (aliasee rhs)))
 
 
