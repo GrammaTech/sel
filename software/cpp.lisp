@@ -1054,12 +1054,23 @@ available to use at any point in a C++ AST.")
 (defmethod symbol-table ((node cpp-namespace-definition) &optional in)
   (propagate-declarations-down node in))
 
-  (let* ((source-text (source-text declared-ast))
-         (namespace (namespace declared-ast)))
-    (if (emptyp namespace)
-        source-text
-        (string+ namespace "::" source-text))))
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
+  (let* ((source-text (source-text declared-ast)))
+    (if (string^= "::" source-text)
+        ;; Global namespace.
+        (drop-prefix "::" source-text)
+        (let* ((namespace (namespace declared-ast))
+               (implicit (split "::" namespace))
+               (parts (split "::" source-text))
+               (explicit
+                (append
+                 (and (string^= "::" source-text)
+                      (list :global))
+                 (butlast parts)))
+               (combined
+                (combine-namespace-qualifiers explicit implicit)))
+          (string-join (append1 combined (lastcar parts)) ;
+                       "::")))))
 
 (defmethod outer-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (outer-declarations node)))
