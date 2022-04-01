@@ -1054,12 +1054,12 @@ available to use at any point in a C++ AST.")
 (defmethod symbol-table ((node cpp-namespace-definition) &optional in)
   (propagate-declarations-down node in))
 
-(defun qualify-declared-ast-name (declared-ast)
   (let* ((source-text (source-text declared-ast))
          (namespace (namespace declared-ast)))
     (if (emptyp namespace)
         source-text
         (string+ namespace "::" source-text))))
+(defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
 
 (defmethod outer-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (outer-declarations node)))
