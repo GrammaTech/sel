@@ -884,6 +884,29 @@ iterator we want the type of the container's elements."
           nil))))
 
 (defun combine-namespace-qualifiers (explicit implicit)
+  "Combine explicit namespace qualifiers (on the AST) and implicit
+namespace qualifiers (inherited from the surrounding namespace).
+
+This is not quite as simple as appending them, since \(1) explicit
+namespace qualiifiers can refer to the global namespace and \(2)
+references may need to be resolved contextually. Consider this
+example:
+
+    int x = 2;
+    namespace A {
+      namespace B {
+        int x = 1;
+        namespace A {
+         namespace B {
+           int x = 2;
+           return ::x + A::B::x;
+         }
+        }
+      }
+    }
+
+This returns 4 (not 3) because `::x` resolves to the `x` in the global
+namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (if-let ((tail (member :global explicit)))
     (rest tail)
     (if explicit
