@@ -638,6 +638,9 @@
            :attrs-root*
            ;; Symbol Table
            :symbol-table
+           :find-in-symbol-table
+           :find-decls-in-symbol-table
+           :find-decl-in-symbol-table
            :multi-map-symbol-table-union
            :symbol-table-union
            :multi-declaration-keys
@@ -7114,14 +7117,27 @@ Calling `get-declaration-ast' with a type of `variable', `function',
 or `type' is equivalent to `variable-declaration-ast',
 `function-declaration-ast', or `type-declaration-ast', respectively.")
   (:method-combination standard/context)
+  (:method ((type (eql :variable)) obj ast)
+    (with-attr-table obj
+      (find-decl-in-symbol-table ast type ast)))
+  (:method ((type (eql :function)) obj ast)
+    (with-attr-table obj
+      (find-decl-in-symbol-table ast type ast)))
+  (:method ((type (eql :type)) obj ast)
+    (with-attr-table obj
+      (find-decl-in-symbol-table ast type ast)))
+  (:method ((type (eql :macro)) obj ast)
+    (with-attr-table obj
+      (find-decl-in-symbol-table ast type ast)))
   ;; Shorthands. Note that `variable', `function', and `type' are all
   ;; symbols exported by CL.
   (:method :context ((type (eql 'variable)) obj ast)
-    (get-declaration-ast 'variable-declaration-ast obj ast))
+    (get-declaration-ast :variable obj ast))
   (:method :context ((type (eql 'function)) (obj t) (ast t))
+    ;; breaks TEST-RESOLVE-METHOD-CALL-TO-ITERATOR-CONTAINER-TYPE
     (get-declaration-ast 'function-declaration-ast obj ast))
   (:method :context ((type (eql 'type)) (obj t) (ast t))
-    (get-declaration-ast 'type-declaration-ast obj ast))
+    (get-declaration-ast :type obj ast))
   ;; Assert we get the right kind of declaration.
   (:method :context ((type (eql 'variable-declaration-ast)) obj ast)
     (assure (or null variable-declaration-ast)
@@ -7141,6 +7157,8 @@ or `type' is equivalent to `variable-declaration-ast',
     (get-declaration-ast type obj (call-function ast)))
   (:method ((type t) (obj software) (ast declaration-ast)) ast)
   (:method :around ((type t) (obj normal-scope) (identifier identifier-ast))
+    (when (keywordp type)
+      (setf type (namespace-decl-type type)))
     (or
      ;; Check if this identifier is part of a declaration before
      ;; checking scopes to avoid returning a shadowed variable.
@@ -7230,6 +7248,19 @@ This is important because a single declaration may define multiple
 variables, e.g. in C/C++ declaration syntax or in languages that
 support destructuring.")
   (:method-combination standard/context)
+  (:method ((type (eql :variable)) obj ast)
+    (with-attr-table obj
+      (car+cdr (find-in-symbol-table ast type ast))))
+  (:method ((type (eql :function)) obj ast)
+    (with-attr-table obj
+      (car+cdr (find-in-symbol-table ast type ast))))
+  (:method ((type (eql :type)) obj ast)
+    (with-attr-table obj
+      (car+cdr (find-in-symbol-table ast type ast))))
+  (:method ((type (eql :macro)) obj ast)
+    (with-attr-table obj
+      (car+cdr (find-in-symbol-table ast type ast))))
+
   ;; We can't just rely on get-declaration-ast to translate, we need
   ;; to be able to define methods on the full names.
   (:method :context ((type (eql 'variable)) obj ast)
@@ -9594,6 +9625,21 @@ Otherwise, return PARSE-TREE."
   ;; The "nil" namespace is for languages that don't use namespaces.
   '(member nil :variable :function :type :macro))
 
+(def +namespace-decl-type-table+
+  '((:variable . variable-declaration-ast)
+    (:function . function-declaration-ast)
+    (:type . type-declaration-ast)
+    (:macro . macro-declaration-ast)
+    (nil . declaration-ast)))
+
+(defun namespace-decl-type (ns)
+  (assure (and symbol (not null))
+    (assocdr ns +namespace-decl-type-table+)))
+
+(defun decl-type-namespace (type)
+  (assure symbol-table-namespace
+    (rassocar type +namespace-decl-type-table+)))
+
 (defgeneric multi-declaration-keys (root)
   (:documentation "MULTI-DECLARATION-KEYS returns a list of keys which should not
  choose one value over another when there is a conflict between two keys in a
@@ -9685,6 +9731,30 @@ by MULTI-DECLARATION-KEYS."
 (defgeneric qualify-declared-ast-name (ast)
   (:method ((ast ast))
     (source-text ast)))
+
+(defgeneric find-in-symbol-table (ast namespace query)
+  (:method ((ast ast) (ns null) (query string))
+    (let* ((symbol-table (symbol-table ast)))
+      (lookup symbol-table query)))
+  (:method ((ast ast) (ns null) (query ast))
+    (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
+  (:method ((ast ast) (ns symbol) (query ast))
+    (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
+  (:method ((ast ast) (namespace symbol) (query string))
+    (when-let* ((symbol-table (symbol-table ast))
+                (ns-table (lookup symbol-table namespace)))
+      (lookup ns-table query))))
+
+(defgeneric find-decls-in-symbol-table (ast ns query)
+  (:method ((ast ast) (ns symbol) (query t))
+    (let ((type (namespace-decl-type ns)))
+      (mapcar (lambda (ast)
+                (find-enclosing type (attrs-root*) ast))
+              (find-in-symbol-table ast ns query)))))
+
+(defun find-decl-in-symbol-table (ast ns query)
+  (let ((decls (find-decls-in-symbol-table ast ns query)))
+    (car+cdr decls)))
 
 
 ;;; Namespace
