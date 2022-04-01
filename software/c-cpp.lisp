@@ -132,11 +132,23 @@
         (symbol-table node (empty-map))
         (symbol-table (attrs-root *attrs*) (empty-map)))))
 
+(-> group-by-namespace
+    ((soft-list-of ast)
+     (soft-list-of symbol-table-namespace))
+    (values (soft-alist-of symbol-table-namespace
+                           (soft-list-of ast))
+            &optional))
 (defun group-by-namespace (declarations namespaces)
   (let ((table (make-hash-table)))
     (mapc (op (push _ (gethash _ table))) declarations namespaces)
     (hash-table-alist table)))
 
+(-> convert-grouped-namespaces
+    ((soft-alist-of symbol-table-namespace
+                    (soft-list-of ast))
+     &key (:source-text-fun function))
+    (values (soft-alist-of symbol-table-namespace fset:map)
+            &optional))
 (defun convert-grouped-namespaces (grouped-namespaces
                                    &key (source-text-fun #'source-text))
   "Convert grouped-namespaces into a grouping of
