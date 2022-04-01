@@ -9591,6 +9591,10 @@ Otherwise, return PARSE-TREE."
 
 ;;; Symbol Table
 
+(deftype symbol-table-namespace ()
+  "Possible namespaces in a symbol table."
+  ;; The "nil" namespace is for languages that don't use namespaces.
+  '(member nil :variable :function :type :macro))
 
 (defgeneric multi-declaration-keys (root)
   (:documentation "MULTI-DECLARATION-KEYS returns a list of keys which should not
