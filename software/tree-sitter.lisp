@@ -7112,7 +7112,7 @@ Every element in the list has the following form:
     "Compiler macro to save calls for easier debugging (fewer frames)."
     (expand-get-declaration call 'get-declaration-id type obj ast)))
 
-(define-generic-analysis get-declaration-ast (type software ast)
+(defgeneric get-declaration-ast (type software ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.
 
@@ -7122,6 +7122,7 @@ type from AST's context, using `relevant-declaration-type'.
 Calling `get-declaration-ast' with a type of `variable', `function',
 or `type' is equivalent to `variable-declaration-ast',
 `function-declaration-ast', or `type-declaration-ast', respectively.")
+  (:method-combination standard/context)
   (:method ((type (eql :variable)) obj ast)
     (with-attr-table obj
       (find-decl-in-symbol-table ast type ast)))
@@ -7188,18 +7189,27 @@ or `type' is equivalent to `variable-declaration-ast',
                     (typep (aget :decl scope) type)))
              (scopes obj identifier))))))
 
-(defgeneric relevant-declaration-type (software ast)
+(define-generic-analysis relevant-declaration-type (software ast)
   (:documentation "Return the type of declaration we should look for.
 
 That is, based on AST's context, figure out whether we should be
 looking for a `variable-declaration-ast', `function-declaration-ast',
-or `type-declaration-ast'.")
+or `type-declaration-ast'.
+
+If the value is `nil' it is because the AST is not one for which a
+declaration makes sense.")
   ;; TODO Not every language has a separate class for type
   ;; identifiers. E.g. Python just has Python identifiers inside
   ;; Python types.
+  (:method ((obj t) (ast ast))
+    nil)
+  (:method ((obj t) (ast identifier-ast))
+    'variable-declaration-ast)
   (:method ((obj t) (ast type-identifier-ast))
     'type-declaration-ast)
-  (:method ((obj t) (ast ast))
+  (:method ((obj t) (ast type-ast))
+    'type-declaration-ast)
+  (:method :around ((obj t) (ast ast))
     (or
      ;; The relevant declaration type for a call function is a
      ;; function.
@@ -7210,8 +7220,7 @@ or `type-declaration-ast'.")
      (and-let* ((fn (find-enclosing 'function-declaration-ast obj ast))
                 ((eql ast (definition-name-ast fn))))
        'function-declaration-ast)
-     ;; Default to a variable declaration.
-     'variable-declaration-ast)))
+     (call-next-method))))
 
 (def-attr-fun get-initialization-ast ()
   "Find where AST is initialized.
@@ -7225,12 +7234,13 @@ initialization to be separate."
                       obj
                       id))))
 
-(define-generic-analysis get-declaration-id (type software ast)
+(defgeneric get-declaration-id (type software ast)
   (:documentation "Find AST's declaration (using `get-declaration-ast') and extract the corresponding identifier.
 
 This is important because a single declaration may define multiple
 variables, e.g. in C/C++ declaration syntax or in languages that
 support destructuring.")
+  (:method-combination standard/context)
   (:method ((type (eql :variable)) obj ast)
     (with-attr-table obj
       (car+cdr (find-in-symbol-table ast type ast))))
@@ -7485,7 +7495,7 @@ By default calls `declaration-type' with DECL-AST.")
   (:method ((obj t) (ast t))
     (declaration-type ast)))
 
-(define-generic-analysis resolve-declaration-type (software decl-ast ast)
+(defgeneric resolve-declaration-type (software decl-ast ast)
   (:documentation "Return the type that DECL-AST in SOFTWARE specifies for AST, as an AST, or nil if it could not be determined.
 
 This differs from `extract-declaration-type' only in cases when

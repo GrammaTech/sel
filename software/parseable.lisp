@@ -10,7 +10,8 @@
   (:import-from :functional-trees
    :path-later-p :slot-specifier-slot :slot-specifier-class
    :slot-specifier)
-  (:local-nicknames (:tg :trivial-garbage))
+  (:local-nicknames (:tg :trivial-garbage)
+                    (:attrs :functional-trees/attrs))
   (:export ;; ASTs
            :ast
            :functional-tree-ast
@@ -724,13 +725,14 @@ not &key) parameters."
     (let ((attr-fun (format-symbol (symbol-package name) "~a/attr"
                                    name)))
       `(progn
-         (def-attr-fun ,attr-fun (value)
+         (attrs:def-attr-fun ,attr-fun (value)
            (:method ((ast ast) &optional value)
              value))
          (defgeneric ,name ,lambda-list
            (:method-combination standard/context)
            (:method :context ,lambda-list
-             (,attr-fun ast (call-next-method)))
+             (attrs:with-attr-table software
+               (,attr-fun ast (call-next-method))))
            ,@clauses)))))
 
 
