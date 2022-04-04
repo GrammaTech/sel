@@ -506,6 +506,12 @@ pointer declarations which are nested on themselves."
            obj
            decl)))))
 
+(defmethod relevant-declaration-type ((obj c/cpp) (ast c/cpp-primitive-type))
+  nil)
+
+(defmethod relevant-declaration-type ((obj c/cpp) (ast c/cpp-field-expression))
+  'variable-declaration-ast)
+
 (defmethod infer-expression-type :around ((obj c/cpp) (ast expression-ast))
   "Fall back to inferring the expression type from the surrounding declaration.
 
