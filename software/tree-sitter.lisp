@@ -7273,10 +7273,9 @@ support destructuring.")
   (:documentation "Collect the variable declarations IDs in AST.")
   (:method (sw ast)
     (iter (for id in (identifiers ast))
-          (for decl =
-               (get-declaration-ast 'variable sw id))
+          (for decl = (get-declaration-ast :variable sw id))
           (when (typep decl 'variable-declaration-ast)
-            (set-collect (assure ast (get-declaration-id 'variable sw id))
+            (set-collect (assure ast (get-declaration-id :variable sw id))
                          into ids))
           (finally (return (convert 'list ids))))))
 
