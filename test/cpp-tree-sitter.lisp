@@ -226,7 +226,8 @@ mytype myfun3 (mytype y) { return y; }"))
             ("x" . variable-declaration-ast)
             ("y" . variable-declaration-ast)
             ("mytype" . type-declaration-ast)
-            ("int" . type-declaration-ast))))
+            ;; No declarations for primitive types.
+            ("int" . nil))))
     (with-attr-table sw
       (iter (for node in-tree (genome sw))
             (let ((relevant-type (relevant-declaration-type sw node))
