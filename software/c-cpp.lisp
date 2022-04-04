@@ -280,6 +280,10 @@ pointer declarations which are nested on themselves."
   (values (list (c/cpp-name ast))
           '(:type)))
 
+(defmethod inner-declarations ((ast c/cpp-struct-specifier))
+  ;; Make the type visible inside the type.
+  (outer-declarations ast))
+
 (defmethod outer-declarations ((ast c/cpp-enum-specifier))
   (match ast
     ((c/cpp-enum-specifier
