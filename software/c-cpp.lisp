@@ -540,7 +540,7 @@ pointer declarations which are nested on themselves."
 (defmethod relevant-declaration-type ((obj c/cpp) (ast c/cpp-field-expression))
   'variable-declaration-ast)
 
-(defmethod infer-expression-type :around ((obj c/cpp) (ast expression-ast))
+(defun infer-type-as-c/cpp-expression (obj ast)
   "Fall back to inferring the expression type from the surrounding declaration.
 
 That is, if the type of an expression cannot be extracted, then if it
@@ -551,12 +551,24 @@ E.g. given
 
     int x = y
 
-Then if we cannot infer the type of y per se we infer its type to be int."
+Then if we cannot infer the type of y per se we infer its type to be int.
+
+Other strategies may also be used. E.g. the type of an expression that
+appears as a return statement is assumed to be the type of the function."
+  (let ((parents (get-parent-asts* obj ast)))
+    (or (match (take 2 parents)
+          ((list (type c/cpp-init-declarator)
+                 (and decl (type c/cpp-declaration)))
+           (c/cpp-type decl)))
+        (and-let* (((typep (first parents) 'c/cpp-return-statement))
+                   ((equal (list ast) (children (first parents))))
+                   (fn (find-if (of-type 'function-declaration-ast)
+                                parents)))
+          (declaration-type fn)))))
+
+(defmethod infer-expression-type :around ((obj c/cpp) (ast expression-ast))
   (or (call-next-method)
-      (match (take 2 (get-parent-asts* obj ast))
-        ((list (type c/cpp-init-declarator)
-               (and decl (type c/cpp-declaration)))
-         (c/cpp-type decl)))))
+      (infer-type-as-c/cpp-expression obj ast)))
 
 (defmethod expression-type ((ast c/cpp-declaration))
   (cpp-type ast))
