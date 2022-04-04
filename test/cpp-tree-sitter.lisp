@@ -229,7 +229,7 @@ mytype myfun3 (mytype y) { return y; }"))
             ("int" . type-declaration-ast))))
     (with-attr-table sw
       (iter (for node in-tree (genome sw))
-            (let ((relevant-type (relevant-declaration-type node))
+            (let ((relevant-type (relevant-declaration-type *soft* node))
                   (wanted-type (aget (source-text node) types :test #'equal)))
               (is (eql wanted-type
                        relevant-type)
@@ -255,7 +255,7 @@ mytype myfun3 (mytype y) { return y; }"))
     (with-fixture/attrs trim-front
       (let* ((all-scopes (all-scopes *soft*)))
         (iter (for access in (accesses))
-              (for decl-type = (relevant-declaration-type access))
+              (for decl-type = (relevant-declaration-type *soft* access))
               (for decl = (get-declaration-ast decl-type *soft* access))
               (is (typep decl 'ast))
               (iter (for scope in all-scopes)
