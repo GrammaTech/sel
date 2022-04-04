@@ -716,6 +716,8 @@ implicitly memoized based on its required, &optional, and &rest (but
 not &key) parameters."
   (when (assoc :method-combination clauses)
     (error "Cannot specify a method combination for a generic analysis."))
+  (assert (not (member '&key lambda-list)))
+  (assert (not (member '&optional lambda-list)))
   (let ((req (parse-ordinary-lambda-list lambda-list)))
     (unless (subsetp '(software ast) req)
       (error "~s must have arguments named SOFTWARE and AST."
