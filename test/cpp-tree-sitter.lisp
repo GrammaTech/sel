@@ -229,7 +229,7 @@ mytype myfun3 (mytype y) { return y; }"))
             ("int" . type-declaration-ast))))
     (with-attr-table sw
       (iter (for node in-tree (genome sw))
-            (let ((relevant-type (relevant-declaration-type *soft* node))
+            (let ((relevant-type (relevant-declaration-type sw node))
                   (wanted-type (aget (source-text node) types :test #'equal)))
               (is (eql wanted-type
                        relevant-type)
@@ -484,8 +484,7 @@ auto z = myfun(1, 2);")))
     (is (source-text= "int" (infer-type sw z)))))
 
 (deftest test-struct-in-scope ()
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp (fmt "~
+  (let* ((sw (from-string 'cpp (fmt "~
 struct whatsit {};
 
 whatsit myfun() {
@@ -506,8 +505,7 @@ auto x = myfun();")))
     (is (source-text= (definition-name struct) "whatsit"))))
 
 (deftest test-resolve-method-call-to-field-decl ()
-  (with-analysis-cache ()
-    (let* ((sw (from-string 'cpp (fmt "~
+  (let* ((sw (from-string 'cpp (fmt "~
 struct Point {
   double x,y;
   double Distance(const Point&), other_function();
@@ -661,11 +659,12 @@ x->front();"))
 
 std::list<int> xs = {1, 2, 3};
 int first = xs.front();"))))
-    (is (typep
-         (get-declaration-ast 'function
-          sw
-          (find-if (of-type 'c/cpp-field-expression) (genome sw)))
-         'c/cpp-field-declaration))))
+    (with-attr-table sw
+      (is (typep
+           (get-declaration-ast 'function
+                                sw
+                                (find-if (of-type 'c/cpp-field-expression) (genome sw)))
+           'c/cpp-field-declaration)))))
 
 
 ;;; Parsing tests
