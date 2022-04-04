@@ -1319,6 +1319,7 @@ for the language.")
        (:c/cpp-expression-statement
         c-expression-statement cpp-expression-statement)
        (:c/cpp-field-declaration c-field-declaration cpp-field-declaration)
+       (:c/cpp-field-declaration-list c-field-declaration-list cpp-field-declaration-list)
        (:c/cpp-field-expression c-field-expression cpp-field-expression)
        (:c/cpp-field-identifier c-field-identifier cpp-field-identifier)
        (:c/cpp-for-statement c-for-statement cpp-for-statement)
