@@ -484,7 +484,8 @@ auto z = myfun(1, 2);")))
     (is (source-text= "int" (infer-type sw z)))))
 
 (deftest test-struct-in-scope ()
-  (let* ((sw (from-string 'cpp (fmt "~
+  (with-analysis-cache ()
+    (let* ((sw (from-string 'cpp (fmt "~
 struct whatsit {};
 
 whatsit myfun() {
@@ -505,7 +506,8 @@ auto x = myfun();")))
     (is (source-text= (definition-name struct) "whatsit"))))
 
 (deftest test-resolve-method-call-to-field-decl ()
-  (let* ((sw (from-string 'cpp (fmt "~
+  (with-analysis-cache ()
+    (let* ((sw (from-string 'cpp (fmt "~
 struct Point {
   double x,y;
   double Distance(const Point&), other_function();
@@ -611,27 +613,29 @@ iterator from a call on a dereferenced element."
 
 (deftest test-assignments ()
   (with-fixture/attrs trim-front
-    (flet ((assigned (var) (assignments var)))
-      (is (not (assigned (find-soft-var "dist"))))
-      (is (assigned (find-soft-var "p1")))
-      (is (assigned (find-soft-var "p2")))
-      (is (not (assigned (find-soft-var "result"))))
-      (is (assigned (find-soft-var "d")))
-      (is (not (assigned (find-soft-var "next_point"))))
-      (is (not (assigned (find-soft-var "segdist"))))
-      (is (not (assigned (find-soft-var "frac"))))
-      (is (not (assigned (find-soft-var "midpoint")))))))
+    (with-analysis-cache ()
+      (flet ((assigned (var) (assignments var)))
+        (is (not (assigned (find-soft-var "dist"))))
+        (is (assigned (find-soft-var "p1")))
+        (is (assigned (find-soft-var "p2")))
+        (is (not (assigned (find-soft-var "result"))))
+        (is (assigned (find-soft-var "d")))
+        (is (not (assigned (find-soft-var "next_point"))))
+        (is (not (assigned (find-soft-var "segdist"))))
+        (is (not (assigned (find-soft-var "frac"))))
+        (is (not (assigned (find-soft-var "midpoint"))))))))
 
 (deftest test-collect-arg-uses ()
   (with-fixture trim-front
-    (is (length= 2 (collect-arg-uses *soft* (find-soft-var "next_point"))))
-    (is (length= 0 (collect-arg-uses *soft* (find-soft-var "p2"))))
-    (is (length= 2 (collect-arg-uses *soft*
-                                     (find-soft-var "p2")
-                                     t)))
-    ;; This last one is really a caching test.
-    (is (length= 0 (collect-arg-uses *soft*
-                                     (find-soft-var "p2"))))))
+    (with-analysis-cache ()
+      (is (length= 2 (collect-arg-uses *soft* (find-soft-var "next_point"))))
+      (is (length= 0 (collect-arg-uses *soft* (find-soft-var "p2"))))
+      (is (length= 2 (collect-arg-uses *soft*
+                                       (find-soft-var "p2")
+                                       t)))
+      ;; This last one is really a caching test.
+      (is (length= 0 (collect-arg-uses *soft*
+                                       (find-soft-var "p2")))))))
 
 (deftest test-infer-type-loop-terminates ()
   (with-fixture/attrs trim-front

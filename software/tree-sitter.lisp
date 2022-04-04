@@ -7112,7 +7112,7 @@ Every element in the list has the following form:
     "Compiler macro to save calls for easier debugging (fewer frames)."
     (expand-get-declaration call 'get-declaration-id type obj ast)))
 
-(defgeneric get-declaration-ast (type software ast)
+(define-generic-analysis get-declaration-ast (type software ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.
 
@@ -7122,7 +7122,6 @@ type from AST's context, using `relevant-declaration-type'.
 Calling `get-declaration-ast' with a type of `variable', `function',
 or `type' is equivalent to `variable-declaration-ast',
 `function-declaration-ast', or `type-declaration-ast', respectively.")
-  (:method-combination standard/context)
   (:method ((type (eql :variable)) obj ast)
     (with-attr-table obj
       (find-decl-in-symbol-table ast type ast)))
@@ -7226,13 +7225,12 @@ initialization to be separate."
                       obj
                       id))))
 
-(defgeneric get-declaration-id (type software ast)
+(define-generic-analysis get-declaration-id (type software ast)
   (:documentation "Find AST's declaration (using `get-declaration-ast') and extract the corresponding identifier.
 
 This is important because a single declaration may define multiple
 variables, e.g. in C/C++ declaration syntax or in languages that
 support destructuring.")
-  (:method-combination standard/context)
   (:method ((type (eql :variable)) obj ast)
     (with-attr-table obj
       (car+cdr (find-in-symbol-table ast type ast))))
@@ -7245,7 +7243,6 @@ support destructuring.")
   (:method ((type (eql :macro)) obj ast)
     (with-attr-table obj
       (car+cdr (find-in-symbol-table ast type ast))))
-
   ;; We can't just rely on get-declaration-ast to translate, we need
   ;; to be able to define methods on the full names.
   (:method :context ((type (eql 'variable)) obj ast)
@@ -7262,7 +7259,7 @@ support destructuring.")
                              id-text)))
                (get-declaration-ast type obj id)))))
 
-(defgeneric variable-declaration-ids (software ast)
+(define-generic-analysis variable-declaration-ids (software ast)
   (:documentation "Collect the variable declarations IDs in AST.")
   (:method (sw ast)
     (iter (for id in (identifiers ast))
@@ -7446,13 +7443,12 @@ A placeholder type is a type like C++ `auto' or Java `var', a request
 for the compiler to infer the type.")
   (:method ((ast t)) nil))
 
-(defgeneric infer-type (software ast)
+(define-generic-analysis infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
-  (:method-combination standard/context)
   (:method ((software t) (ast t))
     (with-attr-table software
       (flet ((infer-type-from-declaration ()
@@ -7467,10 +7463,9 @@ By default this first tries `expression-type', then invokes
                      expression-type))
                 (t expression-type)))))))
 
-(defgeneric infer-expression-type (software ast)
+(define-generic-analysis infer-expression-type (software ast)
   (:documentation "Infer the type of AST in SOFTWARE as an expression.
 Calls `expression-type' by default.")
-  (:method-combination standard/context)
   (:method ((obj t) (ast t))
     (expression-type ast))
   (:method ((obj software) (ast call-ast))
@@ -7483,15 +7478,14 @@ Calls `expression-type' by default.")
   (:documentation "Extract the type from AST, an expression.")
   (:method ((ast t)) nil))
 
-(defgeneric extract-declaration-type (software ast)
+(define-generic-analysis extract-declaration-type (software ast)
   (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
 
 By default calls `declaration-type' with DECL-AST.")
-  (:method-combination standard/context)
   (:method ((obj t) (ast t))
     (declaration-type ast)))
 
-(defgeneric resolve-declaration-type (software decl-ast ast)
+(define-generic-analysis resolve-declaration-type (software decl-ast ast)
   (:documentation "Return the type that DECL-AST in SOFTWARE specifies for AST, as an AST, or nil if it could not be determined.
 
 This differs from `extract-declaration-type' only in cases when
@@ -7501,7 +7495,6 @@ but `y' as a float.)
 
 By default simply calls `extract-declaration-type' with SOFTWARE and
 DECL-AST.")
-  (:method-combination standard/context)
   (:method ((software t) (decl-ast t) (ast t))
     (extract-declaration-type software decl-ast)))
 
