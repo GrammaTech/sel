@@ -842,6 +842,10 @@ iterator we want the type of the container's elements."
          right-type)
         ((null conversion) nil))))))
 
+(defmethod infer-expression-type ((obj cpp) (ast cpp-this))
+  (when-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
+    (definition-name-ast type-ast)))
+
 (defun usual-arithmetic-conversions (type1 type2)
   ;; TODO Sized integer types. Complex and imaginary types? Note that
   ;; one thing we would want from type descriptors is to be able to
