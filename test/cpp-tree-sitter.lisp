@@ -695,6 +695,12 @@ struct Point {
           (infer-type sw)
           (stmt-with-text sw "std::sqrt(a * a + b * b)"))))
 
+(deftest test-infer-initializer-list-type-as-expression ()
+  (let ((v (from-string 'cpp "std::vector<Point> pts = { p1, p2, p3 };")))
+    (is (source-text=
+         "std::vector<Point>"
+         (infer-type v (find-if (of-type 'cpp-initializer-list) v))))))
+
 
 ;;; Parsing tests
 
