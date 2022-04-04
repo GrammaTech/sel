@@ -719,11 +719,9 @@ not &key) parameters."
   (assert (not (member '&key lambda-list)))
   (assert (not (member '&optional lambda-list)))
   (let ((req (parse-ordinary-lambda-list lambda-list)))
-    (unless (subsetp '(software ast) req)
-      (error "~s must have arguments named SOFTWARE and AST."
+    (unless (equal '(software ast) req)
+      (error "~s must only have arguments named SOFTWARE and AST."
              name))
-    (unless req
-      (error "A generic analysis must have required arguments."))
     (let ((attr-fun (format-symbol (symbol-package name) "~a/attr"
                                    name)))
       `(progn
