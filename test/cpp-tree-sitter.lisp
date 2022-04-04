@@ -669,6 +669,20 @@ int first = xs.front();"))))
                                 (find-if (of-type 'c/cpp-field-expression) (genome sw)))
            'c/cpp-field-declaration)))))
 
+(deftest test-auto-resolution-in-method ()
+  (let* ((sw (from-string 'cpp "struct Point {
+  double x,y;
+  double Distance(const Point & p) {
+    const auto a = this.x - p.y;
+    const auto b = this.y - p.y;
+    return std::sqrt(a * a + b * b);
+  }
+};")))
+    (is (source-text= "double"
+                      (infer-type sw (stmt-with-text sw "a"))))
+    (is (source-text= "double"
+                      (infer-type sw (stmt-with-text sw "b"))))))
+
 
 ;;; Parsing tests
 

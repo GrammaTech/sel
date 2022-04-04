@@ -403,6 +403,28 @@ pointer declarations which are nested on themselves."
         (infer-type obj id))
       (call-next-method)))
 
+(defmethod infer-expression-type ((obj c/cpp) (ast c/cpp-field-expression))
+  (ematch ast
+    ((c/cpp-field-expression
+      (c/cpp-argument arg)
+      (c/cpp-field field))
+     (or (and-let* ((type (infer-type obj arg))
+                    ;; We have a type definition...
+                    (type-def (get-declaration-ast :type obj type))
+                    ;; That has a body...
+                    (body (slot-value-safe type-def 'cpp-body))
+                    ;; That has a field declaration list...
+                    ((typep body 'c/cpp-field-declaration-list))
+                    ;; That has a field with the right name...
+                    (field-ast
+                     (find field (direct-children body)
+                           :key #'field-names
+                           :test (op (member _ _ :test #'source-text=)))))
+           ;; Get whatever its type is declared to be.
+           ;; TODO It is possible for a const static member to be auto.
+           (infer-type obj field-ast))
+         (call-next-method)))))
+
 (defgeneric resolve-deref-type (obj ast type)
   (:documentation "Given TYPE, the type of a pointer variable, resolve
   the type of the \"pointee\", what is returned when the pointer is dereferenced.")
