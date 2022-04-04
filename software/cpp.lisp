@@ -822,6 +822,10 @@ iterator we want the type of the container's elements."
              element-type)))
         type-ast)))
 
+(defmethod infer-expression-type ((obj c/cpp) (ast cpp-initializer-list))
+  (or (call-next-method)
+      (infer-type-as-c/cpp-expression obj ast)))
+
 (defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
   (infer-expression-type obj (only-elt (direct-children ast))))
 
