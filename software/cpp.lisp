@@ -569,7 +569,7 @@
 - FIELD is the name of the function or field we want."
   (labels ((find-field (field ast)
              (find-if (lambda (ast)
-                        (and-let*  (((typep ast 'cpp-field-declaration))
+                        (and-let*  (((typep ast '(or cpp-field-declaration cpp-function-definition)))
                                     (decl
                                      (find-if (of-type 'cpp-function-declarator)
                                               ast)))
