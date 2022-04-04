@@ -7461,9 +7461,9 @@ By default this first tries `expression-type', then invokes
   (:method ((software t) (ast t))
     (with-attr-table software
       (flet ((infer-type-from-declaration ()
-               (let ((decl-type (relevant-declaration-type software ast)))
-                 (when-let (decl (get-declaration-ast decl-type software ast))
-                   (resolve-declaration-type software decl ast)))))
+               (when-let* ((decl-type (relevant-declaration-type software ast))
+                           (decl (get-declaration-ast decl-type software ast)))
+                 (resolve-declaration-type software decl ast))))
         (let ((expression-type (infer-expression-type software ast)))
           (cond ((null expression-type)
                  (infer-type-from-declaration))
