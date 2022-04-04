@@ -230,6 +230,8 @@ mytype myfun3 (mytype y) { return y; }"))
             ("int" . nil))))
     (with-attr-table sw
       (iter (for node in-tree (genome sw))
+            (when (typep node 'declaration-ast)
+              (next-iteration))
             (let ((relevant-type (relevant-declaration-type sw node))
                   (wanted-type (aget (source-text node) types :test #'equal)))
               (is (eql wanted-type

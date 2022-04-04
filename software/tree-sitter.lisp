@@ -7209,6 +7209,14 @@ declaration makes sense.")
     'type-declaration-ast)
   (:method ((obj t) (ast type-ast))
     'type-declaration-ast)
+  (:method ((obj t) (ast declaration-ast))
+    (find (type-of ast)
+          '(variable-declaration-ast
+            function-declaration-ast
+            type-declaration-ast
+            macro-declaration-ast
+            declaration-ast)
+          :test #'subtypep))
   (:method :around ((obj t) (ast ast))
     (or
      ;; The relevant declaration type for a call function is a
