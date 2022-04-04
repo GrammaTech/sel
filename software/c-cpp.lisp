@@ -209,6 +209,9 @@
     (values declarations
             (repeat-sequence '(:variable) (length declarations)))))
 
+(defmethod inner-declarations ((ast c/cpp-for-statement))
+  (outer-declarations (c/cpp-initializer ast)))
+
 (defmethod outer-declarations ((ast c/cpp-declaration))
   (labels ((get-declarations (d)
              (match d
