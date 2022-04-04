@@ -560,12 +560,13 @@ both when it uses a dot (not a dereference) and when it dereferences
 with an arrow, even when the infererence passes through both."
   (let* ((sw (from-string 'cpp +iterator-container-type-sw+))
          (calls (collect-if (of-type 'call-ast) (genome sw))))
-    (is (length= 2 calls))
-    (destructuring-bind (call1 call2) calls
-      (is (source-text= call1 "pts.begin()"))
-      (is (source-text= call2 "p1->Distance(p2)"))
-      (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
-      (is (source-text= (infer-type sw call2) "double")))))
+    (with-attr-table sw
+      (is (length= 2 calls))
+      (destructuring-bind (call1 call2) calls
+        (is (source-text= call1 "pts.begin()"))
+        (is (source-text= call2 "p1->Distance(p2)"))
+        (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
+        (is (source-text= (infer-type sw call2) "double"))))))
 
 (deftest test-resolve-iterator-container-type ()
   "Test that we can resolve the type of the elements of the container
