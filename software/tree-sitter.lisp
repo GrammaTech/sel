@@ -7189,51 +7189,30 @@ or `type' is equivalent to `variable-declaration-ast',
                     (typep (aget :decl scope) type)))
              (scopes obj identifier))))))
 
-(def-attr-fun relevant-declaration-type (type)
+(defgeneric relevant-declaration-type (software ast)
   (:documentation "Return the type of declaration we should look for.
 
 That is, based on AST's context, figure out whether we should be
 looking for a `variable-declaration-ast', `function-declaration-ast',
-or `type-declaration-ast'. (Or nil, if the AST does not have a
-meaningful declaration.)")
+or `type-declaration-ast'.")
   ;; TODO Not every language has a separate class for type
   ;; identifiers. E.g. Python just has Python identifiers inside
   ;; Python types.
-  (:method :around ((ast ast) &optional type)
-    (declare (ignore type))
-    (lret ((result (call-next-method)))
-      (assert (subtypep result 'declaration-ast))))
-  (:method ((ast ast) &optional type)
-    (mapc (op (relevant-declaration-type _ type))
-          (children ast))
-    type)
-  (:method ((software parseable) &optional type)
-    (relevant-declaration-type (genome software) type))
-  (:method ((ast type-ast) &optional type)
-    (mapc (op (relevant-declaration-type _ 'type-declaration-ast))
-          (children ast))
-    (or type 'type-declaration-ast))
-  (:method ((ast identifier-ast) &optional type)
-    (mapc (op (relevant-declaration-type _ type))
-          (children ast))
-    (or type 'variable-declaration-ast))
-  (:method ((ast type-identifier-ast) &optional type)
-    "Override the method for identifier ast."
-    (call-next-method ast 'type-declaration-ast))
-  (:method ((call call-ast) &optional type)
-    ;; The relevant declaration type for a call function is a
-    ;; function (unless it's a method).
-    (relevant-declaration-type (call-function call) 'function-declaration-ast)
-    (call-next-method)
-    type)
-  (:method ((fn function-declaration-ast) &optional type)
-    ;; The relevant declaration for a function name is a function.
-    (relevant-declaration-type (definition-name-ast fn)
-                               'function-declaration-ast)
-    (call-next-method)))
-
-(defmethod attr-missing ((name (eql 'relevant-declaration-type)) node)
-  (relevant-declaration-type (attrs-root*) nil))
+  (:method ((obj t) (ast type-identifier-ast))
+    'type-declaration-ast)
+  (:method ((obj t) (ast ast))
+    (or
+     ;; The relevant declaration type for a call function is a
+     ;; function.
+     (and-let* ((call (find-enclosing 'call-ast obj ast))
+                ((eql ast (call-function call))))
+       'function-declaration-ast)
+     ;; The relevant declaration for a function name is a function.
+     (and-let* ((fn (find-enclosing 'function-declaration-ast obj ast))
+                ((eql ast (definition-name-ast fn))))
+       'function-declaration-ast)
+     ;; Default to a variable declaration.
+     'variable-declaration-ast)))
 
 (def-attr-fun get-initialization-ast ()
   "Find where AST is initialized.
@@ -7477,7 +7456,7 @@ By default this first tries `expression-type', then invokes
   (:method ((software t) (ast t))
     (with-attr-table software
       (flet ((infer-type-from-declaration ()
-               (let ((decl-type (relevant-declaration-type ast)))
+               (let ((decl-type (relevant-declaration-type software ast)))
                  (when-let (decl (get-declaration-ast decl-type software ast))
                    (resolve-declaration-type software decl ast)))))
         (let ((expression-type (infer-expression-type software ast)))

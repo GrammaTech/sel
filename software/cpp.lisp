@@ -1004,21 +1004,20 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
                     (lookup-qualified-declaration qname method))
                    ((and type (identifier-ast))
                     (lookup-in-std-headers nil type)))))))
-    (with-attr-table obj
-      (let ((decl (call-next-method)))
-        (cond ((typep decl
-                      ;; TODO No distinguished class for a field
-                      ;; declaration with a function declarator.
-                      '(or function-declaration-ast
-                        cpp-field-declaration))
-               decl)
-              ((not (eql 'function-declaration-ast
-                         (relevant-declaration-type ast)))
-               decl)
-              ((typep ast 'identifier-ast)
-               (lookup-qualified-name ast))
-              ((typep ast 'cpp-field-expression)
-               (lookup-field-method-declaration ast)))))))
+    (let ((decl (call-next-method)))
+      (cond ((typep decl
+                    ;; TODO No distinguished class for a field
+                    ;; declaration with a function declarator.
+                    '(or function-declaration-ast
+                      cpp-field-declaration))
+             decl)
+            ((not (eql 'function-declaration-ast
+                       (relevant-declaration-type obj ast)))
+             decl)
+            ((typep ast 'identifier-ast)
+             (lookup-qualified-name ast))
+            ((typep ast 'cpp-field-expression)
+             (lookup-field-method-declaration ast))))))
 
 (defmethod initializer-aliasee ((sw cpp)
                                 (lhs cpp-reference-declarator)
