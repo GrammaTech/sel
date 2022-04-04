@@ -370,6 +370,8 @@ pointer declarations which are nested on themselves."
   (collect-if (of-type 'c/cpp-field-identifier) ast))
 (defmethod field-names ((ast c/cpp-enumerator))
   (list (c/cpp-name ast)))
+(defmethod field-names ((ast c/cpp-function-definition))
+  (list (definition-name-ast ast)))
 
 (defmethod get-declaration-id
     :around
