@@ -9748,7 +9748,7 @@ by MULTI-DECLARATION-KEYS."
   (:method ((ast ast) (namespace symbol) (query string))
     (when-let* ((symbol-table (symbol-table ast))
                 (ns-table (lookup symbol-table namespace)))
-      (lookup ns-table query))))
+      (values (lookup ns-table query)))))
 
 (defgeneric find-decls-in-symbol-table (ast ns query)
   (:method ((ast ast) (ns symbol) (query t))
