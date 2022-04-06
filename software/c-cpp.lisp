@@ -150,7 +150,10 @@
     (values (soft-alist-of symbol-table-namespace fset:map)
             &optional))
 (defun convert-grouped-namespaces (grouped-namespaces
-                                   &key (source-text-fun #'source-text))
+                                   &key (source-text-fun
+                                         (lambda (ast)
+                                           (or (declarator-name ast)
+                                               (source-text ast)))))
   "Convert grouped-namespaces into a grouping of
 (namespace . source-text/declaration-map)."
   (labels ((create-source-text-map (declarations)
@@ -202,12 +205,19 @@
 (defmethod no-fallthrough ((ast c/cpp-continue-statement)) t)
 (defmethod no-fallthrough ((ast c/cpp-break-statement)) t)
 
+(defmethod inner-declarations ((ast c/cpp-function-definition))
+  ;; Annotate the defaults as variables.
+  (let ((decls (call-next-method)))
+    (values decls
+            (mapcar (constantly :variable) decls))))
+
 (defmethod inner-declarations ((ast c/cpp-function-declarator))
-  (let ((declarations
+  (let* ((declarations
           (remove-if-not {typep _ 'c/cpp-parameter-declaration}
-                         (convert 'list (c/cpp-parameters ast)))))
-    (values declarations
-            (repeat-sequence '(:variable) (length declarations)))))
+                         (convert 'list (c/cpp-parameters ast))))
+         (names (mappend #'parameter-names declarations)))
+    (values names
+            (mapcar (constantly :variable) names))))
 
 (defmethod inner-declarations ((ast c/cpp-for-statement))
   (outer-declarations (c/cpp-initializer ast)))
@@ -359,6 +369,8 @@ pointer declarations which are nested on themselves."
 (defmethod declarator-name-ast ((ast c/cpp-array-declarator))
   (declarator-name-ast (c/cpp-declarator ast)))
 (defmethod declarator-name-ast ((ast c/cpp-function-declarator))
+  (declarator-name-ast (c/cpp-declarator ast)))
+(defmethod declarator-name-ast ((ast c/cpp-parameter-declaration))
   (declarator-name-ast (c/cpp-declarator ast)))
 
 (defmethod declaration-type ((ast c/cpp-function-definition))

@@ -1085,7 +1085,9 @@ available to use at any point in a C++ AST.")
   (propagate-declarations-down node in))
 
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
-  (let* ((source-text (source-text declared-ast)))
+  (let* ((source-text
+          (or (declarator-name declared-ast)
+              (source-text declared-ast))))
     (if (string^= "::" source-text)
         ;; Global namespace.
         (drop-prefix "::" source-text)
