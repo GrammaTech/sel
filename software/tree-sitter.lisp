@@ -1016,7 +1016,8 @@ for the language.")
         (cpp-consequence :initarg :consequence :reader consequence)
         (cpp-alternative :initarg :alternative :reader alternative))
        (cpp-update-expression
-        (cpp-argument :reader assignee))
+        (cpp-argument :reader assignee)
+        (cpp-operator :initarg :operator :reader operator))
        (cpp-binary-expression
         (cpp-left :reader lhs :initarg :lhs)
         (cpp-right :reader rhs :initarg :rhs)))
