@@ -450,37 +450,11 @@ pointer declarations which are nested on themselves."
         (resolve-deref-type obj ast result)
         result)))
 
-(defmethod get-declaration-ast ((type (eql :variable))
-                                (obj software)
-                                (ast c/cpp-field-expression))
+(defmethod get-declaration-ast ((type (eql :variable)) (obj software) (ast c/cpp-field-expression)) ;ok
   (get-declaration-ast type obj (c/cpp-argument ast)))
 
-(defmethod get-declaration-ast ((type (eql 'function-declaration-ast))
-                                (obj software)
-                                (ast c/cpp-field-expression))
-  (when-let* ((type
-               ;; Get the ID from the declaration of the field
-               ;; argument.
-
-               ;; Note it is possible to end up recursing here when
-               ;; working backward through multiple field
-               ;; declarations.
-               (infer-type obj ast))
-              ;; Get the declaration of the type of the argument.
-              (type-decl (get-declaration-ast :type obj type))
-              ;; The name of the field we're looking for.
-              (target-field-name (source-text (c/cpp-field ast))))
-    (match type-decl
-      ((c/cpp-struct-specifier
-        (c/cpp-body field-list))
-       (iter (for field in (direct-children field-list))
-             (for field-names = (field-names field))
-             (finding field such-that
-                      (member target-field-name
-                              field-names
-                              :test #'source-text=)))))))
-
-(defmethod get-declaration-ast ((type t) (obj software) (ast c/cpp-field-expression))
+(defmethod get-declaration-ast ((type (eql 'function-declaration-ast)) (obj software) (ast c/cpp-field-expression))
+  ;; TODO Should this somehow be handled by the symbol table?
   (when-let* ((type
                ;; Get the ID from the declaration of the field
                ;; argument.
@@ -508,7 +482,14 @@ pointer declarations which are nested on themselves."
     ((type t) (obj c/cpp) (field c/cpp-field-expression))
   (get-declaration-id type obj (c/cpp-argument field)))
 
-(defmethod get-declaration-id ((type t) (obj c/cpp) (id identifier-ast))
+(defmethod get-declaration-id ((type (eql 'variable-declaration-ast))
+                               (obj c/cpp)
+                               (id identifier-ast))
+  (get-declaration-id :variable obj id))
+
+(defmethod get-declaration-id ((type (eql 'function-declaration-ast))
+                               (obj c/cpp)
+                               (id identifier-ast))
   (when-let (declaration (get-declaration-ast t obj id))
     (let ((id-text (source-text id)))
       (iter (for ast1 in-tree declaration)

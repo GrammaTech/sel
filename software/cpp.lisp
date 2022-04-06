@@ -984,7 +984,7 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
                            (cpp-argument var)
                            (cpp-field method))
                           field))
-               (let ((var-decl (get-declaration-ast 'variable obj var)))
+               (let ((var-decl (get-declaration-ast :variable obj var)))
                  (match (infer-type obj var-decl)
                    ((and qname (type cpp-qualified-identifier))
                     (lookup-qualified-declaration qname method))

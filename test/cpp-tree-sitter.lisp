@@ -578,7 +578,7 @@ of a std iterator."
     (with-attr-table sw
       (flet ((get-decl (name)
                (get-declaration-id
-                'variable
+                :variable
                 sw
                 (find-if (op (source-text= name _)) sw))))
         (is (source-text= "Point" (infer-type sw (get-decl "po"))))
