@@ -450,11 +450,6 @@ pointer declarations which are nested on themselves."
         (resolve-deref-type obj ast result)
         result)))
 
-(defmethod get-declaration-ast ((type (eql 'variable-declaration-ast))
-                                (obj software)
-                                (ast c/cpp-field-expression))
-  (get-declaration-ast :variable obj ast))
-
 (defmethod get-declaration-ast ((type (eql :variable))
                                 (obj software)
                                 (ast c/cpp-field-expression))

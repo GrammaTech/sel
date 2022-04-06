@@ -525,7 +525,7 @@ auto d = p1->Distance(p2);")))
     ;; We get the type of `p1' (`Point').
     (is (source-text= "Point"
                       (infer-type sw (get-declaration-ast
-                                      'variable
+                                      :variable
                                       sw field-expr))))
     ;; We get the declaration of the `Point' type.
     #+(or) (is (get-declaration-ast 'type sw
