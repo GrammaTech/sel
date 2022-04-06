@@ -846,8 +846,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 
 ;;; Helper functions
 
-(defmethod collect-var-uses ((obj python) (ast python-ast)
-                             &key &allow-other-keys)
+(defmethod collect-var-uses ((obj python) (ast python-ast))
   "Collect uses of AST in OBJ."
   ;;TODO: at some point, expand this to work inside classes.
   ;;      This may require significat modifications to acount

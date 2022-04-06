@@ -7315,10 +7315,10 @@ pointers into account in languages that support them.")
             (aliasee2 (or (aliasee id2) id2)))
         (same-variable-p obj aliasee1 aliasee2)))))
 
-(defgeneric collect-var-uses (software ast &key &allow-other-keys)
-  (:documentation "Collect uses of IDENTIFIER in SOFTWARE.")
+(define-generic-analysis collect-var-uses (software ast)
+  (:Documentation "Collect uses of IDENTIFIER in SOFTWARE.")
   (:method ((obj normal-scope) (identifier identifier-ast)
-            &key &aux after-decl-flag)
+            &aux after-decl-flag)
     (labels ((initial-declaration-p ()
                "Return T the first time this is called per collect-var-uses
                 call."
