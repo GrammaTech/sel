@@ -6762,7 +6762,9 @@ should be rebound.")
   (:documentation "Return a representation of the TYPE of PARAMETER-AST."))
 
 (defgeneric parameter-name (parameter-ast)
-  (:documentation "Return the name of PARAMETER-AST."))
+  (:documentation "Return the name of PARAMETER-AST.")
+  (:method ((ast ast))
+    (source-text (only-elt (parameter-names ast)))))
 
 (defgeneric parameter-names (parameter-ast)
   (:documentation "Return the names of PARAMETER-AST.
@@ -6966,6 +6968,7 @@ Return NIL on the empty list.")
 declared in a declarator, or in the first element of a list of declarators.
 Return NIL on the empty list.")
   (:method ((ast null)) nil)
+  (:method ((ast ast)) nil)
   (:method ((ast list))
     (declarator-name-ast (car ast))))
 
@@ -7319,50 +7322,14 @@ pointers into account in languages that support them.")
 
 (define-generic-analysis collect-var-uses (software ast)
   (:Documentation "Collect uses of IDENTIFIER in SOFTWARE.")
-  (:method ((obj normal-scope) (identifier identifier-ast)
-            &aux after-decl-flag)
-    (labels ((initial-declaration-p ()
-               "Return T the first time this is called per collect-var-uses
-                call."
-               (when (not after-decl-flag)
-                 (setf after-decl-flag t)))
-             (contains-identifier-p (declarations)
-               "Return T if DECLARATIONS contains a declaration with the
-                same name as identifier."
-               (member (source-text identifier) declarations
-                       :test #'equal :key #'source-text))
-             (variable-shadowed-p (declarations)
-               "Return T if the variable is shadowed by a declaration
-                in DECLARATIONS."
-               (and (contains-identifier-p declarations)
-                    ;; This is a hack to get around the original decl of the
-                    ;; variable. This is caused by collect-var-use-children
-                    ;; starting at the enclosing scope and
-                    ;; outer/inner-declarations not returning enough information
-                    ;; to determine if the decl is the original one.
-                    (not (initial-declaration-p))))
-             (collect-var-use-children (ast parents)
-               "Return all variable uses in the children of AST."
-               (cond
-                 ((and (typep ast 'identifier-ast)
-                       (variable-use-p obj ast :parents parents)
-                       (equal (source-text identifier) (source-text ast)))
-                  (list ast))
-                 ((variable-shadowed-p (inner-declarations ast)) nil)
-                 (t
-                  (iter
-                    ;; NOTE: use evaluation order here for cases where
-                    ;;       variable shadowing may become an issue.
-                    (for child in (evaluation-order-children ast))
-                    (appending
-                     (collect-var-use-children child (cons ast parents)))
-                    (until (variable-shadowed-p (outer-declarations child))))))))
-      (when-let ((declaration-ast
-                  (get-declaration-ast 'variable obj identifier)))
-        (remove-if-not
-         (op (path-later-p obj _ declaration-ast))
-         (collect-var-use-children
-          (enclosing-scope obj declaration-ast) nil))))))
+  (:method ((obj normal-scope) (identifier identifier-ast))
+    (when-let ((identifier (get-declaration-id :variable obj identifier)))
+      (collect-if (lambda (ast)
+                    (and (not (eql ast identifier))
+                         (typep ast 'identifier-ast)
+                         (eql identifier
+                              (get-declaration-id :variable obj ast))))
+                  (genome obj)))))
 
 (defgeneric assignees (ast)
   (:documentation "Get the ASTs that AST assigns to.
@@ -9737,7 +9704,8 @@ by MULTI-DECLARATION-KEYS."
 
 (defgeneric qualify-declared-ast-name (ast)
   (:method ((ast ast))
-    (source-text ast)))
+    (or (declarator-name ast)
+        (source-text ast))))
 
 (defgeneric find-in-symbol-table (ast namespace query)
   (:method ((ast ast) (ns null) (query string))

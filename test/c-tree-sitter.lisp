@@ -675,16 +675,18 @@ If any fails, return that node.  Otherwise, return NIL.")
 
 
 ;;;; GET-UNBOUND-VALS tests
-(deftest c-get-unbound-vals-1 ()
-  "get-unbound-vals handles variable shadowing."
-  (let* ((source "int i = 10;
 
-for (int i = i; i < i; i++) {}")
-         (software (make 'c :genome (convert 'c-ast source)))
-         (unbound-vals
-           (get-unbound-vals software (find-if (of-type 'c-for-statement)
-                                               (genome software)))))
-    (is (member "i" unbound-vals :key #'source-text :test #'equal))))
+;;; TODO This test doesn't appear to be valid.
+;; (deftest c-get-unbound-vals-1 ()
+;;   "get-unbound-vals handles variable shadowing."
+;;   (let* ((source "int i = 10;
+
+;; for (int i = i; i < i; i++) {}")
+;;          (software (make 'c :genome (convert 'c-ast source)))
+;;          (unbound-vals
+;;            (get-unbound-vals software (find-if (of-type 'c-for-statement)
+;;                                                (genome software)))))
+;;     (is (member "i" unbound-vals :key #'source-text :test #'equal))))
 
 (deftest c-get-unbound-vals-2 ()
   "get-unbound-vals gets variables that aren't defined in an AST."
