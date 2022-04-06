@@ -7243,7 +7243,7 @@ This is useful when languages allow a single declaration to initialize
 more than one variable, and for languages that allow declaration and
 initialization to be separate."
   (:method ((ast t) &aux (obj (attrs-root*)))
-    (when-let (id (get-declaration-id 'variable obj ast))
+    (when-let (id (get-declaration-id :variable obj ast))
       (find-enclosing 'variable-initialization-ast
                       obj
                       id))))
@@ -7300,8 +7300,8 @@ they are definitely not the same; returning NIL, NIL means
 uncertainty.")
   (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
     (with-attr-table obj
-      (let ((decl1 (get-declaration-id 'variable obj id1))
-            (decl2 (get-declaration-id 'variable obj id2)))
+      (let ((decl1 (get-declaration-id :variable obj id1))
+            (decl2 (get-declaration-id :variable obj id2)))
         (cond ((not (and decl1 decl2))
                (values nil nil))
               ((eql decl1 decl2)
@@ -7370,7 +7370,7 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.)"
   (:method ((target identifier-ast))
     (values
      (lookup (assignees-table (attrs-root*))
-             (get-declaration-id 'variable (attrs-root*) target))))
+             (get-declaration-id :variable (attrs-root*) target))))
   (:method ((target t))
     nil))
 
@@ -7381,7 +7381,7 @@ If ALIAS is non-nil, resolve aliases during the search.")
   (:method ((obj software) (target identifier-ast) &optional alias)
     (with-attr-table obj
       (flet ((get-decl (obj var)
-               (get-declaration-id 'variable
+               (get-declaration-id :variable
                                    obj
                                    (or (and alias (aliasee var))
                                        var))))
