@@ -953,28 +953,6 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (:method ((ast cpp-namespace-definition-name))
     (lastcar (children ast))))
 
-(defmethod get-declaration-ast ((type t) (obj cpp) (ast ast))
-  (let ((explicits (explicit-namespace-qualifiers ast)))
-    (if (null explicits)
-        (call-next-method)
-        (let* ((full-qualifiers
-                (mapcar #'source-text (namespace-qualifiers obj ast)))
-               (source-text (source-text (unqualified-name ast)))
-               (scope
-                (occurs-if
-                 (lambda (scope)
-                   (match scope
-                     ((alist (:name . (and name (type string)))
-                             (:decl . (and decl (type ast))))
-                      (and (equal source-text name)
-                           (typep decl type)
-                           (equal
-                            full-qualifiers
-                            (mapcar #'source-text
-                                    (namespace-qualifiers obj decl)))))))
-                 (scope-tree obj))))
-          (aget :decl scope)))))
-
 (defmethod get-declaration-ast :context ((type (eql 'function-declaration-ast))
                                          (obj cpp) (ast ast))
   "When we can't find declaration in the file, look in standard library headers."
