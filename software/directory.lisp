@@ -201,19 +201,19 @@ for forms inside RETURN-BODY and holds the current AST."
      (defmethod ,attr-name ((node directory-ast)
                             ,@(when optional-args
                                 `(&optional ,@optional-args)))
-       (mapc (op (symbol-table _ in)) (entries node))
+       (mapc (op (,attr-name _ in)) (entries node))
        ,@return-body)
 
      (defmethod ,attr-name ((node file-ast)
                             ,@(when optional-args
                                 `(&optional ,@optional-args)))
-       (mapc (op (symbol-table _ in)) (entries node))
+       (mapc (op (,attr-name _ in)) (entries node))
        ,@return-body)
 
      (defmethod ,attr-name ((node directory-project)
                             ,@(when optional-args
                                 `(&optional ,@optional-args)))
-       (mapc (op (symbol-table _ in))
+       (mapc (op (,attr-name _ in))
              (mapcar #'cdr (evolve-files node)))
        ,@return-body)))
 
