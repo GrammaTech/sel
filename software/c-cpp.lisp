@@ -453,7 +453,12 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-ast ((type (eql :variable)) (obj software) (ast c/cpp-field-expression)) ;ok
   (get-declaration-ast type obj (c/cpp-argument ast)))
 
-(defmethod get-declaration-ast ((type (eql 'function-declaration-ast)) (obj software) (ast c/cpp-field-expression))
+(defmethod get-declaration-ast ((type (eql 'function-declaration-ast))
+                                (obj software)
+                                (ast c/cpp-field-expression))
+  (get-declaration-ast :function obj ast))
+
+(defmethod get-declaration-ast ((type (eql :function)) (obj software) (ast c/cpp-field-expression)) ;ok
   ;; TODO Should this somehow be handled by the symbol table?
   (when-let* ((type
                ;; Get the ID from the declaration of the field
