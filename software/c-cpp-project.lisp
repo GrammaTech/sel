@@ -179,21 +179,25 @@ and add it to PROJECT."))
                 (root-ast (convert class-ast markup-synopsis)))
       (patch-system-header-ast root-ast))))
 
+(defvar *system-header-cache* (dict)
+  "Store system headers that have already been parsed.")
+
 (defmethod get-system-header ((project c/cpp-project) (path-string string)
                               &aux (genome (genome project)))
   (symbol-macrolet ((header-hash (gethash
                                   path-string
                                   (system-headers/string->ast genome))))
     (labels ((populate-header-entry (project path-string)
-               (lret ((system-header
-                       (make-instance
-                        'c/cpp-system-header
-                        :header-name path-string
-                        :children
-                        (ensure-list
-                         (process-system-header project path-string)))))
-                 (setf header-hash system-header)
-                 (push system-header (system-headers genome)))))
+               (ensure2 (gethash path-string *system-header-cache*)
+                 (lret ((system-header
+                         (make-instance
+                             'c/cpp-system-header
+                           :header-name path-string
+                           :children
+                           (ensure-list
+                            (process-system-header project path-string)))))
+                   (setf header-hash system-header)
+                   (push system-header (system-headers genome))))))
       (or header-hash
           (populate-header-entry project path-string)))))
 
