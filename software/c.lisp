@@ -148,10 +148,10 @@ field."
 (defmethod no-fallthrough ((ast c-continue-statement)) t)
 (defmethod no-fallthrough ((ast c-break-statement)) t)
 
-(defmethod infer-type ((c c) (ast c-ast))
+(defmethod infer-type ((obj t) (ast c-ast))
   (when-let ((decl (find-if «or {typep _ 'c-declaration}
-                             {typep _ 'c-parameter-declaration}»
-                             (get-parent-asts c ast))))
+                                {typep _ 'c-parameter-declaration}»
+                            (get-parent-asts obj ast))))
     (if (typep (c-declarator decl) 'c-pointer-declarator)
         (c-declarator decl)
         (c-type decl))))

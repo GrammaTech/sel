@@ -651,7 +651,7 @@ an identifier to qualify, build a `cpp-qualified-identifier' AST."
 (defmethod attr-missing ((name (eql 'decl-qualifiers)) node)
   (decl-qualifiers node nil))
 
-(defmethod resolve-declaration-type :around ((obj cpp)
+(defmethod resolve-declaration-type :around ((obj t)
                                              (decl cpp-ast)
                                              (ast cpp-ast))
   "Possibly qualify the type of AST according to AST's namespace qualification."
@@ -660,7 +660,7 @@ an identifier to qualify, build a `cpp-qualified-identifier' AST."
      (decl-qualifiers ast)
      result)))
 
-(defmethod resolve-declaration-type ((obj cpp)
+(defmethod resolve-declaration-type ((obj t)
                                      (decl cpp-ast)
                                      (ast cpp-ast))
   (when-let (first-try (call-next-method))
@@ -685,7 +685,7 @@ an identifier to qualify, build a `cpp-qualified-identifier' AST."
      ;; Go with the original result.
      first-try)))
 
-(defmethod resolve-declaration-type ((obj cpp)
+(defmethod resolve-declaration-type ((obj t)
                                      (decl cpp-field-declaration)
                                      (ast call-ast))
   "If AST is a call AST, and the declaration is a field declaration,
@@ -697,7 +697,8 @@ then the return type of the call is the return type of the field."
      (resolve-declaration-type obj decl field))
     (otherwise (call-next-method))))
 
-(defmethod resolve-deref-type ((obj cpp) (ast cpp-ast)
+(defmethod resolve-deref-type (obj
+                               (ast cpp-ast)
                                (type cpp-qualified-identifier))
   (or (and (string$= "::iterator" (source-text type))
            (resolve-container-element-type type))
@@ -741,7 +742,7 @@ then the return type of the call is the return type of the field."
     (otherwise
      (call-next-method))))
 
-(defmethod infer-expression-type ((obj cpp) (ast cpp-call-expression))
+(defmethod infer-expression-type (obj (ast cpp-call-expression))
   (match ast
     ;; Special case: the type of `std::next' should be the same as
     ;; its argument.
@@ -797,7 +798,7 @@ then the return type of the call is the return type of the field."
 (defmethod placeholder-type-p ((ast cpp-placeholder-type-specifier))
   t)
 
-(defmethod infer-type :around ((obj software) (ast cpp-field-expression))
+(defmethod infer-type :around ((obj t) (ast cpp-field-expression))
   "Handle the special case of inferring the type of a field expression whose argument is a standard library iterator.
 
 Since a field expression is an implicit dereference, if the type is a
@@ -822,14 +823,14 @@ iterator we want the type of the container's elements."
              element-type)))
         type-ast)))
 
-(defmethod infer-expression-type ((obj c/cpp) (ast cpp-initializer-list))
+(defmethod infer-expression-type (obj (ast cpp-initializer-list))
   (or (call-next-method)
       (infer-type-as-c/cpp-expression obj ast)))
 
-(defmethod infer-expression-type ((obj cpp) (ast cpp-parenthesized-expression))
+(defmethod infer-expression-type (obj (ast cpp-parenthesized-expression))
   (infer-expression-type obj (only-elt (direct-children ast))))
 
-(defmethod infer-expression-type ((obj cpp) (ast cpp-binary-expression))
+(defmethod infer-expression-type (obj (ast cpp-binary-expression))
   (string-case (source-text (cpp-operator ast))
     (#.+cpp-implicitly-converting-arithmetic-operators+
      (let* ((left-type (infer-type obj (cpp-left ast)))
@@ -846,7 +847,7 @@ iterator we want the type of the container's elements."
          right-type)
         ((null conversion) nil))))))
 
-(defmethod infer-expression-type ((obj cpp) (ast cpp-this))
+(defmethod infer-expression-type (obj (ast cpp-this))
   (when-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
     (definition-name-ast type-ast)))
 
@@ -884,7 +885,7 @@ iterator we want the type of the container's elements."
 
 (defgeneric implicit-namespace-qualifiers (obj ast)
   (:documentation "Namespace qualifiers derived from surrounding namespaces.")
-  (:method ((obj cpp) ast)
+  (:method (obj (ast cpp-ast))
     (with-attr-table obj
       (if (ast-path obj ast)
           (split "::" (namespace ast))
@@ -930,7 +931,7 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (:documentation "Final namespace qualifiers, derived by resolving
   explicit (relative) namespace qualifiers relative to
   implicit (absolute) ones.")
-  (:method ((obj cpp) ast)
+  (:method (obj (ast cpp-ast))
     (combine-namespace-qualifiers
      (explicit-namespace-qualifiers ast)
      (implicit-namespace-qualifiers obj ast))))
@@ -953,7 +954,7 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (:method ((ast cpp-namespace-definition-name))
     (lastcar (children ast))))
 
-(defmethod get-declaration-ast :context ((type (eql 'function-declaration-ast))
+#+(or) (defmethod get-declaration-ast :context ((type (eql 'function-declaration-ast)) ;???
                                          (obj cpp) (ast ast))
   "When we can't find declaration in the file, look in standard library headers."
   (labels ((lookup-in-std-headers (quals fn-name)
