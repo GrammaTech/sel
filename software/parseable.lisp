@@ -122,6 +122,7 @@
            :clear-ast-properties
            ;; Language inference
            :language-alias->language-symbol
+           :language-symbol->language-aliases
            :define-language-alias-mappings))
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
@@ -1946,13 +1947,23 @@ represented by ALIAS-STRING.")
   (:method ((alias-string (eql 'text)) &key &allow-other-keys)
     'simple))
 
+(defgeneric language-symbol->language-aliases (symbol)
+  (:documentation "Return the list of aliases which corresponds to the language
+represented by ALIAS-STRING.")
+  (:method ((symbol symbol))
+    nil))
+
 (defmacro define-language-alias-mappings (return-symbol (&rest alias-strings))
-  `(progn
-     ,@(iter
-         (for string in (adjoin (string `,return-symbol) alias-strings
-                                :test #'equal))
-         (collect
-             `(defmethod language-alias->language-symbol
-                  ((alias-string (eql ,(make-keyword (string-upcase string))))
-                   &key &allow-other-keys)
-                ',return-symbol)))))
+  (let ((aliases (adjoin (string-downcase return-symbol)
+                         alias-strings
+                         :test #'equal)))
+    `(progn
+       (defmethod language-symbol->language-aliases ((symbol (eql ',return-symbol)))
+         ',aliases)
+       ,@(iter
+          (for string in aliases)
+          (collect
+           `(defmethod language-alias->language-symbol
+                ((alias-string (eql ,(make-keyword (string-upcase string))))
+                 &key &allow-other-keys)
+              ',return-symbol))))))
