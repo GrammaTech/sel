@@ -879,15 +879,6 @@ tree that preserves how scopes are nested, use `scope-tree'.")
 
 (defgeneric parse-asts (software &optional source-text)
   (:documentation "Parse genome of SOFTWARE into an AST representation.
-There are some requirements for the ASTs constructed by this method:
-* We require that *all* source text be stored as a raw string
-  somewhere in the AST tree.  Source text tucked inside of a
-  non-string AST-NODE will be ignored.
-* We also require that if two ASTs have the same class and the same
-  source text then they are equal.
-
-Other methods in on parseable objects, specifically `ast-can-recurse'
-and `equal?' depend on these invariants.
 
 Optional argument SOURCE-TEXT holds the source code string to parse
 into ASTs.  If not supplied it is generally assumed to already be set
