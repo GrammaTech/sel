@@ -51,6 +51,11 @@ by the symbol-table attribute."))
                 :allocation :class))
   (:documentation "Node for representing system headers."))
 
+(defmethod print-object ((self c/cpp-system-header) stream)
+  (print-unreadable-object (self stream :type t)
+    (format stream "~a" (header-name self)))
+  self)
+
 (defgeneric get-system-header (project system-header-string)
   (:method (project system-header-string) nil)
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING
