@@ -6976,20 +6976,8 @@ Every element in the list has the following form:
 (full-name alias/nickname named-imports)")
   (:method ((ast t)) nil))
 
-(defun attr-table-for (root)
-  (if (and (boundp '*attrs*)
-           (eql (attrs-root *attrs*) root))
-      *attrs*
-      (ft/attrs::make-attrs :root root)))
-
 (defun attrs-root* ()
   (attrs-root *attrs*))
-
-(defmacro with-attr-table (root &body body)
-  "Like `with-attr-table', but if the appropriate attr table is
-  already bound, reuse it."
-  `(let ((*attrs* (attr-table-for ,root)))
-     ,@body))
 
 (defun imports (software node)
   "Return a list of the imports available in SOFTWARE at AST.
