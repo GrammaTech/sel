@@ -7,6 +7,7 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable)
+  (:local-nicknames (:attrs :functional-trees/attrs))
   (:export :file-ast
            :directory-ast
            :directory-project
@@ -144,6 +145,17 @@
         (evolve-files obj) (collect-evolve-files obj)
         (other-files obj) (collect-other-files obj))
   obj)
+
+(defmethod from-string ((obj directory-project) string)
+  "Allow constructing a project from a string using temporary files."
+  (with-temporary-directory (:pathname d)
+    (let* ((component-class (component-class obj))
+           (aliases (language-symbol->language-aliases component-class))
+           ;; The preferred extension.
+           (extension (extremum aliases #'length<=))
+           (path (path-join d (make-pathname :name "file" :type extension))))
+      (write-string-into-file string path)
+      (from-file obj d))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
   (let ((evolve-files (call-next-method)))

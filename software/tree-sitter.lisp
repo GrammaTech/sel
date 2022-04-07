@@ -578,6 +578,7 @@
            :control-flow-condition
            :end-of-parameter-list
            :field-names
+           :field-name-asts
            :function-name
            :identifiers
            :call-arguments
@@ -6883,17 +6884,17 @@ The alist should contain at least the following:
 (defgeneric find-enclosing (test software ast)
   (:documentation "Return the nearest enclosing AST passing TEST in SOFTWARE.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
-  (:method ((type t) (software tree-sitter) (ast ast))
+  (:method ((type t) (software parseable) (ast ast))
     (find-enclosing (of-type type) software ast))
-  (:method ((pred function) (software tree-sitter) (ast ast))
+  (:method ((pred function) (software parseable) (ast ast))
     (find-if pred (get-parent-asts software ast))))
 
 (defgeneric find-all-enclosing (test software ast)
   (:documentation "Return the enclosing ASTs passing TEST in SOFTWARE.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
-  (:method ((type t) (software tree-sitter) (ast ast))
+  (:method ((type t) (software parseable) (ast ast))
     (find-all-enclosing (of-type type) software ast))
-  (:method ((pred function) (software tree-sitter) (ast ast))
+  (:method ((pred function) (software parseable) (ast ast))
     (filter pred (get-parent-asts* software ast))))
 
 (defgeneric find-preceding (test software ast)
@@ -6902,9 +6903,9 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:method ((type t) (root t) (ast tree-sitter-ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (find-preceding (of-type type) root ast))
-  (:method ((pred function) (software software) (ast tree-sitter-ast))
+  (:method ((pred function) (software software) (ast ast))
     (find-preceding pred (genome software) ast))
-  (:method ((pred function) (root ast) (ast tree-sitter-ast))
+  (:method ((pred function) (root ast) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (when-let ((parent (get-parent-ast root ast)))
       (iter (for child in (children parent))
@@ -6918,10 +6919,10 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
 (defgeneric find-following (test software ast)
   (:documentation "Return any siblings passing TEST following AST in SOFTWARE.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
-  (:method ((type t) (software tree-sitter) (ast tree-sitter-ast))
+  (:method ((type t) (software parseable) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (find-following (of-type type) software ast))
-  (:method ((pred function) (software tree-sitter) (ast tree-sitter-ast))
+  (:method ((pred function) (software parseable) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (when-let ((parent (get-parent-ast software ast)))
       (nest
@@ -7086,26 +7087,6 @@ Every element in the list has the following form:
 (defgeneric variable-use-p (software ast &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in SOFTWARE as a variable."))
 
-;;; Expand shorthands at compile time.
-(flet ((expand-get-declaration (call fn type obj ast)
-         (match type
-           ((list 'quote (and type (or 'function 'variable 'type)))
-            `(,fn
-              ',(ecase type
-                  (function 'function-declaration-ast)
-                  (variable 'variable-declaration-ast)
-                  (type 'type-declaration-ast))
-              ,obj ,ast))
-           (otherwise call))))
-
-  (define-compiler-macro get-declaration-ast (&whole call type obj ast)
-    "Compiler macro to save calls for easier debugging (fewer frames)."
-    (expand-get-declaration call 'get-declaration-ast type obj ast))
-
-  (define-compiler-macro get-declaration-id (&whole call type obj ast)
-    "Compiler macro to save calls for easier debugging (fewer frames)."
-    (expand-get-declaration call 'get-declaration-id type obj ast)))
-
 (defgeneric get-declaration-ast (type software ast)
   (:documentation "For an identifier, get the declaration AST.
 For a declaration AST, return AST unchanged.
@@ -7129,34 +7110,27 @@ or `type' is equivalent to `variable-declaration-ast',
   (:method ((type (eql :macro)) obj ast)
     (with-attr-table obj
       (find-decl-in-symbol-table ast type ast)))
-  ;; Shorthands. Note that `variable', `function', and `type' are all
-  ;; symbols exported by CL.
-  (:method :context ((type (eql 'variable)) obj ast)
-    (get-declaration-ast :variable obj ast))
-  (:method :context ((type (eql 'function)) (obj t) (ast t))
-    ;; breaks TEST-RESOLVE-METHOD-CALL-TO-ITERATOR-CONTAINER-TYPE
-    (get-declaration-ast 'function-declaration-ast obj ast))
-  (:method :context ((type (eql 'type)) (obj t) (ast t))
-    (get-declaration-ast :type obj ast))
-  ;; Assert we get the right kind of declaration.
-  (:method :context ((type (eql 'variable-declaration-ast)) obj ast)
-    (assure (or null variable-declaration-ast)
-      (call-next-method)))
-  ;; Currently deactivated since there is no distinguished class for
-  ;; C++ field declarations that define functions.
-  ;; (:method :context ((type (eql 'function-declaration-ast)) obj ast)
-  ;;   (assure (or null function-declaration-ast)
-  ;;     (call-next-method)))
-  (:method :context ((type (eql 'type-declaration-ast)) obj ast)
-    (assure (or null type-declaration-ast)
-      (call-next-method)))
+  (:method ((type null) obj ast)
+    (error "Not a namespace: ~a" type))
+  (:method ((type symbol) obj ast)
+    (get-declaration-ast (decl-type-namespace type) obj ast))
   ;; NB Not specialized on tree-sitter objects, since that would
   ;; shadow normal-scope.
-  (:method ((type t) (obj t) (ast ast)) nil)
+  (:method ((type t) (obj t) (ast ast))
+    nil)
   (:method ((type t) (obj t) (ast call-ast))
     (get-declaration-ast type obj (call-function ast)))
-  (:method ((type t) (obj software) (ast declaration-ast)) ast)
-  (:method :around ((type t) (obj normal-scope) (identifier identifier-ast))
+  (:method ((type t) (obj t) (ast declaration-ast))
+    ast)
+  (:method ((type (eql :variable)) obj (ast variable-declaration-ast))
+    ast)
+  (:method ((type (eql :function)) obj (ast function-declaration-ast))
+    ast)
+  (:method ((type (eql :type)) obj (ast type-declaration-ast))
+    ast)
+  (:method ((type (eql :macro)) obj (ast macro-declaration-ast))
+    ast)
+  (:method :around ((type t) obj (identifier identifier-ast))
     (when (keywordp type)
       (setf type (namespace-decl-type type)))
     (or
@@ -7171,17 +7145,7 @@ or `type' is equivalent to `variable-declaration-ast',
                          :test #'eq)
                  (typep parent type))
         (return parent)))
-     (call-next-method)))
-  (:method ((type t) (obj normal-scope) (identifier identifier-ast))
-    (let ((id-text (source-text identifier)))
-      (assert (or (subtypep 'declaration-ast type)
-                  (and type (subtypep type 'declaration-ast))))
-      (aget :decl
-            (find-if-in-scopes
-             (lambda (scope)
-               (and (equal id-text (aget :name scope))
-                    (typep (aget :decl scope) type)))
-             (scopes obj identifier))))))
+     (call-next-method))))
 
 (define-generic-analysis relevant-declaration-type (software ast)
   (:documentation "Return the type of declaration we should look for.
@@ -7204,13 +7168,13 @@ declaration makes sense.")
   (:method ((obj t) (ast type-ast))
     'type-declaration-ast)
   (:method ((obj t) (ast declaration-ast))
-    (find (type-of ast)
-          '(variable-declaration-ast
-            function-declaration-ast
-            type-declaration-ast
-            macro-declaration-ast
-            declaration-ast)
-          :test #'subtypep))
+    (or (find (type-of ast)
+              '(variable-declaration-ast
+                function-declaration-ast
+                type-declaration-ast
+                macro-declaration-ast)
+              :test #'subtypep)
+        (error "Unclassified declaration: ~a" ast)))
   (:method :around ((obj t) (ast ast))
     (or
      ;; The relevant declaration type for a call function is a
@@ -7255,21 +7219,9 @@ support destructuring.")
   (:method ((type (eql :macro)) obj ast)
     (with-attr-table obj
       (car+cdr (find-in-symbol-table ast type ast))))
-  ;; We can't just rely on get-declaration-ast to translate, we need
-  ;; to be able to define methods on the full names.
-  (:method :context ((type (eql 'variable)) obj ast)
-    (get-declaration-id 'variable-declaration-ast obj ast))
-  (:method :context ((type (eql 'function)) (obj t) (ast t))
-    (get-declaration-id 'function-declaration-ast obj ast))
-  (:method :context ((type (eql 'type)) (obj t) (ast t))
-    (get-declaration-id 'type-declaration-ast obj ast))
-  (:method ((type t) (obj t) (id identifier-ast))
-    (let ((id-text (source-text id)))
-      (find-if (lambda (ast)
-                 (and (typep ast 'identifier-ast)
-                      (equal (source-text ast)
-                             id-text)))
-               (get-declaration-ast type obj id)))))
+  (:method ((type symbol) obj ast)
+    (get-declaration-id (assure keyword (decl-type-namespace type))
+                        obj ast)))
 
 (define-generic-analysis variable-declaration-ids (software ast)
   (:documentation "Collect the variable declarations IDs in AST.")
@@ -7339,7 +7291,7 @@ more than one thing (destructuring).")
               (with map assignee (cons assigner (lookup map assignee))))
             (mappend (lambda (assignee)
                        (filter-map (op (get-declaration-id
-                                        'variable
+                                        :variable
                                         (attrs-root*) _))
                                    (identifiers assignee)))
                      (assignees assigner))
@@ -7403,13 +7355,7 @@ If NODE is not a function node, return nil.")
 (defgeneric field-names (node)
   (:documentation "Extract the names (as strings) of a field from
 NODE. If NODE is not a thing that has fields, return nil.")
-  (:method ((node t)) nil)
-  (:method :around ((node t))
-    (iter (for result in (call-next-method))
-          (collecting
-           (if (typep result 'tree-sitter-ast)
-               (source-text result)
-               result)))))
+  (:method ((node t)) nil))
 
 (defgeneric placeholder-type-p (ast)
   (:documentation "Does AST designate a placeholder type?
@@ -7424,13 +7370,13 @@ for the compiler to infer the type.")
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
-  (:method ((software t) (ast t))
-    (with-attr-table software
+  (:method ((obj t) (ast t))
+    (with-attr-table obj
       (flet ((infer-type-from-declaration ()
-               (when-let* ((decl-type (relevant-declaration-type software ast))
-                           (decl (get-declaration-ast decl-type software ast)))
-                 (resolve-declaration-type software decl ast))))
-        (let ((expression-type (infer-expression-type software ast)))
+               (when-let* ((decl-type (relevant-declaration-type obj ast))
+                           (decl (get-declaration-ast decl-type obj ast)))
+                 (resolve-declaration-type obj decl ast))))
+        (let ((expression-type (infer-expression-type obj ast)))
           (cond ((null expression-type)
                  (infer-type-from-declaration))
                 ((placeholder-type-p expression-type)
@@ -7445,7 +7391,7 @@ Calls `expression-type' by default.")
     (expression-type ast))
   (:method ((obj software) (ast call-ast))
     "Infer the type of a call from its declaration."
-    (or (when-let (decl (get-declaration-ast 'function obj (call-function ast)))
+    (or (when-let (decl (get-declaration-ast :function obj (call-function ast)))
           (resolve-declaration-type obj decl ast))
         (call-next-method))))
 
