@@ -49,7 +49,7 @@
   ((contents :accessor contents :initarg :contents :initform nil :type list
              :documentation "Contents of the file.")
    (child-slots :initform '(contents) :allocation :class))
-  (:documentation "FT Node to hold a directory entry."))
+  (:documentation "FT Node to hold a file entry."))
 
 (defmethod print-object ((obj directory-or-file-ast) stream)
   (if *print-readably*
@@ -58,6 +58,13 @@
         (format stream "~a~@[ ~a~]"
                 (serial-number obj)
                 (name obj)))))
+
+(defmethod source-text ((obj file-ast) &key stream)
+  (if (no stream)
+      (string+ (call-next-method) #\Eot)
+      (progn
+        (call-next-method)
+        (write-char #\Eot stream))))
 
 (defun pathname-to-list (path)
   (check-type path pathname)
