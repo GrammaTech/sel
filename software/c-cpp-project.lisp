@@ -182,6 +182,9 @@ and add it to PROJECT."))
 (defvar *system-header-cache* (dict)
   "Store system headers that have already been parsed.")
 
+(defvar *system-header-symbol-table-cache* (dict)
+  "Cache system header symbol tables.")
+
 (defmethod get-system-header ((project c/cpp-project) (path-string string)
                               &aux (genome (genome project)))
   (symbol-macrolet ((header-hash (gethash
@@ -227,11 +230,26 @@ and add it to PROJECT."))
    :allow-multiple (multi-declaration-keys root)))
 
 (defun find-symbol-table-from-include (project include-ast)
-  (labels ((process-system-header (project path-ast)
+  (labels ((merge-cached-symbol-table (header)
+             (let ((cached-table
+                    (ensure2 (gethash header *system-header-symbol-table-cache*)
+                      (with-attr-table header
+                        (symbol-table header (empty-map))
+                        (attrs-table *attrs*))))
+                   (target-table (attrs-table *attrs*)))
+               (do-hash-table (node alist cached-table)
+                 (setf (gethash node target-table)
+                       (if-let (old (gethash node target-table))
+                         ;; Preserve any new attributes.
+                         (append old alist)
+                         alist)))))
+           (process-system-header (project path-ast)
              (if-let ((system-header
                        (get-system-header
                         project (trim-path-string path-ast))))
-               (symbol-table system-header (empty-map))
+               (progn
+                 (merge-cached-symbol-table system-header)
+                 (symbol-table system-header (empty-map)))
                (empty-map)))
            (process-relative-header (path-ast)
              "Get the corresponding symbol table for the relative path
