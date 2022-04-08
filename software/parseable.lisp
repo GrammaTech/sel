@@ -642,12 +642,16 @@ optionally writing to STREAM.")
    "Traverse TREE collecting every node that satisfies PREDICATE.")
   (:method ((predicate function) (tree ast) &key (key #'identity))
     ;; reverse it to maintain the order it was found in.
-    (reverse
-     (reduce (lambda (accum ast)
-               (if (funcall predicate (funcall key ast))
-                   (cons ast accum)
-                   accum))
-             tree))))
+    (fbind (predicate)
+      (with-item-key-function (key)
+        (nreverse
+         (reduce (lambda (accum ast)
+                   (if (predicate (key ast))
+                       (cons ast accum)
+                       accum))
+                 tree)))))
+  (:method ((predicate function) (tree parseable) &key (key #'identity))
+    (collect-if predicate (genome tree) :key key)))
 
 
 ;;; Caching of static analyses.
