@@ -1006,7 +1006,7 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
             ((typep ast 'cpp-field-expression)
              (lookup-field-method-declaration ast))))))
 
-(defmethod initializer-aliasee ((sw cpp)
+(defmethod initializer-aliasee ((sw t)
                                 (lhs cpp-reference-declarator)
                                 (rhs cpp-pointer-expression))
   (with-attr-table sw
