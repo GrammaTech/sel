@@ -562,33 +562,6 @@
              ((ppcre "<(.*)>" s)
               (collect s)))))))
 
-(defun lookup-in-std-header (header namespaces field)
-  "Look up a declaration in a standard library header synopsis.
-- HEADER is the name of the header.
-- NAMESPACES is a list of namespace (or class) names.
-- FIELD is the name of the function or field we want."
-  (labels ((find-field (field ast)
-             (find-if (lambda (ast)
-                        (and-let*  (((typep ast '(or cpp-field-declaration cpp-function-definition)))
-                                    (decl
-                                     (find-if (of-type 'cpp-function-declarator)
-                                              ast)))
-                          (source-text= field (cpp-declarator decl))))
-                      ast))
-           (find-namespace-or-class (ast name)
-             (find-if (lambda (ast)
-                        (and (typep ast '(or cpp-namespace-definition
-                                          type-declaration-ast))
-                             (source-text= name
-                                           (definition-name-ast ast))))
-                      ast)))
-    (when-let ((header (find-std-header (source-text header))))
-      (find-field field
-                  (reduce #'find-namespace-or-class
-                          (ensure-list namespaces)
-                          :initial-value (genome header))))))
-
-
 
 ;;; Methods common to all software objects
 
@@ -622,6 +595,34 @@
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
 
+(defmethod outer-declarations ((ast cpp-class-specifier))
+  (values (list (c/cpp-name ast))
+          '(:type)))
+
+(defmethod field-table ((class cpp-class-specifier))
+  (ematch class
+    ((cpp-class-specifier
+      (cpp-body
+       (and (cpp-field-declaration-list)
+            (access #'direct-children fields))))
+     (assure fset:map
+       (reduce (flip #'field-adjoin)
+               ;; Just the public fields.
+               (mappend #'cdr
+                        (keep "public:"
+                              (runs fields
+                                    :test
+                                    (lambda (x y) (declare (ignore x))
+                                      (not (typep y 'cpp-access-specifier))))
+                              :key #'car
+                              :test #'source-text=))
+               :initial-value (empty-map))))))
+
+(defmethod outer-declarations ((ast cpp-template-declaration))
+  ;; TODO Store the template parameters somehow in the symbol table?
+  (when-let (children (direct-children ast))
+    (outer-declarations (only-elt children))))
+
 (defmethod outer-declarations ((ast cpp-namespace-definition))
   (match ast
     ((cpp-namespace-definition
@@ -632,33 +633,6 @@
                      :initial-value nil)))
        (values (car declarations-values-list)
             (cadr declarations-values-list))))))
-
-(defun requalify (qualifiers initial)
-  "Given a list of names (or template types) to use as qualifiers, and
-an identifier to qualify, build a `cpp-qualified-identifier' AST."
-  (reduce (lambda (scope name)
-            (make 'cpp-qualified-identifier
-                  :cpp-scope scope
-                  :cpp-name name))
-          qualifiers
-          :initial-value initial
-          :from-end t))
-
-(def-attr-fun decl-qualifiers (qualifiers)
-  (:method ((ast t) &optional qualifiers)
-    qualifiers))
-
-(defmethod attr-missing ((name (eql 'decl-qualifiers)) node)
-  (decl-qualifiers node nil))
-
-(defmethod resolve-declaration-type :around ((obj t)
-                                             (decl cpp-ast)
-                                             (ast cpp-ast))
-  "Possibly qualify the type of AST according to AST's namespace qualification."
-  (let ((result (call-next-method)))
-    (requalify
-     (decl-qualifiers ast)
-     result)))
 
 (defmethod resolve-declaration-type ((obj t)
                                      (decl cpp-ast)
@@ -699,9 +673,14 @@ then the return type of the call is the return type of the field."
 
 (defmethod resolve-deref-type (obj
                                (ast cpp-ast)
-                               (type cpp-qualified-identifier))
-  (or (and (string$= "::iterator" (source-text type))
-           (resolve-container-element-type type))
+                               (type list))
+
+  (if (scan "(?:const_)?iterator" (source-text (lastcar type)))
+      (let ((args
+             (mappend (op (collect-if (of-type 'cpp-template-argument-list)
+                                      _))
+                      type)))
+        (lastcar (mappend #'children args)))
       (call-next-method)))
 
 (defgeneric resolve-container-element-type (type)
@@ -954,58 +933,6 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (:method ((ast cpp-namespace-definition-name))
     (lastcar (children ast))))
 
-#+(or) (defmethod get-declaration-ast :context ((type (eql 'function-declaration-ast)) ;???
-                                         (obj cpp) (ast ast))
-  "When we can't find declaration in the file, look in standard library headers."
-  (labels ((lookup-in-std-headers (quals fn-name)
-             ;; Memoize as a header-decl property.
-             (iter (for header in (system-header-names obj))
-                   (thereis (lookup-in-std-header header quals fn-name))))
-           (lookup-qualified-name (ast)
-             (lookup-in-std-headers
-              (namespace-qualifiers obj ast)
-              (unqualified-name ast)))
-           (lookup-qualified-declaration (qname method)
-             (let ((quals (namespace-qualifiers obj qname))
-                   (name (unqualified-name qname)))
-               (when-let* ((name-as-qualifier
-                            (match name
-                              ((identifier-ast) name)
-                              ((cpp-template-type (cpp-name name))
-                               name)))
-                           (decl
-                            (lookup-in-std-headers
-                             (append1 quals name-as-qualifier)
-                             method)))
-                 ;; Store the qualifiers as a property of the AST.
-                 (decl-qualifiers ast (append1 quals name))
-                 decl)))
-           (lookup-field-method-declaration (field)
-             (let-match (((cpp-field-expression
-                           (cpp-argument var)
-                           (cpp-field method))
-                          field))
-               (let ((var-decl (get-declaration-ast :variable obj var)))
-                 (match (infer-type obj var-decl)
-                   ((and qname (type cpp-qualified-identifier))
-                    (lookup-qualified-declaration qname method))
-                   ((and type (identifier-ast))
-                    (lookup-in-std-headers nil type)))))))
-    (let ((decl (call-next-method)))
-      (cond ((typep decl
-                    ;; TODO No distinguished class for a field
-                    ;; declaration with a function declarator.
-                    '(or function-declaration-ast
-                      cpp-field-declaration))
-             decl)
-            ((not (eql 'function-declaration-ast
-                       (relevant-declaration-type obj ast)))
-             decl)
-            ((typep ast 'identifier-ast)
-             (lookup-qualified-name ast))
-            ((typep ast 'cpp-field-expression)
-             (lookup-field-method-declaration ast))))))
-
 (defmethod initializer-aliasee ((sw t)
                                 (lhs cpp-reference-declarator)
                                 (rhs cpp-pointer-expression))
@@ -1014,7 +941,7 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
         (aliasee (cpp-argument rhs))
         (call-next-method))))
 
-(defmethod initializer-aliasee ((sw cpp) (lhs cpp-reference-declarator) rhs)
+(defmethod initializer-aliasee ((sw t) (lhs cpp-reference-declarator) rhs)
   (with-attr-table sw
     (aliasee rhs)))
 
@@ -1043,6 +970,17 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
             (children ast))
     in))
 
+(defmethod namespace ((ast cpp-class-specifier)
+                      &optional in)
+  (let* ((name (source-text (cpp-name ast)))
+         (out (if (emptyp in) name
+                  (string+ in "::" name))))
+    ;; Prevent std::list::list in the symbol table.
+    (namespace (cpp-name ast) in)
+    (mapcar (op (namespace _ out))
+            (children ast))
+    in))
+
 (defmethod namespace ((ast cpp-qualified-identifier) &optional in)
   "No scope (e.g. `::x`) means the global scope."
   (declare (ignore in))
@@ -1065,8 +1003,11 @@ available to use at any point in a C++ AST.")
 
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
   (let* ((source-text
-          (or (declarator-name declared-ast)
-              (source-text declared-ast))))
+          ;; Strip template parameters.
+          (regex-replace-all "<[^>]+>"
+                             (or (declarator-name declared-ast)
+                                 (source-text declared-ast))
+                             "")))
     (if (string^= "::" source-text)
         ;; Global namespace.
         (drop-prefix "::" source-text)

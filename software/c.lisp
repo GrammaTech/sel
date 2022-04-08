@@ -149,12 +149,13 @@ field."
 (defmethod no-fallthrough ((ast c-break-statement)) t)
 
 (defmethod infer-type ((obj t) (ast c-ast))
-  (when-let ((decl (find-if «or {typep _ 'c-declaration}
-                                {typep _ 'c-parameter-declaration}»
-                            (get-parent-asts obj ast))))
+  (if-let ((decl (find-if «or {typep _ 'c-declaration}
+                              {typep _ 'c-parameter-declaration}»
+                          (get-parent-asts obj ast))))
     (if (typep (c-declarator decl) 'c-pointer-declarator)
         (c-declarator decl)
-        (c-type decl))))
+        (c-type decl))
+    (call-next-method)))
 
 (defun fix-nil-internal-asts-slots (ast)
   "Fix missing line endings in c preprocessor #if statements.

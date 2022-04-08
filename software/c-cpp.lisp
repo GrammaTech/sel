@@ -412,35 +412,40 @@ pointer declarations which are nested on themselves."
     ((type t) (obj t) (ast c/cpp-type-descriptor))
   (get-declaration-ast type obj (c/cpp-type ast)))
 
-(defmethod infer-type (obj (ast c/cpp-field-expression))
-  (or (and-let* ((call (find-enclosing 'call-ast obj ast))
-                 ((eql (call-function call) ast))
-                 (id (get-declaration-id :function obj ast)))
-        ;; Get the type from the declaration of the field argument.
-        (infer-type obj id))
-      (call-next-method)))
+;; (defmethod deref-type (obj (ast t))
+;;   (infer-type obj ast))
 
-(defmethod infer-expression-type (obj (ast c/cpp-field-expression))
-  (ematch ast
-    ((c/cpp-field-expression
-      (c/cpp-argument arg)
-      (c/cpp-field field))
-     (or (and-let* ((type (infer-type obj arg))
-                    ;; We have a type definition...
-                    (type-def (get-declaration-ast :type obj type))
-                    ;; That has a body...
-                    (body (slot-value-safe type-def 'cpp-body))
-                    ;; That has a field declaration list...
-                    ((typep body 'c/cpp-field-declaration-list))
-                    ;; That has a field with the right name...
-                    (field-ast
-                     (find field (direct-children body)
-                           :key #'field-names
-                           :test (op (member _ _ :test #'source-text=)))))
-           ;; Get whatever its type is declared to be.
-           ;; TODO It is possible for a const static member to be auto.
-           (infer-type obj field-ast))
-         (call-next-method)))))
+;; (defmethod deref-type (obj (ast c/cpp-field-expression))
+;;   (flet ((function-position? ()
+;;            (when-let ((call (find-enclosing 'call-ast obj ast)))
+;;              (eql (call-function call) ast)))
+;;          (iterator-type? (type)
+;;            (scan "(?:const_)?iterator" (source-text type))))
+;;     (let* ((arg (cpp-argument ast))
+;;            (arg-type (infer-type obj arg))
+;;            (field-type
+;;              (if (function-position?)
+;;                  (when-let (fn (get-declaration-ast :function obj ast))
+;;                    (infer-type obj fn))
+;;                  (when-let* ((var (get-declaration-ast :variable obj ast)))
+;;                    (infer-type obj var)))))
+;;       ;; TODO . should only be dereferenced for a C++ reference.
+;;       (if (iterator-type? field-type)
+;;           (if (iterator-type? arg-type)
+;;               (deref-type obj arg)
+;;               (or (resolve-container-element-type arg-type)
+;;                   field-type))
+;;           field-type))))
+
+(defmethod infer-type (obj (ast c/cpp-field-expression))
+  (flet ((function-position? ()
+           (when-let ((call (find-enclosing 'call-ast obj ast)))
+             (eql (call-function call) ast))))
+    (if (function-position?)
+        (when-let (fn (get-declaration-ast :function obj ast))
+          (infer-type obj fn))
+        (when-let* ((var (get-declaration-ast :variable obj ast)))
+          (infer-type obj var)))))
 
 (defgeneric resolve-deref-type (obj ast type)
   (:documentation "Given TYPE, the type of a pointer variable, resolve
@@ -450,20 +455,47 @@ pointer declarations which are nested on themselves."
 
 (defmethod infer-type (obj (ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
-  (let ((result (infer-type obj (c/cpp-argument ast))))
-    (if (typep (c/cpp-operator ast) 'cpp-*)
-        (resolve-deref-type obj ast result)
-        result)))
+  (match ast
+    ((cpp* "*$ARG" :arg arg)
+     (when-let (type (infer-type obj arg))
+       (resolve-deref-type obj arg type)))
+    (otherwise (call-next-method))))
 
-(defmethod get-declaration-id ((type (eql :variable)) obj
-                               (ast c/cpp-field-expression))
-  (get-declaration-id type obj (c/cpp-argument ast)))
+;; (defmethod get-declaration-id ((type (eql :variable)) obj
+;;                                (ast c/cpp-field-expression))
+;;   (get-declaration-id type obj (c/cpp-argument ast)))
 
-(defmethod get-declaration-ast ((type (eql :variable)) obj
-                                (ast c/cpp-field-expression))
-  (get-declaration-ast type obj (c/cpp-argument ast)))
+;; (defmethod get-declaration-ast ((type (eql :variable)) obj
+;;                                 (ast c/cpp-field-expression))
+;;   (get-declaration-ast type obj (c/cpp-argument ast)))
+
+(defun add-field-as (map ns id)
+  (check-type id ast)
+  (let ((ns-map (or (lookup map ns) (empty-map))))
+    (with map ns
+          (with ns-map
+                (source-text id)
+                ;; Overloads!
+                (cons id (@ ns-map (source-text id)))))))
+
+(defgeneric field-adjoin (field map)
+  (:method ((field t) map)
+    map)
+  (:method ((field function-declaration-ast) map)
+    (add-field-as map :function (definition-name-ast field)))
+  (:method ((field c/cpp-field-declaration) map)
+    (reduce (flip #'field-adjoin)
+            (ensure-list (c/cpp-declarator field))
+            :initial-value map))
+  (:method ((field c/cpp-function-declarator) map)
+    (add-field-as map :function (c/cpp-declarator field)))
+  (:method ((field c/cpp-field-identifier) map)
+    (add-field-as map :variable field))
+  (:method ((field c/cpp-type-definition) map)
+    (add-field-as map :type (only-elt (c/cpp-declarator field)))))
 
 (def-attr-fun field-table ()
+  "Build an FSet map from field names to identifiers."
   (:method ((ast t)) (empty-map))
   (:method ((ast c/cpp-struct-specifier))
     (ematch ast
@@ -471,23 +503,14 @@ pointer declarations which are nested on themselves."
         (c/cpp-body
          (and (type c/cpp-field-declaration-list)
               (access #'direct-children fields))))
-       (let ((map (empty-map (empty-map))))
-         (flet ((add-as (ns id)
-                  (withf map ns
-                         (with (lookup map ns)
-                               (source-text id) id))))
-           (iter (for field in fields)
-                 (etypecase field
-                   (function-declaration-ast
-                    (add-as :function (definition-name-ast field)))
-                   (c/cpp-field-declaration
-                    (iter (for d in (ensure-list (c/cpp-declarator field)))
-                          (etypecase d
-                            (c/cpp-function-declarator
-                             (add-as :function (c/cpp-declarator d)))
-                            (c/cpp-field-identifier
-                             (add-as :variable d))))))))
-         map)))))
+       (assure fset:map
+         (reduce (flip #'field-adjoin)
+                 fields
+                 :initial-value (empty-map)))))))
+
+(defun lookup-in-field-table (class ns key)
+  (@ (or (@ (field-table class) ns) (empty-map))
+     (source-text key)))
 
 (defun get-field-class (obj field)
   (ematch field
@@ -498,18 +521,18 @@ pointer declarations which are nested on themselves."
        ;; Get the declaration of the type of the argument.
        (get-declaration-ast :type obj type)))))
 
-(defmethod get-declaration-id ((type (eql :function)) obj
-                               (ast c/cpp-field-expression))
+(defmethod get-declaration-id :around ((type t) obj
+                                       (ast c/cpp-field-expression))
   (when-let (class (get-field-class obj ast))
     (values
-     (@ (@ (field-table class) type)
-        (source-text (c/cpp-field ast))))))
+     (first
+      (lookup-in-field-table class type (c/cpp-field ast))))))
 
-(defmethod get-declaration-ast ((type (eql :function)) obj
-                                (ast c/cpp-field-expression))
+(defmethod get-declaration-ast :around ((type t) obj
+                                        (ast c/cpp-field-expression))
   (when-let (id (get-declaration-id type obj ast))
     (assure (not c/cpp-init-declarator)
-      (find-enclosing '(or function-declaration-ast c/cpp-field-declaration)
+      (find-enclosing 'declaration-ast
                       obj
                       id))))
 

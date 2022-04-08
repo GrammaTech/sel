@@ -23,7 +23,8 @@
                 :canonical-type=)
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers)
-  (:local-nicknames (:project :software-evolution-library/software/project))
+  (:local-nicknames (:project :software-evolution-library/software/project)
+                    (:dir :software-evolution-library/software/directory))
   (:export :test-cpp-tree-sitter))
 (in-package :software-evolution-library/test/cpp-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -177,8 +178,8 @@
     ("dist" . "float")
     ("result" . "std::list<Point>")
     ("d" . "double")
-    ("p1" . "std::list<Point>::iterator")
-    ("p2" . "std::list<Point>::iterator")
+    ("p1" . "const_iterator")
+    ("p2" . "const_iterator")
     ("segdist" . "double")
     ("frac" . "double")
     ("midpoint" . "Point")
@@ -473,7 +474,7 @@ struct Point {
 };
 
 double myfun(std::list<Point>& pts) {
-  auto p1 = pts.begin();
+  auto p1 = pts.cbegin();
   auto po = *p1;
   auto d = p1->Distance(p2);
   return d;
@@ -485,14 +486,15 @@ double myfun(std::list<Point>& pts) {
 both when it uses a dot (not a dereference) and when it dereferences
 with an arrow, even when the infererence passes through both."
   (let* ((sw (from-string 'cpp-project +iterator-container-type-sw+))
-         (file-obj (cdar (project:evolve-files sw)))
-         (calls (collect-if (of-type 'call-ast) (genome file-obj))))
+         (file-ast (find-if (of-type 'dir:file-ast) (genome sw)))
+         (calls (collect-if (of-type 'call-ast) file-ast)))
     (with-attr-table sw
       (is (length= 2 calls))
       (destructuring-bind (call1 call2) calls
-        (is (source-text= call1 "pts.begin()"))
+        (is (source-text= call1 "pts.cbegin()"))
         (is (source-text= call2 "p1->Distance(p2)"))
-        (is (source-text= (infer-type sw call1) "std::list<Point>::iterator"))
+        (is (source-text= (infer-type sw call1) "std::list<Point>::const_iterator"))
+        (namespace (infer-type sw call1))
         (is (source-text= (infer-type sw call2) "double"))))))
 
 (deftest test-resolve-iterator-container-type ()
@@ -505,32 +507,33 @@ of a std iterator."
                 :variable
                 sw
                 (find-if (op (source-text= name _)) sw))))
-        (is (source-text= "Point" (infer-type sw (get-decl "po"))))
         (is (source-text= "std::list<Point>" (infer-type sw (get-decl "pts"))))
+        (is (source-text= "Point" (infer-type sw (get-decl "po"))))
         (is (source-text= "double" (infer-type sw (get-decl "d"))))
-        (is (string*= "iterator"
-                      (source-text
-                       (infer-type sw (get-decl "p1")))))))))
+        ;; (is (string*= "iterator"
+        ;;               (source-text
+        ;;                (infer-type sw (get-decl "p1")))))
+        ))))
 
 (deftest test-resolve-method-call-to-iterator-container-type ()
   "Test that can infer the type of the elements of a container of an
 iterator from a call on a dereferenced element."
-  (let* ((sw (from-string 'cpp-project +iterator-container-type-sw+))
-         (call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
-         (field-expr (call-function call))
-         (field-decl (is (get-declaration-ast :function sw field-expr))))
+  (let ((sw (from-string 'cpp-project +iterator-container-type-sw+)))
     (with-attr-table sw
-      (symbol-table field-decl)
-      ;; We get the type of `p1' (`Point') in `p1->Distance(p2)'.
-      (is (source-text= "Point" (infer-type sw field-expr)))
-      ;; We get the declaration of the `Point' type.
-      (is (get-declaration-ast :type sw (infer-type sw field-expr)))
-      ;; We get the declaration of the `Distance' field in `Point'.
-      (is (typep field-decl 'cpp-field-declaration))
-      (is (member "Distance" (field-names field-decl)
-                  :test #'source-text=))
-      ;; Finally we infer the type of the call.
-      (is (source-text= "double" (infer-type sw call))))))
+      (let* ((call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
+             (field-expr (call-function call))
+             (field-decl (is (get-declaration-ast :function sw field-expr))))
+        (symbol-table field-decl)
+        ;; We get the type of `p1' (`Point') in `p1->Distance(p2)'.
+        (is (source-text= "Point" (infer-type sw field-expr)))
+        ;; We get the declaration of the `Point' type.
+        (is (get-declaration-ast :type sw (infer-type sw field-expr)))
+        ;; We get the declaration of the `Distance' field in `Point'.
+        (is (typep field-decl 'cpp-field-declaration))
+        (is (member "Distance" (field-names field-decl)
+                    :test #'source-text=))
+        ;; Finally we infer the type of the call.
+        (is (source-text= "double" (infer-type sw call)))))))
 
 (defun find-soft-var (name)
   (find name (identifiers (genome *soft*))
@@ -564,32 +567,20 @@ iterator from a call on a dereferenced element."
   (with-fixture/attrs trim-front
     (finishes (infer-type *soft* (find-soft-var "midpoint")))))
 
-(deftest test-lookup-in-std-header ()
-  (when (std-headers-available-p)
-    (is (typep (lookup-in-std-header "list" '("std" "list") "push_back")
-               'cpp-field-declaration))))
-
-(deftest test-infer-type-for-std ()
-  (local
-   (def cpp (from-string 'cpp-project "std::list<X>::iterator x;
-x->front();"))
-   (is (typep
-        (infer-type cpp (lastcar (collect-if (of-type 'cpp-field-expression)
-                                             (genome cpp))))
-        'cpp-type-descriptor))))
-
 (deftest test-get-declaration-ast-from-include ()
   (let* ((sw (from-string 'cpp-project (fmt "~
-#include <list>
+#include<list>
 
-std::list<int> xs = {1, 2, 3};
-int first = xs.front();")))
-         (proj (make 'cpp-project :evolve-files `(("file.c" . ,sw)))))
-    (with-attr-table proj
-      (let ((field (find-if (of-type 'c/cpp-field-expression) (genome sw))))
-        (is (typep
-             (get-declaration-ast :function sw field)
-             'c/cpp-field-declaration))))))
+int main() {
+  std::list<int> xs = {1, 2, 3};
+  int first = xs.front();
+}
+"))))
+    (with-attr-table sw
+      (let* ((field (find-if (of-type 'c/cpp-field-expression) (genome sw)))
+             (function (get-declaration-ast :function sw field)))
+        (is (source-text= "xs.front" field))
+        (is (typep function 'c/cpp-field-declaration))))))
 
 (def +struct-with-methods+
   (fmt "~
