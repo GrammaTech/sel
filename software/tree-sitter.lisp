@@ -482,9 +482,6 @@
            :c-canonical-type
            ;; Cpp
            :cpp-source-text-fragment
-           :find-std-include
-           :lookup-in-std-header
-           :system-header-names
            :cpp-variadic-declaration
            :cpp-canonical-type
            :+cpp-multi-declaration-keys+
@@ -7092,6 +7089,8 @@ Calling `get-declaration-ast' with a type of `variable', `function',
 or `type' is equivalent to `variable-declaration-ast',
 `function-declaration-ast', or `type-declaration-ast', respectively.")
   (:method-combination standard/context)
+  (:method :around ((type t) obj (list list))
+    (get-declaration-ast type obj (first list)))
   (:method ((type (eql :variable)) obj ast)
     (with-attr-table obj
       (find-decl-in-symbol-table ast type ast)))
@@ -7108,8 +7107,6 @@ or `type' is equivalent to `variable-declaration-ast',
     (error "Not a namespace: ~a" type))
   (:method ((type symbol) obj ast)
     (get-declaration-ast (decl-type-namespace type) obj ast))
-  ;; NB Not specialized on tree-sitter objects, since that would
-  ;; shadow normal-scope.
   (:method ((type t) (obj t) (ast ast))
     nil)
   (:method ((type t) (obj t) (ast call-ast))
@@ -7393,7 +7390,10 @@ By default this first tries `expression-type', then invokes
                 ((placeholder-type-p expression-type)
                  (or (infer-type-from-declaration)
                      expression-type))
-                (t expression-type)))))))
+                (t expression-type))))))
+  (:method ((obj t) (ast declaration-ast))
+    (with-attr-table obj
+      (extract-declaration-type obj ast))))
 
 (define-generic-analysis infer-expression-type (software ast)
   (:documentation "Infer the type of AST in SOFTWARE as an expression.
@@ -7402,9 +7402,11 @@ Calls `expression-type' by default.")
     (expression-type ast))
   (:method ((obj software) (ast call-ast))
     "Infer the type of a call from its declaration."
-    (or (when-let (decl (get-declaration-ast :function obj (call-function ast)))
-          (resolve-declaration-type obj decl ast))
-        (call-next-method))))
+    (infer-type obj (call-function ast))
+    ;; (or (when-let (decl (get-declaration-ast :function obj (call-function ast)))
+    ;;       (resolve-declaration-type obj decl ast))
+    ;;     (call-next-method))
+    ))
 
 (defgeneric expression-type (ast)
   (:documentation "Extract the type from AST, an expression.")
@@ -9645,16 +9647,20 @@ by MULTI-DECLARATION-KEYS."
 
 (defgeneric find-in-symbol-table (ast namespace query)
   (:method ((ast ast) (ns null) (query string))
-    (let* ((symbol-table (symbol-table ast)))
+    (let* ((symbol-table (get-sym-tab ast)))
       (lookup symbol-table query)))
   (:method ((ast ast) (ns null) (query ast))
     (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
   (:method ((ast ast) (ns symbol) (query ast))
     (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
   (:method ((ast ast) (namespace symbol) (query string))
-    (when-let* ((symbol-table (symbol-table ast))
+    (when-let* ((symbol-table (get-sym-tab ast))
                 (ns-table (lookup symbol-table namespace)))
       (values (lookup ns-table query)))))
+
+(defun get-sym-tab (ast)
+  (symbol-table ast)
+  )
 
 (defgeneric find-decls-in-symbol-table (ast ns query)
   (:method ((ast ast) (ns symbol) (query t))
