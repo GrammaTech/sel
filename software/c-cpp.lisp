@@ -731,14 +731,14 @@ Should return `:failure' in the base case.")
   (:method (sw lhs rhs) :failure)
   ;; Methods for pointers apply to C and C++; methods for references
   ;; are defined in cpp.lisp.
-  (:method ((sw c/cpp)
+  (:method ((sw t)
             (lhs c/cpp-pointer-declarator)
             (rhs c/cpp-pointer-expression))
     (if (typep (c/cpp-operator rhs) 'cpp-&)
         (with-attr-table sw
           (aliasee (c/cpp-argument rhs)))
         (call-next-method)))
-  (:method ((sw c/cpp)
+  (:method ((sw t)
             (lhs c/cpp-pointer-declarator)
             (rhs identifier-ast))
     ;; Assigning a pointer variable to a pointer variable.
