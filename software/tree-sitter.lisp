@@ -7219,9 +7219,26 @@ support destructuring.")
   (:method ((type (eql :macro)) obj ast)
     (with-attr-table obj
       (car+cdr (find-in-symbol-table ast type ast))))
+  (:method ((type t) (obj t) (ast call-ast))
+    (get-declaration-id type obj (call-function ast)))
   (:method ((type symbol) obj ast)
     (get-declaration-id (assure keyword (decl-type-namespace type))
-                        obj ast)))
+                        obj ast))
+  (:method :around ((type t) obj (identifier identifier-ast))
+    (when (keywordp type)
+      (setf type (namespace-decl-type type)))
+    (or
+     ;; Check if this identifier is part of a declaration before
+     ;; checking scopes to avoid returning a shadowed variable.
+     (iter
+      (for parent in (get-parent-asts* obj identifier))
+      (thereis (and (typep parent type)
+                    (find identifier
+                          (append (outer-declarations parent)
+                                  (inner-declarations parent))
+                          ;; Looking for the exact AST.
+                          :test #'eq))))
+     (call-next-method))))
 
 (define-generic-analysis variable-declaration-ids (software ast)
   (:documentation "Collect the variable declarations IDs in AST.")
