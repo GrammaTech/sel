@@ -7105,7 +7105,8 @@ or `type' is equivalent to `variable-declaration-ast',
       (find-decl-in-symbol-table ast type ast)))
   (:method ((type (eql :type)) obj ast)
     (with-attr-table obj
-      (find-decl-in-symbol-table ast type ast)))
+      (let ((ast (resolve-type-ast ast)))
+        (find-decl-in-symbol-table ast type ast))))
   (:method ((type (eql :macro)) obj ast)
     (with-attr-table obj
       (find-decl-in-symbol-table ast type ast)))
@@ -7378,7 +7379,11 @@ A placeholder type is a type like C++ `auto' or Java `var', a request
 for the compiler to infer the type.")
   (:method ((ast t)) nil))
 
-(defvar *deref* nil)
+(defgeneric resolve-type-ast (type)
+  (:method (type) type))
+
+(defgeneric deref-type (type)
+  (:method (type) (resolve-type-ast type)))
 
 (defgeneric infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.

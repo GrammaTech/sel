@@ -634,7 +634,7 @@
        (values (car declarations-values-list)
                (cadr declarations-values-list))))))
 
-(defmethod infer-type :around (obj (ast cpp-field-expression))
+#+(or) (defmethod infer-type :around (obj (ast cpp-field-expression))
   (let ((*deref*
          (or *deref*
              (and (source-text= (cpp-operator ast) ".")
@@ -655,7 +655,7 @@
   (when-let (first-try (call-next-method))
     (or
      ;; If the first try is not auto, just return it.
-     (unless (typep first-try 'cpp-placeholder-type-specifier)
+     (unless (placeholder-type-p first-try)
        first-try)
      ;; If there is a surrounding init declarator, infer the type from
      ;; its RHS.
