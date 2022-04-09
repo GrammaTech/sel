@@ -632,7 +632,22 @@
              (reduce #'outer-declarations-merge children
                      :initial-value nil)))
        (values (car declarations-values-list)
-            (cadr declarations-values-list))))))
+               (cadr declarations-values-list))))))
+
+(defmethod infer-type :around (obj (ast cpp-field-expression))
+  (let ((*deref*
+         (or *deref*
+             (and (source-text= (cpp-operator ast) ".")
+                  (when-let ((decl (get-declaration-ast
+                                    :variable
+                                    obj
+                                    (cpp-argument ast))))
+                    (find :reference
+                          (flatten (declarator
+                                    (canonicalize-type decl
+                                                       :software
+                                                       (attrs-root*))))))))))
+    (call-next-method)))
 
 (defmethod resolve-declaration-type ((obj t)
                                      (decl cpp-ast)
@@ -698,6 +713,7 @@ then the return type of the call is the return type of the field."
     (let ((children (direct-children type)))
       (and (single children)
            (first children)))))
+
 
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
@@ -777,30 +793,30 @@ then the return type of the call is the return type of the field."
 (defmethod placeholder-type-p ((ast cpp-placeholder-type-specifier))
   t)
 
-(defmethod infer-type :around ((obj t) (ast cpp-field-expression))
-  "Handle the special case of inferring the type of a field expression whose argument is a standard library iterator.
+;; (defmethod infer-type :around ((obj t) (ast cpp-field-expression))
+;;   "Handle the special case of inferring the type of a field expression whose argument is a standard library iterator.
 
-Since a field expression is an implicit dereference, if the type is a
-iterator we want the type of the container's elements."
-  (let ((type-ast (call-next-method)))
-    (or (flet ((namespace-qualifiers* (ast)
-                 (namespace-qualifiers obj ast)))
-          (match type-ast
-            ((and
-              (type cpp-qualified-identifier)
-              (access #'unqualified-name
-                      (and (type identifier-ast)
-                           (source-text= "iterator")))
-              (access #'namespace-qualifiers*
-                      (and (list* (source-text= "std") _)
-                           (cl:last
-                            (list
-                             (cpp-template-type
-                              (cpp-arguments
-                               (access #'direct-children
-                                       (list element-type)))))))))
-             element-type)))
-        type-ast)))
+;; Since a field expression is an implicit dereference, if the type is a
+;; iterator we want the type of the container's elements."
+;;   (let ((type-ast (call-next-method)))
+;;     (or (flet ((namespace-qualifiers* (ast)
+;;                  (namespace-qualifiers obj ast)))
+;;           (match type-ast
+;;             ((and
+;;               (type cpp-qualified-identifier)
+;;               (access #'unqualified-name
+;;                       (and (type identifier-ast)
+;;                            (source-text= "iterator")))
+;;               (access #'namespace-qualifiers*
+;;                       (and (list* (source-text= "std") _)
+;;                            (cl:last
+;;                             (list
+;;                              (cpp-template-type
+;;                               (cpp-arguments
+;;                                (access #'direct-children
+;;                                        (list element-type)))))))))
+;;              element-type)))
+;;         type-ast)))
 
 (defmethod infer-expression-type (obj (ast cpp-initializer-list))
   (or (call-next-method)
@@ -1036,6 +1052,4 @@ available to use at any point in a C++ AST.")
     (convert 'fset:map
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)
-              :source-text-fun #'qualify-declared-ast-name))))
-
-) ; #+:TREE-SITTER-CPP
+              :source-text-fun #'qualify-declared-ast-name))))) ; #+:TREE-SITTER-CPP
