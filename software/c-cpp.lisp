@@ -437,13 +437,23 @@ pointer declarations which are nested on themselves."
 ;;                   field-type))
 ;;           field-type))))
 
+(defmethod infer-type :around (obj (ast c/cpp-field-expression))
+  (let ((*deref* (or *deref* (source-text= "->" (cpp-operator ast)))))
+    (call-next-method)))
+
 (defmethod infer-type (obj (ast c/cpp-field-expression))
   (flet ((function-position? ()
            (when-let ((call (find-enclosing 'call-ast obj ast)))
              (eql (call-function call) ast))))
     (if (function-position?)
         (when-let (fn (get-declaration-ast :function obj ast))
-          (infer-type obj fn))
+          (let ((type (infer-type obj fn)))
+            (if *deref*
+                (if (string$= "iterator" (source-text type))
+                    (or (resolve-container-element-type
+                         (infer-type obj (c/cpp-argument ast))))
+                    type)
+                type)))
         (when-let* ((var (get-declaration-ast :variable obj ast)))
           (infer-type obj var)))))
 
@@ -455,11 +465,8 @@ pointer declarations which are nested on themselves."
 
 (defmethod infer-type (obj (ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
-  (match ast
-    ((cpp* "*$ARG" :arg arg)
-     (when-let (type (infer-type obj arg))
-       (resolve-deref-type obj arg type)))
-    (otherwise (call-next-method))))
+  (let ((*deref* (source-text= "." (cpp-operator ast))))
+    (call-next-method)))
 
 ;; (defmethod get-declaration-id ((type (eql :variable)) obj
 ;;                                (ast c/cpp-field-expression))

@@ -7109,7 +7109,7 @@ or `type' is equivalent to `variable-declaration-ast',
     (get-declaration-ast (decl-type-namespace type) obj ast))
   (:method ((type t) (obj t) (ast ast))
     nil)
-  (:method ((type t) (obj t) (ast call-ast))
+  (:method :around ((type t) (obj t) (ast call-ast))
     (get-declaration-ast type obj (call-function ast)))
   (:method ((type t) (obj t) (ast declaration-ast))
     ast)
@@ -7372,7 +7372,9 @@ A placeholder type is a type like C++ `auto' or Java `var', a request
 for the compiler to infer the type.")
   (:method ((ast t)) nil))
 
-(define-generic-analysis infer-type (software ast)
+(defvar *deref* nil)
+
+(defgeneric infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
 By default this first tries `expression-type', then invokes

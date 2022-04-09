@@ -450,7 +450,8 @@ auto d = p1->Distance(p2);")))
                         (infer-type sw
                                     (is (get-declaration-ast
                                          :variable
-                                         sw field-expr))))))
+                                         sw
+                                         (cpp-argument field-expr)))))))
     ;; We get the declaration of the `Point' type.
     #+(or) (is (get-declaration-ast 'type sw
                                     (infer-type sw (get-declaration-id
@@ -520,14 +521,16 @@ of a std iterator."
 iterator from a call on a dereferenced element."
   (let ((sw (from-string 'cpp-project +iterator-container-type-sw+)))
     (with-attr-table sw
-      (let* ((call (lastcar (collect-if (of-type 'call-ast) (genome sw))))
+      (let* ((call (lastcar (collect-if (of-type 'call-ast)
+                                        (find-if (of-type 'dir:file-ast)
+                                                 (genome sw)))))
              (field-expr (call-function call))
-             (field-decl (is (get-declaration-ast :function sw field-expr))))
+             (field-decl
+              (is (get-declaration-ast :function sw call))))
         (symbol-table field-decl)
-        ;; We get the type of `p1' (`Point') in `p1->Distance(p2)'.
-        (is (source-text= "Point" (infer-type sw field-expr)))
+        (is (source-text= "double" (infer-type sw field-expr)))
         ;; We get the declaration of the `Point' type.
-        (is (get-declaration-ast :type sw (infer-type sw field-expr)))
+        ;; (is (get-declaration-ast :type sw (infer-type sw field-expr)))
         ;; We get the declaration of the `Distance' field in `Point'.
         (is (typep field-decl 'cpp-field-declaration))
         (is (member "Distance" (field-names field-decl)
