@@ -441,29 +441,14 @@ pointer declarations which are nested on themselves."
   (let ((*deref* (or *deref* (source-text= "->" (cpp-operator ast)))))
     (call-next-method)))
 
-(defconstructor field-type
-  (argument ast)
-  (field ast))
-
-(defmethod resolve-type-ast ((type field-type))
-  (field-type-field type))
-
-(defmethod deref-type ((type field-type))
-  (ematch type
-    ((field-type arg field)
-     ;; TODO Structs etc.
-     (if (member field '("iterator" "const_iterator") :test #'source-text=)
-         (resolve-container-element-type arg)
-         (call-next-method)))))
-
 (defmethod source-text ((type field-type) &rest args)
   (apply #'source-text (field-type-argument type) args)
   (apply #'source-text "::" args)
   (apply #'source-text (field-type-field type) args))
 
-(defmethod infer-type :around (obj (ast c/cpp-field-expression))
+(defmethod infer-type :context (obj (ast c/cpp-field-expression))
   (let ((type (call-next-method)))
-    (if (source-text= (cpp-operator ast) "->")
+    (if (source-text= (c/cpp-operator ast) "->")
         (deref-type type)
         type)))
 
@@ -471,16 +456,11 @@ pointer declarations which are nested on themselves."
   (flet ((function-position? ()
            (when-let ((call (find-enclosing 'call-ast obj ast)))
              (eql (call-function call) ast))))
-    (let ((arg (cpp-argument ast)))
-      (if (function-position?)
-          (when-let (fn (get-declaration-ast :function obj ast))
-            (field-type
-             (infer-type obj arg)
-             (infer-type obj fn)))
-          (when-let* ((var (get-declaration-ast :variable obj ast)))
-            (field-type
-             (infer-type obj arg)
-             (infer-type obj var)))))))
+    (if (function-position?)
+        (when-let (fn (get-declaration-ast :function obj ast))
+          (infer-type obj fn))
+        (when-let* ((var (get-declaration-ast :variable obj ast)))
+          (infer-type obj var)))))
 
 (defgeneric resolve-deref-type (obj ast type)
   (:documentation "Given TYPE, the type of a pointer variable, resolve
@@ -491,7 +471,7 @@ pointer declarations which are nested on themselves."
 (defmethod infer-type (obj (ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
   (let ((type (call-next-method)))
-    (if (source-text= "*" (cpp-operator ast))
+    (if (source-text= "*" (c/cpp-operator ast))
         (deref-type type)
         type)))
 
@@ -549,11 +529,23 @@ pointer declarations which are nested on themselves."
 (defun get-field-class (obj field)
   (ematch field
     ((c/cpp-field-expression
-      (c/cpp-argument arg))
+      (c/cpp-argument arg)
+      (c/cpp-operator oper))
      ;; Find the type of the argument.
      (when-let* ((type (infer-type obj arg)))
        ;; Get the declaration of the type of the argument.
-       (get-declaration-ast :type obj type)))))
+       (let ((new-type
+              ;; TODO This needs to be generalized.
+              (when (typep type 'cpp-qualified-identifier)
+                (let ((parts (qualified-name->list type)))
+                  (when (member (lastcar parts) '("iterator" "const_iterator")
+                                :test #'source-text=)
+                    (if (source-text= "->" oper)
+                        (resolve-container-element-type type)
+                        (list->qualified-name (butlast parts))))))))
+         (when new-type
+           (setf (attr-proxy new-type) type))
+         (get-declaration-ast :type obj (or new-type type)))))))
 
 (defmethod get-declaration-id :around ((type t) obj
                                        (ast c/cpp-field-expression))

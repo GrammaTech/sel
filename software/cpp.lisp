@@ -793,6 +793,17 @@ then the return type of the call is the return type of the field."
 (defmethod placeholder-type-p ((ast cpp-placeholder-type-specifier))
   t)
 
+(defmethod infer-type :around (obj (ast cpp-field-expression))
+  (let* ((member-type (call-next-method))
+         (arg-type (infer-type obj (cpp-argument ast))))
+    (if (and arg-type member-type)
+        (lret ((qname (list->qualified-name
+                       (append (qualified-name->list arg-type)
+                               (qualified-name->list member-type)))))
+          (setf (attr-proxy qname) member-type)
+          qname)
+        member-type)))
+
 ;; (defmethod infer-type :around ((obj t) (ast cpp-field-expression))
 ;;   "Handle the special case of inferring the type of a field expression whose argument is a standard library iterator.
 
@@ -866,6 +877,26 @@ then the return type of the call is the return type of the field."
     (("float" "int") type1)
     (("int" "float") type2)
     ((x y) (and (equal x y) type1))))
+
+(defgeneric qualified-name->list (ast)
+  ;; TODO Qualified type and field identifiers.
+  (:method ((ast cpp-ast))
+    (list ast))
+  (:method ((ast cpp-qualified-identifier))
+    (cons (cpp-scope ast)
+          (qualified-name->list (cpp-name ast)))))
+
+(defun list->qualified-name (list)
+  (when (null list)
+    (error "Empty lists cannot become qualified names!"))
+  (reduce (lambda (scope name)
+            (if (typep name 'cpp-primitive-type)
+                name
+                (make 'cpp-qualified-identifier
+                      :cpp-scope scope
+                      :cpp-name name)))
+          list
+          :from-end t))
 
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")
