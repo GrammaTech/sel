@@ -7091,6 +7091,11 @@ or `type' is equivalent to `variable-declaration-ast',
   (:method-combination standard/context)
   (:method :around ((type t) obj (list list))
     (get-declaration-ast type obj (first list)))
+  (:method :context ((type t) obj (ast ast))
+    (let ((key (ast-key ast)))
+      (if (eql key ast)
+          (call-next-method)
+          (get-declaration-ast type obj key))))
   (:method ((type (eql :variable)) obj ast)
     (with-attr-table obj
       (find-decl-in-symbol-table ast type ast)))
@@ -7099,7 +7104,7 @@ or `type' is equivalent to `variable-declaration-ast',
       (find-decl-in-symbol-table ast type ast)))
   (:method ((type (eql :type)) obj ast)
     (with-attr-table obj
-      (let ((ast (resolve-type-ast ast)))
+      (let ((ast ast))
         (find-decl-in-symbol-table ast type ast))))
   (:method ((type (eql :macro)) obj ast)
     (with-attr-table obj
@@ -7379,12 +7384,28 @@ for the compiler to infer the type.")
 (defgeneric deref-type (type)
   (:method (type) (resolve-type-ast type)))
 
+(defconstructor field-type
+  (argument ast)
+  (field ast))
+
+(defmethod resolve-type-ast ((type field-type))
+  (field-type-field type))
+
+(defmethod deref-type ((type field-type))
+  (ematch type
+    ((field-type arg field)
+     ;; TODO Structs etc.
+     (if (member field '("iterator" "const_iterator") :test #'source-text=)
+         (resolve-container-element-type arg)
+         (call-next-method)))))
+
 (defgeneric infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
+  (:method-combination standard/context)
   (:method ((obj t) (ast t))
     (with-attr-table obj
       (flet ((infer-type-from-declaration ()
@@ -7481,18 +7502,22 @@ return whether they are equal.")
    of variables in SOFTWARE that are aliases \(pointers or referenes)
    for PLAIN-VAR.")
 
+(defun lookup-type (ast)
+  (when-let ((decl (find-decl-in-symbol-table ast ns ast)))
+    (extract-declaration-type (attrs-root* decl))))
+
 (defun symbol-table->type-env (syms &key (root (attrs-root*)))
-  (let* ((fn-syms (@ syms :function))
+  (let* ((map (empty-map))
+         (fn-syms (@ syms :function))
          (var-syms (@ syms :function))
          (type-syms (@ syms :type))
          (fn-types
           (iter (for (s vs) in-map fn-syms)
-                (map-collect s
-                             (iter
-                              (for v in vs)
-                              (for decl = (find-enclosing 'variable-declaration-ast root v))
-                              (when decl
-                                (collect (extract-declaration-type root decl)))))))
+                (iter
+                 (for v in vs)
+                 (for decl = (find-enclosing 'variable-declaration-ast root v))
+                 (when decl
+                   (collect (withf map v (extract-declaration-type root decl)))))))
          (var-types
           (iter (for (s vs) in-map var-syms)
                 (map-collect s
@@ -9705,26 +9730,58 @@ by MULTI-DECLARATION-KEYS."
                      (inner-declarations node)))))
 
 (defgeneric qualify-declared-ast-name (ast)
+  (:method :around ((ast ast))
+    (let ((key (ast-key ast)))
+      (if (eql ast key)
+          (call-next-method)
+          (qualify-declared-ast-name key))))
   (:method ((ast ast))
     (or (declarator-name ast)
         (source-text ast))))
 
+(defgeneric ast-key (ast)
+  (:method ((ast t)) ast))
+
+(defclass annotated-ast (ast)
+  ((ast :initarg :ast :type ast :reader ast-key)
+   (map :initarg :map :type fset:map))
+  (:default-initargs :map (empty-map)))
+
+(defmethod print-object ((self annotated-ast) stream)
+  (print-unreadable-object (self stream :type t)
+    (with-slots (ast map) self
+      (format stream "~a ~a" ast map)))
+  self)
+
+(defmethod source-text ((ast annotated-ast) &rest args &key)
+  (apply #'source-text (ast-key ast) args))
+
+(defun annotate-ast (ast key value)
+  (make 'annotated-ast
+        :ast (ast-key ast)
+        :map
+        (with (if (typep ast 'annotated-ast)
+                  (slot-value ast 'map)
+                  (empty-map))
+              key value)))
+
+(defun ast-ref (ast key)
+  (if (typep ast 'annotated-ast)
+      (lookup (slot-value ast 'map) key)
+      nil))
+
 (defgeneric find-in-symbol-table (ast namespace query)
   (:method ((ast ast) (ns null) (query string))
-    (let* ((symbol-table (get-sym-tab ast)))
+    (let* ((symbol-table (symbol-table (ast-key ast))))
       (lookup symbol-table query)))
   (:method ((ast ast) (ns null) (query ast))
     (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
   (:method ((ast ast) (ns symbol) (query ast))
     (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
   (:method ((ast ast) (namespace symbol) (query string))
-    (when-let* ((symbol-table (get-sym-tab ast))
+    (when-let* ((symbol-table (symbol-table (ast-key ast)))
                 (ns-table (lookup symbol-table namespace)))
       (values (lookup ns-table query)))))
-
-(defun get-sym-tab (ast)
-  (symbol-table ast)
-  )
 
 (defgeneric find-decls-in-symbol-table (ast ns query)
   (:method ((ast ast) (ns symbol) (query t))
