@@ -7201,27 +7201,27 @@ a declaration AST, return AST unchanged.")
                            :test #'eq)))))
      (call-next-method))))
 
-(define-generic-analysis relevant-declaration-type (software ast)
-  (:documentation "Return the type of declaration we should look for.
+(def-attr-fun relevant-declaration-type ()
+  "Return the type of declaration we should look for.
 
 That is, based on AST's context, figure out whether we should be
 looking for a `variable-declaration-ast', `function-declaration-ast',
 or `type-declaration-ast'.
 
 If the value is `nil' it is because the AST is not one for which a
-declaration makes sense.")
+declaration makes sense."
   ;; TODO Not every language has a separate class for type
   ;; identifiers. E.g. Python just has Python identifiers inside
   ;; Python types.
-  (:method ((obj t) (ast ast))
+  (:method ((ast ast))
     nil)
-  (:method ((obj t) (ast identifier-ast))
+  (:method ((ast identifier-ast))
     'variable-declaration-ast)
-  (:method ((obj t) (ast type-identifier-ast))
+  (:method ((ast type-identifier-ast))
     'type-declaration-ast)
-  (:method ((obj t) (ast type-ast))
+  (:method ((ast type-ast))
     'type-declaration-ast)
-  (:method ((obj t) (ast declaration-ast))
+  (:method ((ast declaration-ast))
     (or (find (type-of ast)
               '(variable-declaration-ast
                 function-declaration-ast
@@ -7229,7 +7229,7 @@ declaration makes sense.")
                 macro-declaration-ast)
               :test #'subtypep)
         (error "Unclassified declaration: ~a" ast)))
-  (:method :around ((obj t) (ast ast))
+  (:method :around ((ast ast) &aux (obj (attrs-root*)))
     (or
      ;; The relevant declaration type for a call function is a
      ;; function.
@@ -7432,7 +7432,7 @@ By default this first tries `expression-type', then invokes
 `get-declaration-ast'.")
   (:method ((obj t) (ast t))
     (flet ((infer-type-from-declaration ()
-             (when-let* ((decl-type (relevant-declaration-type obj ast))
+             (when-let* ((decl-type (relevant-declaration-type ast))
                          (decl (get-declaration-ast decl-type ast)))
                (resolve-declaration-type obj decl ast))))
       (let ((expression-type (infer-expression-type obj ast)))
