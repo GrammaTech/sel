@@ -9727,7 +9727,9 @@ by MULTI-DECLARATION-KEYS."
   (:method ((ast ast) (ns symbol) (query t))
     (let ((type (namespace-decl-type ns)))
       (mapcar (lambda (ast)
-                (find-enclosing type (attrs-root*) ast))
+                (or (find-enclosing type (attrs-root*) ast)
+                    ;; This shouldn't be possible.
+                    (error "No ~a for ~a" type ast)))
               (find-in-symbol-table ast ns query)))))
 
 (defun find-decl-in-symbol-table (ast ns query)
