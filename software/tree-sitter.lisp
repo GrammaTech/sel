@@ -7086,11 +7086,45 @@ Every element in the list has the following form:
 (defgeneric variable-use-p (software ast &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in SOFTWARE as a variable."))
 
+(defcondition unresolved-overloads ()
+  ((ast :initarg :ast :type ast)
+   (overloads :initarg :overloads :type list))
+  (:report (lambda (c s)
+             (with-slots (ast overloads) c
+               (format s "Multiple overloads for ~a:~%~{~a~%~^~}"
+                       ast overloads)))))
+
+(defun unresolved-overloads (ast overloads)
+  (error 'unresolved-overloads
+         :ast ast
+         :overloads overloads))
+
+(defgeneric resolve-overloads (ast &optional overloads)
+  (:method :before (ast &optional overloads)
+    (assert (and (listp overloads) (rest overloads))))
+  (:method (ast &optional overloads)
+    (unresolved-overloads ast overloads)))
+
 (defun get-declaration-ast (type ast)
-  (first (get-declaration-asts type ast)))
+  "Like `get-declaration-asts', but selects the
+correct overload for AST if there is more than one."
+  (let ((decls (get-declaration-asts type ast)))
+    (match decls
+      (() decls)
+      ((list decl) decl)
+      (otherwise (resolve-overloads ast decls)))))
 
 (defun get-declaration-id (type ast)
-  (first (get-declaration-ids type ast)))
+  "Like `get-declaration-ids', but selects the correct overload if
+there is more than one."
+  (let ((ids (get-declaration-ids type ast)))
+    (match ids
+      (() ids)
+      ((list id) id)
+      (otherwise
+       (let* ((decls (get-declaration-asts type ast))
+              (decl (resolve-overloads ast decls)))
+         (nth (position decl decls) ids))))))
 
 (defgeneric get-declaration-asts (type ast)
   (:documentation "For an identifier, get a list of declaration ASTs.
