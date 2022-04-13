@@ -146,7 +146,7 @@ field."
 (defmethod no-fallthrough ((ast c-continue-statement)) t)
 (defmethod no-fallthrough ((ast c-break-statement)) t)
 
-(defmethod infer-type ((obj t) (ast c-ast))
+(defmethod infer-type ((ast c-ast) &aux (obj (attrs-root*)))
   (if-let ((decl (find-if «or {typep _ 'c-declaration}
                               {typep _ 'c-parameter-declaration}»
                           (get-parent-asts obj ast))))

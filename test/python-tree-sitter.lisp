@@ -793,7 +793,8 @@ and keyword parameters with defaults."
       (is (consp (find-if-in-scopes (of-name "greeting") scopes)))
       (is (null (find-if-in-scopes (of-name "name: str") scopes)))
       (is (consp (find-if-in-scopes (of-name "name") scopes)))
-      (is (equal "str" (source-text (infer-type software name-param-id)))))))
+      (with-attr-table software
+        (is (equal "str" (source-text (infer-type name-param-id))))))))
 
 (deftest test-python-call-name ()
   (is (string= (call-name (convert 'python-ast "foo(1, 2, 3)" :deepest t)) "foo")))

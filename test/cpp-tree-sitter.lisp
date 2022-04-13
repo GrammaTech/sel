@@ -209,17 +209,6 @@ mytype myfun3 (mytype y) { return y; }"))
                   "Wrong type for ~a: wanted ~a, got ~a"
                   node wanted-type relevant-type))))))
 
-(defun test-trim-front-variable (name)
-  (with-fixture/attrs trim-front
-    ;; Get the type for each access.
-    (let* ((id (find "midpoint"
-                     (variable-declaration-ids (genome *soft*))
-                     :test #'source-text=))
-           (entry (assoc id
-                         +trim-front-types+
-                         :test #'source-text=)))
-      (is (source-text= (cdr entry) (infer-type *soft* id))))))
-
 (deftest test-trim-front-types (&key only)
   "Test that we retrieve the correct type for each identifier."
   (with-fixture/attrs trim-front
@@ -234,7 +223,7 @@ mytype myfun3 (mytype y) { return y; }"))
             (when-let (entry (assoc id
                                     +trim-front-types+
                                     :test #'source-text=))
-              (let ((type (infer-type *soft* id)))
+              (let ((type (infer-type id)))
                 (is (source-text= (cdr entry) type)
                     "Inferred ~a for variable ~a, should be ~a"
                     (source-text type)
@@ -248,28 +237,28 @@ mytype myfun3 (mytype y) { return y; }"))
                (find-if (of-type 'call-ast)
                         (cpp "static_cast<double>(x);"))))))
   (let ((cpp (from-string 'cpp-project "1.0 + 2.0f;")))
-    (is (equal "double"
-               (source-text
-                (infer-type cpp
-                            (find-if (of-type 'cpp-binary-expression) cpp))))))
+    (with-attr-table cpp
+      (is (equal "double"
+                 (source-text
+                  (infer-type (find-if (of-type 'cpp-binary-expression) cpp)))))))
   (let ((cpp (from-string 'cpp-project "1 + 2.0f;")))
-    (is (equal "float"
-               (source-text
-                (infer-type cpp
-                            (find-if (of-type 'cpp-binary-expression) cpp)))))))
+    (with-attr-table cpp
+      (is (equal "float"
+                 (source-text
+                  (infer-type (find-if (of-type 'cpp-binary-expression) cpp))))))))
 
 (deftest test-infer-expression-type ()
   (let* ((cpp (from-string 'cpp-project "int x = fn(b);"))
          (expression (find-if (op (source-text= "fn(b)" _)) cpp)))
-    (is (typep expression 'expression-ast))
-    (is (equal "int"
-               (source-text
-                (infer-expression-type cpp expression)))))
-  (with-fixture trim-front
+    (with-attr-table cpp
+      (is (typep expression 'expression-ast))
+      (is (equal "int"
+                 (source-text
+                  (infer-expression-type expression))))))
+  (with-fixture/attrs trim-front
     (is (equal "double"
                (source-text
-                (infer-expression-type *soft*
-                                       (find-if
+                (infer-expression-type (find-if
                                         (lambda (ast)
                                           (and (typep ast 'expression-ast)
                                                (equal (source-text ast)
@@ -279,12 +268,14 @@ mytype myfun3 (mytype y) { return y; }"))
 (deftest test-cpp-infer-type/compound-literal ()
   (let* ((sw (from-string 'cpp-project "auto x = mytype{1};"))
          (ast (find-if (of-type 'cpp-compound-literal-expression) (genome sw))))
-    (is (equal (source-text (infer-type sw ast)) "mytype"))))
+    (with-attr-table sw
+      (is (equal (source-text (infer-type ast)) "mytype")))))
 
 (deftest test-cpp-infer-type/auto-literal ()
   (let* ((sw (from-string 'cpp-project "auto x = 1;"))
          (ast (find-if (of-type 'identifier-ast) (genome sw))))
-    (is (equal (source-text (infer-type sw ast)) "int"))))
+    (with-attr-table sw
+      (is (equal (source-text (infer-type ast)) "int")))))
 
 (deftest test-cpp-infer-type/auto-rhs ()
   (let* ((sw (from-string 'cpp-project (fmt "~
@@ -292,8 +283,9 @@ int x = 1;
 auto y = x;~
 ")))
          (ast (second (collect-if (of-type 'cpp-identifier) (genome sw)))))
-    (is (string= "y" (source-text ast)))
-    (is (equal "int" (source-text (infer-type sw ast))))))
+    (with-attr-table sw
+      (is (string= "y" (source-text ast)))
+      (is (equal "int" (source-text (infer-type ast)))))))
 
 (deftest test-get-declaration-ast/reference ()
   (let* ((sw (from-string 'cpp-project (fmt "int& y = x;")))
@@ -336,9 +328,10 @@ x = malloc(sizeof(int));
 *x = 42;
 int y = *x;
 "))))
-    (let ((expr (lastcar (collect-if (of-type 'cpp-pointer-expression)
-                                     (genome sw)))))
-      (is (source-text= "int" (infer-type sw expr))))))
+    (with-attr-table sw
+      (let ((expr (lastcar (collect-if (of-type 'cpp-pointer-expression)
+                                       (genome sw)))))
+        (is (source-text= "int" (infer-type expr)))))))
 
 (deftest test-get-initialization-ast/assignment ()
   "Test that we get the correct assignment for the initialization AST
@@ -425,8 +418,9 @@ int myfun(int x, int y) {
 auto z = myfun(1, 2);")))
          (z (find "z" (identifiers (genome sw))
                   :test #'source-text=)))
-    (is (typep z 'identifier-ast))
-    (is (source-text= "int" (infer-type sw z)))))
+    (with-attr-table sw
+      (is (typep z 'identifier-ast))
+      (is (source-text= "int" (infer-type z))))))
 
 (deftest test-resolve-method-call-to-field-decl ()
   (let* ((sw (from-string 'cpp-project (fmt "~
@@ -448,8 +442,7 @@ auto d = p1->Distance(p2);")))
                      (get-declaration-ast :function field-expr))))
       ;; We get the type of `p1' (`Point').
       (is (source-text= "Point"
-                        (infer-type sw
-                                    (is (get-declaration-ast
+                        (infer-type (is (get-declaration-ast
                                          :variable
                                          (cpp-argument field-expr)))))))
     ;; We get the declaration of the `Point' type.
@@ -494,9 +487,9 @@ with an arrow, even when the infererence passes through both."
       (destructuring-bind (call1 call2) calls
         (is (source-text= call1 "pts.cbegin()"))
         (is (source-text= call2 "p1->Distance(p2)"))
-        (is (source-text= (infer-type sw call1) "std::list<Point>::const_iterator"))
+        (is (source-text= (infer-type call1) "std::list<Point>::const_iterator"))
         ;; (namespace (infer-type sw call1))
-        (is (source-text= (infer-type sw call2) "double"))))))
+        (is (source-text= (infer-type call2) "double"))))))
 
 (deftest test-resolve-iterator-container-type ()
   "Test that we can resolve the type of the elements of the container
@@ -509,7 +502,7 @@ of a std iterator."
                 (find-if (op (source-text= name _)) sw))))
         ;; (is (source-text= "std::list<Point>" (infer-type sw (get-decl "pts"))))
         ;; (is (source-text= "Point" (infer-type sw (get-decl "po"))))
-        (is (source-text= "double" (infer-type sw (get-decl "d"))))
+        (is (source-text= "double" (infer-type (get-decl "d"))))
         ;; (is (string*= "iterator"
         ;;               (source-text
         ;;                (infer-type sw (get-decl "p1")))))
@@ -527,7 +520,7 @@ iterator from a call on a dereferenced element."
              (field-decl
               (is (get-declaration-ast :function call))))
         (symbol-table field-decl)
-        (is (source-text= "double" (infer-type sw field-expr)))
+        (is (source-text= "double" (infer-type field-expr)))
         ;; We get the declaration of the `Point' type.
         ;; (is (get-declaration-ast :type sw (infer-type sw field-expr)))
         ;; We get the declaration of the `Distance' field in `Point'.
@@ -535,7 +528,7 @@ iterator from a call on a dereferenced element."
         (is (member "Distance" (field-names field-decl)
                     :test #'source-text=))
         ;; Finally we infer the type of the call.
-        (is (source-text= "double" (infer-type sw call)))))))
+        (is (source-text= "double" (infer-type call)))))))
 
 (defun find-soft-var (name)
   (find name (identifiers (genome *soft*))
@@ -567,7 +560,7 @@ iterator from a call on a dereferenced element."
 
 (deftest test-infer-type-loop-terminates ()
   (with-fixture/attrs trim-front
-    (finishes (infer-type *soft* (find-soft-var "midpoint")))))
+    (finishes (infer-type (find-soft-var "midpoint")))))
 
 (deftest test-get-declaration-ast-from-include ()
   (let* ((sw (from-string 'cpp-project (fmt "~
@@ -607,16 +600,18 @@ struct Point {
 
 (deftest test-infer-return-type ()
   (let* ((sw (from-string 'cpp-project +struct-with-methods+)))
-    (nest (is)
-          (source-text= "double")
-          (infer-type sw)
-          (stmt-with-text sw "std::sqrt(a * a + b * b)"))))
+    (with-attr-table sw
+      (nest (is)
+            (source-text= "double")
+            (infer-type)
+            (stmt-with-text sw "std::sqrt(a * a + b * b)")))))
 
 (deftest test-infer-initializer-list-type-as-expression ()
   (let ((v (from-string 'cpp-project "std::vector<Point> pts = { p1, p2, p3 };")))
-    (is (source-text=
-         "std::vector<Point>"
-         (infer-type v (find-if (of-type 'cpp-initializer-list) v))))))
+    (with-attr-table v
+      (is (source-text=
+           "std::vector<Point>"
+           (infer-type (find-if (of-type 'cpp-initializer-list) v)))))))
 
 
 ;;; Parsing tests

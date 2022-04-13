@@ -7424,42 +7424,39 @@ for the compiler to infer the type.")
          (resolve-container-element-type arg)
          (call-next-method)))))
 
-(define-generic-analysis infer-type (software ast)
-  (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
+(def-attr-fun infer-type ()
+  (:documentation "Return the type of AST as an a AST, or nil if it
+  could not be determined.
 
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
-  (:method ((obj t) (ast t))
+  (:method (ast)
     (flet ((infer-type-from-declaration ()
              (when-let* ((decl-type (relevant-declaration-type ast))
                          (decl (get-declaration-ast decl-type ast)))
-               (resolve-declaration-type obj decl ast))))
-      (let ((expression-type (infer-expression-type obj ast)))
+               (resolve-declaration-type (attrs-root*) decl ast))))
+      (let ((expression-type (infer-expression-type ast)))
         (cond ((null expression-type)
                (infer-type-from-declaration))
               ((placeholder-type-p expression-type)
                (or (infer-type-from-declaration)
                    expression-type))
               (t expression-type)))))
-  (:method ((obj t) (ast declaration-ast))
+  (:method ((ast declaration-ast))
     (let ((type (extract-declaration-type ast)))
       (if (placeholder-type-p type)
           (call-next-method)
           type))))
 
-(define-generic-analysis infer-expression-type (software ast)
-  (:documentation "Infer the type of AST in SOFTWARE as an expression.
-Calls `expression-type' by default.")
-  (:method (obj (ast t))
+(def-attr-fun infer-expression-type ()
+  "Infer the type of AST in SOFTWARE as an expression.
+Calls `expression-type' by default."
+  (:method ((ast t))
     (expression-type ast))
-  (:method (obj (ast call-ast))
+  (:method ((ast call-ast))
     "Infer the type of a call from its declaration."
-    (infer-type obj (call-function ast))
-    ;; (or (when-let (decl (get-declaration-ast :function obj (call-function ast)))
-    ;;       (resolve-declaration-type obj decl ast))
-    ;;     (call-next-method))
-    ))
+    (infer-type (call-function ast))))
 
 (defgeneric expression-type (ast)
   (:documentation "Extract the type from AST, an expression.")

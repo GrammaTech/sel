@@ -409,21 +409,22 @@ pointer declarations which are nested on themselves."
   (apply #'source-text "::" args)
   (apply #'source-text (field-type-field type) args))
 
-(defmethod infer-type :context (obj (ast c/cpp-field-expression))
+(defmethod infer-type :context ((ast c/cpp-field-expression))
   (let ((type (call-next-method)))
     (if (source-text= (c/cpp-operator ast) "->")
         (deref-type type)
         type)))
 
-(defmethod infer-type (obj (ast c/cpp-field-expression))
+(defmethod infer-type ((ast c/cpp-field-expression)
+                       &aux (obj (attrs-root*)))
   (flet ((function-position? ()
            (when-let ((call (find-enclosing 'call-ast obj ast)))
              (eql (call-function call) ast))))
     (if (function-position?)
         (when-let (fn (get-declaration-ast :function ast))
-          (infer-type obj fn))
+          (infer-type fn))
         (when-let* ((var (get-declaration-ast :variable ast)))
-          (infer-type obj var)))))
+          (infer-type var)))))
 
 (defgeneric resolve-deref-type (obj ast type)
   (:documentation "Given TYPE, the type of a pointer variable, resolve
@@ -431,7 +432,7 @@ pointer declarations which are nested on themselves."
   (:method (obj (ast c/cpp-ast) (type type-ast))
     type))
 
-(defmethod infer-type (obj (ast c/cpp-pointer-expression))
+(defmethod infer-type ((ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
   (let ((type (call-next-method)))
     (if (source-text= "*" (c/cpp-operator ast))
@@ -481,13 +482,13 @@ pointer declarations which are nested on themselves."
   (@ (or (@ (field-table class) ns) (empty-map))
      (source-text key)))
 
-(defun get-field-class (obj field)
+(defun get-field-class (field)
   (ematch field
     ((c/cpp-field-expression
       (c/cpp-argument arg)
       (c/cpp-operator oper))
      ;; Find the type of the argument.
-     (when-let* ((type (infer-type obj arg)))
+     (when-let* ((type (infer-type arg)))
        ;; Get the declaration of the type of the argument.
        (let ((new-type
               ;; TODO This needs to be generalized.
@@ -503,7 +504,7 @@ pointer declarations which are nested on themselves."
          (get-declaration-ast :type (or new-type type)))))))
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
-  (when-let (class (get-field-class (attrs-root*) ast))
+  (when-let (class (get-field-class ast))
     (lookup-in-field-table class type (c/cpp-field ast))))
 
 (defmethod get-declaration-asts :around (type (ast c/cpp-field-expression))
@@ -569,9 +570,9 @@ appears as a return statement is assumed to be the type of the function."
                                 parents)))
           (declaration-type fn)))))
 
-(defmethod infer-expression-type :around (obj (ast expression-ast))
+(defmethod infer-expression-type :around ((ast expression-ast))
   (or (call-next-method)
-      (infer-type-as-c/cpp-expression obj ast)))
+      (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
 (defmethod expression-type ((ast c/cpp-declaration))
   (cpp-type ast))
