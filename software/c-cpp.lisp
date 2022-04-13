@@ -404,35 +404,6 @@ pointer declarations which are nested on themselves."
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
 
-;; (defmethod deref-type (obj (ast t))
-;;   (infer-type obj ast))
-
-;; (defmethod deref-type (obj (ast c/cpp-field-expression))
-;;   (flet ((function-position? ()
-;;            (when-let ((call (find-enclosing 'call-ast obj ast)))
-;;              (eql (call-function call) ast)))
-;;          (iterator-type? (type)
-;;            (scan "(?:const_)?iterator" (source-text type))))
-;;     (let* ((arg (cpp-argument ast))
-;;            (arg-type (infer-type obj arg))
-;;            (field-type
-;;              (if (function-position?)
-;;                  (when-let (fn (get-declaration-ast :function obj ast))
-;;                    (infer-type obj fn))
-;;                  (when-let* ((var (get-declaration-ast :variable obj ast)))
-;;                    (infer-type obj var)))))
-;;       ;; TODO . should only be dereferenced for a C++ reference.
-;;       (if (iterator-type? field-type)
-;;           (if (iterator-type? arg-type)
-;;               (deref-type obj arg)
-;;               (or (resolve-container-element-type arg-type)
-;;                   field-type))
-;;           field-type))))
-
-#+(or) (defmethod infer-type :around (obj (ast c/cpp-field-expression))
-  (let ((*deref* (or *deref* (source-text= "->" (cpp-operator ast)))))
-    (call-next-method)))
-
 (defmethod source-text ((type field-type) &rest args)
   (apply #'source-text (field-type-argument type) args)
   (apply #'source-text "::" args)

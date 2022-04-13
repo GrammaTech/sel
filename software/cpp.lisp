@@ -634,20 +634,6 @@
        (values (car declarations-values-list)
                (cadr declarations-values-list))))))
 
-#+(or) (defmethod infer-type :around (obj (ast cpp-field-expression))
-  (let ((*deref*
-         (or *deref*
-             (and (source-text= (cpp-operator ast) ".")
-                  (when-let ((decl (get-declaration-ast
-                                    :variable
-                                    obj
-                                    (cpp-argument ast))))
-                    (find :reference
-                          (flatten (declarator
-                                    (canonicalize-type decl
-                                                       :software
-                                                       (attrs-root*))))))))))
-    (call-next-method)))
 
 (defmethod resolve-declaration-type ((obj t)
                                      (decl cpp-ast)
