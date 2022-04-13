@@ -829,7 +829,7 @@ Should return `:failure' in the base case.")
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
 
-(defmethod collect-arg-uses (sw (target cpp-ast)
+(defmethod collect-arg-uses (sw (target c/cpp-ast)
                              &optional alias)
   (unless (typep target 'identifier-ast)
     (return-from collect-arg-uses
