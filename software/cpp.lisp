@@ -794,15 +794,22 @@ then the return type of the call is the return type of the field."
   t)
 
 (defmethod infer-type :around (obj (ast cpp-field-expression))
-  (let* ((member-type (call-next-method))
+  (let* ((field-type (call-next-method))
          (arg-type (infer-type obj (cpp-argument ast))))
-    (if (and arg-type member-type)
-        (lret ((qname (list->qualified-name
+    (if (and arg-type field-type)
+        (let ((field-ns (namespace field-type)))
+          (if (equal field-ns (qualify-declared-ast-name arg-type))
+              ;; If the type of the argument is (modulo template
+              ;; arguments) the same as the namespace of the field
+              ;; type, then we synthesize a new AST from both of them
+              ;; with template arguments intact.
+              (lret ((qname
+                      (list->qualified-name
                        (append (qualified-name->list arg-type)
-                               (qualified-name->list member-type)))))
-          (setf (attr-proxy qname) member-type)
-          qname)
-        member-type)))
+                               (qualified-name->list field-type)))))
+                (setf (attr-proxy qname) field-type))
+              field-type))
+        field-type)))
 
 ;; (defmethod infer-type :around ((obj t) (ast cpp-field-expression))
 ;;   "Handle the special case of inferring the type of a field expression whose argument is a standard library iterator.
@@ -1050,7 +1057,7 @@ available to use at any point in a C++ AST.")
 
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
   (let* ((source-text
-          ;; Strip template parameters.
+          ;; Strip template parameters for lookup.
           (regex-replace-all "<[^>]+>"
                              (or (declarator-name declared-ast)
                                  (source-text declared-ast))
