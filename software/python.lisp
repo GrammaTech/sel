@@ -188,6 +188,16 @@ are created if they're present in PARSE-TREE."
            (find-if (of-type 'python-identifier) parent)))
     decl)
    decl))
+(defmethod extract-declaration-type (obj (decl-ast python-identifier))
+  "Work around the fact that Python identifiers are declaration ASTs
+\(because they can appear by themselves in parameter lists)."
+  (if (typep (get-parent-ast obj decl-ast) 'parameters-ast)
+      (call-next-method)
+      (if-let* ((parent (get-parent-ast obj decl-ast))
+                ;; Not including the given AST.
+                (decl (find-enclosing 'declaration-ast obj parent)))
+        (extract-declaration-type obj decl)
+        (call-next-method))))
 
 (defmethod enclosing-scope ((obj python) (ast python-ast))
   "Return the enclosing scope of AST in OBJ.
