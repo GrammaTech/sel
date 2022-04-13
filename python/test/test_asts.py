@@ -517,3 +517,16 @@ class SimpleParseTestDriver(unittest.TestCase):
         root = AST.from_string(text, language)
         self.assertEqual(root.language, language)
         self.assertEqual(root.source_text, text)
+
+
+class CommentTestDriver(unittest.TestCase):
+    def setUp(self):
+        self.root = AST.from_string("{ /* comment */ }", ASTLanguage.C)
+
+    def test_lookup(self):
+        path = [["CHILDREN", 0], ["C-INTERNAL-ASTS-0", 0]]
+        self.assertIsInstance(self.root.lookup(path), CComment)
+
+    def test_transform_does_not_crash(self):
+        transformed = AST.transform(self.root, lambda ast: None)
+        self.assertEqual(self.root.source_text, transformed.source_text)
