@@ -7091,11 +7091,6 @@ or `type' is equivalent to `variable-declaration-ast',
   (:method-combination standard/context)
   (:method :around ((type t) obj (list list))
     (get-declaration-ast type obj (first list)))
-  (:method :context ((type t) obj (ast ast))
-    (let ((key (ast-key ast)))
-      (if (eql key ast)
-          (call-next-method)
-          (get-declaration-ast type obj key))))
   (:method ((type (eql :variable)) obj ast)
     (with-attr-table obj
       (find-decl-in-symbol-table ast type ast)))
@@ -9681,56 +9676,20 @@ by MULTI-DECLARATION-KEYS."
                      (inner-declarations node)))))
 
 (defgeneric qualify-declared-ast-name (ast)
-  (:method :around ((ast ast))
-    (let ((key (ast-key ast)))
-      (if (eql ast key)
-          (call-next-method)
-          (qualify-declared-ast-name key))))
   (:method ((ast ast))
     (or (declarator-name ast)
         (source-text ast))))
 
-(defgeneric ast-key (ast)
-  (:method ((ast t)) ast))
-
-(defclass annotated-ast (ast)
-  ((ast :initarg :ast :type ast :reader ast-key)
-   (map :initarg :map :type fset:map))
-  (:default-initargs :map (empty-map)))
-
-(defmethod print-object ((self annotated-ast) stream)
-  (print-unreadable-object (self stream :type t)
-    (with-slots (ast map) self
-      (format stream "~a ~a" ast map)))
-  self)
-
-(defmethod source-text ((ast annotated-ast) &rest args &key)
-  (apply #'source-text (ast-key ast) args))
-
-(defun annotate-ast (ast key value)
-  (make 'annotated-ast
-        :ast (ast-key ast)
-        :map
-        (with (if (typep ast 'annotated-ast)
-                  (slot-value ast 'map)
-                  (empty-map))
-              key value)))
-
-(defun ast-ref (ast key)
-  (if (typep ast 'annotated-ast)
-      (lookup (slot-value ast 'map) key)
-      nil))
-
 (defgeneric find-in-symbol-table (ast namespace query)
   (:method ((ast ast) (ns null) (query string))
-    (let* ((symbol-table (symbol-table (ast-key ast))))
+    (let* ((symbol-table (symbol-table ast)))
       (lookup symbol-table query)))
   (:method ((ast ast) (ns null) (query ast))
     (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
   (:method ((ast ast) (ns symbol) (query ast))
     (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
   (:method ((ast ast) (namespace symbol) (query string))
-    (when-let* ((symbol-table (symbol-table (ast-key ast)))
+    (when-let* ((symbol-table (symbol-table ast))
                 (ns-table (lookup symbol-table namespace)))
       (values (lookup ns-table query)))))
 
