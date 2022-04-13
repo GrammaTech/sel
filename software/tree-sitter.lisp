@@ -7266,32 +7266,30 @@ initialization to be separate."
                              into ids))))
           (finally (return (convert 'list ids))))))
 
-(defgeneric same-variable-p (obj ast1 ast2)
+(defgeneric same-variable-p (ast1 ast2)
   (:documentation "T if AST1 and AST2 resolve to the same declaration.
 Returns a second value to represent certainty; returning NIL, T means
 they are definitely not the same; returning NIL, NIL means
 uncertainty.")
-  (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
-    (with-attr-table obj
-      (let ((decl1 (get-declaration-id :variable obj id1))
-            (decl2 (get-declaration-id :variable obj id2)))
-        (cond ((not (and decl1 decl2))
-               (values nil nil))
-              ((eql decl1 decl2)
-               (values t t))
-              (t
-               (values nil t)))))))
+  (:method ((id1 identifier-ast) (id2 identifier-ast))
+    (let ((decl1 (get-declaration-id :variable id1))
+          (decl2 (get-declaration-id :variable id2)))
+      (cond ((not (and decl1 decl2))
+             (values nil nil))
+            ((eql decl1 decl2)
+             (values t t))
+            (t
+             (values nil t))))))
 
-(defgeneric same-place-p (software ast1 ast2)
+(defgeneric same-place-p (ast1 ast2)
   (:documentation "T if AST1 and AST2 share the same storage.
 
 Differs from `same-variable-p' in that it takes references and
 pointers into account in languages that support them.")
-  (:method ((obj t) (id1 identifier-ast) (id2 identifier-ast))
-    (with-attr-table obj
-      (let ((aliasee1 (or (aliasee id1) id1))
-            (aliasee2 (or (aliasee id2) id2)))
-        (same-variable-p obj aliasee1 aliasee2)))))
+  (:method ((id1 identifier-ast) (id2 identifier-ast))
+    (let ((aliasee1 (or (aliasee id1) id1))
+          (aliasee2 (or (aliasee id2) id2)))
+      (same-variable-p aliasee1 aliasee2))))
 
 (define-generic-analysis collect-var-uses (software ast)
   (:Documentation "Collect uses of IDENTIFIER in SOFTWARE.")
