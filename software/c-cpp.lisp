@@ -732,13 +732,13 @@ it to be placed in the corresponding AST slot."
 determined by looking at PARENT.")
   (:method (obj child parent &key &allow-other-keys) nil))
 
-;;; TODO: variable-use-p isn't fleshed out completely for C++.
+;;; TODO: variable-use-p isn't fleshed out completely for C/C++.
 (defmethod variable-use-p ((obj c/cpp) identifier &key &allow-other-keys)
   nil)
 
 (defmethod variable-use-p ((obj c/cpp) (identifier c/cpp-identifier)
                            &key &allow-other-keys)
-  (child-variable-use-p obj identifier (car (get-parent-asts* obj identifier))))
+  (child-variable-use-p obj identifier (get-parent-ast obj identifier)))
 
 (defmethod child-variable-use-p
     ((obj c/cpp) (child identifier-ast) (parent c/cpp-array-declarator)
