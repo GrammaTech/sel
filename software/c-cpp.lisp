@@ -382,11 +382,11 @@ pointer declarations which are nested on themselves."
 (defmethod declaration-type ((ast c/cpp-declaration))
   (c/cpp-type ast))
 
-(defmethod field-names ((ast c/cpp-field-declaration))
+(defmethod field-name-asts ((ast c/cpp-field-declaration))
   (collect-if (of-type 'c/cpp-field-identifier) ast))
-(defmethod field-names ((ast c/cpp-enumerator))
+(defmethod field-name-asts ((ast c/cpp-enumerator))
   (list (c/cpp-name ast)))
-(defmethod field-names ((ast c/cpp-function-definition))
+(defmethod field-name-asts ((ast c/cpp-function-definition))
   (list (definition-name-ast ast)))
 
 (defmethod get-declaration-id
