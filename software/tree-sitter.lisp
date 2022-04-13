@@ -7399,13 +7399,12 @@ for the compiler to infer the type.")
          (resolve-container-element-type arg)
          (call-next-method)))))
 
-(defgeneric infer-type (software ast)
+(define-generic-analysis infer-type (software ast)
   (:documentation "Return the type of AST in SOFTWARE as a AST, or nil if it could not be determined.
 
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
-  (:method-combination standard/context)
   (:method ((obj t) (ast t))
     (with-attr-table obj
       (flet ((infer-type-from-declaration ()
