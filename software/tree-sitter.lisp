@@ -549,9 +549,11 @@
            :collect-arg-uses
            :assignments
            :get-declaration-ast
+           :get-declaration-asts
            :relevant-declaration-type
            :get-initialization-ast
            :get-declaration-id
+           :get-declaration-ids
            :variable-declaration-ids
            :same-variable-p
            :same-place-p
@@ -7078,65 +7080,91 @@ Every element in the list has the following form:
 (defgeneric variable-use-p (software ast &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in SOFTWARE as a variable."))
 
-(defgeneric get-declaration-ast (type software ast)
-  (:documentation "For an identifier, get the declaration AST.
-For a declaration AST, return AST unchanged.
+(defun get-declaration-ast (type ast)
+  (first (get-declaration-asts type ast)))
 
-Calling `get-declaration-ast' with a type of T means to derive the
-type from AST's context, using `relevant-declaration-type'.
+(defun get-declaration-id (type ast)
+  (first (get-declaration-ids type ast)))
 
-Calling `get-declaration-ast' with a type of `variable', `function',
-or `type' is equivalent to `variable-declaration-ast',
-`function-declaration-ast', or `type-declaration-ast', respectively.")
+(defgeneric get-declaration-asts (type ast)
+  (:documentation "For an identifier, get a list of declaration ASTs.
+\(There may be more than one if the language allows overloading.) For
+a declaration AST, return AST unchanged.")
   (:method-combination standard/context)
-  (:method :around ((type t) obj (list list))
-    (get-declaration-ast type obj (first list)))
-  (:method ((type (eql :variable)) obj ast)
-    (with-attr-table obj
-      (find-decl-in-symbol-table ast type ast)))
-  (:method ((type (eql :function)) obj ast)
-    (with-attr-table obj
-      (find-decl-in-symbol-table ast type ast)))
-  (:method ((type (eql :type)) obj ast)
-    (with-attr-table obj
-      (let ((ast ast))
-        (find-decl-in-symbol-table ast type ast))))
-  (:method ((type (eql :macro)) obj ast)
-    (with-attr-table obj
-      (find-decl-in-symbol-table ast type ast)))
-  (:method ((type null) obj ast)
+  (:method :context (type ast)
+    (assure list (call-next-method)))
+  (:method ((type (eql :variable)) ast)
+    (find-decls-in-symbol-table ast type ast))
+  (:method ((type (eql :function)) ast)
+    (find-decls-in-symbol-table ast type ast))
+  (:method ((type (eql :type)) ast)
+    (find-decls-in-symbol-table ast type ast))
+  (:method ((type (eql :macro)) ast)
+    (find-decls-in-symbol-table ast type ast))
+  (:method ((type null) ast)
     (error "Not a namespace: ~a" type))
-  (:method ((type symbol) obj ast)
-    (get-declaration-ast (decl-type-namespace type) obj ast))
-  (:method ((type t) (obj t) (ast ast))
+  (:method ((type symbol) ast)
+    (get-declaration-asts (assure keyword (decl-type-namespace type)) ast))
+  (:method ((type t) (ast ast))
     nil)
-  (:method :around ((type t) (obj t) (ast call-ast))
-    (get-declaration-ast type obj (call-function ast)))
-  (:method ((type t) (obj t) (ast declaration-ast))
-    ast)
-  (:method ((type (eql :variable)) obj (ast variable-declaration-ast))
-    ast)
-  (:method ((type (eql :function)) obj (ast function-declaration-ast))
-    ast)
-  (:method ((type (eql :type)) obj (ast type-declaration-ast))
-    ast)
-  (:method ((type (eql :macro)) obj (ast macro-declaration-ast))
-    ast)
-  (:method :around ((type t) obj (identifier identifier-ast))
+  (:method :around ((type t) (ast call-ast))
+    (get-declaration-asts type (call-function ast)))
+  (:method ((type (eql :variable)) (ast variable-declaration-ast))
+    (list ast))
+  (:method ((type (eql :function)) (ast function-declaration-ast))
+    (list ast))
+  (:method ((type (eql :type)) (ast type-declaration-ast))
+    (list ast))
+  (:method ((type (eql :macro)) (ast macro-declaration-ast))
+    (list ast))
+  (:method :around ((type t) (identifier identifier-ast))
     (when (keywordp type)
       (setf type (namespace-decl-type type)))
+    (assert (subtypep type 'declaration-ast))
     (or
      ;; Check if this identifier is part of a declaration before
      ;; checking scopes to avoid returning a shadowed variable.
      (iter
-      (for parent in (get-parent-asts* obj identifier))
+      (for parent in (get-parent-asts* (attrs-root*) identifier))
       (when (and (member identifier
                          (append (outer-declarations parent)
                                  (inner-declarations parent))
                          ;; Looking for the exact AST.
                          :test #'eq)
                  (typep parent type))
-        (return parent)))
+        (return (list parent))))
+     (call-next-method))))
+
+(defgeneric get-declaration-ids (type ast)
+  (:documentation "Using the symbol table, find where AST is defined.")
+  (:method-combination standard/context)
+  (:method ((type (eql :variable)) ast)
+    (find-in-symbol-table ast type ast))
+  (:method ((type (eql :function)) ast)
+    (find-in-symbol-table ast type ast))
+  (:method ((type (eql :type)) ast)
+    (find-in-symbol-table ast type ast))
+  (:method ((type (eql :macro)) ast)
+    (find-in-symbol-table ast type ast))
+  (:method ((type t) (ast call-ast))
+    (get-declaration-ids type (call-function ast)))
+  (:method ((type symbol) ast)
+    (get-declaration-ids (assure keyword (decl-type-namespace type)) ast))
+  (:method :around ((type t) (identifier identifier-ast))
+    (when (keywordp type)
+      (setf type (namespace-decl-type type)))
+    (or
+     ;; Check if this identifier is part of a declaration before
+     ;; checking scopes to avoid returning a shadowed variable.
+     (ensure-list
+      (iter
+       (for parent in (get-parent-asts* (attrs-root*) identifier))
+       (thereis (and (typep parent type)
+                     (find identifier
+                           (append (outer-declarations parent)
+                                   (inner-declarations parent))
+                           ;; Looking for the exact AST.
+                           :test #'eq)))))
      (call-next-method))))
 
 (define-generic-analysis relevant-declaration-type (software ast)
@@ -7187,59 +7215,21 @@ This is useful when languages allow a single declaration to initialize
 more than one variable, and for languages that allow declaration and
 initialization to be separate."
   (:method ((ast t) &aux (obj (attrs-root*)))
-    (when-let (id (get-declaration-id :variable obj ast))
+    (when-let (id (get-declaration-id :variable ast))
       (find-enclosing 'variable-initialization-ast
                       obj
                       id))))
 
-(defgeneric get-declaration-id (type software ast)
-  (:documentation "Find AST's declaration (using `get-declaration-ast') and extract the corresponding identifier.
-
-This is important because a single declaration may define multiple
-variables, e.g. in C/C++ declaration syntax or in languages that
-support destructuring.")
-  (:method-combination standard/context)
-  (:method ((type (eql :variable)) obj ast)
-    (with-attr-table obj
-      (car+cdr (find-in-symbol-table ast type ast))))
-  (:method ((type (eql :function)) obj ast)
-    (with-attr-table obj
-      (car+cdr (find-in-symbol-table ast type ast))))
-  (:method ((type (eql :type)) obj ast)
-    (with-attr-table obj
-      (car+cdr (find-in-symbol-table ast type ast))))
-  (:method ((type (eql :macro)) obj ast)
-    (with-attr-table obj
-      (car+cdr (find-in-symbol-table ast type ast))))
-  (:method ((type t) (obj t) (ast call-ast))
-    (get-declaration-id type obj (call-function ast)))
-  (:method ((type symbol) obj ast)
-    (get-declaration-id (assure keyword (decl-type-namespace type))
-                        obj ast))
-  (:method :around ((type t) obj (identifier identifier-ast))
-    (when (keywordp type)
-      (setf type (namespace-decl-type type)))
-    (or
-     ;; Check if this identifier is part of a declaration before
-     ;; checking scopes to avoid returning a shadowed variable.
-     (iter
-      (for parent in (get-parent-asts* obj identifier))
-      (thereis (and (typep parent type)
-                    (find identifier
-                          (append (outer-declarations parent)
-                                  (inner-declarations parent))
-                          ;; Looking for the exact AST.
-                          :test #'eq))))
-     (call-next-method))))
-
-(define-generic-analysis variable-declaration-ids (software ast)
-  (:documentation "Collect the variable declarations IDs in AST.")
-  (:method (sw ast)
+(def-attr-fun variable-declaration-ids ()
+  "Collect the variable declarations IDs for variables used in AST."
+  (:method (ast)
     (iter (for id in (identifiers ast))
-          (for decl = (get-declaration-ast :variable sw id))
-          (when (typep decl 'variable-declaration-ast)
-            (set-collect (assure ast (get-declaration-id :variable sw id))
-                         into ids))
+          (for decls = (get-declaration-asts :variable id))
+          (dolist (decl decls)
+            (when (typep decl 'variable-declaration-ast)
+              (dolist (id (get-declaration-ids :variable id))
+                (set-collect (assure ast id)
+                             into ids))))
           (finally (return (convert 'list ids))))))
 
 (defgeneric same-variable-p (obj ast1 ast2)
@@ -7299,9 +7289,7 @@ more than one thing (destructuring).")
     (reduce (lambda (map assignee)
               (with map assignee (cons assigner (lookup map assignee))))
             (mappend (lambda (assignee)
-                       (filter-map (op (get-declaration-id
-                                        :variable
-                                        (attrs-root*) _))
+                       (filter-map (op (get-declaration-id :variable _))
                                    (identifiers assignee)))
                      (assignees assigner))
             :initial-value (call-next-method)))
@@ -7319,7 +7307,7 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.)"
   (:method ((target identifier-ast))
     (values
      (lookup (assignees-table (attrs-root*))
-             (get-declaration-id :variable (attrs-root*) target))))
+             (get-declaration-id :variable target))))
   (:method ((target t))
     nil))
 
@@ -7327,23 +7315,21 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.)"
   (:documentation "Collect function calls in SOFTWARE with TARGET as an argument.
 
 If ALIAS is non-nil, resolve aliases during the search.")
-  (:method ((obj software) (target identifier-ast) &optional alias)
-    (with-attr-table obj
-      (flet ((get-decl (obj var)
-               (get-declaration-id :variable
-                                   obj
-                                   (or (and alias (aliasee var))
-                                       var))))
-        (let ((target (get-decl obj target)))
-          (iter (for ast in-tree (genome obj))
-                ;; The outer loop will recurse, so we don't
-                ;; need to recurse here.
-                (match ast
-                  ((call-ast (call-arguments (and args (type list))))
-                   (when (member target
-                                 (filter (of-type 'identifier-ast) args)
-                                 :key (op (get-decl obj _)))
-                     (collect ast))))))))))
+  (:method (obj (target identifier-ast) &optional alias)
+    (flet ((get-decl (var)
+             (get-declaration-id :variable
+                                 (or (and alias (aliasee var))
+                                     var))))
+      (let ((target (get-decl target)))
+        (iter (for ast in-tree (genome obj))
+              ;; The outer loop will recurse, so we don't
+              ;; need to recurse here.
+              (match ast
+                ((call-ast (call-arguments (and args (type list))))
+                 (when (member target
+                               (filter (of-type 'identifier-ast) args)
+                               :key (op (get-decl _)))
+                   (collect ast)))))))))
 
 
 ;;;; Cross-language generics and methods
@@ -7415,7 +7401,7 @@ By default this first tries `expression-type', then invokes
   (:method ((obj t) (ast t))
     (flet ((infer-type-from-declaration ()
              (when-let* ((decl-type (relevant-declaration-type obj ast))
-                         (decl (get-declaration-ast decl-type obj ast)))
+                         (decl (get-declaration-ast decl-type ast)))
                (resolve-declaration-type obj decl ast))))
       (let ((expression-type (infer-expression-type obj ast)))
         (cond ((null expression-type)

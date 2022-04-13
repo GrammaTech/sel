@@ -389,28 +389,20 @@ pointer declarations which are nested on themselves."
 (defmethod field-name-asts ((ast c/cpp-function-definition))
   (list (definition-name-ast ast)))
 
-(defmethod get-declaration-id
-    :around
-    ((type t) (obj t) (ast c/cpp-pointer-expression))
-  (get-declaration-id type obj (c/cpp-argument ast)))
+(defmethod get-declaration-ids :around (type (ast c/cpp-pointer-expression))
+  (get-declaration-ids type (c/cpp-argument ast)))
+
+(defmethod get-declaration-asts :around (type (ast c/cpp-pointer-expression))
+  (get-declaration-asts type (c/cpp-argument ast)))
+
+(defmethod get-declaration-ids :around (type (ast c/cpp-type-descriptor))
+  (get-declaration-ids type (c/cpp-type ast)))
+
+(defmethod get-declaration-asts :around (type (ast c/cpp-type-descriptor))
+  (get-declaration-asts type (c/cpp-type ast)))
 
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
-
-(defmethod get-declaration-ast
-    :around
-    ((type t) (obj t) (ast c/cpp-pointer-expression))
-  (get-declaration-ast type obj (c/cpp-argument ast)))
-
-(defmethod get-declaration-id
-    :around
-    ((type t) (obj t) (ast c/cpp-type-descriptor))
-  (get-declaration-id type obj (c/cpp-type ast)))
-
-(defmethod get-declaration-ast
-    :around
-    ((type t) (obj t) (ast c/cpp-type-descriptor))
-  (get-declaration-ast type obj (c/cpp-type ast)))
 
 ;; (defmethod deref-type (obj (ast t))
 ;;   (infer-type obj ast))
@@ -457,9 +449,9 @@ pointer declarations which are nested on themselves."
            (when-let ((call (find-enclosing 'call-ast obj ast)))
              (eql (call-function call) ast))))
     (if (function-position?)
-        (when-let (fn (get-declaration-ast :function obj ast))
+        (when-let (fn (get-declaration-ast :function ast))
           (infer-type obj fn))
-        (when-let* ((var (get-declaration-ast :variable obj ast)))
+        (when-let* ((var (get-declaration-ast :variable ast)))
           (infer-type obj var)))))
 
 (defgeneric resolve-deref-type (obj ast type)
@@ -537,27 +529,25 @@ pointer declarations which are nested on themselves."
                         (list->qualified-name (butlast parts))))))))
          (when new-type
            (setf (attr-proxy new-type) type))
-         (get-declaration-ast :type obj (or new-type type)))))))
+         (get-declaration-ast :type (or new-type type)))))))
 
-(defmethod get-declaration-id :around ((type t) obj
-                                       (ast c/cpp-field-expression))
-  (when-let (class (get-field-class obj ast))
-    (values
-     (first
-      (lookup-in-field-table class type (c/cpp-field ast))))))
+(defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
+  (when-let (class (get-field-class (attrs-root*) ast))
+    (lookup-in-field-table class type (c/cpp-field ast))))
 
-(defmethod get-declaration-ast :around ((type t) obj
-                                        (ast c/cpp-field-expression))
-  (when-let (id (get-declaration-id type obj ast))
-    (assure (not c/cpp-init-declarator)
-      (find-enclosing 'declaration-ast
-                      obj
-                      id))))
+(defmethod get-declaration-asts :around (type (ast c/cpp-field-expression))
+  (let ((obj (attrs-root*)))
+    (mapcar (lambda (id)
+              (assure (not c/cpp-init-declarator)
+                (find-enclosing 'declaration-ast
+                                obj
+                                id)))
+            (get-declaration-ids type ast))))
 
 (defmethod get-initialization-ast ((ast cpp-ast) &aux (obj (attrs-root*)))
   "Find the assignment for an unitialized variable."
   (or (call-next-method)
-      (when-let* ((id (get-declaration-id :variable obj ast))
+      (when-let* ((id (get-declaration-id :variable ast))
                   (decl
                    (find-enclosing 'variable-declaration-ast obj id)))
         (let ((id-text (source-text id)))
@@ -785,7 +775,7 @@ Should return `:failure' in the base case.")
     ;; Assigning a pointer variable to a pointer variable.
     (with-attr-table sw
       (let ((aliasee (aliasee rhs)))
-        (if (not (eql aliasee (get-declaration-id :variable sw rhs)))
+        (if (not (eql aliasee (get-declaration-id :variable rhs)))
             aliasee
             (call-next-method))))))
 
@@ -796,7 +786,7 @@ Should return `:failure' in the base case.")
        ((c/cpp-init-declarator (lhs lhs) (rhs rhs))
         (let ((result (initializer-aliasee sw lhs rhs)))
           (if (eql result :failure)
-              (get-declaration-id :variable sw id)
+              (get-declaration-id :variable id)
               result)))
        ((c/cpp-assignment-expression (rhs rhs))
         (aliasee rhs))
@@ -807,11 +797,11 @@ Should return `:failure' in the base case.")
   (let ((sw (attrs-root*)))
     (with-attr-table sw
       ;; breaks TEST-REFERENCE-POINTER-EXPRESSION-ALIASEE
-      (when-let (id (get-declaration-id :variable sw plain-var))
+      (when-let (id (get-declaration-id :variable plain-var))
         (iter (for ast in-tree (genome sw))
               (when (and (typep ast 'identifier-ast)
                          (eql (aliasee ast) id))
-                (set-collect (get-declaration-id :variable sw ast) into set))
+                (set-collect (get-declaration-id :variable ast) into set))
               (finally (return (convert 'list (less set plain-var)))))))))
 
 (defmethod parameter-names ((ast c/cpp-parameter-declaration))
@@ -827,10 +817,8 @@ Should return `:failure' in the base case.")
     (return-from collect-arg-uses
       (call-next-method)))
   (with-attr-table sw
-    (labels ((get-decl (obj var)
-               ;; breaks test-collect-arg-uses
-               (get-declaration-id 'variable
-                                   obj
+    (labels ((get-decl (var)
+               (get-declaration-id :variable
                                    (or (and alias (aliasee var))
                                        var)))
              (occurs-as-object? (ast target)
@@ -839,14 +827,14 @@ Should return `:failure' in the base case.")
                    (call-function
                     (cpp-field-expression
                      (cpp-argument arg))))
-                  (eql (get-decl sw arg) target))))
+                  (eql (get-decl arg) target))))
              (occurs-as-arg? (ast target)
                (match ast
                  ((call-ast (call-arguments (and args (type list))))
                   (member target
                           (filter (of-type 'identifier-ast) args)
-                          :key (op (get-decl sw _)))))))
-      (let ((target (get-decl sw target)))
+                          :key (op (get-decl _)))))))
+      (let ((target (get-decl target)))
         (iter (for ast in-tree (genome sw))
               ;; The outer loop will recurse, so we don't
               ;; need to recurse here.
