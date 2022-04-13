@@ -634,6 +634,10 @@
        (values (car declarations-values-list)
                (cadr declarations-values-list))))))
 
+(defmethod resolve-overloads ((ast cpp-ast)
+                              &optional overloads)
+  ;; TODO
+  (first overloads))
 
 (defmethod resolve-declaration-type ((obj t)
                                      (decl cpp-ast)
