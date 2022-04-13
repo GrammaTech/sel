@@ -191,16 +191,16 @@ and add it to PROJECT."))
                                   path-string
                                   (system-headers/string->ast genome))))
     (labels ((populate-header-entry (project path-string)
-               (ensure2 (gethash path-string *system-header-cache*)
-                 (lret ((system-header
+               (lret ((system-header
+                       (ensure2 (gethash path-string *system-header-cache*)
                          (make-instance
                              'c/cpp-system-header
                            :header-name path-string
                            :children
                            (ensure-list
-                            (process-system-header project path-string)))))
-                   (setf header-hash system-header)
-                   (push system-header (system-headers genome))))))
+                            (process-system-header project path-string))))))
+                 (setf header-hash system-header)
+                 (push system-header (system-headers genome)))))
       (or header-hash
           (populate-header-entry project path-string)))))
 
