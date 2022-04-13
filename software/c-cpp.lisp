@@ -475,14 +475,6 @@ pointer declarations which are nested on themselves."
         (deref-type type)
         type)))
 
-;; (defmethod get-declaration-id ((type (eql :variable)) obj
-;;                                (ast c/cpp-field-expression))
-;;   (get-declaration-id type obj (c/cpp-argument ast)))
-
-;; (defmethod get-declaration-ast ((type (eql :variable)) obj
-;;                                 (ast c/cpp-field-expression))
-;;   (get-declaration-ast type obj (c/cpp-argument ast)))
-
 (defun add-field-as (map ns id)
   (check-type id ast)
   (let ((ns-map (or (lookup map ns) (empty-map))))
