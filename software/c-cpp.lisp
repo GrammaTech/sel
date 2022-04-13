@@ -822,6 +822,12 @@ Should return `:failure' in the base case.")
                 (set-collect (get-declaration-id :variable sw ast) into set))
               (finally (return (convert 'list (less set plain-var)))))))))
 
+(defmethod parameter-names ((ast c/cpp-parameter-declaration))
+  (let ((ids (identifiers ast)))
+    (if-let (type (c/cpp-type ast))
+      ;; We don't want identifiers from type declarations.
+      (remove-if (op (shares-path-of-p ast _ type)) ids)
+      ids)))
 
 (defmethod collect-arg-uses (sw (target cpp-ast)
                              &optional alias)
