@@ -7420,7 +7420,10 @@ By default this first tries `expression-type', then invokes
                 (t expression-type))))))
   (:method ((obj t) (ast declaration-ast))
     (with-attr-table obj
-      (extract-declaration-type obj ast))))
+      (let ((type (extract-declaration-type obj ast)))
+        (if (placeholder-type-p type)
+            (call-next-method)
+            type)))))
 
 (define-generic-analysis infer-expression-type (software ast)
   (:documentation "Infer the type of AST in SOFTWARE as an expression.
