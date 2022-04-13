@@ -248,7 +248,7 @@ and add it to PROJECT."))
                        (get-system-header
                         project (trim-path-string path-ast))))
                (progn
-                 ;; (merge-cached-symbol-table system-header)
+                 (merge-cached-symbol-table system-header)
                  (symbol-table system-header (empty-map)))
                (empty-map)))
            (process-relative-header (path-ast)
