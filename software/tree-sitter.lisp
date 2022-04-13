@@ -7504,67 +7504,6 @@ return whether they are equal.")
    of variables in SOFTWARE that are aliases \(pointers or referenes)
    for PLAIN-VAR.")
 
-(defun lookup-type (ast)
-  (when-let ((decl (find-decl-in-symbol-table ast ns ast)))
-    (extract-declaration-type (attrs-root* decl))))
-
-(defun symbol-table->type-env (syms &key (root (attrs-root*)))
-  (let* ((map (empty-map))
-         (fn-syms (@ syms :function))
-         (var-syms (@ syms :function))
-         (type-syms (@ syms :type))
-         (fn-types
-          (iter (for (s vs) in-map fn-syms)
-                (iter
-                 (for v in vs)
-                 (for decl = (find-enclosing 'variable-declaration-ast root v))
-                 (when decl
-                   (collect (withf map v (extract-declaration-type root decl)))))))
-         (var-types
-          (iter (for (s vs) in-map var-syms)
-                (map-collect s
-                             (iter
-                              (for v in vs)
-                              (for decl = (find-enclosing 'function-declaration-ast root v))
-                              (when decl
-                                (collect (extract-declaration-type root decl)))))))
-         (type-types
-          (iter (for (s vs) in-map type-syms)
-                (map-collect s
-                             (iter
-                              (for v in vs)
-                              (for decl = (find-enclosing 'type-declaration-ast root v))
-                              (when decl
-                                (let* ((field-map (field-table decl))
-                                       ;; TODO Nested types?
-                                       (var-syms (@ field-map :variable))
-                                       (fn-syms (@ field-map :function))
-                                       (var-types
-                                        (iter (for (s vs) in-map var-syms)
-                                              (map-collect s
-                                                           (iter (for v in vs)
-                                                                 (for decl = (find-enclosing '(or c/cpp-field-declaration c/cpp-function-definition)
-                                                                                             root v))
-                                                                 (collect (extract-declaration-type root decl))))))
-                                       (fn-types
-                                        (iter (for (s vs) in-map fn-syms)
-                                              (map-collect s
-                                                           (print (iter (for v in vs)
-                                                                        (for decl = (find-enclosing '(or c/cpp-field-declaration c/cpp-function-definition)
-                                                                                                    root v))
-                                                                        (collect (extract-declaration-type root decl))))))))
-                                  (collecting
-                                   (fset:map
-                                    (:function fn-types)
-                                    (:variable var-types))))))))))
-    (fset:map
-     (:function fn-types)
-     (:variable var-types)
-     (:type type-types))))
-
-(defun type-env (ast)
-  (symbol-table->type-env (symbol-table ast)))
-
 
 ;;;; Structured text
 ;;; TODO: remove this; it's for debugging.
