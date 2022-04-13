@@ -7291,15 +7291,15 @@ pointers into account in languages that support them.")
           (aliasee2 (or (aliasee id2) id2)))
       (same-variable-p aliasee1 aliasee2))))
 
-(define-generic-analysis collect-var-uses (software ast)
+(defgeneric collect-var-uses (software ast)
   (:Documentation "Collect uses of IDENTIFIER in SOFTWARE.")
   (:method ((obj normal-scope) (identifier identifier-ast))
-    (when-let ((identifier (get-declaration-id :variable obj identifier)))
+    (when-let ((identifier (get-declaration-id :variable identifier)))
       (collect-if (lambda (ast)
                     (and (not (eql ast identifier))
                          (typep ast 'identifier-ast)
                          (eql identifier
-                              (get-declaration-id :variable obj ast))))
+                              (get-declaration-id :variable ast))))
                   (genome obj)))))
 
 (defgeneric assignees (ast)
