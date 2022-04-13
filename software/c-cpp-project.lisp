@@ -30,6 +30,8 @@
   ((system-headers :accessor system-headers
                    :initarg :system-headers
                    :initform nil)
+   (system-headers/string->ast :accessor system-headers/string->ast
+                               :initform (make-hash-table :test #'equal))
    (project-directory :accessor project-directory
                       :initarg :project-directory
                       :initform nil)
@@ -131,7 +133,7 @@ and add it to PROJECT."))
                  (direct-children (list symbol-ast))
                  (before-asts
                   (list (c/cpp-comment
-                         (text (and text (equal comment)))))))
+                         (text (equal comment))))))
                 (convert class-ast `((:class . ,declaration-type)
                                      (:children ,symbol-ast)
                                      (:before-text . ,before-text)
@@ -174,19 +176,21 @@ and add it to PROJECT."))
 
 (defmethod get-system-header ((project c/cpp-project) (path-string string)
                               &aux (genome (genome project)))
-  (labels ((populate-header-entry (project path-string)
-             (lret ((system-header
-                     (make-instance
-                      'c/cpp-system-header
-                      :header-name path-string
-                      :children
-                      (ensure-list
-                       (process-system-header project path-string)))))
-               (push system-header (system-headers genome)))))
-    (if-let ((system-header (find-if (op (equal path-string (header-name _)))
-                                     (system-headers genome))))
-      system-header
-      (populate-header-entry project path-string))))
+  (symbol-macrolet ((header-hash (gethash
+                                  path-string
+                                  (system-headers/string->ast genome))))
+    (labels ((populate-header-entry (project path-string)
+               (lret ((system-header
+                       (make-instance
+                        'c/cpp-system-header
+                        :header-name path-string
+                        :children
+                        (ensure-list
+                         (process-system-header project path-string)))))
+                 (setf header-hash system-header)
+                 (push system-header (system-headers genome)))))
+      (or header-hash
+          (populate-header-entry project path-string)))))
 
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
   "Return the text of PATH-AST with the quotes around it removed."
