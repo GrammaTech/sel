@@ -411,8 +411,18 @@ class AST:
 
             # Transform the children of the AST node at PATH.
             new_root = root
-            for child in new_root.lookup(path).children:
-                new_root = transform_helper(transformer, new_root, root.ast_path(child))
+            ast = new_root.lookup(path)
+            for child_slot, arity in ast.child_slots:
+                slot_value = ast.child_slot(child_slot)
+                if slot_value:
+                    children = slot_value if arity == 0 else [slot_value]
+                else:
+                    children = []
+
+                for child in children:
+                    new_root = transform_helper(
+                        transformer, new_root, root.ast_path(child)
+                    )
 
             # Get the result of calling the TRANSFORMER on the AST at PATH.
             ast = new_root.lookup(path)
