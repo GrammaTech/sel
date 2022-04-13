@@ -654,13 +654,13 @@
                          (get-parent-asts obj decl)))
        (when (or (eql decl init)
                  (ancestor-of-p obj decl (lhs init)))
-         (infer-type obj (rhs init))))
+         (infer-type (rhs init))))
      (match decl
        ((cpp-declaration
          (cpp-declarator (and decls (type list))))
         (dolist (decl decls)
           (when (source-text= (lhs decl) ast)
-            (return (infer-type obj (rhs decl)))))))
+            (return (infer-type (rhs decl)))))))
      ;; Go with the original result.
      first-try)))
 
@@ -727,7 +727,8 @@ then the return type of the call is the return type of the field."
     (otherwise
      (call-next-method))))
 
-(defmethod infer-expression-type (obj (ast cpp-call-expression))
+(defmethod infer-expression-type ((ast cpp-call-expression)
+                                  &aux (obj (attrs-root*)))
   (match ast
     ;; Special case: the type of `std::next' should be the same as
     ;; its argument.
@@ -742,7 +743,7 @@ then the return type of the call is the return type of the field."
      (unless (equal (mapcar #'source-text (namespace-qualifiers obj name))
                     '("std"))
        (trivia.fail:fail))
-     (infer-type obj arg))
+     (infer-type arg))
     (otherwise
      (call-next-method))))
 
@@ -783,9 +784,9 @@ then the return type of the call is the return type of the field."
 (defmethod placeholder-type-p ((ast cpp-placeholder-type-specifier))
   t)
 
-(defmethod infer-type :around (obj (ast cpp-field-expression))
+(defmethod infer-type :around ((ast cpp-field-expression))
   (let* ((field-type (call-next-method))
-         (arg-type (infer-type obj (cpp-argument ast))))
+         (arg-type (infer-type (cpp-argument ast))))
     (if (and arg-type field-type)
         (let ((field-ns (namespace field-type)))
           (if (equal field-ns (qualify-declared-ast-name arg-type))
@@ -801,43 +802,18 @@ then the return type of the call is the return type of the field."
               field-type))
         field-type)))
 
-;; (defmethod infer-type :around ((obj t) (ast cpp-field-expression))
-;;   "Handle the special case of inferring the type of a field expression whose argument is a standard library iterator.
-
-;; Since a field expression is an implicit dereference, if the type is a
-;; iterator we want the type of the container's elements."
-;;   (let ((type-ast (call-next-method)))
-;;     (or (flet ((namespace-qualifiers* (ast)
-;;                  (namespace-qualifiers obj ast)))
-;;           (match type-ast
-;;             ((and
-;;               (type cpp-qualified-identifier)
-;;               (access #'unqualified-name
-;;                       (and (type identifier-ast)
-;;                            (source-text= "iterator")))
-;;               (access #'namespace-qualifiers*
-;;                       (and (list* (source-text= "std") _)
-;;                            (cl:last
-;;                             (list
-;;                              (cpp-template-type
-;;                               (cpp-arguments
-;;                                (access #'direct-children
-;;                                        (list element-type)))))))))
-;;              element-type)))
-;;         type-ast)))
-
-(defmethod infer-expression-type (obj (ast cpp-initializer-list))
+(defmethod infer-expression-type ((ast cpp-initializer-list))
   (or (call-next-method)
-      (infer-type-as-c/cpp-expression obj ast)))
+      (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
-(defmethod infer-expression-type (obj (ast cpp-parenthesized-expression))
-  (infer-expression-type obj (only-elt (direct-children ast))))
+(defmethod infer-expression-type ((ast cpp-parenthesized-expression))
+  (infer-expression-type (only-elt (direct-children ast))))
 
-(defmethod infer-expression-type (obj (ast cpp-binary-expression))
+(defmethod infer-expression-type ((ast cpp-binary-expression))
   (string-case (source-text (cpp-operator ast))
     (#.+cpp-implicitly-converting-arithmetic-operators+
-     (let* ((left-type (infer-type obj (cpp-left ast)))
-            (right-type (infer-type obj (cpp-right ast)))
+     (let* ((left-type (infer-type (cpp-left ast)))
+            (right-type (infer-type (cpp-right ast)))
             (left-type-descriptor (type-descriptor left-type))
             (right-type-descriptor (type-descriptor right-type))
             (conversion (usual-arithmetic-conversions
@@ -850,7 +826,7 @@ then the return type of the call is the return type of the field."
          right-type)
         ((null conversion) nil))))))
 
-(defmethod infer-expression-type (obj (ast cpp-this))
+(defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (when-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
     (definition-name-ast type-ast)))
 
