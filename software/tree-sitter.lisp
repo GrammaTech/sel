@@ -7375,6 +7375,18 @@ If NODE is not a function node, return nil.")
 (defgeneric field-names (node)
   (:documentation "Extract the names (as strings) of a field from
 NODE. If NODE is not a thing that has fields, return nil.")
+  (:method ((node t))
+    (field-name-asts node))
+  (:method :around ((node t))
+    (iter (for result in (call-next-method))
+          (collecting
+           (if (typep result 'tree-sitter-ast)
+               (source-text result)
+               result)))))
+
+(defgeneric field-name-asts (node)
+  (:documentation "Extract the names (as ASTs) of a field from
+NODE. If NODE is not a thing that has fields, return nil.")
   (:method ((node t)) nil))
 
 (defgeneric placeholder-type-p (ast)
