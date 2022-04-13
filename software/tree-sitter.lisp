@@ -7431,9 +7431,9 @@ By default this first tries `expression-type', then invokes
 (define-generic-analysis infer-expression-type (software ast)
   (:documentation "Infer the type of AST in SOFTWARE as an expression.
 Calls `expression-type' by default.")
-  (:method ((obj t) (ast t))
+  (:method (obj (ast t))
     (expression-type ast))
-  (:method ((obj software) (ast call-ast))
+  (:method (obj (ast call-ast))
     "Infer the type of a call from its declaration."
     (infer-type obj (call-function ast))
     ;; (or (when-let (decl (get-declaration-ast :function obj (call-function ast)))
