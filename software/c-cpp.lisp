@@ -576,17 +576,19 @@ appears as a return statement is assumed to be the type of the function."
 (defmethod expression-type ((ast c/cpp-declaration))
   (cpp-type ast))
 
-(defmethod extract-declaration-type (obj (ast c/cpp-function-declarator))
+(defmethod extract-declaration-type ((ast c/cpp-function-declarator)
+                                     &aux (obj (attrs-root*)))
   (when-let (fn (find-enclosing 'c/cpp-function-definition obj ast))
-    (extract-declaration-type obj fn)))
+    (extract-declaration-type fn)))
 
-(defmethod extract-declaration-type (c/cpp (ast c/cpp-function-definition))
+(defmethod extract-declaration-type ((ast c/cpp-function-definition))
   (c/cpp-type ast))
 
-(defmethod extract-declaration-type (obj (ast c/cpp-field-declaration))
+(defmethod extract-declaration-type ((ast c/cpp-field-declaration))
   (c/cpp-type ast))
 
-(defmethod extract-declaration-type (obj (decl c/cpp-ast))
+(defmethod extract-declaration-type ((decl c/cpp-ast)
+                                     &aux (obj (attrs-root*)))
   (or
    ;; Look for a surrounding variable declaration.
    (when-let ((declaration

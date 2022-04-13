@@ -7443,7 +7443,7 @@ By default this first tries `expression-type', then invokes
                    expression-type))
               (t expression-type)))))
   (:method ((obj t) (ast declaration-ast))
-    (let ((type (extract-declaration-type obj ast)))
+    (let ((type (extract-declaration-type ast)))
       (if (placeholder-type-p type)
           (call-next-method)
           type))))
@@ -7465,11 +7465,11 @@ Calls `expression-type' by default.")
   (:documentation "Extract the type from AST, an expression.")
   (:method ((ast t)) nil))
 
-(define-generic-analysis extract-declaration-type (software ast)
+(def-attr-fun extract-declaration-type ()
   (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
 
 By default calls `declaration-type' with DECL-AST.")
-  (:method ((obj t) (ast t))
+  (:method (ast)
     (declaration-type ast)))
 
 (defgeneric resolve-declaration-type (software decl-ast ast)
@@ -7483,7 +7483,7 @@ but `y' as a float.)
 By default simply calls `extract-declaration-type' with SOFTWARE and
 DECL-AST.")
   (:method ((software t) (decl-ast t) (ast t))
-    (extract-declaration-type software decl-ast)))
+    (extract-declaration-type decl-ast)))
 
 (defgeneric declaration-type (declaration-ast)
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
