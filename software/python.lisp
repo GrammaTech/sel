@@ -179,15 +179,18 @@ are created if they're present in PARSE-TREE."
                   scopes)))
       (aget :decl binding))))
 
-(defmethod declaration-type ((decl python-ast))
-  (or
-   ;; Extract just the name of the variable from a parameter.
-   (some
-    (lambda (parent)
-      (and (typep parent 'python-parameter)
-           (find-if (of-type 'python-identifier) parent)))
-    decl)
-   decl))
+(defmethod declaration-type ((decl python-typed-parameter))
+  (python-type decl))
+
+(defmethod declaration-type ((decl python-typed-default-parameter))
+  (python-type decl))
+
+(defmethod declaration-type ((decl python-assignment))
+  (python-type decl))
+
+(defmethod declaration-type ((decl python-function-definition))
+  (python-return-type decl))
+
 (defmethod extract-declaration-type (obj (decl-ast python-identifier))
   "Work around the fact that Python identifiers are declaration ASTs
 \(because they can appear by themselves in parameter lists)."
