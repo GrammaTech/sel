@@ -534,13 +534,13 @@ pointer declarations which are nested on themselves."
            obj
            decl)))))
 
-(defmethod relevant-declaration-type ((obj t) (ast c/cpp-primitive-type))
+(defmethod relevant-declaration-type ((ast c/cpp-primitive-type))
   nil)
 
-(defmethod relevant-declaration-type ((obj t) (ast c/cpp-field-expression))
+(defmethod relevant-declaration-type ((ast c/cpp-field-expression))
   'variable-declaration-ast)
 
-(defmethod relevant-declaration-type ((obj t) (ast c/cpp-field-declaration))
+(defmethod relevant-declaration-type ((ast c/cpp-field-declaration))
   nil)
 
 (defun infer-type-as-c/cpp-expression (obj ast)
