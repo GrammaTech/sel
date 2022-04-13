@@ -366,6 +366,8 @@ function name from the API followed by the arguments."
   (labels ((helper (part)
              (etypecase part
                (number part)
-               (string part (find-symbol (string-upcase part)))
+               (string part (or (find-symbol (string-upcase part))
+                                (find-symbol (string-upcase part)
+                                             :sel/sw/tree-sitter)))
                (list (cons (helper (car part)) (helper (lastcar part)))))))
     (mapcar #'helper path)))
