@@ -166,18 +166,19 @@ are created if they're present in PARSE-TREE."
 (defmethod phenome ((obj python) &key (bin (temp-file-name)))
   (interpreted-phenome obj bin))
 
-(defmethod get-declaration-ast ((type t)
-                                (obj python)
-                                (ast python-identifier))
+(defmethod get-declaration-asts (type (ast python-identifier))
+  ;; TODO Should be rewritten once Python has symbol tables.
   (let ((name (source-text ast))
-        (scopes (scopes obj ast)))
+        (scopes (scopes (attrs-root*) ast))
+        (type (namespace-decl-type type)))
     (when-let* ((binding
                  (find-if-in-scopes
                   (lambda (binding)
                     (and (equal (aget :name binding) name)
                          (typep (aget :decl binding) type)))
-                  scopes)))
-      (aget :decl binding))))
+                  scopes))
+                (decl (aget :decl binding)))
+      (list decl))))
 
 (defmethod declaration-type ((decl python-typed-parameter))
   (python-type decl))

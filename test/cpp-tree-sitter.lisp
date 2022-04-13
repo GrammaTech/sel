@@ -112,9 +112,9 @@
   }
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 0" (source-text (get-declaration-ast
-                                        :variable
-                                        cpp qid))))))
+    (with-attr-table cpp
+      (is (string*= "x = 0" (source-text (get-declaration-ast
+                                          :variable qid)))))))
 
 (deftest test-namespace-qualify-2 ()
   (let* ((cpp
@@ -129,9 +129,8 @@
   }
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 0" (source-text (get-declaration-ast
-                                        :variable
-                                        cpp qid))))))
+    (with-attr-table cpp
+      (is (string*= "x = 0" (source-text (get-declaration-ast :variable qid)))))))
 
 (deftest test-namespace-qualify-3 ()
   (let* ((cpp
@@ -145,9 +144,8 @@
     }
   }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 1" (source-text (get-declaration-ast
-                                        :variable
-                                        cpp qid))))))
+    (with-attr-table cpp
+      (is (string*= "x = 1" (source-text (get-declaration-ast :variable qid)))))))
 
 (deftest test-namespace-deepest-match ()
   "Check that we return the deepest matching namespace."
@@ -168,8 +166,8 @@
   }
 }"))
          (qid (find-if (of-type 'cpp-qualified-identifier) (genome cpp))))
-    (is (string*= "x = 1" (source-text (get-declaration-ast :variable
-                                                            cpp qid))))))
+    (with-attr-table cpp
+      (is (string*= "x = 1" (source-text (get-declaration-ast :variable qid)))))))
 
 (def +trim-front-types+
   '(("trim_front" . "std::list<Point>")
@@ -212,10 +210,10 @@ mytype myfun3 (mytype y) { return y; }"))
                   node wanted-type relevant-type))))))
 
 (defun test-trim-front-variable (name)
-  (with-fixture trim-front
+  (with-fixture/attrs trim-front
     ;; Get the type for each access.
     (let* ((id (find "midpoint"
-                     (variable-declaration-ids *soft* (genome *soft*))
+                     (variable-declaration-ids (genome *soft*))
                      :test #'source-text=))
            (entry (assoc id
                          +trim-front-types+
@@ -225,7 +223,7 @@ mytype myfun3 (mytype y) { return y; }"))
 (deftest test-trim-front-types (&key only)
   "Test that we retrieve the correct type for each identifier."
   (with-fixture/attrs trim-front
-    (let* ((ids (variable-declaration-ids *soft* (genome *soft*)))
+    (let* ((ids (variable-declaration-ids (genome *soft*)))
            ;; The only key is for interactive testing. E.g. tracing
            ;; inference for a particular variable.
            (ids (if only
@@ -300,14 +298,16 @@ auto y = x;~
 (deftest test-get-declaration-ast/reference ()
   (let* ((sw (from-string 'cpp-project (fmt "int& y = x;")))
          (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
-    (is (string= (source-text id) "y"))
-    (is (typep (get-declaration-ast :variable sw id) 'cpp-declaration))))
+    (with-attr-table sw
+      (is (string= (source-text id) "y"))
+      (is (typep (get-declaration-ast :variable id) 'cpp-declaration)))))
 
 (deftest test-get-declaration-ast/pointer ()
   (let* ((sw (from-string 'cpp-project (fmt "int* y = x;")))
          (id (second (collect-if (of-type 'identifier-ast) (genome sw)))))
-    (is (string= (source-text id) "y"))
-    (is (typep (get-declaration-ast :variable sw id) 'c/cpp-declaration))))
+    (with-attr-table sw
+      (is (string= (source-text id) "y"))
+      (is (typep (get-declaration-ast :variable id) 'c/cpp-declaration)))))
 
 (deftest test-get-declaration-ast/pointer-expression ()
   (let* ((sw (from-string 'cpp-project (fmt "~
@@ -317,14 +317,15 @@ x = malloc(sizeof(int));
 int y = *x;
 ")))
          (y (first (take -2 (collect-if (of-type 'identifier-ast) (genome sw))))))
-    (is (string= "y" (source-text y)))
-    (let ((ptr-expr
-           (rhs
-            (only-elt
-             (cpp-declarator
-              (get-declaration-ast :variable sw y))))))
-      (is (equal (source-text (get-declaration-ast :variable sw ptr-expr))
-                 "int *x;")))))
+    (with-attr-table sw
+      (is (string= "y" (source-text y)))
+      (let ((ptr-expr
+             (rhs
+              (only-elt
+               (cpp-declarator
+                (get-declaration-ast :variable y))))))
+        (is (equal (source-text (get-declaration-ast :variable ptr-expr))
+                   "int *x;"))))))
 
 (deftest test-infer-type/primitive-type-pointer ()
   "Test we can resolve a C++ primitive type as the type of the pointee
@@ -444,13 +445,12 @@ auto d = p1->Distance(p2);")))
     (with-attr-table sw
       (is (string^= "double Distance"
                     (source-text
-                     (get-declaration-ast :function sw field-expr))))
+                     (get-declaration-ast :function field-expr))))
       ;; We get the type of `p1' (`Point').
       (is (source-text= "Point"
                         (infer-type sw
                                     (is (get-declaration-ast
                                          :variable
-                                         sw
                                          (cpp-argument field-expr)))))))
     ;; We get the declaration of the `Point' type.
     #+(or) (is (get-declaration-ast 'type sw
@@ -506,7 +506,6 @@ of a std iterator."
       (flet ((get-decl (name)
                (get-declaration-id
                 :variable
-                sw
                 (find-if (op (source-text= name _)) sw))))
         ;; (is (source-text= "std::list<Point>" (infer-type sw (get-decl "pts"))))
         ;; (is (source-text= "Point" (infer-type sw (get-decl "po"))))
@@ -526,7 +525,7 @@ iterator from a call on a dereferenced element."
                                                  (genome sw)))))
              (field-expr (call-function call))
              (field-decl
-              (is (get-declaration-ast :function sw call))))
+              (is (get-declaration-ast :function call))))
         (symbol-table field-decl)
         (is (source-text= "double" (infer-type sw field-expr)))
         ;; We get the declaration of the `Point' type.
@@ -581,7 +580,7 @@ int main() {
 "))))
     (with-attr-table sw
       (let* ((field (find-if (of-type 'c/cpp-field-expression) (genome sw)))
-             (function (get-declaration-ast :function sw field)))
+             (function (get-declaration-ast :function field)))
         (is (source-text= "xs.front" field))
         (is (typep function 'c/cpp-field-declaration))))))
 
