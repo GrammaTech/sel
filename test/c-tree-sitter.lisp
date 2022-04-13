@@ -250,6 +250,11 @@
   (let ((source "x const* a = (x const *) m->n->o[i];"))
     (is (equal source (source-text (convert 'c-ast source))))))
 
+(deftest c-declaration-specifiers-1 ()
+  "Attribute declarations can be parsed and reproduced correctly."
+  (let ((source "[[noreturn]] void fun();"))
+    (is (source-text= source (convert 'c-ast source)))))
+
 
 ;;;; Parsing test
 
