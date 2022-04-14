@@ -799,7 +799,9 @@ source text equal to any value in variables."
          (target-ast
            (second
             (collect-if {equal "a"} (genome software) :key #'source-text)))
-         (var-uses (collect-var-uses software target-ast)))
+         (var-uses
+          (with-attr-table software
+            (collect-var-uses software target-ast))))
     (is (eql 1 (length var-uses)))
     (is (eq target-ast (car var-uses)))))
 
@@ -822,7 +824,9 @@ source text equal to any value in variables."
          (genome (genome software))
          (target-ast
            (find-if {equal "a"} genome :key #'source-text))
-         (var-uses (collect-var-uses software target-ast)))
+         (var-uses
+          (with-attr-table software
+            (collect-var-uses software target-ast))))
     (is (eql 8 (length var-uses)))
     (is (equal var-uses
                (cdr (collect-if {equal "a"} genome :key #'source-text))))))
