@@ -233,7 +233,10 @@ and add it to PROJECT."))
   (labels ((merge-cached-symbol-table (header)
              (let ((cached-table
                     (ensure2 (gethash header *system-header-symbol-table-cache*)
-                      (with-attr-table header
+                      (with-attr-table
+                          ;; Shallow-copy the root so we get a
+                          ;; separate table.
+                          (copy (attrs-root *attrs*))
                         (symbol-table header (empty-map))
                         (attrs-table *attrs*))))
                    (target-table (attrs-table *attrs*)))
