@@ -639,6 +639,68 @@
   ;; TODO
   (first overloads))
 
+(defun const-field-declaration? (field-decl fn)
+  "Is FN declared const in FIELD-DECL?"
+  (match field-decl
+    ;; Function definitions in field declaration lists aren't wrapped
+    ;; with field-declaration ASTs.
+    ((cpp-function-definition)
+     (unless (source-text= (definition-name-ast field-decl) fn)
+       (fail))
+     (member "const"
+             (specifier
+              (canonicalize-type field-decl :software (attrs-root*)))
+             :test #'source-text=))
+    ;; TODO canonicalize-type needs to be extended for C++ to handle type
+    ;; qualifiers on method function declarators.
+    ((cpp-field-declaration
+      (cpp-declarator declarator/s))
+     (let ((declarators (ensure-list declarator/s)))
+       (iter (for field-decl in declarators)
+             (match field-decl
+               ((and
+                 (cpp-function-declarator
+                  (cpp-declarator (source-text= fn)))
+                 ;; TODO Should the type-qualifiers be in a
+                 ;; post-specifiers slot?
+                 (access #'direct-children children))
+                (thereis
+                 (some (op (match _ ((cpp-type-qualifier :text "const") t)))
+                       children)))))))))
+
+(defun declared-const? (ast &key (software (attrs-root*)))
+  "Is AST declared const?"
+  (member "const"
+          (specifier
+           (canonicalize-type ast :software software))
+          :test #'source-text=))
+
+(defmethod resolve-overloads ((ast cpp-field-expression) &optional overloads)
+  "Resolve const overloads on field expressions."
+  (or (when (every (of-type 'cpp-field-declaration) overloads)
+        (match ast
+          ((cpp-field-expression
+            (cpp-argument (and arg (cpp-identifier)))
+            (cpp-field (and field (cpp-field-identifier)))
+            (cpp-operator (source-text= ".")))
+           (when-let (decl (get-declaration-ast :variable arg))
+             (mvlet* ((const? (declared-const? decl))
+                      (const-overloads
+                       mutable-overloads
+                       (partition (op (const-field-declaration? _ field))
+                                  overloads))
+                      (relevant-overloads
+                       (if const?
+                           const-overloads
+                           mutable-overloads)))
+               (if (null relevant-overloads)
+                   (error "Invalid partitioning of overloads: ~a"
+                          overloads)
+                   (if (single relevant-overloads)
+                       (only-elt relevant-overloads)
+                       (call-next-method ast relevant-overloads))))))))
+      (call-next-method)))
+
 (defmethod resolve-declaration-type ((obj t)
                                      (decl cpp-ast)
                                      (ast cpp-ast))

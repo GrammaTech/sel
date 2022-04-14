@@ -22,6 +22,7 @@ techniques."
 (register-system-packages "eclector" '(:eclector.parse-result
                                        :eclector.readtable
                                        :eclector.reader))
+(register-system-packages "trivia" '(:trivia.fail))
 
 ;; This one needs a defsystem to ensure fare-quasiquote-extras is loaded.
 (defsystem "software-evolution-library/utility/fare-qq"

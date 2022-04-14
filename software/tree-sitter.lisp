@@ -430,6 +430,7 @@
         :software-evolution-library/software/compilable
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
+  (:import-from :trivia.fail :fail)
   (:import-from :uiop)
   (:import-from :software-evolution-library/software/project
                 :find-include-files :include-paths :include-paths-mixin)
@@ -9598,7 +9599,7 @@ Otherwise, return PARSE-TREE."
 
 (deftype symbol-table-namespace ()
   "Possible namespaces in a symbol table."
-  ;; The "nil" namespace is for languages that don't use namespaces.
+  ;; The nil "namespace" is for languages that don't use namespaces.
   '(member nil :variable :function :type :macro))
 
 (def +namespace-decl-type-table+
