@@ -1063,6 +1063,16 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
             (children ast))
     in))
 
+(defmethod namespace ((ast cpp-struct-specifier)
+                      &optional in)
+  (let* ((name (source-text (cpp-name ast)))
+         (out (if (emptyp in) name
+                  (string+ in "::" name))))
+    (namespace (cpp-name ast) in)
+    (mapcar (op (namespace _ out))
+            (children ast))
+    in))
+
 (defmethod namespace ((ast cpp-qualified-identifier) &optional in)
   "No scope (e.g. `::x`) means the global scope."
   (declare (ignore in))
@@ -1083,13 +1093,16 @@ available to use at any point in a C++ AST.")
 (defmethod symbol-table ((node cpp-namespace-definition) &optional in)
   (propagate-declarations-down node in))
 
+(defmethod qualify-declared-ast-name :around ((ast cpp-ast))
+  ;; Strip template parameters for lookup.
+  (regex-replace-all "<[^>]+>"
+                     (call-next-method)
+                     ""))
+
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
   (let* ((source-text
-          ;; Strip template parameters for lookup.
-          (regex-replace-all "<[^>]+>"
-                             (or (declarator-name declared-ast)
-                                 (source-text declared-ast))
-                             "")))
+          (or (declarator-name declared-ast)
+              (source-text declared-ast))))
     (if (string^= "::" source-text)
         ;; Global namespace.
         (drop-prefix "::" source-text)
@@ -1105,6 +1118,14 @@ available to use at any point in a C++ AST.")
                 (combine-namespace-qualifiers explicit implicit)))
           (string-join (append1 combined (lastcar parts)) ;
                        "::")))))
+
+(defmethod qualify-declared-ast-name ((id cpp-type-identifier))
+  (or (and-let* ((type (find-enclosing 'type-declaration-ast (attrs-root*) id))
+                 (type-name (definition-name-ast type))
+                 ((not (eql type-name id)))
+                 ((source-text= type-name id)))
+        (qualify-declared-ast-name type-name))
+      (call-next-method)))
 
 (defmethod outer-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (outer-declarations node)))

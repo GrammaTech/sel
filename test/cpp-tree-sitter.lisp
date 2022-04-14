@@ -613,6 +613,22 @@ struct Point {
            "std::vector<Point>"
            (infer-type (find-if (of-type 'cpp-initializer-list) v)))))))
 
+(deftest test-lookup-type-from-inside-type ()
+  (let* ((sw (from-string 'cpp-project "struct Point {
+  double x,y;
+  double Distance(const Point & p) {
+    const auto a = this.x - p.y;
+    const auto b = this.y - p.y;
+    return std::sqrt(a * a + b * b);
+  }
+  Point PointAlongSegment(const Point & p1, const double distance) {
+    return new Point(this.x + distance * (p1.x - this.x), this.y + distance * (p1.y - this.y));
+  }
+};")))
+    (with-attr-table sw
+      (is (source-text= "double"
+                        (infer-type (stmt-with-text (attrs-root*) "a")))))))
+
 
 ;;; Parsing tests
 
