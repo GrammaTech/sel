@@ -15,6 +15,7 @@
    :software-evolution-library/utility/range)
   (:import-from :asdf/system
                 :system-relative-pathname)
+  (:local-nicknames (:attrs :functional-trees/attrs))
   (:export :test-python-tree-sitter))
 (in-package :software-evolution-library/test/python-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -793,7 +794,7 @@ and keyword parameters with defaults."
       (is (consp (find-if-in-scopes (of-name "greeting") scopes)))
       (is (null (find-if-in-scopes (of-name "name: str") scopes)))
       (is (consp (find-if-in-scopes (of-name "name") scopes)))
-      (with-attr-table software
+      (attrs:with-attr-table software
         (is (equal "str" (source-text (infer-type name-param-id))))))))
 
 (deftest test-python-call-name ()
