@@ -594,7 +594,8 @@ appears as a return statement is assumed to be the type of the function."
    ;; Look for a surrounding variable declaration.
    (when-let ((declaration
                (find-if (of-type '(and variable-declaration-ast
-                                   (not c/cpp-init-declarator)))
+                                   (not c/cpp-init-declarator)
+                                   (not c/cpp-assignment-expression)))
                         ;; Inclusive of AST.
                         (get-parent-asts obj decl))))
      (c/cpp-type declaration))
