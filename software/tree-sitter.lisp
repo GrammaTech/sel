@@ -641,7 +641,6 @@
            :symbol-table
            :find-in-symbol-table
            :find-decls-in-symbol-table
-           :find-decl-in-symbol-table
            :multi-map-symbol-table-union
            :symbol-table-union
            :multi-declaration-keys
@@ -9731,10 +9730,6 @@ by MULTI-DECLARATION-KEYS."
                     ;; This shouldn't be possible.
                     (error "No ~a for ~a" type ast)))
               (find-in-symbol-table ast ns query)))))
-
-(defun find-decl-in-symbol-table (ast ns query)
-  (let ((decls (find-decls-in-symbol-table ast ns query)))
-    (car+cdr decls)))
 
 
 ;;; Namespace
