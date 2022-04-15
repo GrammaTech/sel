@@ -188,11 +188,10 @@ pub unsafe fn auto() -> MmapChoice {
 ;;; Whitespace tests.
 
 (defun check-patch-whitespace (rust)
-  (is (equal rust
-             (source-text
-              (patch-whitespace
-               (convert 'rust-ast rust :deepest t)
-               :prettify t)))))
+  (let ((ast (convert 'rust-ast rust :deepest t)))
+    (is (not (typep ast 'source-text-fragment)))
+    (is (equal rust
+               (source-text (patch-whitespace ast :prettify t))))))
 
 (deftest test-rust-patch-whitespace ()
   ;; No space before semicolon.
@@ -220,4 +219,7 @@ pub unsafe fn auto() -> MmapChoice {
   ;; is in a function parameter.
   (check-patch-whitespace "fn myfn(x: i32) {}")
   (check-patch-whitespace "struct MyStruct { x: f64 }")
-  (check-patch-whitespace "let x = y;"))
+  (check-patch-whitespace "let x = y;")
+  ;; NB: While the Rust docs are inconsistent in the spacing of struct
+  ;; expressions, this is the way rustfmt likes it.
+  (check-patch-whitespace "Type { x: 1, y: 2 };"))

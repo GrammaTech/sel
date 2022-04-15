@@ -180,7 +180,14 @@ around generic-type-with-turbofish being aliased to generic-type."
                                       style
                                       (x (eql :|:|))
                                       (y t))
-  "Leave a space after a colon, but only in a field declaration."
+  "Leave a space after a colon in a field declaration."
+  " ")
+
+(defmethod whitespace-between/parent ((parent rust-field-initializer)
+                                      style
+                                      (x (eql :|:|))
+                                      (y t))
+  "Leave a space after a colon in a field initializer."
   " ")
 
 ) ; #+:TREE-SITTER-RUST
