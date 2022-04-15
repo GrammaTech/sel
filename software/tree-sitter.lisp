@@ -6884,30 +6884,34 @@ The alist should contain at least the following:
                                       (statements-in-scope obj scope ast)))))
             (scopes obj scope)))))
 
-(defgeneric find-enclosing (test software ast)
-  (:documentation "Return the nearest enclosing AST passing TEST in SOFTWARE.
+(defgeneric find-enclosing (test obj ast)
+  (:documentation "Return the nearest enclosing AST passing TEST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
-  (:method ((type t) (software parseable) (ast ast))
-    (find-enclosing (of-type type) software ast))
-  (:method ((pred function) (software parseable) (ast ast))
-    (find-if pred (get-parent-asts software ast))))
+  (:method ((type t) (obj t) (ast ast))
+    (find-enclosing (of-type type) obj ast))
+  (:method ((pred function) (obj parseable) (ast ast))
+    (find-enclosing pred (genome obj) ast))
+  (:method ((pred function) (root ast) (ast ast))
+    (find-if pred (get-parent-asts root ast))))
 
-(defgeneric find-all-enclosing (test software ast)
-  (:documentation "Return the enclosing ASTs passing TEST in SOFTWARE.
+(defgeneric find-all-enclosing (test obj ast)
+  (:documentation "Return the enclosing ASTs passing TEST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
-  (:method ((type t) (software parseable) (ast ast))
-    (find-all-enclosing (of-type type) software ast))
-  (:method ((pred function) (software parseable) (ast ast))
-    (filter pred (get-parent-asts* software ast))))
+  (:method ((type t) (obj t) (ast ast))
+    (find-all-enclosing (of-type type) obj ast))
+  (:method ((pred function) (obj parseable) (ast ast))
+    (find-all-enclosing pred (genome obj) ast))
+  (:method ((pred function) (root ast) (ast ast))
+    (filter pred (get-parent-asts* root ast))))
 
-(defgeneric find-preceding (test software ast)
-  (:documentation "Return any siblings passing TEST preceding AST in SOFTWARE.
+(defgeneric find-preceding (test obj ast)
+  (:documentation "Return any siblings passing TEST preceding AST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
   (:method ((type t) (root t) (ast tree-sitter-ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (find-preceding (of-type type) root ast))
-  (:method ((pred function) (software software) (ast ast))
-    (find-preceding pred (genome software) ast))
+  (:method ((pred function) (obj parseable) (ast ast))
+    (find-preceding pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
     (when-let ((parent (get-parent-ast root ast)))
@@ -6919,29 +6923,33 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
     (when-let (default (first (conflict-ast-default-children ast)))
       (find-preceding pred root default))))
 
-(defgeneric find-following (test software ast)
-  (:documentation "Return any siblings passing TEST following AST in SOFTWARE.
+(defgeneric find-following (test obj ast)
+  (:documentation "Return any siblings passing TEST following AST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
-  (:method ((type t) (software parseable) (ast ast))
+  (:method ((type t) (obj t) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
-    (find-following (of-type type) software ast))
-  (:method ((pred function) (software parseable) (ast ast))
+    (find-following (of-type type) obj ast))
+  (:method ((pred function) (obj parseable) (ast ast))
+    (find-following pred (genome obj) ast))
+  (:method ((pred function) (root ast) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
-    (when-let ((parent (get-parent-ast software ast)))
+    (when-let ((parent (get-parent-ast root ast)))
       (nest
        (filter pred)
        (rest)
        (drop-until (eqls ast))
        (sorted-children parent)))))
 
-(defgeneric comments-for (software ast)
-  (:documentation "Return the comments for AST in SOFTWARE.")
+(defgeneric comments-for (obj ast)
+  (:documentation "Return the comments for AST in OBJ.")
   (:method ((software tree-sitter) (ast tree-sitter-ast))
-    (or (find-preceding 'comment-ast software ast)
+    (comments-for (genome software) ast))
+  (:method ((root ast) (ast tree-sitter-ast))
+    (or (find-preceding 'comment-ast root ast)
         ;; In this case walk up to the enclosing function, if there is
         ;; one.
-        (when-let (fn (find-enclosing 'function-ast software ast))
-          (find-preceding 'comment-ast software fn)))))
+        (when-let (fn (find-enclosing 'function-ast root ast))
+          (find-preceding 'comment-ast root fn)))))
 
 (defgeneric definition-name (ast)
   (:documentation "Return a string that is the name of the things defined by a
