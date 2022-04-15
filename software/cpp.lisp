@@ -738,18 +738,6 @@ then the return type of the call is the return type of the field."
      (resolve-declaration-type obj decl field))
     (otherwise (call-next-method))))
 
-(defmethod resolve-deref-type (obj
-                               (ast cpp-ast)
-                               (type list))
-
-  (if (scan "(?:const_)?iterator" (source-text (lastcar type)))
-      (let ((args
-             (mappend (op (collect-if (of-type 'cpp-template-argument-list)
-                                      _))
-                      type)))
-        (lastcar (mappend #'children args)))
-      (call-next-method)))
-
 (defgeneric resolve-container-element-type (type)
   (:documentation "Assuming TYPE is a container type, try to get the
   type of its elements.")
