@@ -812,6 +812,10 @@ comments with /* and */, etc."))
 
 See `c-like-syntax' for more discussion of what \"C-like\" means."))
 
+  (defclass normal-scope-ast ()
+    ()
+    (:documentation "Mixin for ASTs whose languages use \"normal scope\"."))
+
   (defparameter *tree-sitter-software-superclasses*
     '((:c compilable normal-scope c/cpp c-like-syntax)
       (:cpp compilable normal-scope c/cpp c-like-syntax)
@@ -827,11 +831,11 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
     `c'.")
 
   (defparameter *tree-sitter-base-ast-superclasses*
-    '((:c c/cpp-ast c-like-syntax-ast)
-      (:cpp c/cpp-ast c-like-syntax-ast)
+    '((:c c/cpp-ast c-like-syntax-ast normal-scope-ast)
+      (:cpp c/cpp-ast c-like-syntax-ast normal-scope-ast)
       (:go c-like-syntax-ast)
       (:java c-like-syntax-ast)
-      (:javascript ecma-ast c-like-syntax-ast)
+      (:javascript ecma-ast c-like-syntax-ast normal-scope-ast)
       (:rust c-like-syntax-ast)
       (:typescript-ts typescript-ast c-like-syntax-ast)
       (:typescript-tsx typescript-ast c-like-syntax-ast))
@@ -7300,13 +7304,15 @@ pointers into account in languages that support them.")
 (defgeneric collect-var-uses (software ast)
   (:Documentation "Collect uses of IDENTIFIER in SOFTWARE.")
   (:method ((obj normal-scope) (identifier identifier-ast))
+    (collect-var-uses (genome obj) identifier))
+  (:method ((root normal-scope-ast) (identifier identifier-ast))
     (when-let ((identifier (get-declaration-id :variable identifier)))
       (collect-if (lambda (ast)
                     (and (not (eql ast identifier))
                          (typep ast 'identifier-ast)
                          (eql identifier
                               (get-declaration-id :variable ast))))
-                  (genome obj)))))
+                  root))))
 
 (defgeneric assignees (ast)
   (:documentation "Get the ASTs that AST assigns to.
