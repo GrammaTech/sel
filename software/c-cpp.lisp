@@ -220,7 +220,8 @@
             (mapcar (constantly :variable) names))))
 
 (defmethod inner-declarations ((ast c/cpp-for-statement))
-  (outer-declarations (c/cpp-initializer ast)))
+  (when-let (init (c/cpp-initializer ast))
+    (outer-declarations init)))
 
 (defmethod outer-declarations ((ast c/cpp-declaration))
   (labels ((get-declarations (d)
