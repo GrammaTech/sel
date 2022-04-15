@@ -1019,6 +1019,14 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
 
 ;;; Whitespace rules
 
+(define-empty-whitespace-methods ()
+  cpp-namespace-identifier :|::|
+  :|::| cpp-qualified-identifier
+  :|::| cpp-type-identifier
+  cpp-type-identifier cpp-template-argument-list
+  cpp-type-descriptor :>
+  cpp-template-type :|::|)
+
 
 ;;; Namespace Attr
 
