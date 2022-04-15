@@ -629,6 +629,17 @@ struct Point {
       (is (source-text= "double"
                         (infer-type (stmt-with-text (attrs-root*) "a")))))))
 
+(deftest test-for-loop-inner-declarations-no-initializer ()
+  (let* ((cpp (from-string 'cpp (fmt "~
+for (; next != numbers.end(); ++ii, ++next)
+  *next += *ii;
+"))))
+    (with-attr-table cpp
+      (finishes
+       (symbol-table
+        (lastcar
+         (collect-if (of-type 'identifier-ast) cpp)))))))
+
 
 ;;; Parsing tests
 
