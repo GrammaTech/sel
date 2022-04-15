@@ -1,4 +1,4 @@
-;;;; directory.lisp --- Javascript project.
+;;;; directory.lisp --- Directory functional trees.
 (defpackage :software-evolution-library/test/directory
   (:nicknames :sel/test/directory)
   (:use
@@ -9,6 +9,9 @@
    :software-evolution-library
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/directory)
+  (:import-from :software-evolution-library/software/parseable
+                :source-text
+                :source-text=)
   (:export :test-directory))
 (in-package :software-evolution-library/test/directory)
 (in-readtable :curry-compose-reader-macros)
@@ -73,6 +76,35 @@
   (with-fixture fib-project-javascript
     (is (= 1 (count-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*))))
     (is (find-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*)))))
+
+(deftest can-replace-file-in-directory ()
+  (with-fixture fib-project-javascript
+    (let* ((new-source (fmt "~
+module.exports = {
+    fibonacci: function(num) {
+      if ((num == 0) || (num == 1))
+          return num;
+       else
+          return fib(num - 1) + fib(num - 2);
+    }
+}"))
+           (new (from-string 'javascript new-source))
+           (v1 (with *soft* (aget "fib.js" (evolve-files *soft*) :test #'equal)
+                     new))
+           (v2 (with *soft* "fib.js" new)))
+      (is (equal (source-text (aget "fib.js" (evolve-files v1) :test #'equal))
+                 new-source))
+      (is (string= new-source
+                   (string-right-trim ""
+                                      (source-text (lookup v1 "fib.js")))))
+      (is (equal (source-text (aget "fib.js" (evolve-files v2) :test #'equal))
+                 new-source))
+      (is (string= new-source
+                   (string-right-trim ""
+                                      (source-text (lookup v2 "fib.js")))))
+      (is (not (equal? *soft* v1)))
+      (is (not (equal? *soft* v2)))
+      (is (equal? (genome v1) (genome v2))))))
 
 (deftest invoke-sequence-methods-on-project-genomes ()
   ;; This test checks that we're invoking sequence methods on project

@@ -34,6 +34,10 @@
   objects.
 
 - evolve-files and other-files (from project) hold software objects"))
+
+(defmethod equal? ((x directory-project) (y directory-project))
+  (equal? (genome x) (genome y)))
+
 (eval-always
  (defclass directory-or-file-ast (functional-tree-ast)
    ((name :accessor name :initarg :name :type string
@@ -136,6 +140,32 @@
 
 (defmethod (setf genome) (new (obj directory-project))
   (setf (slot-value obj 'genome) new))
+
+(defmethod with ((project directory-project)
+                 (old parseable)
+                 &optional new)
+  (unless (typep new 'parseable)
+    (return-from with (call-next-method)))
+  (let ((old-root (genome old))
+        (new-root (genome new)))
+    (copy project
+          :evolve-files
+          (mapcar (lambda (cons)
+                    (if (eql (cdr cons) old)
+                        (cons (car cons) new)
+                        cons))
+                  (evolve-files project))
+          :genome
+          (with (genome project)
+                old-root
+                new-root))))
+
+(defmethod with ((project directory-project)
+                 (old string)
+                 &optional new)
+  (with project
+        (aget old (evolve-files project) :test #'equal)
+        new))
 
 (defmethod from-file ((obj directory-project) path)
   (assert (probe-file path) (path) "~a does not exist." path)
