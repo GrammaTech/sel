@@ -185,6 +185,21 @@ and add it to PROJECT."))
 (defvar *system-header-symbol-table-cache* (dict)
   "Cache system header symbol tables.")
 
+(defun cache-lookup (cache project path-string)
+  (if-let (dict (gethash (type-of project) cache))
+    (gethash path-string dict)
+    (values nil nil)))
+
+(defun (setf cache-lookup) (value cache project path-string)
+  (let ((dict
+         (ensure2 (gethash (type-of project) cache)
+           (dict))))
+    (setf (gethash path-string dict) value)))
+
+(defun clear-cache ()
+  (clrhash *system-header-cache*)
+  (clrhash *system-header-symbol-table-cache*))
+
 (defmethod get-system-header ((project c/cpp-project) (path-string string)
                               &aux (genome (genome project)))
   (symbol-macrolet ((header-hash (gethash
@@ -192,7 +207,7 @@ and add it to PROJECT."))
                                   (system-headers/string->ast genome))))
     (labels ((populate-header-entry (project path-string)
                (lret ((system-header
-                       (ensure2 (gethash path-string *system-header-cache*)
+                       (ensure2 (cache-lookup *system-header-cache* project path-string)
                          (make-instance
                              'c/cpp-system-header
                            :header-name path-string
@@ -232,7 +247,8 @@ and add it to PROJECT."))
 (defun find-symbol-table-from-include (project include-ast)
   (labels ((merge-cached-symbol-table (header)
              (let ((cached-table
-                    (ensure2 (gethash header *system-header-symbol-table-cache*)
+                    (ensure2 (cache-lookup *system-header-symbol-table-cache*
+                                           project header)
                       (with-attr-table
                           ;; Shallow-copy the root so we get a
                           ;; separate table.
