@@ -64,13 +64,6 @@
                 (serial-number obj)
                 (name obj)))))
 
-(defmethod source-text ((obj file-ast) &key stream)
-  (if (no stream)
-      (string+ (call-next-method) #\Eot)
-      (progn
-        (call-next-method)
-        (write-char #\Eot stream))))
-
 (defun pathname-to-list (path)
   (check-type path pathname)
   (let ((filename (when (pathname-name path)
