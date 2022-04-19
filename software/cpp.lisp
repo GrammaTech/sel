@@ -636,7 +636,7 @@
 
 (defmethod resolve-overloads ((ast cpp-ast)
                               &optional overloads)
-  ;; TODO
+  "Fallback method when we can't do any better."
   (first overloads))
 
 (defun const-field-declaration? (field-decl fn)
