@@ -195,7 +195,10 @@
               ;;       declarator.
               (find-if (of-type 'c/cpp-function-declarator)
                        (c/cpp-declarator ast))))
-    (direct-children (c/cpp-parameters function-declarator))))
+    (function-parameters function-declarator)))
+
+(defmethod function-parameters ((ast c/cpp-function-declarator))
+  (direct-children (c/cpp-parameters ast)))
 
 (defmethod call-arguments ((node c/cpp-call-expression))
   (direct-children (c/cpp-arguments node)))
