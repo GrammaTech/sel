@@ -494,6 +494,8 @@
            ;; Cross-language Mix-ins
            :c/cpp
            :c-like-syntax
+           :normal-scope
+           :normal-scope-ast
            :ecma
            :typescript
            :ecma-ast
