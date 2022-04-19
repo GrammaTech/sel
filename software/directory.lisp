@@ -239,25 +239,28 @@
   "Create a set of attr methods for ATTR-NAME that has optional arguments
 OPTIONAL-ARGS and returns the ending value of RETURN-BODY. `node' is defined
 for forms inside RETURN-BODY and holds the current AST."
-  `(progn
-     (defmethod ,attr-name ((node directory-ast)
-                            ,@(when optional-args
-                                `(&optional ,@optional-args)))
-       (mapc (op (,attr-name _ in)) (entries node))
-       ,@return-body)
+  (with-unique-names (node)
+    `(progn
+       (defmethod ,attr-name ((,node directory-ast)
+                              ,@(when optional-args
+                                  `(&optional ,@optional-args)))
+         (mapc (op (,attr-name _ ,@optional-args)) (entries ,node))
+         ,@return-body)
 
-     (defmethod ,attr-name ((node file-ast)
-                            ,@(when optional-args
-                                `(&optional ,@optional-args)))
-       (mapc (op (,attr-name _ in)) (entries node))
-       ,@return-body)
+       (defmethod ,attr-name ((,node file-ast)
+                              ,@(when optional-args
+                                  `(&optional ,@optional-args)))
+         (mapc (op (,attr-name _ ,@optional-args)) (contents ,node))
+         ,@return-body)
 
-     (defmethod ,attr-name ((node directory-project)
-                            ,@(when optional-args
-                                `(&optional ,@optional-args)))
-       (mapc (op (,attr-name _ in))
-             (mapcar #'cdr (evolve-files node)))
-       ,@return-body)))
+       (defmethod ,attr-name ((,node directory-project)
+                              ,@(when optional-args
+                                  `(&optional ,@optional-args)))
+         ;; TODO This used to operate on the evolve-files. The bigger
+         ;; question here: how to keep the evolve-files and the
+         ;; directory-ast in sync?
+         (,attr-name (genome ,node) ,@optional-args)
+         ,@return-body))))
 
 
 ;;; Symbol Table
