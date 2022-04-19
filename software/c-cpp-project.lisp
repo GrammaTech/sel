@@ -23,11 +23,11 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defclass c/cpp-project
-    (directory-project parseable-project compilable include-paths-mixin)
+    (directory-project parseable-project compilable include-paths-mixin normal-scope)
   ()
   (:documentation "Mixin for common project functionality between C and C++."))
 
-(define-node-class c/cpp-root (functional-tree-ast)
+(define-node-class c/cpp-root (functional-tree-ast normal-scope-ast)
   ((system-headers :accessor system-headers
                    :initarg :system-headers
                    :initform nil)
