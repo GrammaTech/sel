@@ -16,7 +16,8 @@
   (:export :c/cpp-project
            :get-system-header
            :header-name
-           :system-headers))
+           :system-headers
+           :c/cpp-root))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
