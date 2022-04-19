@@ -978,8 +978,8 @@ for the language.")
         (c-left :initarg :lhs :reader lhs :reader assignee)
         (c-right :initarg :rhs :reader rhs))
        (c-call-expression
-        (c-function :reader call-function)
-        (c-arguments :reader call-arguments))
+        (c-function :reader call-function :initarg :function)
+        (c-arguments :reader call-arguments :initarg :arguments))
        (c-while-statement
         (c-body :reader body :initarg :body))
        (c-do-statement
@@ -1006,8 +1006,8 @@ for the language.")
         (cpp-left :initarg :lhs :reader lhs :reader assignee)
         (cpp-right :initarg :rhs :reader rhs))
        (cpp-call-expression
-        (cpp-function :reader call-function)
-        (cpp-arguments :reader call-arguments))
+        (cpp-function :reader call-function :initarg :function)
+        (cpp-arguments :reader call-arguments :initarg :arguments))
        (cpp-while-statement
         (cpp-body :reader body :initarg :body))
        (cpp-do-statement
@@ -1106,8 +1106,8 @@ for the language.")
         (rust-parameters :reader function-parameters)
         (rust-body :reader function-body))
        (rust-call-expression
-        (rust-function :reader call-function)
-        (rust-arguments :reader call-arguments))
+        (rust-function :reader call-function :initarg :function)
+        (rust-arguments :reader call-arguments :initarg :arguments))
        (rust-range-expression
         (rust-operator :reader operator :initarg :operator)))
       ((:typescript-ts :typescript-tsx)
