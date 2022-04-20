@@ -135,6 +135,9 @@
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
+(defmethod genome ((ast ast))
+  ast)
+
 ;; All hash values are of typer HASH-TYPE.
 ;; This was chosen to be large enough that collisions
 ;; are unlikely.  However, a collision can be expected
