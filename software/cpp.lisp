@@ -306,7 +306,7 @@
                                cpp-class-specifier cpp-namespace-definition
                                cpp-declaration-list cpp-field-declaration-list
                                cpp-struct-specifier cpp-field-declaration
-                               cpp-function-declarator cpp-declaration
+                               cpp-func<tion-declarator cpp-declaration
                                cpp-reference-declarator cpp-pointer-declarator
                                cpp-template-declaration))
                     parents))
@@ -754,6 +754,13 @@ then the return type of the call is the return type of the field."
       (and (single children)
            (first children)))))
 
+(defmethod deref-type ((type cpp-qualified-identifier))
+  ;; TODO This needs to be generalized.
+  (let ((parts (qualified-name->list type)))
+    (if (member (lastcar parts) '("iterator" "const_iterator")
+                :test #'source-text=)
+        (resolve-container-element-type type)
+        (call-next-method))))
 
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))

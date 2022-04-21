@@ -408,11 +408,6 @@ pointer declarations which are nested on themselves."
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
 
-(defmethod source-text ((type field-type) &rest args)
-  (apply #'source-text (field-type-argument type) args)
-  (apply #'source-text "::" args)
-  (apply #'source-text (field-type-field type) args))
-
 (defmethod infer-type :context ((ast c/cpp-field-expression))
   (let ((type (call-next-method)))
     (if (source-text= (c/cpp-operator ast) "->")
@@ -483,23 +478,15 @@ pointer declarations which are nested on themselves."
 (defun get-field-class (field)
   (ematch field
     ((c/cpp-field-expression
-      (c/cpp-argument arg)
-      (c/cpp-operator oper))
+      ;; TODO Just ->?
+      (c/cpp-argument arg))
      ;; Find the type of the argument.
      (when-let* ((type (infer-type arg)))
        ;; Get the declaration of the type of the argument.
-       (let ((new-type
-              ;; TODO This needs to be generalized.
-              (when (typep type 'cpp-qualified-identifier)
-                (let ((parts (qualified-name->list type)))
-                  (when (member (lastcar parts) '("iterator" "const_iterator")
-                                :test #'source-text=)
-                    (if (source-text= "->" oper)
-                        (resolve-container-element-type type)
-                        (list->qualified-name (butlast parts))))))))
-         (when new-type
+       (let ((new-type (deref-type type)))
+         (when (not (eql type new-type))
            (setf (attr-proxy new-type) type))
-         (get-declaration-ast :type (or new-type type)))))))
+         (get-declaration-ast :type new-type))))))
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
   (when-let (class (get-field-class ast))

@@ -7425,26 +7425,8 @@ A placeholder type is a type like C++ `auto' or Java `var', a request
 for the compiler to infer the type.")
   (:method ((ast t)) nil))
 
-(defgeneric resolve-type-ast (type)
-  (:method (type) type))
-
 (defgeneric deref-type (type)
-  (:method (type) (resolve-type-ast type)))
-
-(defconstructor field-type
-  (argument ast)
-  (field ast))
-
-(defmethod resolve-type-ast ((type field-type))
-  (field-type-field type))
-
-(defmethod deref-type ((type field-type))
-  (ematch type
-    ((field-type arg field)
-     ;; TODO Structs etc.
-     (if (member field '("iterator" "const_iterator") :test #'source-text=)
-         (resolve-container-element-type arg)
-         (call-next-method)))))
+  (:method (type) type))
 
 (def-attr-fun infer-type ()
   (:documentation "Return the type of AST as an a AST, or nil if it
@@ -9745,7 +9727,10 @@ by MULTI-DECLARATION-KEYS."
       (mapcar (lambda (ast)
                 (or (find-enclosing type (attrs-root*) ast)
                     ;; This shouldn't be possible.
-                    (error "No ~a for ~a" type ast)))
+                    (let ((root (attrs-root*)))
+                      (error "No ~a for ~a~%Path: ~a"
+                             type ast
+                             (ast-path root ast)))))
               (find-in-symbol-table ast ns query)))))
 
 
