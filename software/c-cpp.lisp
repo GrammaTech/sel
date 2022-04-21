@@ -776,31 +776,30 @@ Should return `:failure' in the base case.")
   (unless (typep target 'identifier-ast)
     (return-from collect-arg-uses
       (call-next-method)))
-  (with-attr-table sw
-    (labels ((get-decl (var)
-               (get-declaration-id :variable
-                                   (or (and alias (aliasee var))
-                                       var)))
-             (occurs-as-object? (ast target)
-               (match ast
-                 ((call-ast
-                   (call-function
-                    (cpp-field-expression
-                     (cpp-argument arg))))
-                  (eql (get-decl arg) target))))
-             (occurs-as-arg? (ast target)
-               (match ast
-                 ((call-ast (call-arguments (and args (type list))))
-                  (member target
-                          (filter (of-type 'identifier-ast) args)
-                          :key (op (get-decl _)))))))
-      (let ((target (get-decl target)))
-        (iter (for ast in-tree (genome sw))
-              ;; The outer loop will recurse, so we don't
-              ;; need to recurse here.
-              (when (or (occurs-as-object? ast target)
-                        (occurs-as-arg? ast target))
-                (collect ast)))))))
+  (labels ((get-decl (var)
+             (get-declaration-id :variable
+                                 (or (and alias (aliasee var))
+                                     var)))
+           (occurs-as-object? (ast target)
+             (match ast
+               ((call-ast
+                 (call-function
+                  (cpp-field-expression
+                   (cpp-argument arg))))
+                (eql (get-decl arg) target))))
+           (occurs-as-arg? (ast target)
+             (match ast
+               ((call-ast (call-arguments (and args (type list))))
+                (member target
+                        (filter (of-type 'identifier-ast) args)
+                        :key (op (get-decl _)))))))
+    (let ((target (get-decl target)))
+      (iter (for ast in-tree (genome sw))
+            ;; The outer loop will recurse, so we don't
+            ;; need to recurse here.
+            (when (or (occurs-as-object? ast target)
+                      (occurs-as-arg? ast target))
+              (collect ast))))))
 
 
 ;;;; Whitespace
