@@ -1102,6 +1102,14 @@ available to use at any point in a C++ AST.")
                      (call-next-method)
                      ""))
 
+(defmethod namespace :around ((ast cpp-ast) &optional in)
+  (declare (ignore in))
+  ;; Strip template parameters for lookup.
+  (let ((result (call-next-method)))
+    (if (stringp result)
+        (regex-replace-all "<[^>]+>" result "")
+        result)))
+
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
   (let* ((source-text
           (or (declarator-name declared-ast)
