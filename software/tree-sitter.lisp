@@ -7433,7 +7433,7 @@ By default this first tries `expression-type', then invokes
     (flet ((infer-type-from-declaration ()
              (when-let* ((decl-type (relevant-declaration-type ast))
                          (decl (get-declaration-ast decl-type ast)))
-               (resolve-declaration-type (attrs-root*) decl ast))))
+               (resolve-declaration-type ast decl))))
       (let ((expression-type (infer-expression-type ast)))
         (cond ((null expression-type)
                (infer-type-from-declaration))
@@ -7467,8 +7467,9 @@ By default calls `declaration-type' with DECL-AST.")
   (:method (ast)
     (declaration-type ast)))
 
-(defgeneric resolve-declaration-type (software decl-ast ast)
-  (:documentation "Return the type that DECL-AST in SOFTWARE specifies for AST, as an AST, or nil if it could not be determined.
+(def-attr-fun resolve-declaration-type (decl-ast)
+  "Return the type that DECL-AST in SOFTWARE specifies
+  for AST, as an AST, or nil if it could not be determined.
 
 This differs from `extract-declaration-type' only in cases when
 the type declared differs between declarands (e.g. `auto' declarations
@@ -7476,8 +7477,9 @@ in C++; `auto x = 1, y = 2.0' effectively declares `x' as an integer
 but `y' as a float.)
 
 By default simply calls `extract-declaration-type' with SOFTWARE and
-DECL-AST.")
-  (:method ((software t) (decl-ast t) (ast t))
+DECL-AST."
+  (:method (ast &optional decl-ast)
+    (assert (typep decl-ast 'ast))
     (extract-declaration-type decl-ast)))
 
 (defgeneric declaration-type (declaration-ast)
