@@ -8301,6 +8301,18 @@ also empty. This will prevent unnecessary copying."
     (call-next-method ast value1 (copy-with-surrounding-text value2 old))
     (call-next-method)))
 
+(defmethod mapcar :around (fn (node structured-text) &rest more)
+  (declare (ignore more))
+  (let ((fn (ensure-function fn)))
+    (call-next-method
+     (lambda (ast)
+       (when-let (result (funcall fn ast))
+         (if (and (typep result 'structured-text)
+                  (typep ast 'structured-text))
+             (copy-with-surrounding-text result ast)
+             result)))
+     node)))
+
 (defgeneric patch-whitespace (ast &key)
   (:documentation "Destructively patch whitespace on AST by adding a
   space to the before-text and after-text slots that need it.")
