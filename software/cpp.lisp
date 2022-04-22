@@ -306,7 +306,7 @@
                                cpp-class-specifier cpp-namespace-definition
                                cpp-declaration-list cpp-field-declaration-list
                                cpp-struct-specifier cpp-field-declaration
-                               cpp-func<tion-declarator cpp-declaration
+                               cpp-function-declarator cpp-declaration
                                cpp-reference-declarator cpp-pointer-declarator
                                cpp-template-declaration))
                     parents))
@@ -701,9 +701,9 @@
                        (call-next-method ast relevant-overloads))))))))
       (call-next-method)))
 
-(defmethod resolve-declaration-type ((obj t)
-                                     (decl cpp-ast)
-                                     (ast cpp-ast))
+(defmethod resolve-declaration-type ((ast cpp-ast)
+                                     &optional decl
+                                     &aux (obj (attrs-root*)))
   (when-let (first-try (call-next-method))
     (or
      ;; If the first try is not auto, just return it.
@@ -726,17 +726,19 @@
      ;; Go with the original result.
      first-try)))
 
-(defmethod resolve-declaration-type ((obj t)
-                                     (decl cpp-field-declaration)
-                                     (ast call-ast))
+(defmethod resolve-declaration-type ((ast call-ast)
+                                     &optional
+                                       decl)
   "If AST is a call AST, and the declaration is a field declaration,
 then the return type of the call is the return type of the field."
-  (match ast
-    ((call-ast
-      (call-function
-       (and field (cpp-field-expression))))
-     (resolve-declaration-type obj decl field))
-    (otherwise (call-next-method))))
+  (if (typep decl 'cpp-field-declaration)
+      (match ast
+        ((call-ast
+          (call-function
+           (and field (cpp-field-expression))))
+         (resolve-declaration-type field decl))
+        (otherwise (call-next-method)))
+      (call-next-method)))
 
 (defgeneric resolve-container-element-type (type)
   (:documentation "Assuming TYPE is a container type, try to get the
