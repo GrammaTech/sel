@@ -432,14 +432,16 @@ pointer declarations which are nested on themselves."
         (deref-type type)
         type)))
 
+(-> add-field-as (fset:map symbol-table-namespace ast) fset:map)
 (defun add-field-as (map ns id)
-  (check-type id ast)
+  "Add ID to MAP in NS, a namespace such as `:type' or `:variable'."
   (let ((ns-map (or (lookup map ns) (empty-map))))
-    (with map ns
-          (with ns-map
-                (source-text id)
-                ;; Overloads!
-                (cons id (@ ns-map (source-text id)))))))
+    (values
+     (with map ns
+           (with ns-map
+                 (source-text id)
+                 ;; Overloads!
+                 (cons id (@ ns-map (source-text id))))))))
 
 (defgeneric field-adjoin (field map)
   (:method ((field t) map)
