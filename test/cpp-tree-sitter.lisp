@@ -548,13 +548,12 @@ iterator from a call on a dereferenced element."
       (is (not (assigned (find-soft-var "midpoint")))))))
 
 (deftest test-collect-arg-uses ()
-  (with-fixture trim-front
+  (with-fixture/attrs trim-front
     (is (length= 2 (collect-arg-uses *soft* (find-soft-var "next_point"))))
     (is (length= 0 (collect-arg-uses *soft* (find-soft-var "p2"))))
     (is (length= 2 (collect-arg-uses *soft*
                                      (find-soft-var "p2")
                                      t)))
-    ;; This last one is really a caching test.
     (is (length= 0 (collect-arg-uses *soft*
                                      (find-soft-var "p2"))))))
 
