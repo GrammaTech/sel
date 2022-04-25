@@ -432,7 +432,7 @@
         :software-evolution-library/components/formatting)
   (:import-from :uiop)
   (:import-from :software-evolution-library/software/project
-                :find-include-files :include-paths :include-paths-mixin)
+                :include-paths :include-paths-mixin)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
   (:import-from :functional-trees :map-children)
   #.(if (asdf:find-system :cl-tree-sitter nil)
@@ -482,7 +482,6 @@
            :c-canonical-type
            ;; Cpp
            :cpp-source-text-fragment
-           :find-std-include
            :lookup-in-std-header
            :system-header-names
            :cpp-variadic-declaration
