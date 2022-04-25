@@ -6990,9 +6990,6 @@ Every element in the list has the following form:
 (full-name alias/nickname named-imports)")
   (:method ((ast t)) nil))
 
-(defun attrs-root* ()
-  (attrs-root *attrs*))
-
 (defun imports (software node)
   "Return a list of the imports available in SOFTWARE at AST.
 Every element in the list has the following form:
