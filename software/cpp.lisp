@@ -693,12 +693,13 @@
                        (if const?
                            const-overloads
                            mutable-overloads)))
-               (if (null relevant-overloads)
-                   (error "Invalid partitioning of overloads: ~a"
-                          overloads)
-                   (if (single relevant-overloads)
-                       (only-elt relevant-overloads)
-                       (call-next-method ast relevant-overloads))))))))
+               (cond ((null relevant-overloads)
+                      (error "Invalid partitioning of overloads: ~a"
+                             overloads))
+                     ((single relevant-overloads)
+                      (only-elt relevant-overloads))
+                     (t
+                      (call-next-method ast relevant-overloads))))))))
       (call-next-method)))
 
 (defmethod resolve-declaration-type ((ast cpp-ast)
