@@ -7000,10 +7000,8 @@ Every element in the list has the following form:
   "Return a list of the imports available in SOFTWARE at AST.
 Every element in the list has the following form:
     (full-name alias/nickname named-imports)"
-  (if (boundp '*attrs*)
-      (imports-attr node)
-      (with-attr-table software
-        (imports-attr node))))
+  (with-attr-table software
+    (imports-attr node)))
 
 (def-attr-fun imports-attr (in)
   "Compute the imports available from a node."
