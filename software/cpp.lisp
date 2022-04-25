@@ -946,10 +946,7 @@ then the return type of the call is the return type of the field."
   (:documentation "Namespace qualifiers derived from surrounding namespaces.")
   (:method (obj (ast cpp-ast))
     (with-attr-table obj
-      (if (ast-path obj ast)
-          (split "::" (namespace ast))
-          ;; XXX
-          nil))))
+      (split "::" (namespace ast)))))
 
 (defun combine-namespace-qualifiers (explicit implicit)
   "Combine explicit namespace qualifiers (on the AST) and implicit
