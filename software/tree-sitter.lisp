@@ -7236,12 +7236,10 @@ declaration makes sense."
   (:method ((ast type-ast))
     'type-declaration-ast)
   (:method ((ast declaration-ast))
-    (or (find (type-of ast)
-              '(variable-declaration-ast
-                function-declaration-ast
-                type-declaration-ast
-                macro-declaration-ast)
-              :test #'subtypep)
+    (or (iter (for (ns . decl-type) in (namespace-decl-type-table))
+              (thereis (and (typep ast decl-type)
+                            ns
+                            decl-type)))
         (error "Unclassified declaration: ~a" ast)))
   (:method :around ((ast ast) &aux (obj (attrs-root*)))
     (or
@@ -9608,6 +9606,10 @@ Otherwise, return PARSE-TREE."
     (:type . type-declaration-ast)
     (:macro . macro-declaration-ast)
     (nil . declaration-ast)))
+
+(defun namespace-decl-type-table ()
+  "Reader for `+namespace-decl-type-table+'."
+  +namespace-decl-type-table+)
 
 (defun namespace-decl-type (ns)
   (assure (and symbol (not null))

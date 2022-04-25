@@ -47,6 +47,12 @@
 
 ;;; Analysis tests
 
+(deftest test-relevant-declaration-type-regression ()
+  (let* ((software (from-string 'cpp "int x = 1;"))
+         (ast (find-if (of-type 'cpp-declaration) software)))
+    (with-attr-table software
+      (is (eql 'variable-declaration-ast (relevant-declaration-type ast))))))
+
 (deftest test-cpp-function-name ()
   (is (equal "trim_front"
              (function-name (cpp "std::list<Point> trim_front() {}")))))
