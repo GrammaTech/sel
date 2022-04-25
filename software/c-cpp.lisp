@@ -479,6 +479,7 @@ pointer declarations which are nested on themselves."
      (source-text key)))
 
 (defun get-field-class (field)
+  "Find the declaration of the type of the argument of FIELD."
   (ematch field
     ((c/cpp-field-expression
       ;; TODO Just ->?
