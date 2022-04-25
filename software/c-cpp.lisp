@@ -538,7 +538,7 @@ pointer declarations which are nested on themselves."
 
 That is, if the type of an expression cannot be extracted, then if it
 occurs as the RHS of a init declarator in a declaration, take the type
-of a declaration.
+of the declaration.
 
 E.g. given
 
