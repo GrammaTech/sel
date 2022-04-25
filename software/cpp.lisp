@@ -634,11 +634,6 @@
        (values (car declarations-values-list)
                (cadr declarations-values-list))))))
 
-(defmethod resolve-overloads ((ast cpp-ast)
-                              &optional overloads)
-  "Fallback method when we can't do any better."
-  (first overloads))
-
 (defun const-field-declaration? (field-decl fn)
   "Is FN declared const in FIELD-DECL?"
   (match field-decl
