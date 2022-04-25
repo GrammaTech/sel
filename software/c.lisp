@@ -136,11 +136,6 @@ field."
           #'source-text
           (append (c-pre-specifiers ast) (c-post-specifiers ast)))))
 
-(defmethod parameter-names ((ast c-pointer-declarator))
-  (parameter-names (c-declarator ast)))
-(defmethod parameter-names ((ast c-identifier))
-  (list ast))
-
 (defmethod variable-name ((ast c-identifier)) (source-text ast))
 
 (defmethod no-fallthrough ((ast c-continue-statement)) t)
