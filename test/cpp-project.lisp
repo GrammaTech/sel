@@ -137,8 +137,8 @@
 
 ;;; Symbol Table
 (deftest cpp-project-symbol-table-1 ()
-  "Every included system files have has its namespace qualified
-symbols imported into the symbol table of the file including it."
+  "Every included system file has its namespace qualified symbols
+imported into the symbol table of the file including it."
   (labels ((lookup-variable (symbol-table name)
              (lookup (lookup symbol-table :variable) name))
            (test-main.cc ()

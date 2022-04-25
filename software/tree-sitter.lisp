@@ -7098,6 +7098,7 @@ Every element in the list has the following form:
 (defcondition unresolved-overloads ()
   ((ast :initarg :ast :type ast)
    (overloads :initarg :overloads :type list))
+  (:documentation "Error when overloads cannot be resolved.")
   (:report (lambda (c s)
              (with-slots (ast overloads) c
                (format s "Multiple overloads for ~a:~%~{~a~%~^~}"
@@ -7109,6 +7110,10 @@ Every element in the list has the following form:
          :overloads overloads))
 
 (defgeneric resolve-overloads (ast &optional overloads)
+  (:documentation "Resolve the overloads in OVERLOADS.
+
+This function should only be called when there are two or more
+overloads to resolve.")
   (:method :before (ast &optional overloads)
     (assert (and (listp overloads) (rest overloads))))
   (:method (ast &optional overloads)
@@ -7421,6 +7426,7 @@ for the compiler to infer the type.")
   (:method ((ast t)) nil))
 
 (defgeneric deref-type (type)
+  (:documentation "Return the type that comes from dereferencing TYPE.")
   (:method (type) type))
 
 (def-attr-fun infer-type ()
@@ -8312,6 +8318,8 @@ also empty. This will prevent unnecessary copying."
     (call-next-method)))
 
 (defmethod mapcar :around (fn (node structured-text) &rest more)
+  "Give `mapcar' the same behavior as WITH on structured-text.
+That is, inherit the before and after text of the node being replaced."
   (declare (ignore more))
   (let ((fn (ensure-function fn)))
     (call-next-method
@@ -9713,11 +9721,15 @@ by MULTI-DECLARATION-KEYS."
                      (inner-declarations node)))))
 
 (defgeneric qualify-declared-ast-name (ast)
+  (:documentation "Qualify the name of AST.
+This is used both when adding ASTs to the symbol table and when
+looking them up.")
   (:method ((ast ast))
     (or (declarator-name ast)
         (source-text ast))))
 
 (defgeneric find-in-symbol-table (ast namespace query)
+  (:documentation "Lookup QUERY in the symbol table for AST using NAMESPACE.")
   (:method ((ast ast) (ns null) (query string))
     (let* ((symbol-table (symbol-table ast)))
       (lookup symbol-table query)))
@@ -9731,6 +9743,11 @@ by MULTI-DECLARATION-KEYS."
       (values (lookup ns-table query)))))
 
 (defgeneric find-decls-in-symbol-table (ast ns query)
+  (:documentation "Find the declarations for the identifiers returned
+  by `find-in-symbol-table'.
+
+Note that depending on the language multiple identifiers may share the
+same declaration.")
   (:method ((ast ast) (ns symbol) (query t))
     (let ((type (namespace-decl-type ns)))
       (mapcar (lambda (ast)
