@@ -444,6 +444,7 @@ pointer declarations which are nested on themselves."
                  (cons id (@ ns-map (source-text id))))))))
 
 (defgeneric field-adjoin (field map)
+  (:documentation "Adjoin FIELD to MAP according to the type of FIELD.")
   (:method ((field t) map)
     map)
   (:method ((field function-declaration-ast) map)
