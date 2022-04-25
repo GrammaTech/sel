@@ -191,6 +191,7 @@
 
 ;;; Helper macros.
 (defmacro with-fixture/attrs (fixture &body body)
+  "Wrap BODY with an attribute table for `*soft*'."
   `(with-fixture ,fixture
      (with-attr-table *soft*
        ,@body)))

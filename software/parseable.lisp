@@ -136,6 +136,7 @@ for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
 (defmethod genome ((ast ast))
+  "An AST is its own genome."
   ast)
 
 ;; All hash values are of typer HASH-TYPE.

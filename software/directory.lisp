@@ -137,6 +137,8 @@
 (defmethod with ((project directory-project)
                  (old parseable)
                  &optional new)
+  "When updating a directory project, update both the AST and the
+evolve-files."
   (unless (typep new 'parseable)
     (return-from with (call-next-method)))
   (let ((old-root (genome old))

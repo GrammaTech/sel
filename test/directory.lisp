@@ -78,6 +78,7 @@
     (is (find-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*)))))
 
 (deftest can-replace-file-in-directory ()
+  "Test that the AST and evolve files remain in sync when updating."
   (with-fixture fib-project-javascript
     (let* ((new-source (fmt "~
 module.exports = {
