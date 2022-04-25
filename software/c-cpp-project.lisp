@@ -245,7 +245,9 @@ and add it to PROJECT."))
    table-1 table-2
    :allow-multiple (multi-declaration-keys root)))
 
-(defun find-symbol-table-from-include (project include-ast)
+(defun find-symbol-table-from-include (project include-ast
+                                       &optional (in (empty-map)))
+  (declare (fset:map in))
   (labels ((merge-cached-symbol-table (header)
              (let ((cached-table
                     (ensure2 (cache-lookup *system-header-symbol-table-cache*
@@ -258,18 +260,17 @@ and add it to PROJECT."))
                         (attrs-table *attrs*))))
                    (target-table (attrs-table *attrs*)))
                (do-hash-table (node alist cached-table)
-                 (setf (gethash node target-table)
-                       (if-let (old (gethash node target-table))
-                         ;; Preserve any new attributes.
-                         (append old alist)
-                         alist)))))
+                 (if-let (old (gethash node target-table))
+                   ;; Preserve any previously computed attributes.
+                   (append old alist)
+                   alist))))
            (process-system-header (project path-ast)
              (if-let ((system-header
                        (get-system-header
                         project (trim-path-string path-ast))))
                (progn
                  (merge-cached-symbol-table system-header)
-                 (symbol-table system-header (empty-map)))
+                 (symbol-table system-header in))
                (empty-map)))
            (process-relative-header (path-ast)
              "Get the corresponding symbol table for the relative path
@@ -278,7 +279,7 @@ and add it to PROJECT."))
                        (aget (trim-path-string path-ast)
                              (evolve-files project)
                              :test #'equal)))
-               (symbol-table software (empty-map))
+               (symbol-table software in)
                (empty-map))))
     (ematch include-ast
       ((c/cpp-preproc-include
@@ -288,11 +289,12 @@ and add it to PROJECT."))
         (c/cpp-path (and path (c/cpp-system-lib-string))))
        (process-system-header project path)))))
 
-(defmethod symbol-table ((node c/cpp-preproc-include) &optional in)
-  (declare (ignore in))
+(defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (let ((root (attrs-root *attrs*)))
     (if (typep root 'directory-project)
-        (find-symbol-table-from-include root node)
+        (symbol-table-union root
+                            in
+                            (find-symbol-table-from-include root node in))
         (call-next-method))))
 
 (defmethod symbol-table ((node c/cpp-system-header) &optional in)

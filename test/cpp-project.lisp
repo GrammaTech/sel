@@ -79,6 +79,15 @@
                                          "cpp-symbol-table-project")))))
   (:teardown (setf *project* nil)))
 
+(defixture cpp-relative-include-symbol-table-project
+    (:setup
+     (setf *project*
+           (from-file 'cpp-project
+                      (make-pathname
+                       :directory (append1 +etc-dir+
+                                           "cpp-symbol-table-project2")))))
+  (:teardown (setf *project* nil)))
+
 (defmethod test-method ((obj simple) value)
   value)
 
@@ -128,8 +137,8 @@
 
 ;;; Symbol Table
 (deftest cpp-project-symbol-table-1 ()
-  "Included system files have their namespace qualified symbols imported into the
-symbol table of the file including it."
+  "Every included system files have has its namespace qualified
+symbols imported into the symbol table of the file including it."
   (labels ((lookup-variable (symbol-table name)
              (lookup (lookup symbol-table :variable) name))
            (test-main.cc ()
@@ -138,11 +147,15 @@ symbol table of the file including it."
                                     :test #'equal))
                     (target-ast (find-if (of-type 'cpp-preproc-include)
                                          (genome software)))
+                    (return-ast (find-if (of-type 'cpp-return-statement)
+                                         (genome software)))
                     (system-header
                       (find-if (op (equal (header-name _) "iostream"))
                                (system-headers (genome *project*))))
-                    (target-symbol-table (symbol-table target-ast)))
+                    (target-symbol-table (symbol-table target-ast))
+                    (return-symbol-table (symbol-table return-ast)))
                (is (lookup-variable target-symbol-table "std::cout"))
+               (is (lookup-variable return-symbol-table "std::cout"))
                (is (find-if (op (eq (car (lookup-variable target-symbol-table
                                                           "std::cout"))
                                     _))
@@ -150,3 +163,21 @@ symbol table of the file including it."
     (with-fixture cpp-symbol-table-project
       (with-attr-table *project*
         (test-main.cc)))))
+
+(deftest cpp-project-symbol-table-2 ()
+  "Locally included header files have their symbols imported into the
+symbol table of the file including it."
+  (labels ((lookup-type (symbol-table name)
+             (lookup (lookup symbol-table :type) name)))
+    (with-fixture cpp-relative-include-symbol-table-project
+      (with-attr-table *project*
+        (let* ((software (aget "my_program.cc" (evolve-files *project*)
+                               :test #'equal))
+               (target-ast (find-if (of-type 'cpp-preproc-include)
+                                    (genome software)))
+               (return-ast (find-if (of-type 'cpp-return-statement)
+                                    (genome software)))
+               (target-symbol-table (symbol-table target-ast))
+               (return-symbol-table (symbol-table return-ast)))
+          (is (lookup-type target-symbol-table "N::my_class"))
+          (is (lookup-type return-symbol-table "N::my_class")))))))
