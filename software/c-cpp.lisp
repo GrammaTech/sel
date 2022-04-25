@@ -760,7 +760,6 @@ Should return `:failure' in the base case.")
 (defmethod alias-set ((plain-var c/cpp-ast))
   (let ((sw (attrs-root*)))
     (with-attr-table sw
-      ;; breaks TEST-REFERENCE-POINTER-EXPRESSION-ALIASEE
       (when-let (id (get-declaration-id :variable plain-var))
         (iter (for ast in-tree (genome sw))
               (when (and (typep ast 'identifier-ast)
@@ -1105,4 +1104,6 @@ array, function parameter, parens, and pointer information.")
          (declarator= (declarator canonical-type-1)
                       (declarator canonical-type-2))
          (bitfield= (bitfield canonical-type-1)
-                    (bitfield canonical-type-2)))))) ; #+(or :tree-sitter-c :tree-sitter-cpp)
+                    (bitfield canonical-type-2)))))
+
+) ; #+(or :tree-sitter-c :tree-sitter-cpp)
