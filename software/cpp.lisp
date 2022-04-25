@@ -787,8 +787,7 @@ then the return type of the call is the return type of the field."
     (otherwise
      (call-next-method))))
 
-(defmethod infer-expression-type ((ast cpp-call-expression)
-                                  &aux (obj (attrs-root*)))
+(defmethod infer-expression-type ((ast cpp-call-expression))
   (match ast
     ;; Special case: the type of `std::next' should be the same as
     ;; its argument.
@@ -800,7 +799,7 @@ then the return type of the call is the return type of the field."
       :cpp-arguments
       (cpp-argument-list
        :children (list arg)))
-     (unless (equal (mapcar #'source-text (namespace-qualifiers obj name))
+     (unless (equal (mapcar #'source-text (namespace-qualifiers name))
                     '("std"))
        (trivia.fail:fail))
      (infer-type arg))
@@ -942,11 +941,10 @@ then the return type of the call is the return type of the field."
   (:method ((ast cpp-init-declarator))
     (explicit-namespace-qualifiers (cpp-declarator ast))))
 
-(defgeneric implicit-namespace-qualifiers (obj ast)
+(defgeneric implicit-namespace-qualifiers (ast)
   (:documentation "Namespace qualifiers derived from surrounding namespaces.")
-  (:method (obj (ast cpp-ast))
-    (with-attr-table obj
-      (split "::" (namespace ast)))))
+  (:method ((ast cpp-ast))
+    (split "::" (namespace ast))))
 
 (defun combine-namespace-qualifiers (explicit implicit)
   "Combine explicit namespace qualifiers (on the AST) and implicit
@@ -983,14 +981,14 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
                   explicit))
         implicit)))
 
-(defgeneric namespace-qualifiers (obj ast)
+(defgeneric namespace-qualifiers (ast)
   (:documentation "Final namespace qualifiers, derived by resolving
   explicit (relative) namespace qualifiers relative to
   implicit (absolute) ones.")
-  (:method (obj (ast cpp-ast))
+  (:method ((ast cpp-ast))
     (combine-namespace-qualifiers
      (explicit-namespace-qualifiers ast)
-     (implicit-namespace-qualifiers obj ast))))
+     (implicit-namespace-qualifiers ast))))
 
 (defgeneric unqualified-name (name)
   (:documentation "Remove namespace qualifications from NAME.")
