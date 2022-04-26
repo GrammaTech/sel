@@ -995,16 +995,18 @@ example:
 
 This returns 4 (not 3) because `::x` resolves to the `x` in the global
 namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
-  (if-let ((tail (member :global explicit)))
-    (rest tail)
-    (if explicit
-        (let ((index (search explicit implicit
-                             :key #'source-text
-                             :test #'equal
-                             :from-end t)))
-          (append (take (or index 0) implicit)
-                  explicit))
-        implicit)))
+  (remove-if
+   (conjoin #'stringp #'emptyp)
+   (if-let ((tail (member :global explicit)))
+     (rest tail)
+     (if explicit
+         (let ((index (search explicit implicit
+                              :key #'source-text
+                              :test #'equal
+                              :from-end t)))
+           (append (take (or index 0) implicit)
+                   explicit))
+         implicit))))
 
 (defgeneric namespace-qualifiers (ast)
   (:documentation "Final namespace qualifiers, derived by resolving
@@ -1132,22 +1134,19 @@ available to use at any point in a C++ AST.")
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
   (let* ((source-text
           (or (declarator-name declared-ast)
-              (source-text declared-ast))))
-    (if (string^= "::" source-text)
-        ;; Global namespace.
-        (drop-prefix "::" source-text)
-        (let* ((namespace (namespace declared-ast))
-               (implicit (split "::" namespace))
-               (parts (split "::" source-text))
-               (explicit
-                (append
-                 (and (string^= "::" source-text)
-                      (list :global))
-                 (butlast parts)))
-               (combined
-                (combine-namespace-qualifiers explicit implicit)))
-          (string-join (append1 combined (lastcar parts)) ;
-                       "::")))))
+              (source-text declared-ast)))
+         (namespace (namespace declared-ast))
+         (implicit (split "::" namespace))
+         (parts (split "::" source-text))
+         (explicit
+          (append
+           (and (string^= "::" source-text)
+                (list :global))
+           (butlast parts)))
+         (combined
+          (combine-namespace-qualifiers explicit implicit)))
+    (string-join (append1 combined (lastcar parts)) ;
+                 "::")))
 
 (defmethod qualify-declared-ast-name ((id cpp-type-identifier))
   (or (and-let* ((type (find-enclosing 'type-declaration-ast (attrs-root*) id))
