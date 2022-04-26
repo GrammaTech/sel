@@ -7103,14 +7103,14 @@ Every element in the list has the following form:
          :ast ast
          :overloads overloads))
 
-(defgeneric resolve-overloads (ast &optional overloads)
+(defgeneric resolve-overloads (type ast &optional overloads)
   (:documentation "Resolve the overloads in OVERLOADS.
 
 This function should only be called when there are two or more
 overloads to resolve.")
-  (:method :before (ast &optional overloads)
+  (:method :before (type ast &optional overloads)
     (assert (and (listp overloads) (rest overloads))))
-  (:method (ast &optional overloads)
+  (:method (type ast &optional overloads)
     (unresolved-overloads ast overloads)))
 
 (defun get-declaration-ast (type ast)
@@ -7120,7 +7120,7 @@ correct overload for AST if there is more than one."
     (match decls
       (() decls)
       ((list decl) decl)
-      (otherwise (resolve-overloads ast decls)))))
+      (otherwise (resolve-overloads type ast decls)))))
 
 (defun get-declaration-id (type ast)
   "Like `get-declaration-ids', but selects the correct overload if
@@ -7131,7 +7131,7 @@ there is more than one."
       ((list id) id)
       (otherwise
        (let* ((decls (get-declaration-asts type ast))
-              (decl (resolve-overloads ast decls)))
+              (decl (resolve-overloads type ast decls)))
          (nth (position decl decls) ids))))))
 
 (defgeneric get-declaration-asts (type ast)

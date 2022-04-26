@@ -687,7 +687,7 @@
            (canonicalize-type ast :software software))
           :test #'source-text=))
 
-(defmethod resolve-overloads ((ast cpp-field-expression) &optional overloads)
+(defmethod resolve-overloads (type (ast cpp-field-expression) &optional overloads)
   "Resolve const overloads on field expressions."
   (or (when (every (of-type 'cpp-field-declaration) overloads)
         (match ast
@@ -713,6 +713,19 @@
                      (t
                       (call-next-method ast relevant-overloads))))))))
       (call-next-method)))
+
+(defmethod resolve-overloads (type (ast cpp-qualified-identifier)
+                              &optional overloads)
+  (resolve-overloads type (cpp-name ast) overloads))
+
+(defmethod resolve-overloads ((type (eql :type)) (ast cpp-template-type)
+                              &optional overloads)
+  ;; TODO Implement SFINAE rules.
+  (let ((alist (mapcar (op (cons (definition-name _1) _1)) overloads)))
+    (or (aget (source-text ast) alist :test #'equal)
+        ;; The base template should have the shortest name (e.g.
+        ;; `vector<T>` vs. `vector<boolean>`.
+        (cdr (extremum alist #'length<= :key #'car)))))
 
 (defmethod resolve-declaration-type ((ast cpp-ast)
                                      &optional decl
