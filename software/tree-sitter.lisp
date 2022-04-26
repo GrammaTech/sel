@@ -9660,7 +9660,8 @@ by MULTI-DECLARATION-KEYS."
   (labels ((merge-function (key allow-multiple)
              (lambda (shadowable-value shadowing-value)
                (if (member key allow-multiple)
-                   (append shadowing-value shadowable-value)
+                   (remove-duplicates
+                    (append shadowing-value shadowable-value))
                    shadowing-value))))
     (do-set (key keys (convert 'fset:map map-list))
       (let* ((shadowable-subtable (@ shadowable-table key))
