@@ -48,6 +48,23 @@
 (define-language-alias-mappings
     cpp ("c plus plus" "c++" "c-plus-plus" "cc" "cp" "cpp" "cxx" "hpp"))
 
+(-> strip-template-arguments (string) string)
+(defun strip-template-arguments (string)
+  "Strip template arguments (in angle brackets) from STRING."
+  (nlet rec ((pos 0)
+             (bracket-count 0)
+             (acc nil))
+    (if (>= pos (length string))
+        (if (> bracket-count 0)
+            ;; Not actually delimiters. E.g. operator<.
+            string
+            (coerce (nreverse acc) 'string))
+        (case-let (char (char string pos))
+          (#\< (rec (1+ pos) (1+ bracket-count) acc))
+          (#\> (rec (1+ pos) (1- bracket-count) acc))
+          (t (if (> bracket-count 0)
+                 (rec (1+ pos) bracket-count acc)
+                 (rec (1+ pos) bracket-count (cons char acc))))))))
 
 #+:TREE-SITTER-CPP
 (progn
@@ -1091,16 +1108,14 @@ available to use at any point in a C++ AST.")
 
 (defmethod qualify-declared-ast-name :around ((ast cpp-ast))
   ;; Strip template parameters for lookup.
-  (regex-replace-all "<[^>]+>"
-                     (call-next-method)
-                     ""))
+  (strip-template-arguments (call-next-method)))
 
 (defmethod namespace :around ((ast cpp-ast) &optional in)
   (declare (ignore in))
   ;; Strip template parameters for lookup.
   (let ((result (call-next-method)))
     (if (stringp result)
-        (regex-replace-all "<[^>]+>" result "")
+        (strip-template-arguments result)
         result)))
 
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
