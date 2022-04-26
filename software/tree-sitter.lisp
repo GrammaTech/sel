@@ -1172,6 +1172,7 @@ for the language.")
        (:declaration-ast c-field-declaration)
        (:type-declaration-ast c-type-definition c-struct-specifier
         c-union-specifier c-enum-specifier)
+       (:composite-type-ast c-struct-specifier c-union-specifier)
        (:statement-ast c--statement c-function-definition c-declaration)
        (:expression-statement-ast c-expression-statement)
        (:expression-ast c--expression)
@@ -1214,6 +1215,8 @@ for the language.")
        (:type-declaration-ast cpp-type-definition cpp-struct-specifier
         cpp-union-specifier
         cpp-enum-specifier
+        cpp-class-specifier)
+       (:composite-type-ast cpp-struct-specifier cpp-union-specifier
         cpp-class-specifier)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
        (:expression-ast cpp--expression)
