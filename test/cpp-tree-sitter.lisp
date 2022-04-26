@@ -1279,8 +1279,8 @@ different orders."
   "Nested template arguments are properly stripped."
   (is (equal "hash"
              (strip-template-arguments "hash<std::vector<bool, Allocator>>")))
-  (signals error
-    (strip-template-arguments "hash<std::vector<bool, Allocator>")))
+  (is (equal "operator<" (strip-template-arguments "operator<")))
+  (is (equal "operator<<" (strip-template-arguments "operator<<"))))
 
 (deftest cpp-symbol-table-1 ()
   "Symbol-table contains qualified identifiers."
