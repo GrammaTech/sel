@@ -20,7 +20,8 @@
                 :outer-declarations
                 :contextualize-ast
                 :canonicalize-type
-                :canonical-type=)
+                :canonical-type=
+                :strip-template-arguments)
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers)
   (:local-nicknames (:project :software-evolution-library/software/project)
@@ -1273,6 +1274,13 @@ different orders."
 
 
 ;;; Symbol table
+
+(deftest test-strip-template-arguments ()
+  "Nested template arguments are properly stripped."
+  (is (equal "hash"
+             (strip-template-arguments "hash<std::vector<bool, Allocator>>")))
+  (signals error
+    (strip-template-arguments "hash<std::vector<bool, Allocator>")))
 
 (deftest cpp-symbol-table-1 ()
   "Symbol-table contains qualified identifiers."
