@@ -156,13 +156,24 @@
                                                (source-text ast)))))
   "Convert grouped-namespaces into a grouping of
 (namespace . source-text/declaration-map)."
-  (labels ((create-source-text-map (declarations)
-             (mapcar (op (list (funcall source-text-fun _1) _1))
-                     declarations)))
+  (fbindrec (source-text-fun
+             (create-source-text-map
+              (lambda (type declarations)
+                (reduce (lambda (map ast)
+                          (let ((key (source-text-fun ast)))
+                            (with map
+                                  key
+                                  ;; Preserve overloads within a
+                                  ;; single AST.
+                                  (if (member type (multi-declaration-keys ast))
+                                      (cons ast (@ map key))
+                                      (list ast)))))
+                        declarations
+                        :initial-value (empty-map)))))
     (mapcar
-     (lambda (grouping)
-       (cons (car grouping)
-             (convert 'fset:map (create-source-text-map (cdr grouping)))))
+     (lambda (grouping &aux (type (car grouping)))
+       (cons type
+             (create-source-text-map type (cdr grouping))))
      grouped-namespaces)))
 
 (defmethod outer-defs ((node c/cpp-ast))

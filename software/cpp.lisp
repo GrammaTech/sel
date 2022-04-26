@@ -1095,9 +1095,7 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
 
 ;;; Symbol Table
 
-(define-constant +cpp-multi-declaration-keys+ '(:function)
-  :test #'equal
-  :documentation
+(def +cpp-multi-declaration-keys+ '(:function :type)
   "A set of keys which indicate that several definitions for a symbol may be
 available to use at any point in a C++ AST.")
 
