@@ -1,11 +1,9 @@
 (defpackage :software-evolution-library/utility/include
   (:documentation "Code to regenerate standard library header synopses.")
   (:use :gt/full)
-  (:import-from :serapeum :~>>)
-  (:export :extract-llvm-synopses
-           :*std-header-dir*
-           :extract-header-synopsis
-           :std-headers-available-p))
+  (:export :*std-header-dir*
+           :std-headers-available-p
+           :extract-header-synopsis))
 (in-package :software-evolution-library/utility/include)
 
 (defparameter *std-header-dir*
