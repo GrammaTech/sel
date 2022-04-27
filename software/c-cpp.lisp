@@ -783,6 +783,116 @@ Should return `:failure' in the base case.")
              ((ppcre "<(.*)>" s)
               (collect s)))))))
 
+(defun parse-header-synopsis (path-string &key (class-ast 'c-ast))
+  "Parse the system header synopsis at PATH-STRING into an AST."
+  (labels ((get-synopsis-string (path-string)
+             "Get the synopsis string from the header represented
+              by PATH-STRING."
+             (handler-bind
+                 ((#+sbcl sb-ext:file-does-not-exist #-sbcl file-error
+                   (lambda (condition)
+                     (declare (ignorable condition))
+                     (return-from get-synopsis-string))))
+               (extract-header-synopsis path-string)))
+           (get-section (lines)
+             "Returns as values the lines in the section that starts at the
+              first items in LINES and the lines that are remaining."
+             (assert (scan ".*:$" (first lines)))
+             (iter
+               (iter:with section)
+               (iter:with lines = (drop 2 lines))
+               (while (not (equal (car lines) "")))
+               ;; NOTE: add semicolon to avoid parsing errors.
+               ;;       The newline is to avoid putting the semicolon in
+               ;;       comments.
+               (push (format nil "~a~%;" (pop lines)) section)
+               (finally (return (values section lines)))))
+           (markup-section (comment lines)
+             "Return as values a section retrieved from LINES that inserts
+              comments"
+             (mvlet ((section remaining-lines (get-section lines)))
+               ;; NOTE: section is reversed here. The comments will be in the
+               ;;       before-asts slot and can be used to further markup
+               ;;       the AST.
+               (values (append1 (intersperse comment section) comment)
+                       remaining-lines)))
+           (markup-synopsis (synopsis-string)
+             "Mark up SYNOPSIS-STRING such that it can be parsed and transformed
+              into something that can be referenced as an AST."
+             (iter
+               (iter:with markup-lines)
+               (iter:with lines = (lines synopsis-string))
+               (while lines)
+               (for section-type =
+                    (first (nth-value 1 (scan-to-strings "(Macros|Types):$"
+                                                         (car lines)))))
+               (if section-type
+                   (mvlet* ((section-comment
+                             (string-ecase section-type
+                               ("Macros" "/*macro*/")
+                               ("Types" "/*type*/")))
+                            (section-lines
+                             remaining-lines
+                             (markup-section section-comment lines)))
+                     (push section-lines markup-lines)
+                     (setf lines remaining-lines))
+                   (push (pop lines) markup-lines))
+               (finally
+                (return
+                  (apply #'string+
+                          (intersperse #.(format nil "~%")
+                                       (reverse (flatten markup-lines))))))))
+           (transform-into-forward-declaration (ast comment declaration-type)
+             "Transforms AST into a forward declaration of type DECLARATION-TYPE
+              if it has a preceding comment which is identical to COMMENT."
+             (match ast
+               ((c/cpp-expression-statement
+                 (before-text before-text)
+                 (after-text after-text)
+                 (direct-children (list symbol-ast))
+                 (before-asts
+                  (list (c/cpp-comment
+                         (text (equal comment))))))
+                (convert class-ast `((:class . ,declaration-type)
+                                     (:children ,symbol-ast)
+                                     (:before-text . ,before-text)
+                                     (:after-text . ,after-text))))
+               ((c/cpp-primitive-type
+                 (before-asts
+                  (list (c/cpp-comment
+                         (text (guard text (equal comment text))))))
+                 (before-text before-text)
+                 (after-text after-text))
+                (convert class-ast `((:class . ,declaration-type)
+                                     (:children
+                                      ((:class . identifier)
+                                       (:text . ,(text ast))))
+                                     (:before-text . ,before-text)
+                                     (:after-text . ,after-text))))))
+           (transform-macro-ast (ast)
+             (transform-into-forward-declaration
+              ast "/*macro*/" 'macro-forward-declaration))
+           (transform-type-ast (ast)
+             (transform-into-forward-declaration
+              ast "/*type*/" 'type-forward-declaration))
+           (patch-system-header-ast (ast)
+             "Patch all ASTs with a preceding comment to be forward
+              declarations."
+             ;; NOTE: primitive types are followed by an empty-statement. These
+             ;;       need to be removed since the primitive types are being
+             ;;       transformed and the empty-statements no long match
+             ;;       correctly
+             (remove-if (of-type 'c/cpp-empty-statement)
+                        (mapcar
+                         (op (or (transform-macro-ast _1)
+                                 (transform-type-ast _1)
+                                 _1))
+                         ast))))
+    (when-let* ((synopsis-string (get-synopsis-string path-string))
+                (markup-synopsis (markup-synopsis synopsis-string))
+                (root-ast (convert class-ast markup-synopsis)))
+      (patch-system-header-ast root-ast))))
+
 
 ;;; Type Canonicalization
 (defgeneric canonicalize-declarator (declarator)

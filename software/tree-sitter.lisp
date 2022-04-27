@@ -484,6 +484,7 @@
            :cpp-source-text-fragment
            :lookup-in-std-header
            :system-header-names
+           :parse-header-synopsis
            :cpp-variadic-declaration
            :cpp-canonical-type
            :+cpp-multi-declaration-keys+
