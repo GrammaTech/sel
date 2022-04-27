@@ -552,16 +552,6 @@
   "Find the standard library header named NAME."
   (from-string language (extract-header-synopsis name)))
 
-
-(defun system-header-names (sw)
-  "Return a list of the system headers in SW."
-  (iter (for ast in-tree (genome sw))
-        (match ast
-          ((c/cpp-preproc-include (c/cpp-path path))
-           (match (source-text path)
-             ((ppcre "<(.*)>" s)
-              (collect s)))))))
-
 (defun lookup-in-std-header (header namespaces field)
   "Look up a declaration in a standard library header synopsis.
 - HEADER is the name of the header.

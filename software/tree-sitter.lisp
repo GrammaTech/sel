@@ -492,6 +492,7 @@
            :specifier
            :declarator
            :bitfield
+           :system-header-names
            ;; Cross-language Mix-ins
            :c/cpp
            :c-like-syntax

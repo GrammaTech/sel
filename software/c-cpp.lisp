@@ -772,6 +772,18 @@ Should return `:failure' in the base case.")
   "")
 
 
+;;; System headers
+(-> system-header-names (c/cpp) (values list &optional))
+(defun system-header-names (sw)
+  "Return a list of the system headers in SW."
+  (iter (for ast in-tree (genome sw))
+        (match ast
+          ((c/cpp-preproc-include (c/cpp-path path))
+           (match (source-text path)
+             ((ppcre "<(.*)>" s)
+              (collect s)))))))
+
+
 ;;; Type Canonicalization
 (defgeneric canonicalize-declarator (declarator)
   (:documentation "Get a canonicalized form of DECLARATOR. This should be a
