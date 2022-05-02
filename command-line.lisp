@@ -68,12 +68,14 @@
                 :typescript)
   (:export :define-command
            :interrupt-signal
+           :with-interrupt-shutdown
            :*lisp-interaction*
            ;; Functions to handle command line options and arguments.
            :read-compilation-database
            :handle-comma-delimited-argument
            :handle-set-interactive-argument
            :handle-swank-port-argument
+           :handle-swank-port-argument-and-set-interactive
            :handle-load
            :handle-eval
            :handle-out-dir-argument
@@ -94,6 +96,7 @@
            :resolve-num-tests-from-num-tests
            :resolve-language-from-language-and-source
            :wait-on-manual
+           :wait-on-swank
            :exit-command
            :guess-language
            :create-software
@@ -123,6 +126,15 @@
     #+ecl 'ext:interactive-interrupt
     #+allegro 'excl:interrupt-signal
     "Implementation specific signal thrown by a user's interrupt, C-c."))
+
+(defmacro with-interrupt-shutdown ((&key (error-output *error-output*))
+                                   &body body)
+  "Macro to wrap BODY and shutdown on keyboard interrupt."
+  `(handler-case (progn ,@body)
+     ;; Catch user's C-c.
+     (#.interrupt-signal ()
+       (format ,error-output "Shutting down server~%")
+       (quit))))
 
 (defun read-compilation-database (file)
   "Read a Clang compilation database from FILE.
@@ -166,6 +178,10 @@
   (setf *lisp-interaction* interactivep))
 
 (defun handle-swank-port-argument (port)
+  (create-server :port port :style :spawn :dont-close t))
+
+(defun handle-swank-port-argument-and-set-interactive (port)
+  (setf *lisp-interaction* t)
   (create-server :port port :style :spawn :dont-close t))
 
 (defun handle-load (path)
@@ -335,11 +351,14 @@ input is not positive."
 
 (defun wait-on-manual (manual)
   "Wait to terminate until the swank server returns if MANUAL is non-nil."
-  (when manual
-    (note 1 "Waiting on swank server...")
-    (join-thread
-     (car (remove-if-not [{string= "Swank Sentinel"} #'thread-name]
-                         (all-threads))))))
+  (when manual (wait-on-swank)))
+
+(defun wait-on-swank ()
+  "Wait to terminate until the swank server returns."
+  (note 1 "Waiting on swank server...")
+  (join-thread
+   (car (remove-if-not [{string= "Swank Sentinel"} #'thread-name]
+                       (all-threads)))))
 
 (defmacro exit-command (command-name errno &optional interactive-return-val)
   "Exit COMMAND-NAME with ERRNO (command line) or INTERACTIVE-RETURN-VAL (REPL).

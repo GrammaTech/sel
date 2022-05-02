@@ -608,6 +608,7 @@
            :imports
            :provided-by
            :comparisonp
+           :contains-error-ast-p
            :aliasee
            :alias-set
            :c-functions
@@ -7393,6 +7394,15 @@ Equivalent type descriptors should be equal under `equal?'.")
     (make-keyword (source-text type-ast))))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
+
+(defun contains-error-ast-p (ast)
+  "Return non-NIL if AST is an error AST or contains an error AST child."
+  (fbind ((test (of-type '(or parse-error-ast source-text-fragment))))
+    (find-if (lambda (ast)
+               (or (test ast)
+                   (some #'test (before-asts ast))
+                   (some #'test (after-asts ast))))
+             ast)))
 
 (defclass canonical-type ()
   ()
