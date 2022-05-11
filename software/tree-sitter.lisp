@@ -7116,6 +7116,8 @@ This function should only be called when there are two or more
 overloads to resolve.")
   (:method :before (type ast &optional overloads)
     (assert (and (listp overloads) (rest overloads))))
+  (:method (type (ast call-ast) &optional overloads)
+    (resolve-overloads type (call-function ast) overloads))
   (:method (type ast &optional overloads)
     (unresolved-overloads ast overloads)))
 
