@@ -8,9 +8,19 @@
 ;;;;   (error-char-count "~/benchmark/busybox/")
 ;;;;   (error-char-count "~/benchmark/grep-single-file/grep.c")
 ;;;;
-(in-package :sel/test/tree-sitter)
-(use-package :sel/software/project)
-(use-package :sel/command-line)
+(defpackage :software-evolution-library/tools/error-char-count
+  (:nicknames :sel/tools/error-char-count)
+  (:use
+   :gt/full
+   :software-evolution-library
+   :software-evolution-library/software/parseable
+   :software-evolution-library/software/tree-sitter
+   :software-evolution-library/components/file
+   :software-evolution-library/software/project
+   :software-evolution-library/command-line)
+  (:export :ast-error-char-count :error-char-count))
+(in-package :software-evolution-library/tools/error-char-count)
+(in-readtable :curry-compose-reader-macros)
 
 (defun ast-error-char-count (ast &key print-error-asts)
   "Traverse tree-sitter-ast, looking only at leaf nodes
@@ -37,7 +47,7 @@
     (values char-count error-char-count)))
 
 (defun error-char-count (path &key print-error-asts)
-  "Given a path to a C software object, compute total number of text characters
+  "Given a path to a software object, compute total number of text characters
  (for all evolve files, if it is a project), and total number of error asts
  characters.
  Outputs a report.
