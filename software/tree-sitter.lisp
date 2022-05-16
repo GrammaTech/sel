@@ -433,7 +433,7 @@
   (:import-from :trivia.fail :fail)
   (:import-from :uiop)
   (:import-from :software-evolution-library/software/project
-                :find-include-files :include-paths :include-paths-mixin)
+                :include-paths :include-paths-mixin)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
   (:import-from :functional-trees :map-children)
   #.(if (asdf:find-system :cl-tree-sitter nil)
@@ -483,6 +483,8 @@
            :c-canonical-type
            ;; Cpp
            :cpp-source-text-fragment
+           :system-header-names
+           :parse-header-synopsis
            :cpp-variadic-declaration
            :cpp-canonical-type
            :+cpp-multi-declaration-keys+
@@ -491,6 +493,7 @@
            :specifier
            :declarator
            :bitfield
+           :system-header-names
            ;; Cross-language Mix-ins
            :c/cpp
            :c-like-syntax
