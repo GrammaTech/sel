@@ -540,15 +540,6 @@ pointer declarations which are nested on themselves."
   (when-let (class (get-field-class ast))
     (lookup-in-field-table class type (c/cpp-field ast))))
 
-(defmethod get-declaration-asts :around (type (ast c/cpp-field-expression))
-  (let ((obj (attrs-root*)))
-    (mapcar (lambda (id)
-              (assure (not c/cpp-init-declarator)
-                (find-enclosing 'declaration-ast
-                                obj
-                                id)))
-            (get-declaration-ids type ast))))
-
 (defmethod get-initialization-ast ((ast cpp-ast) &aux (obj (attrs-root*)))
   "Find the assignment for an unitialized variable."
   (or (call-next-method)
