@@ -1318,6 +1318,15 @@ for the language.")
        (:c/cpp-case-statement c-case-statement cpp-case-statement)
        (:c/cpp-cast-expression c-cast-expression cpp-cast-expression)
        (:c/cpp-char-literal c-char-literal cpp-char-literal)
+       ;; This is a common superclass for all three ways of defining a
+       ;; class in C++ -- class, struct, and union -- and their C
+       ;; equivalents (when they exist).
+       (:c/cpp-classoid-specifier
+        c-struct-specifier
+        c-union-specifier
+        cpp-struct-specifier
+        cpp-class-specifier
+        cpp-union-specifier)
        (:c/cpp-comment c-comment cpp-comment)
        (:c/cpp-compound-statement c-compound-statement cpp-compound-statement)
        (:c/cpp-condition-clause c-condition-clause cpp-condition-clause)
