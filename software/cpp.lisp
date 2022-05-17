@@ -616,6 +616,9 @@
 (defmethod field-table ((class cpp-class-specifier))
   (ematch class
     ((cpp-class-specifier
+      (cpp-body nil))
+     (empty-map))
+    ((cpp-class-specifier
       (cpp-body
        (and (cpp-field-declaration-list)
             (access #'direct-children fields))))

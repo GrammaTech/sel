@@ -494,7 +494,10 @@ pointer declarations which are nested on themselves."
        (assure fset:map
          (reduce (flip #'field-adjoin)
                  fields
-                 :initial-value (empty-map)))))))
+                 :initial-value (empty-map))))
+      ((c/cpp-struct-specifier
+        (c/cpp-body nil))
+       (empty-map)))))
 
 (defun lookup-in-field-table (class ns key)
   (@ (or (@ (field-table class) ns) (empty-map))
