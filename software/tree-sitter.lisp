@@ -1224,7 +1224,7 @@ for the language.")
       (:cpp
        (:root-ast cpp-translation-unit)
        (:comment-ast cpp-comment)
-       (:definition-ast cpp-type-definition cpp-struct-specifier
+       (:definition-ast cpp-type-definition cpp-struct-specifier cpp-class-specifier
         cpp-union-specifier
         cpp-field-declaration
         cpp-enum-specifier cpp-preproc-def

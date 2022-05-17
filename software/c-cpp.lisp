@@ -350,8 +350,7 @@ pointer declarations which are nested on themselves."
           '(:type)))
 
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
-  (find-enclosing '(or definition-ast cpp-class-specifier
-                    c/cpp-primitive-type)
+  (find-enclosing '(or definition-ast c/cpp-primitive-type)
                   sw ast))
 
 (defmethod definition-name-ast ((ast c/cpp-function-definition))
