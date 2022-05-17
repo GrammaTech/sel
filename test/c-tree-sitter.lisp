@@ -700,7 +700,9 @@ for (int i = 0; i < x; i++) {
 }")
          (software (make 'c :genome (convert 'c-ast source)))
          (for-statement (find-if (of-type 'c-for-statement) (genome software)))
-         (unbound-vals (get-unbound-vals software for-statement)))
+         (unbound-vals
+          (with-attr-table software
+            (get-unbound-vals software for-statement))))
     (is (equal (collect-if (op (equal "x" (source-text _))) for-statement)
                (remove-if-not {equal "x"} unbound-vals :key #'source-text)))
     (is (equal (list (find-if {equal "y"} for-statement :key #'source-text))
@@ -713,7 +715,9 @@ for (int i = 0; i < x; i++) {
   "get-unbound-vals doesn't return unbound function call identifiers."
   (let* ((source "x ();")
          (software (make 'c :genome (convert 'c-ast source)))
-         (unbound-vals (get-unbound-vals software (genome software))))
+         (unbound-vals
+          (with-attr-table software
+            (get-unbound-vals software (genome software)))))
     (is (null unbound-vals))))
 
 (deftest field-names-test ()

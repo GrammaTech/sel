@@ -423,6 +423,24 @@ pointer declarations which are nested on themselves."
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
 
+(defmethod get-unbound-vals ((obj c/cpp) (ast ast) &key)
+  (get-unbound-vals (genome obj) ast))
+(defmethod get-unbound-vals ((obj c) (ast ast) &key)
+  (get-unbound-vals (genome obj) ast))
+(defmethod get-unbound-vals ((obj cpp) (ast ast) &key)
+  (get-unbound-vals (genome obj) ast))
+
+;;; TODO This doesn't apply just to C/C++, but to any language that
+;;; supports declarations.
+(defmethod get-unbound-vals ((root c/cpp-ast) (ast ast) &key)
+  (filter (lambda (id)
+            (let ((decl (get-declaration-ast :variable id)))
+              (or (no decl)
+                  (not (ancestor-of-p root decl ast)))))
+          (keep 'variable-declaration-ast
+                (identifiers ast)
+                :key #'relevant-declaration-type)))
+
 (defmethod find-enclosing-declaration :around (type
                                                root
                                                (id c/cpp-field-identifier))
