@@ -449,9 +449,11 @@ auto d = p1->Distance(p2);")))
                      (get-declaration-ast :function field-expr))))
       ;; We get the type of `p1' (`Point').
       (is (source-text= "Point"
-                        (infer-type (is (get-declaration-ast
-                                         :variable
-                                         (cpp-argument field-expr)))))))
+                        (infer-type
+                         (find-if (of-type 'cpp-init-declarator)
+                                  (is (get-declaration-ast
+                                       :variable
+                                       (cpp-argument field-expr))))))))
     ;; We get the declaration of the `Point' type.
     #+(or) (is (get-declaration-ast 'type sw
                                     (infer-type sw (get-declaration-id

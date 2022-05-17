@@ -646,7 +646,7 @@
            ;; Symbol Table
            :symbol-table
            :find-in-symbol-table
-           :find-decls-in-symbol-table
+           :find-enclosing-declaration
            :multi-map-symbol-table-union
            :symbol-table-union
            :multi-declaration-keys
@@ -7154,6 +7154,16 @@ there is more than one."
               (decl (resolve-overloads type ast decls)))
          (nth (position decl decls) ids))))))
 
+(defun find-decls-in-symbol-table (ns ast)
+  "Find the declarations for the identifiers returned
+  by `get-declaration-ids'.
+
+Note that depending on the language multiple identifiers may share the
+same declaration."
+  (let ((root (attrs-root*)))
+    (mapcar (op (find-enclosing-declaration ns root _))
+            (get-declaration-ids ns ast))))
+
 (defgeneric get-declaration-asts (type ast)
   (:documentation "For an identifier, get a list of declaration ASTs.
 \(There may be more than one if the language allows overloading.) For
@@ -7162,13 +7172,13 @@ a declaration AST, return AST unchanged.")
   (:method :context (type ast)
     (assure list (call-next-method)))
   (:method ((type (eql :variable)) ast)
-    (find-decls-in-symbol-table ast type ast))
+    (find-decls-in-symbol-table type ast))
   (:method ((type (eql :function)) ast)
-    (find-decls-in-symbol-table ast type ast))
+    (find-decls-in-symbol-table type ast))
   (:method ((type (eql :type)) ast)
-    (find-decls-in-symbol-table ast type ast))
+    (find-decls-in-symbol-table type ast))
   (:method ((type (eql :macro)) ast)
-    (find-decls-in-symbol-table ast type ast))
+    (find-decls-in-symbol-table type ast))
   (:method ((type null) ast)
     (error "Not a namespace: ~a" type))
   (:method ((type symbol) ast)
@@ -7184,24 +7194,7 @@ a declaration AST, return AST unchanged.")
   (:method ((type (eql :type)) (ast type-declaration-ast))
     (list ast))
   (:method ((type (eql :macro)) (ast macro-declaration-ast))
-    (list ast))
-  (:method :around ((type t) (identifier identifier-ast))
-    (when (keywordp type)
-      (setf type (namespace-decl-type type)))
-    (assert (subtypep type 'declaration-ast))
-    (or
-     ;; Check if this identifier is part of a declaration before
-     ;; checking scopes to avoid returning a shadowed variable.
-     (iter
-      (for parent in (get-parent-asts* (attrs-root*) identifier))
-      (when (and (member identifier
-                         (append (outer-declarations parent)
-                                 (inner-declarations parent))
-                         ;; Looking for the exact AST.
-                         :test #'eq)
-                 (typep parent type))
-        (return (list parent))))
-     (call-next-method))))
+    (list ast)))
 
 (defgeneric get-declaration-ids (type ast)
   (:documentation "Using the symbol table, find where AST is defined.")
@@ -7226,9 +7219,11 @@ a declaration AST, return AST unchanged.")
      ;; checking scopes to avoid returning a shadowed variable.
      (ensure-list
       (iter
-       (for parent in (get-parent-asts* (attrs-root*) identifier))
+       (for parent in (filter (of-type type)
+                              (get-parent-asts* (attrs-root*) identifier)))
        (thereis (and (typep parent type)
                      (find identifier
+                           ;; TODO use outer-defs and inner-defs
                            (append (outer-declarations parent)
                                    (inner-declarations parent))
                            ;; Looking for the exact AST.
@@ -9759,22 +9754,39 @@ looking them up.")
                 (ns-table (lookup symbol-table namespace)))
       (values (lookup ns-table query)))))
 
-(defgeneric find-decls-in-symbol-table (ast ns query)
-  (:documentation "Find the declarations for the identifiers returned
-  by `find-in-symbol-table'.
-
-Note that depending on the language multiple identifiers may share the
-same declaration.")
-  (:method ((ast ast) (ns symbol) (query t))
-    (let ((type (namespace-decl-type ns)))
-      (mapcar (lambda (ast)
-                (or (find-enclosing type (attrs-root*) ast)
-                    ;; This shouldn't be possible.
-                    (let ((root (attrs-root*)))
-                      (error "No ~a for ~a~%Path: ~a"
-                             type ast
-                             (ast-path root ast)))))
-              (find-in-symbol-table ast ns query)))))
+(defgeneric find-enclosing-declaration (type root id)
+  (:documentation "Like `find-enclosing', but implement special
+  handling when languages don't clearly distinguish different kinds of
+  declarations at the AST level.")
+  (:method-combination standard/context)
+  (:method :context (type root id)
+    (or (call-next-method)
+        (let ((root (attrs-root*)))
+          (error "No ~a for ~a~%Path: ~a"
+                 type id
+                 (ast-path root id)))))
+  (:method :context ((type symbol) root id)
+    (if (keywordp type)
+        (find-enclosing-declaration (namespace-decl-type type) root id)
+        (call-next-method)))
+  (:method :context ((type symbol) root (id identifier-ast))
+    (assert (not (keywordp type)))
+    (or
+     ;; Check if this identifier is part of a declaration before
+     ;; checking the symbol table to avoid returning a shadowed variable.
+     (iter
+      (for parent in (get-parent-asts* (attrs-root*) id))
+      (finding parent such-that
+               (and (typep parent type)
+                    (member id
+                            ;; TODO use outer-defs and inner-defs
+                            (append (outer-declarations parent)
+                                    (inner-declarations parent))
+                            ;; Looking for the exact AST.
+                            :test #'eq))))
+     (call-next-method)))
+  (:method ((type symbol) root id)
+    (find-enclosing type (attrs-root*) id)))
 
 
 ;;; Namespace
