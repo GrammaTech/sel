@@ -301,13 +301,23 @@ pointer declarations which are nested on themselves."
   (values (get-nested-declaration ast)
           '(:variable)))
 
-(defmethod outer-declarations ((ast c/cpp-struct-specifier))
+(defmethod outer-declarations ((ast c/cpp-classoid-specifier))
   (values (list (c/cpp-name ast))
           '(:type)))
 
-(defmethod inner-declarations ((ast c/cpp-struct-specifier))
+(defmethod inner-declarations ((ast c/cpp-classoid-specifier))
   ;; Make the type visible inside the type.
-  (outer-declarations ast))
+  (mvlet* ((table (field-table ast))
+           (variables (@ table :variable))
+           (members
+            (nreverse
+             (sort (reduce #'append (range variables))
+                   (op (path-later-p ast _ _)))))
+           (outer-decls outer-decl-types
+            (outer-declarations ast)))
+    (values (append outer-decls members)
+            (append outer-decl-types
+                    (mapcar (constantly :variable) members)))))
 
 (defmethod outer-declarations ((ast c/cpp-enum-specifier))
   (match ast

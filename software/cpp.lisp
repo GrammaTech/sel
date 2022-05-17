@@ -575,6 +575,17 @@
 
 ;;;; Methods for tree-sitter generics
 
+(defmethod get-declaration-ids ((type (eql :variable))
+                                (ast cpp-field-identifier))
+  "When asked to resolve `this->AST', resolve it from a field."
+  (match (get-parent-ast (attrs-root*) ast)
+    ;; Resolve this->x to the field.
+    ((and parent
+          (cpp* "this->$X" :x (eql ast)))
+     (get-declaration-ids type parent))
+    (otherwise
+     (call-next-method))))
+
 (defmethod call-name ((ast cpp-call-expression))
   "If the call function is a template function, extract just the name of the template function without its arguments."
   (source-text
@@ -601,10 +612,6 @@
       ;; We don't want identifiers from type declarations.
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
-
-(defmethod outer-declarations ((ast cpp-class-specifier))
-  (values (list (c/cpp-name ast))
-          '(:type)))
 
 (defmethod field-table ((class cpp-class-specifier))
   (ematch class

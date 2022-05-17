@@ -648,6 +648,36 @@ for (; next != numbers.end(); ++ii, ++next)
         (lastcar
          (collect-if (of-type 'identifier-ast) cpp)))))))
 
+(deftest test-member-resolution ()
+  "Test that (1) members are in scope inside class definitions and (2)
+  we properly resolve identifiers when `this' is explicitly used."
+  (let* ((cpp (from-string 'cpp (fmt "~
+using namespace std;
+class A
+{
+    public:
+        int a;
+
+        void f() {
+            a = 4;
+            do {
+                int a = 5;
+                cout << a << endl;
+                cout << this->a << endl;
+            } while (0);
+        }
+};"))))
+    (with-attr-table cpp
+      (let* ((as (collect-if (op (source-text= "a" _)) cpp))
+             (decls (mapcar (op (get-declaration-ast :variable _))
+                            as)))
+        (is (every (of-type 'cpp-field-declaration)
+                   (take 2 decls)))
+        (is (every (of-type 'cpp-declaration)
+                   (take 2 (drop 2 decls))))
+        (is (typep (lastcar decls) 'cpp-field-declaration))
+        decls))))
+
 
 ;;; Parsing tests
 
