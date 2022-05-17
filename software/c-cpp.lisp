@@ -310,9 +310,10 @@ pointer declarations which are nested on themselves."
   (mvlet* ((table (field-table ast))
            (variables (@ table :variable))
            (members
-            (nreverse
-             (sort (reduce #'append (range variables))
-                   (op (path-later-p ast _ _)))))
+            (when variables
+              (nreverse
+               (sort (reduce #'append (range variables))
+                     (op (path-later-p ast _ _))))))
            (outer-decls outer-decl-types
             (outer-declarations ast)))
     (values (append outer-decls members)
