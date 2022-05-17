@@ -242,6 +242,9 @@ Provided to make it easier to debug problems with AST printing.")
 (defmethod path-later-p ((obj parseable) (a ast) (b ast))
   (path-later-p obj (ast-path obj a) (ast-path obj b)))
 
+(defmethod path-later-p ((obj ast) (a ast) (b ast))
+  (path-later-p obj (ast-path obj a) (ast-path obj b)))
+
 (defgeneric child-asts (ast &key recursive)
   (:documentation "Return the AST children of AST.  If the keyword
 RECURSIVE is passed, recursive AST children will also be returned.")
