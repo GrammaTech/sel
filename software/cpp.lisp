@@ -584,7 +584,10 @@
   (match (get-parent-ast (attrs-root*) ast)
     ;; Resolve this->x to the field.
     ((and parent
-          (cpp* "this->$X" :x (eql ast)))
+          (cpp-field-expression
+           (cpp-argument (cpp-this))
+           (cpp-operator (cpp-->))
+           (cpp-field (eql ast))))
      (get-declaration-ids type parent))
     (otherwise
      (call-next-method))))
