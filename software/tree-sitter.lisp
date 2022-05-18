@@ -7154,16 +7154,6 @@ there is more than one."
               (decl (resolve-overloads type ast decls)))
          (nth (position decl decls) ids))))))
 
-(defun find-decls-in-symbol-table (ns ast)
-  "Find the declarations for the identifiers returned
-  by `get-declaration-ids'.
-
-Note that depending on the language multiple identifiers may share the
-same declaration."
-  (let ((root (attrs-root*)))
-    (mapcar (op (find-enclosing-declaration ns root _))
-            (get-declaration-ids ns ast))))
-
 (-> get-declaration-asts (symbol ast)
     (values (soft-list-of ast) &optional))
 (defun get-declaration-asts (type ast)
