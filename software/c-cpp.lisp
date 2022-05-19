@@ -360,6 +360,16 @@ pointer declarations which are nested on themselves."
   (values (list (car (direct-children ast)))
           '(:type)))
 
+(defmethod outer-declarations ((ast c/cpp-type-definition))
+  (mvlet ((type
+           (assure ast
+             (find-if (of-type 'c/cpp-type-identifier)
+                      (c/cpp-declarator ast))))
+          (type-decls type-namespaces
+           (outer-declarations (c/cpp-type ast))))
+    (values (cons type type-decls)
+            (cons :type type-namespaces))))
+
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
   (find-enclosing '(or definition-ast c/cpp-primitive-type)
                   sw ast))
