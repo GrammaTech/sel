@@ -526,7 +526,13 @@ pointer declarations which are nested on themselves."
                  :initial-value (empty-map))))
       ((c/cpp-struct-specifier
         (c/cpp-body nil))
-       (empty-map)))))
+       (empty-map))))
+  (:method ((ast c/cpp-type-definition))
+    (match ast
+      ((c/cpp-type-definition
+        (c/cpp-type
+         (and struct (c/cpp-struct-specifier))))
+       (field-table struct)))))
 
 (defun lookup-in-field-table (class ns key)
   (@ (or (@ (field-table class) ns) (empty-map))
