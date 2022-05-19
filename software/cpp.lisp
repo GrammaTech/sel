@@ -620,6 +620,9 @@
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
 
+(defmethod outer-declarations ((ast cpp-alias-declaration))
+  (values (cpp-name ast) '(:type)))
+
 (defmethod field-table ((class cpp-class-specifier))
   (ematch class
     ((cpp-class-specifier

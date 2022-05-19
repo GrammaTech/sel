@@ -678,6 +678,18 @@ class A
         (is (typep (lastcar decls) 'cpp-field-declaration))
         decls))))
 
+(deftest test-alias-declaration-in-symbol-table ()
+  (let ((cpp (from-string 'cpp (fmt "~
+using func = void(*)(int);
+void actual_function(int arg) { /* some code */ }
+func fptr = &actual_function;~
+"))))
+    (with-attr-table cpp
+      (source-text= "func"
+                    (infer-type (lastcar (collect-if (op (source-text= "fptr" _))
+                                                     cpp)))))))
+
+
 
 ;;; Parsing tests
 
