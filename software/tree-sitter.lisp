@@ -1394,7 +1394,7 @@ for the language.")
        (:c/cpp-type-descriptor c-type-descriptor cpp-type-descriptor)
        (:c/cpp-type-forward-declaration
         c-type-forward-declaration cpp-type-forward-declaration)
-       (:c/cpp-type-identifier c-type-definition cpp-type-identifier)
+       (:c/cpp-type-identifier c-type-identifier cpp-type-identifier)
        (:c/cpp-type-qualifier c-type-qualifier cpp-type-qualifier)
        (:c/cpp-unary-expression c-unary-expression cpp-unary-expression)
        (:c/cpp-union-specifier c-union-specifier cpp-union-specifier)
