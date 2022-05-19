@@ -56,6 +56,22 @@ int f(foo_t* p) { return p->a; }~
                          (is (find-if (op (source-text= _ "p->a"))
                                       c-code))))))))
 
+#+(or)
+(deftest infer-struct-member-type ()
+  (let ((c-code (from-string 'c (fmt "~
+struct foo { int a; int b; };
+int f(struct foo* p) { return p->a; }
+"))))
+    (with-attr-table c-code
+      (is (source-text= "int"
+                        (infer-type
+                         (is (find-if (op (source-text= _ "p->a"))
+                                      c-code)))))
+      (is (source-text= "int"
+                        (infer-type
+                         (is (find-if (op (source-text= _ "return p->a;"))
+                                      c-code))))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
