@@ -42,8 +42,20 @@
     (asdf:system-relative-pathname :software-evolution-library)
     "test/etc/c-fragments/short.c")))
 
+
+;;; Analysis tests.
 
-  
+(deftest infer-struct-type-through-typedef ()
+  (let ((c-code (from-string 'c (fmt "~
+typedef struct foo { int a; int b; } foo_t;
+int f(foo_t* p) { return p->a; }~
+"))))
+    (with-attr-table c-code
+      (is (source-text= "int"
+                        (infer-type
+                         (is (find-if (op (source-text= _ "p->a"))
+                                      c-code))))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
