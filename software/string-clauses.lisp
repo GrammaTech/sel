@@ -68,21 +68,22 @@
     (convert (class-name-of ast) string :deepest t))
   (:method ((ast c-like-syntax-ast) (string string))
     "For a C-like language, tolerant parsing means adding a semicolon."
-    (flet ((find-target (ast)
-             (find-deepest (lambda (ast)
-                             ;; We don't want e.g. a terminal or a root.
-                             (and (typep ast '(or expression-ast statement-ast))
-                                  (source-text= string ast)))
-                           ast)))
-      (let* ((class (class-name-of ast))
-             (result (convert class string :deepest t)))
-        (if (typep result '(or parse-error-ast source-text-fragment))
-            (let ((result2
-                   (convert class (concatenate 'string string ";"))))
-              (or (find-target result2)
-                  (@ result2 '(0))))
-            (or (find-target result)
-                result))))))
+    (labels ((find-target (ast)
+               (find-deepest (lambda (ast)
+                               ;; We don't want e.g. a terminal or a root.
+                               (and (typep ast '(or expression-ast statement-ast))
+                                    (source-text= string ast)))
+                             ast))
+             (unwrap-result (result suffix)
+               (or (find-target result)
+                   (if (equal suffix "")
+                       (@ result '(0))
+                       result))))
+      (let ((class (class-name-of ast)))
+        (dolist (suffix '("" ";" #\Newline))
+          (let ((result (convert class (string+ string suffix) :deepest t)))
+            (unless (typep result '(or parse-error-ast source-text-fragment))
+              (return (unwrap-result result suffix)))))))))
 
 (defun wildcard? (node)
   "Is NODE a wildcard (symbol that starts with WILD_)?"

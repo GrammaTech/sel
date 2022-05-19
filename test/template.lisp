@@ -249,6 +249,9 @@ def $READ_NAME():
 (deftest test-insert-semicolons ()
   (is (typep (cpp* "1") 'cpp-number-literal)))
 
+(deftest test-insert-newline ()
+  (is (typep (cpp* "#define EMPTY") 'cpp-preproc-def)))
+
 (deftest test-insert-semicolons-in-patterns ()
   (is (equal '("1" "2")
              (match (cpp* "1 + 2")
