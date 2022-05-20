@@ -365,7 +365,7 @@ pointer declarations which are nested on themselves."
   (mvlet ((type
            (assure ast
              (find-if (of-type 'c/cpp-type-identifier)
-                      (c/cpp-declarator ast))))
+                      (car (c/cpp-declarator ast)))))
           (type-decls type-namespaces
            (outer-declarations (c/cpp-type ast))))
     (values (cons type type-decls)
