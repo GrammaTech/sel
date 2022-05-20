@@ -302,8 +302,10 @@ pointer declarations which are nested on themselves."
           '(:variable)))
 
 (defmethod outer-declarations ((ast c/cpp-classoid-specifier))
-  (values (list (c/cpp-name ast))
-          '(:type)))
+  (if-let (name (c/cpp-name ast))
+          (values (list (c/cpp-name ast))
+                  '(:type))
+          (values nil nil)))
 
 (defmethod inner-declarations ((ast c/cpp-classoid-specifier))
   ;; Make the type visible inside the type.
