@@ -621,7 +621,7 @@
       ids)))
 
 (defmethod outer-declarations ((ast cpp-alias-declaration))
-  (values (cpp-name ast) '(:type)))
+  (values (list (cpp-name ast)) '(:type)))
 
 (defmethod field-table ((class cpp-class-specifier))
   (ematch class
