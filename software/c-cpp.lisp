@@ -303,8 +303,7 @@ pointer declarations which are nested on themselves."
 
 (defmethod outer-declarations ((ast c/cpp-classoid-specifier))
   (if-let (name (c/cpp-name ast))
-          (values (list (c/cpp-name ast))
-                  '(:type))
+          (values (list name) '(:type))
           (values nil nil)))
 
 (defmethod inner-declarations ((ast c/cpp-classoid-specifier))
