@@ -1266,7 +1266,8 @@ for the language.")
         cpp-qualified-identifier
         cpp-type-identifier
         cpp-primitive-type
-        cpp-field-identifier)
+        cpp-field-identifier
+        cpp-operator-name)
        (:field-ast cpp-field-expression)
        (:subscript-ast cpp-subscript-expression)
        (:catch-ast cpp-catch-clause)
