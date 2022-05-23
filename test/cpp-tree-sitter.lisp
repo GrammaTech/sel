@@ -808,6 +808,16 @@ reproduced as source text."
   (let ((source "class X {friend struct Val;};"))
     (is (source-text= source (convert 'cpp-ast source)))))
 
+(deftest test-cpp-operator-overload-definition-ast ()
+  (let* ((cpp (from-string 'cpp "Point operator-(const Point& p) const {
+  return Point{x - p.x, y - p.y};
+}"))
+         (name (definition-name-ast
+                (find-if (of-type 'function-declaration-ast)
+                         cpp))))
+    (is (typep name 'identifier-ast))
+    (is (source-text= "operator-" name))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.

@@ -541,6 +541,9 @@
 (defmethod declarator-name-ast ((ast cpp-reference-declarator))
   (cpp-declarator ast))
 
+(defmethod declarator-name-ast ((ast cpp-operator-name))
+  ast)
+
 (defmethod definition-name-ast ((ast cpp-class-specifier))
   (cpp-name ast))
 
