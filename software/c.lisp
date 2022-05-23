@@ -186,31 +186,8 @@ field."
   (find-enclosing '(or definition-ast c-primitive-type)
                   sw ast))
 
-(defmethod definition-name-ast ((ast c-function-definition))
-  (declarator-name-ast (c-declarator ast)))
-(defmethod definition-name-ast ((ast c-struct-specifier))
-  (c-name ast))
-(defmethod definition-name-ast ((ast c-union-specifier))
-  (c-name ast))
 (defmethod definition-name-ast ((ast c-type-definition))
   (c-declarator ast))
-(defmethod definition-name-ast ((ast c-preproc-def))
-  (c-name ast))
-(defmethod definition-name-ast ((ast c-preproc-function-def))
-  (c-name ast))
-
-(defmethod declarator-name-ast ((ast c-identifier))
-  ast)
-(defmethod declarator-name-ast ((ast c-type-identifier))
-  ast)
-(defmethod declarator-name-ast ((ast c-parenthesized-declarator))
-  (car (children ast)))
-(defmethod declarator-name-ast ((ast c-pointer-declarator))
-  (declarator-name-ast (c-declarator ast)))
-(defmethod declarator-name-ast ((ast c-array-declarator))
-  (declarator-name-ast (c-declarator ast)))
-(defmethod declarator-name-ast ((ast c-function-declarator))
-  (declarator-name-ast (c-declarator ast)))
 
 ;; TODO: Convert other methods implemented for JavaScript but not C.
 
