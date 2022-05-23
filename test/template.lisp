@@ -298,5 +298,8 @@ surrounding container."
           expr))
        'cpp-number-literal)))
 
+(deftest test-starred-template-target ()
+  (is (typep (cpp* "void print() const {}") 'cpp-function-definition)))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)

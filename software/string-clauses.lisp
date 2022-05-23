@@ -77,8 +77,8 @@
              (unwrap-result (result suffix)
                (or (find-target result)
                    (if (equal suffix "")
-                       (@ result '(0))
-                       result))))
+                       result
+                       (@ result '(0))))))
       (let ((class (class-name-of ast)))
         (dolist (suffix '("" ";" #\Newline))
           (let ((result (convert class (string+ string suffix) :deepest t)))
