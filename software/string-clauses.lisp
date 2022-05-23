@@ -74,16 +74,14 @@
                                (and (typep ast '(or expression-ast statement-ast))
                                     (source-text= string ast)))
                              ast))
-             (unwrap-result (result suffix)
+             (unwrap-result (result)
                (or (find-target result)
-                   (if (equal suffix "")
-                       result
-                       (@ result '(0))))))
+                   result)))
       (let ((class (class-name-of ast)))
         (dolist (suffix '("" ";" #\Newline))
           (let ((result (convert class (string+ string suffix) :deepest t)))
             (unless (typep result '(or parse-error-ast source-text-fragment))
-              (return (unwrap-result result suffix)))))))))
+              (return (unwrap-result result)))))))))
 
 (defun wildcard? (node)
   "Is NODE a wildcard (symbol that starts with WILD_)?"
