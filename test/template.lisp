@@ -299,7 +299,8 @@ surrounding container."
        'cpp-number-literal)))
 
 (deftest test-starred-template-target ()
-  (is (typep (cpp* "void print() const {}") 'cpp-function-definition)))
+  (is (typep (cpp* "void print() const {}") 'cpp-function-definition))
+  (is (typep (cpp* "struct MyStruct { double x; int y; }") 'cpp-struct-specifier)))
 
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
