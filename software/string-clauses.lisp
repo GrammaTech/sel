@@ -71,7 +71,9 @@
     (labels ((find-target (ast)
                (find-deepest (lambda (ast)
                                ;; We don't want e.g. a terminal or a root.
-                               (and (typep ast '(or expression-ast statement-ast))
+                               (and (typep ast '(or expression-ast
+                                                 statement-ast
+                                                 definition-ast))
                                     (source-text= string ast)))
                              ast))
              (unwrap-result (result)
