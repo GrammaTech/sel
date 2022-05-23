@@ -1000,6 +1000,7 @@ for the language.")
         (c-argument :reader assignee))
        (c-binary-expression
         (c-left :reader lhs :initarg :lhs)
+        (c-operator :reader operator :initarg :operator)
         (c-right :reader rhs :initarg :rhs)))
       (:cpp
        (cpp-init-declarator
@@ -1029,6 +1030,7 @@ for the language.")
         (cpp-operator :initarg :operator :reader operator))
        (cpp-binary-expression
         (cpp-left :reader lhs :initarg :lhs)
+        (cpp-operator :reader operator :initarg :operator)
         (cpp-right :reader rhs :initarg :rhs)))
       (:golang
        (golang-const-spec
@@ -1097,6 +1099,7 @@ for the language.")
         (rust-right :initarg :rhs :reader rhs))
        (rust-binary-expression
         (rust-left :initarg :lhs :reader lhs)
+        (rust-operator :initarg :operator :reader operator)
         (rust-right :initarg :rhs :reader rhs))
        (rust-if-expression
         (rust-condition :initarg :condition :reader condition)
