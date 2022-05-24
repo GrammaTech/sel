@@ -1276,8 +1276,10 @@ for the language.")
         cpp-for-statement
         cpp-for-range-loop
         cpp-do-statement)
-       (:parameter-ast cpp-parameter-declaration)
-       (:parameters-ast cpp-parameter-list)
+       (:parameter-ast
+        cpp-parameter-declaration
+        cpp-type-parameter-declaration)
+       (:parameters-ast cpp-parameter-list cpp-template-parameters)
        (:arguments-ast cpp-argument-list)
        (:type-identifier-ast cpp-type-identifier)
        (:type-ast cpp-primitive-type cpp-sized-type-specifier cpp-template-type
