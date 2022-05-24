@@ -302,5 +302,8 @@ surrounding container."
   (is (typep (cpp* "void print() const {}") 'cpp-function-definition))
   (is (typep (cpp* "struct MyStruct { double x; int y; }") 'cpp-struct-specifier)))
 
+(deftest test-template-type ()
+  (is (typep (cpp* "void") 'cpp-primitive-type)))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
