@@ -806,6 +806,13 @@ then the return type of the call is the return type of the field."
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
 
+(defmethod infer-expression-type ((ast cpp-initializer-list))
+  (match (get-parent-ast (attrs-root*) ast)
+    ((cpp-compound-literal-expression
+      (cpp-type type))
+     type)
+    (otherwise (call-next-method))))
+
 (defmethod expression-type ((ast cpp-call-expression))
   (match ast
     ;; Extract the type from a casting operator.

@@ -689,6 +689,14 @@ func fptr = &actual_function;~
                     (infer-type (lastcar (collect-if (op (source-text= "fptr" _))
                                                      cpp)))))))
 
+(deftest test-compound-literal-infer-type ()
+  (let ((cpp (cpp* "Foo{1,2}")))
+    (with-attr-table cpp
+      (is (source-text=
+           "Foo"
+           (infer-type
+            (find-if (of-type 'cpp-initializer-list) cpp)))))))
+
 
 
 ;;; Parsing tests
