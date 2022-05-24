@@ -1279,7 +1279,7 @@ for the language.")
        (:parameter-ast
         cpp-parameter-declaration
         cpp-type-parameter-declaration)
-       (:parameters-ast cpp-parameter-list cpp-template-parameters)
+       (:parameters-ast cpp-parameter-list cpp-template-parameter-list)
        (:arguments-ast cpp-argument-list)
        (:type-identifier-ast cpp-type-identifier)
        (:type-ast cpp-primitive-type cpp-sized-type-specifier cpp-template-type
