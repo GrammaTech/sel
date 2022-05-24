@@ -81,7 +81,9 @@
         (dolist (suffix '("" ";" #\Newline))
           (let ((result (convert class (string+ string suffix) :deepest t)))
             (unless (typep result '(or parse-error-ast source-text-fragment))
-              (return (unwrap-result result)))))))))
+              (let ((result (unwrap-result result)))
+                (unless (typep result '(or parse-error-ast source-text-fragment))
+                  (return result))))))))))
 
 (defun wildcard? (node)
   "Is NODE a wildcard (symbol that starts with WILD_)?"

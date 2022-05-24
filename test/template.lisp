@@ -305,5 +305,8 @@ surrounding container."
 (deftest test-template-type ()
   (is (typep (cpp* "void") 'cpp-primitive-type)))
 
+(deftest test-template-no-inner-fragment ()
+  (is (typep (rust* "type Output = Self") 'rust-type-item)))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
