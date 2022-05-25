@@ -10,6 +10,7 @@
   (:import-from :functional-trees
    :path-later-p :slot-specifier-slot :slot-specifier-class
    :slot-specifier)
+  (:import-from :functional-trees/attrs :with-attr-table)
   (:local-nicknames (:tg :trivial-garbage)
                     (:attrs :functional-trees/attrs))
   (:export ;; ASTs
@@ -1876,3 +1877,15 @@ represented by ALIAS-STRING.")
                 ((alias-string (eql ,(make-keyword (string-upcase string))))
                  &key &allow-other-keys)
               ',return-symbol))))))
+
+
+;;; Attributes
+(defmethod apply-mutation :around ((obj parseable) mutation)
+  ;; Ensure an attribute table is available.
+  (with-attr-table (genome obj)
+    (call-next-method)))
+
+(defmethod mutate :around ((obj parseable))
+  ;; Ensure an attribute table is available.
+  (with-attr-table (genome obj)
+    (call-next-method)))
