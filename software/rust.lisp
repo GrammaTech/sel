@@ -195,4 +195,16 @@ around generic-type-with-turbofish being aliased to generic-type."
   "Leave a space after a colon in a field initializer."
   " ")
 
+(defmethod whitespace-between/parent ((parent rust-generic-type)
+                                      style
+                                      (y t)
+                                      (x |RUST-::|))
+  "")
+
+(defmethod whitespace-between/parent ((parent rust-generic-type)
+                                      style
+                                      (x |RUST-::|)
+                                      (y t))
+  "")
+
 ) ; #+:TREE-SITTER-RUST
