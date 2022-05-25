@@ -1188,7 +1188,8 @@ for the language.")
        (:comment-ast c-comment)
        (:definition-ast c-type-definition c-struct-specifier c-union-specifier
         c-field-declaration c-enum-specifier c-preproc-def
-        c-preproc-function-def)
+        c-preproc-function-def
+        c-function-definition)
        (:declaration-ast c-field-declaration)
        (:type-declaration-ast c-type-definition c-struct-specifier
         c-union-specifier c-enum-specifier
@@ -1232,7 +1233,8 @@ for the language.")
         cpp-field-declaration
         cpp-enum-specifier cpp-preproc-def
         cpp-preproc-function-def
-        cpp-namespace-definition)
+        cpp-namespace-definition
+        cpp-function-definition)
        (:declaration-ast cpp-field-declaration)
        (:type-declaration-ast cpp-type-definition cpp-struct-specifier
         cpp-union-specifier
