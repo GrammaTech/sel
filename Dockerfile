@@ -19,7 +19,7 @@ RUN pip3 install yapf
 
 # Rebuild SBCL from scratch from git HEAD, enabling dynamic core so users
 # can expand the memory with a command line option
-RUN cd /root && git clone https://git.code.sf.net/p/sbcl/sbcl && git checkout sbcl-2.2.4
+RUN git clone --branch sbcl-2.2.4 https://git.code.sf.net/p/sbcl/sbcl /root/sbcl
 RUN cd /root/sbcl && bash make.sh --prefix=/usr --with-sb-linkable-runtime --with-sb-dynamic-core --dynamic-space-size=8Gb && bash install.sh
 
 # # Install Clozure
