@@ -816,6 +816,9 @@ then the return type of the call is the return type of the field."
      type)
     (otherwise (call-next-method))))
 
+(defmethod extract-declaration-type ((ast cpp-type-parameter-declaration))
+  (second (children ast)))
+
 (defmethod expression-type ((ast cpp-call-expression))
   (match ast
     ;; Extract the type from a casting operator.
