@@ -225,4 +225,6 @@ pub unsafe fn auto() -> MmapChoice {
   (check-patch-whitespace "Type { x: 1, y: 2 };")
   (check-patch-whitespace "struct Type<T> { }")
   (check-patch-whitespace "#[derive (Clone)]
-struct MyType<T> { x: T, y: T }"))
+struct MyType<T> { x: T, y: T }")
+  (check-patch-whitespace "impl<T> Foo<T> {}")
+  )

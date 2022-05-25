@@ -144,7 +144,8 @@ around generic-type-with-turbofish being aliased to generic-type."
   rust-type-identifier rust-type-parameters
   rust-identifier rust-parameters
   rust-ast :!
-  :! rust-ast)
+  :! rust-ast
+  :|impl| rust-type-parameters)
 
 (defmethod whitespace-between (s (x (eql :=)) (y rust-ast))
   " ")
