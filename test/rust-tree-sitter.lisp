@@ -223,4 +223,6 @@ pub unsafe fn auto() -> MmapChoice {
   ;; NB: While the Rust docs are inconsistent in the spacing of struct
   ;; expressions, this is the way rustfmt likes it.
   (check-patch-whitespace "Type { x: 1, y: 2 };")
-  (check-patch-whitespace "struct Type<T> { }"))
+  (check-patch-whitespace "struct Type<T> { }")
+  (check-patch-whitespace "#[derive (Clone)]
+struct MyType<T> { x: T, y: T }"))
