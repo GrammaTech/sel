@@ -651,7 +651,10 @@
 (defmethod outer-declarations ((ast cpp-template-declaration))
   ;; TODO Store the template parameters somehow in the symbol table?
   (when-let (children (direct-children ast))
-    (outer-declarations (only-elt children))))
+    (outer-declarations
+     (only-elt
+      (filter (of-type '(or definition-ast declaration-ast))
+              (direct-children ast))))))
 
 (defmethod outer-declarations ((ast cpp-namespace-definition))
   (match ast
