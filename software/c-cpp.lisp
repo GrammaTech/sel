@@ -457,6 +457,15 @@ pointer declarations which are nested on themselves."
                                                (id c/cpp-field-identifier))
   (find-enclosing 'declaration-ast root id))
 
+(defmethod find-enclosing-declaration
+    ((type (eql 'function-declaration-ast))
+     (root c/cpp-ast)
+     (id c/cpp-identifier))
+  "Handling finding the enclosing function declaration for a prototype."
+  (or (call-next-method)
+      (when-let ((declarator (find-enclosing 'c/cpp-function-declarator root id)))
+        (find-enclosing 'c/cpp-declaration root declarator))))
+
 (defmethod infer-type :context ((ast c/cpp-field-expression))
   (let ((type (call-next-method)))
     (if (source-text= (c/cpp-operator ast) "->")

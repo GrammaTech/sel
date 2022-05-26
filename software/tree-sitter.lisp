@@ -9829,6 +9829,8 @@ looking them up.")
           (error "No ~a for ~a~%Path: ~a"
                  type id
                  (ast-path root id)))))
+  (:method :context (type (root software) id)
+    (find-enclosing-declaration type (genome root) id))
   (:method :context ((type symbol) root id)
     (if (keywordp type)
         (find-enclosing-declaration (namespace-decl-type type) root id)

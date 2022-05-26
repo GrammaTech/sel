@@ -49,7 +49,7 @@
   (with-attr-table root
     (let ((nodes (remove-if-not (of-type 'expression-ast) (convert 'list obj))))
       (iter (for node in nodes)
-            (format t "~a~%" node)
+            ;; (format t "~a~%" node)
             (collecting
              (list node (infer-type node)))))))
 
@@ -95,7 +95,7 @@ int f(struct foo* p) { return p->a; }
 extern int f();
 int g() { return f(); }~
 "))))
-    (finishes (types-in-thing cpp cpp))))
+    (finishes (types-in-thing c c))))
 
 ;;; issue #233.
 (deftest infer-struct-member-type-2 ()

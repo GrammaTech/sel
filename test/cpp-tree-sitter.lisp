@@ -697,6 +697,15 @@ func fptr = &actual_function;~
            (infer-type
             (find-if (of-type 'cpp-initializer-list) cpp)))))))
 
+(deftest test-cpp-prototype-function-lookup ()
+  (let* ((cpp (from-string 'cpp (fmt "~
+extern int f();
+int g() { return f(); }~
+")))
+         (call (find-if (of-type 'call-ast) cpp)))
+    (with-attr-table cpp
+      (source-text= "int" (infer-type call)))))
+
 
 
 ;;; Parsing tests
