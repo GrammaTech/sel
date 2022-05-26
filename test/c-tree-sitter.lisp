@@ -45,6 +45,14 @@
 
 ;;; Analysis tests.
 
+(defun types-in-thing (root obj)
+  (with-attr-table root
+    (let ((nodes (remove-if-not (of-type 'expression-ast) (convert 'list obj))))
+      (iter (for node in nodes)
+            (format t "~a~%" node)
+            (collecting
+             (list node (infer-type node)))))))
+
 ;;; Issue #228.
 (deftest infer-struct-type-through-typedef ()
   (let ((c-code (from-string 'c (fmt "~
@@ -73,7 +81,20 @@ int f(struct foo* p) { return p->a; }
                          (is (find-if (op (source-text= _ "return p->a;"))
                                       c-code))))))))
 
-;;; Issue 233.
+;;; Issue #230.
+(deftest test-c-declaration-is-variable-declaration ()
+  (let ((c (from-string (make-instance 'c) "char x[10]; void f() { x; }")))
+    (finishes (types-in-thing cpp cpp))))
+
+;;; Issue #232.
+(deftest test-c-prototype-function-lookup ()
+  (let ((c (from-string 'c (fmt "~
+extern int f();
+int g() { return f(); }~
+"))))
+    (finishes (types-in-thing cpp cpp))))
+
+;;; issue #233.
 (deftest infer-struct-member-type-2 ()
   (let ((c-code (from-string 'c (fmt "~
 struct foo { int x; };
