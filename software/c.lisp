@@ -285,16 +285,22 @@ field."
   (tag-specifier-outer-declarations ast #'call-next-method))
 
 (defmethod get-declaration-ids ((ns (eql :type))
-                                (ast c-struct-tag-specifier))
-  (get-declaration-ids ns (c-name ast)))
+                                (ast c-struct-tag-specifier)
+                                &aux (root (attrs-root*)))
+  (remove-if-not (op (find-enclosing 'c-struct-specifier root _))
+                 (get-declaration-ids ns (c-name ast))))
 
 (defmethod get-declaration-ids ((ns (eql :type))
-                                (ast c-union-tag-specifier))
-  (get-declaration-ids ns (c-name ast)))
+                                (ast c-union-tag-specifier)
+                                &aux (root (attrs-root*)))
+  (remove-if-not (op (find-enclosing 'c-union-specifier root _))
+                 (get-declaration-ids ns (c-name ast))))
 
 (defmethod get-declaration-ids ((ns (eql :type))
-                                (ast c-enum-tag-specifier))
-  (get-declaration-ids ns (c-name ast)))
+                                (ast c-enum-tag-specifier)
+                                &aux (root (attrs-root*)))
+  (remove-if-not (op (find-enclosing 'c-enum-specifier root _))
+                 (get-declaration-ids ns (c-name ast))))
 
 
 ;;; C Utility
