@@ -547,6 +547,14 @@ int fun(int x) {
     (is (equal (source-text (convert 'c-ast source))
                source))))
 
+(deftest test-c-specifier-tag-subtypes ()
+  (is (typep (find-if (of-type 'c-enum-specifier) (c* "enum foo x = y;"))
+             'c-enum-tag-specifier))
+  (is (typep (find-if (of-type 'c-union-specifier) (c* "union foo x = y;"))
+             'c-union-tag-specifier))
+  (is (typep (find-if (of-type 'c-struct-specifier) (c* "struct foo x = y;"))
+             'c-struct-tag-specifier)))
+
 
 ;;;; SCOPES tests
 

@@ -1768,7 +1768,18 @@ definitions.")
         (c-expression-statement-
          (:seq (:child c--expression c-comma-expression)))
         (c-empty-expression-statement
-         (:seq))))
+         (:seq)))
+       (c-struct-specifier
+        (c-struct-tag-specifier
+         (:seq (:field c-name c-type-identifier))))
+       (c-union-specifier
+        (c-union-tag-specifier
+         (:seq (:field c-name c-type-identifier)
+          (:field c-body c-field-declaration-list null))))
+       (c-enum-specifier
+        (c-enum-tag-specifier
+         (:seq (:field c-name c-type-identifier)
+          (:field c-body c-enumerator-list null)))))
       (:cpp
        (cpp-update-expression
         (cpp-update-expression-prefix
