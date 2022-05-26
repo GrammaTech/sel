@@ -267,14 +267,22 @@ field."
 ;;; Special handling for tag specifiers to work around the fact that
 ;;; they share a superclass with actual declarations.
 
+(defun tag-specifier-outer-declarations (ast cc)
+  (let ((parent (get-parent-ast (attrs-root*) ast)))
+    (if (typep parent 'compound-ast)
+        ;; If the parent is a compound AST, this is a forward
+        ;; declaration.
+        (funcall cc)
+        (values nil nil))))
+
 (defmethod outer-declarations ((ast c-struct-tag-specifier))
-  (values nil nil))
+  (tag-specifier-outer-declarations ast #'call-next-method))
 
 (defmethod outer-declarations ((ast c-union-tag-specifier))
-  (values nil nil))
+  (tag-specifier-outer-declarations ast #'call-next-method))
 
 (defmethod outer-declarations ((ast c-enum-tag-specifier))
-  (values nil nil))
+  (tag-specifier-outer-declarations ast #'call-next-method))
 
 (defmethod get-declaration-ids ((ns (eql :type))
                                 (ast c-struct-tag-specifier))
