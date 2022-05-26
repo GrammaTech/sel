@@ -7,7 +7,7 @@ RUN apt-get -y --fix-missing update \
     && apt-get -y --fix-missing install autoconf build-essential \
     texinfo graphviz python-is-python3 python3-pip python3-pytest git curl sshpass wget expect time \
     clang clang-format clang-tidy bear astyle \
-    sbcl emacs-nox elpa-paredit slime jq \
+    sbcl emacs-nox elpa-paredit jq \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev \
     locales ca-certificates
 ENV LC_ALL=C.UTF-8 LANG=C.UTF-8
@@ -20,7 +20,9 @@ RUN pip3 install yapf
 # Rebuild SBCL from scratch from git HEAD, enabling dynamic core so users
 # can expand the memory with a command line option
 RUN git clone --branch sbcl-2.2.4 https://git.code.sf.net/p/sbcl/sbcl /root/sbcl
-RUN cd /root/sbcl && bash make.sh --prefix=/usr --with-sb-linkable-runtime --with-sb-dynamic-core --dynamic-space-size=8Gb && bash install.sh
+RUN cd /root/sbcl && bash make.sh --prefix=/usr --with-sb-linkable-runtime --with-sb-dynamic-core --dynamic-space-size=8Gb
+RUN apt-get -y remove sbcl
+RUN cd /root/sbcl && bash install.sh
 
 # # Install Clozure
 RUN mkdir /usr/share/ccl
