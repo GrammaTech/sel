@@ -493,6 +493,9 @@ pointer declarations which are nested on themselves."
 (defmethod infer-type ((ast c/cpp-subscript-expression))
   (deref-type (call-next-method)))
 
+(defmethod infer-type ((ast c/cpp-return-statement))
+  (infer-type (only-elt (children ast))))
+
 (-> add-field-as (fset:map symbol-table-namespace ast) fset:map)
 (defun add-field-as (map ns id)
   "Add ID to MAP in NS, a namespace such as `:type' or `:variable'."
