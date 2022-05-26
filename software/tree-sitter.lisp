@@ -1186,11 +1186,11 @@ for the language.")
     '((:c
        (:root-ast c-translation-unit)
        (:comment-ast c-comment)
+       (:declaration-ast c-field-declaration)
        (:definition-ast c-type-definition c-struct-specifier c-union-specifier
         c-field-declaration c-enum-specifier c-preproc-def
         c-preproc-function-def
         c-function-definition)
-       (:declaration-ast c-field-declaration)
        (:type-declaration-ast c-type-definition c-struct-specifier
         c-union-specifier c-enum-specifier
         c-type-forward-declaration)
@@ -1228,19 +1228,19 @@ for the language.")
       (:cpp
        (:root-ast cpp-translation-unit)
        (:comment-ast cpp-comment)
+       (:declaration-ast cpp-field-declaration)
        (:definition-ast cpp-type-definition cpp-struct-specifier cpp-class-specifier
         cpp-union-specifier
         cpp-field-declaration
         cpp-enum-specifier cpp-preproc-def
         cpp-preproc-function-def
-        cpp-namespace-definition
-        cpp-function-definition)
-       (:declaration-ast cpp-field-declaration)
+        cpp-namespace-definition)
        (:type-declaration-ast cpp-type-definition cpp-struct-specifier
         cpp-union-specifier
         cpp-enum-specifier
         cpp-class-specifier
-        cpp-type-forward-declaration)
+        cpp-type-forward-declaration
+        cpp-alias-declaration)
        (:composite-type-ast cpp-struct-specifier cpp-union-specifier
         cpp-class-specifier)
        (:macro-declaration-ast
@@ -3525,6 +3525,14 @@ Superclass of every generated LANGUAGE-comment class."))
 
  (defclass declaration-ast (ast) ()
    (:documentation "Mixin for AST classes that declare/define something."))
+
+ (defclass definition-ast (declaration-ast) ()
+   (:documentation "AST for something that associates a name with a
+thing. The name string is obtained by by DEFINITION-NAME, and the AST by
+DEFINITION-NAME-AST.
+
+Note this is distinct from `declaration-ast' in that a declaration
+need not associate a name with anything."))
 
  (defclass type-declaration-ast (declaration-ast) ()
    (:documentation "Mix-in for AST classes that are type declarations."))
