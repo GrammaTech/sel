@@ -1187,6 +1187,10 @@ for the language.")
        (:root-ast c-translation-unit)
        (:comment-ast c-comment)
        (:declaration-ast c-field-declaration)
+       (:degenerate-declaration-ast
+        c-struct-tag-specifier
+        c-enum-tag-specifier
+        c-union-tag-specifier)
        (:definition-ast c-type-definition c-struct-specifier c-union-specifier
         c-field-declaration c-enum-specifier c-preproc-def
         c-preproc-function-def
@@ -3556,8 +3560,13 @@ Superclass of every generated LANGUAGE-comment class."))
  (defclass declaration-ast (ast) ()
    (:documentation "Mixin for AST classes that declare/define something."))
 
+ (defclass degenerate-declaration-ast (ast) ()
+   (:documentation "Mixin for AST classes that are subclasses of
+   declaration ASTs, but don't actually declare/define anything."))
+
  (defclass definition-ast (declaration-ast) ()
    (:documentation "AST for something that associates a name with a
+
 thing. The name string is obtained by by DEFINITION-NAME, and the AST by
 DEFINITION-NAME-AST.
 
@@ -7249,6 +7258,12 @@ a declaration AST, return AST unchanged."
   (ematch* (type ast)
     ((_ (call-ast))
      (get-declaration-asts type (call-function ast)))
+    (((type keyword)
+      (type (or (not declaration-ast)
+                degenerate-declaration-ast)))
+     (let ((root (attrs-root*)))
+       (mapcar (op (find-enclosing-declaration type root _))
+               (get-declaration-ids type ast))))
     ((:variable (variable-declaration-ast))
      (list ast))
     ((:function (function-declaration-ast))
@@ -7259,10 +7274,6 @@ a declaration AST, return AST unchanged."
      (list ast))
     ((nil _)
      (error "Not a namespace: ~a" type))
-    (((type keyword) _)
-     (let ((root (attrs-root*)))
-       (mapcar (op (find-enclosing-declaration type root _))
-               (get-declaration-ids type ast))))
     (((type symbol) _)
      (get-declaration-asts
       (assure keyword (decl-type-namespace type)) ast))
@@ -7294,6 +7305,8 @@ a declaration AST, return AST unchanged."
        (for parent in (filter (of-type type)
                               (get-parent-asts* (attrs-root*) identifier)))
        (thereis (and (typep parent type)
+                     ;; TODO
+                     (not (typep parent 'degenerate-declaration-ast))
                      (find identifier
                            ;; TODO use outer-defs and inner-defs
                            (append (outer-declarations parent)

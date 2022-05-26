@@ -72,6 +72,11 @@ struct foo { int a; int b; };
 int f(struct foo* p) { return p->a; }
 "))))
     (with-attr-table c-code
+      (is (source-text= "struct foo"
+                        (infer-type
+                         (lastcar
+                          (collect-if (op (source-text= "p" _))
+                                      c-code)))))
       (is (source-text= "int"
                         (infer-type
                          (is (find-if (op (source-text= _ "p->a"))
@@ -84,9 +89,9 @@ int f(struct foo* p) { return p->a; }
 ;;; Issue #230.
 (deftest test-c-declaration-is-variable-declaration ()
   (let ((c (from-string (make-instance 'c) "char x[10]; void f() { x; }")))
-    (finishes (types-in-thing cpp cpp))
-    (with-attr-table cpp
-      (let ((x (lastcar (collect-if (op (source-text= "x" _)) cpp))))
+    (finishes (types-in-thing c c))
+    (with-attr-table c
+      (let ((x (lastcar (collect-if (op (source-text= "x" _)) c))))
         (is (string^= "char" (source-text (infer-type x))))))))
 
 ;;; Issue #232.
@@ -98,14 +103,29 @@ int g() { return f(); }~
     (finishes (types-in-thing c c))))
 
 ;;; issue #233.
-(deftest infer-struct-member-type-2 ()
+(deftest infer-struct-member-type/typedef ()
+  (let ((c-code (from-string 'c (fmt "~
+typedef struct foo { int x; } foo_t;
+int f(foo_t* p, foo_t s) { return p.x + s.x; }"))))
+    (with-attr-table c-code
+      (let ((p.x (stmt-with-text c-code "p.x"))
+            (s.x (stmt-with-text c-code "s.x")))
+        (is (every (of-type 'c/cpp-field-expression) (list p.x s.x)))
+        (is (source-text= "int"
+                          (infer-type
+                           (stmt-with-text c-code "p.x + s.x"))))
+        (is (source-text= "int" (infer-type p.x)))
+        (is (source-text= "int" (infer-type s.x)))))))
+
+;;; Issue #233.
+(deftest infer-struct-member-type-3 ()
   (let ((c-code (from-string 'c (fmt "~
 struct foo { int x; };
 int f(struct foo* p, struct foo s) { return p.x + s.x; }"))))
     (with-attr-table c-code
       (let ((p.x (stmt-with-text c-code "p.x"))
             (s.x (stmt-with-text c-code "s.x")))
-        (is (every (of-type 'cpp-field-expression) (list p.x s.x)))
+        (is (every (of-type 'c/cpp-field-expression) (list p.x s.x)))
         (is (source-text= "int"
                           (infer-type
                            (stmt-with-text c-code "p.x + s.x"))))
