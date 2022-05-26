@@ -5412,6 +5412,7 @@ PREFIX.")
       (pruned-rule json-rule superclass language-prefix child-types
        class-name->class-definition choice-resolver computed-text-ast?
        &key symbols-to-export
+         subtype->supertypes
        &aux (subclass-counter -1)
          (subclasses
           (aget superclass
@@ -5419,6 +5420,7 @@ PREFIX.")
                       *tree-sitter-choice-expansion-subclasses*))))
     "Generate a method for a type of AST that returns a choice expansion
 subclass based on the order of the children were read in."
+    (declare (hash-table subtype->supertypes))
     (labels ((report-problematic-rule ()
                "Reports 'unstructured' rules to *error-output*."
                (unless (or computed-text-ast?
@@ -5461,12 +5463,14 @@ subclass based on the order of the children were read in."
              (generate-subclass (subclass-pair
                                  &aux (class-name (car subclass-pair)))
                "Generate a defclass form for SUBCLASS-PAIR."
-               ;; TODO: should also consider adding support for mixins
-               ;;       and additional slot options.
+               ;; TODO: Would additional slots and slot options also
+               ;; be useful?
                (push class-name
                      (gethash 'class-order class-name->class-definition))
                (setf (gethash class-name class-name->class-definition)
-                     `(defclass ,class-name (,superclass)
+                     `(defclass ,class-name
+                          (,superclass
+                           ,@(gethash class-name subtype->supertypes))
                         ((rule
                           :initform ',(cadr subclass-pair)
                           :reader rule
@@ -5624,7 +5628,9 @@ subclass based on the order of the children were read in."
        class-name->class-definition choice-resolver
        json-field-transformations
        &key symbols-to-export
+         subtype->supertypes
        &aux (class-name->parse-tree-transforms (make-hash-table)))
+    (declare (hash-table subtype->supertypes))
     ;; NOTE: it might make sense to integrate the loop into
     ;;       the class generation above at some point.
 
@@ -5657,7 +5663,8 @@ subclass based on the order of the children were read in."
                 choice-resolver
                 (computed-text-ast-p
                  language-prefix class-name transformed-json)
-                :symbols-to-export symbols-to-export))
+                :symbols-to-export symbols-to-export
+                :subtype->supertypes subtype->supertypes))
              (generate-terminal-code (type-string class-name)
                "Generate the code for a terminal symbol."
                ;; TODO: rename this function
@@ -6048,7 +6055,8 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
               (generate-structured-text-methods
                grammar node-types name-prefix class-name->class-definition
                json-subtree-choice-resolver json-field-transformations
-               :symbols-to-export symbols-to-export))
+               :symbols-to-export symbols-to-export
+               :subtype->supertypes subtype->supertypes))
             (root-rule-name (caar (aget :rules grammar))))
         `(progn
            (eval-always
