@@ -3543,6 +3543,11 @@ need not associate a name with anything."))
  (defclass class-ast (type-declaration-ast) ()
    (:documentation "Mix-in for AST classes that are class declarations."))
 
+ (defclass c/cpp-classoid-specifier (class-ast) ()
+   (:documentation "Common superclass for all three ways of defining
+    a class in C++ -- class, struct, and union -- and their C
+    equivalents (when they exist)."))
+
   (defclass parse-error-ast (ast) ()
     (:documentation
      "Mix-in for AST classes that represent tree-sitter parsing errors.
