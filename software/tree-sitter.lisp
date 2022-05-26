@@ -2421,7 +2421,25 @@ are ignored by templates, whereas named ones are preserved.")
                  (:MEMBERS ((:TYPE . "STRING") (:VALUE . "is"))
                            ((:TYPE . "STRING") (:VALUE . "not"))))
                 ((:TYPE . "STRING") (:VALUE . "is")))))
-             ((:TYPE . "SYMBOL") (:NAME . "primary_expression")))))))))
+             ((:TYPE . "SYMBOL") (:NAME . "primary_expression"))))))))
+       (:TUPLE
+        (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          ;; inline _collection_elements and modify it to require a comma
+          ;; in certain cases.
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "expression"))
+                        ((:TYPE . "SYMBOL") (:NAME . "yield"))
+                        ((:TYPE . "SYMBOL") (:NAME . "list_splat"))
+                        ((:TYPE . "SYMBOL") (:NAME . "parenthesized_list_splat"))))
+             ((:TYPE . "STRING") (:VALUE . ","))))
+           ((:TYPE . "SYMBOL") (:NAME . "_collection_elements"))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")")))))
       (:rust
        (:MATCH-BLOCK (:TYPE . "SEQ")
         (:MEMBERS ((:TYPE . "STRING") (:VALUE . "{"))

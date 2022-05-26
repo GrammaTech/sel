@@ -876,6 +876,19 @@ x"
   (let ((source "x is not y is not z"))
     (is (equal source (source-text (convert 'python-ast source))))))
 
+
+;;; Rule substitution tests
+
+;;; TODO: move other substitution tests to this section.
+
+(deftest python-tuple-substitution-1 ()
+  "Single element tuples can be reproduced."
+  (let ((source "x = (1,)"))
+    (is (source-text= source (convert 'python-ast source)))))
+
+
+
+;;; Parsing tests
 (deftest (python-tree-sitter-parsing-test :long-running) ()
   (labels ((parsing-test-dir (path)
              (merge-pathnames-as-file
