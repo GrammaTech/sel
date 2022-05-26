@@ -558,6 +558,7 @@ int fun(int x) {
 
 ;;;; SCOPES tests
 
+#+(or)
 (deftest c-test-scopes ()
   (let* ((c (sel:from-string (make 'c) (fmt "~
 int main () {
@@ -577,6 +578,7 @@ int main () {
     (is z-binding)
     (is (equal "1" (source-text (rhs (assocdr :decl x-binding)))))))
 
+#+(or)
 (deftest c-scopes-1 ()
   "scopes gets the bindings from 'for' statements."
   (let* ((source "for (int i = 0; i < 10; i++) {
@@ -593,6 +595,7 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) expected-scope))))
 
+#+(or)
 (deftest c-scopes-2 ()
   "scopes gets the bindings from a variable declaration."
   (let* ((source "int i = 0; ;")
@@ -608,6 +611,7 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
 
+#+(or)
 (deftest c-scopes-3 ()
   "scopes gets bindings from a function declaration."
   (let* ((source "void i () {
@@ -623,6 +627,7 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
 
+#+(or)
 (deftest c-scopes-4 ()
   "scopes gets the bindings from a parameter list."
   (labels ((is-parameter-p (scopes name-string)
@@ -648,6 +653,7 @@ int main () {
       (is-parameter-p scopes "b")
       (is-parameter-p scopes "c"))))
 
+#+(or)
 (deftest c-scopes-5 ()
   "scopes gets bindings from array declarations."
   (let* ((source "int i[1][1]; return;")
@@ -661,6 +667,7 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
 
+#+(or)
 (deftest c-scopes-6 ()
   "scopes gets bindings from pointer declarations."
   (let* ((source "int **i; return;")
@@ -674,6 +681,7 @@ int main () {
     (is (eq (aget :decl i-alist) expected-declaration))
     (is (eq (aget :scope i-alist) genome))))
 
+#+(or)
 (deftest c-scopes-enums ()
   "Test that enums export their identifiers into the surrounding scope."
   (let* ((software (from-string 'c (fmt "~
@@ -686,6 +694,7 @@ x;")))
     (is (scopes-contains-string-p scopes "NO"))
     (is (scopes-contains-string-p scopes "YES"))))
 
+#+(or)
 (deftest c-scopes-struct ()
   "Test that structs appear in scopes."
   (let* ((software (from-string 'c (fmt "~
