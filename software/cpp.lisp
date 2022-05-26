@@ -807,13 +807,6 @@ then the return type of the call is the return type of the field."
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
 
-(defmethod infer-expression-type ((ast cpp-initializer-list))
-  (match (get-parent-ast (attrs-root*) ast)
-    ((cpp-compound-literal-expression
-      (cpp-type type))
-     type)
-    (otherwise (call-next-method))))
-
 (defmethod extract-declaration-type ((ast cpp-type-parameter-declaration))
   (second (children ast)))
 
@@ -911,6 +904,13 @@ then the return type of the call is the return type of the field."
         field-type)))
 
 (defmethod infer-expression-type ((ast cpp-initializer-list))
+  (match (get-parent-ast (attrs-root*) ast)
+    ((cpp-compound-literal-expression
+      (cpp-type type))
+     type)
+    (otherwise (call-next-method))))
+
+(defmethod infer-expression-type :around ((ast cpp-initializer-list))
   (or (call-next-method)
       (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
