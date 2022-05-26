@@ -706,6 +706,20 @@ int g() { return f(); }~
     (with-attr-table cpp
       (source-text= "int" (infer-type call)))))
 
+(deftest infer-struct-member-type ()
+  (let ((code (from-string 'cpp (fmt "~
+struct foo { int x; };
+int f(foo* p, foo s) { return p.x + s.x; }"))))
+    (with-attr-table code
+      (let ((p.x (stmt-with-text code "p.x"))
+            (s.x (stmt-with-text code "s.x")))
+        (is (every (of-type 'cpp-field-expression) (list p.x s.x)))
+        (is (source-text= "int"
+                          (infer-type
+                           (stmt-with-text code "p.x + s.x"))))
+        (is (source-text= "int" (infer-type p.x)))
+        (is (source-text= "int" (infer-type s.x)))))))
+
 
 
 ;;; Parsing tests
