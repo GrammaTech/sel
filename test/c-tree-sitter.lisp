@@ -84,7 +84,10 @@ int f(struct foo* p) { return p->a; }
 ;;; Issue #230.
 (deftest test-c-declaration-is-variable-declaration ()
   (let ((c (from-string (make-instance 'c) "char x[10]; void f() { x; }")))
-    (finishes (types-in-thing cpp cpp))))
+    (finishes (types-in-thing cpp cpp))
+    (with-attr-table cpp
+      (let ((x (lastcar (collect-if (op (source-text= "x" _)) cpp))))
+        (is (string^= "char" (source-text (infer-type x))))))))
 
 ;;; Issue #232.
 (deftest test-c-prototype-function-lookup ()
