@@ -264,6 +264,30 @@ field."
      &key &allow-other-keys)
   (eq (c-argument parent) child))
 
+;;; Special handling for tag specifiers to work around the fact that
+;;; they share a superclass with actual declarations.
+
+(defmethod outer-declarations ((ast c-struct-tag-specifier))
+  (values nil nil))
+
+(defmethod outer-declarations ((ast c-union-tag-specifier))
+  (values nil nil))
+
+(defmethod outer-declarations ((ast c-enum-tag-specifier))
+  (values nil nil))
+
+(defmethod get-declaration-ids ((ns (eql :type))
+                                (ast c-struct-tag-specifier))
+  (get-declaration-ids ns (c-name ast)))
+
+(defmethod get-declaration-ids ((ns (eql :type))
+                                (ast c-union-tag-specifier))
+  (get-declaration-ids ns (c-name ast)))
+
+(defmethod get-declaration-ids ((ns (eql :type))
+                                (ast c-enum-tag-specifier))
+  (get-declaration-ids ns (c-name ast)))
+
 
 ;;; C Utility
 
