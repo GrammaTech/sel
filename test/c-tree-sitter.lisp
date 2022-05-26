@@ -45,6 +45,7 @@
 
 ;;; Analysis tests.
 
+;;; Issue #228.
 (deftest infer-struct-type-through-typedef ()
   (let ((c-code (from-string 'c (fmt "~
 typedef struct foo { int a; int b; } foo_t;
@@ -56,8 +57,8 @@ int f(foo_t* p) { return p->a; }~
                          (is (find-if (op (source-text= _ "p->a"))
                                       c-code))))))))
 
-#+(or)
-(deftest infer-struct-member-type ()
+;; Issue #228.
+(deftest infer-struct-member-type-1 ()
   (let ((c-code (from-string 'c (fmt "~
 struct foo { int a; int b; };
 int f(struct foo* p) { return p->a; }
@@ -71,6 +72,23 @@ int f(struct foo* p) { return p->a; }
                         (infer-type
                          (is (find-if (op (source-text= _ "return p->a;"))
                                       c-code))))))))
+
+;;; Issue 233.
+(deftest infer-struct-member-type-2 ()
+  (let ((c-code (from-string 'c (fmt "~
+struct foo { int x; };
+int f(struct foo* p, struct foo s) { return p.x + s.x; }"))))
+    (with-attr-table c-code
+      (let ((p.x (stmt-with-text c-code "p.x"))
+            (s.x (stmt-with-text c-code "s.x")))
+        (is (every (of-type 'cpp-field-expression) (list p.x s.x)))
+        (is (source-text= "int"
+                          (infer-type
+                           (stmt-with-text c-code "p.x + s.x"))))
+        (is (source-text= "int" (infer-type p.x)))
+        (is (source-text= "int" (infer-type s.x)))))))
+
+
 
 
 ;;; Tests
