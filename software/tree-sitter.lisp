@@ -8126,7 +8126,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
          ((or valid (> new-tries *max-targeter-new-tries*))
           (if valid (list old new)))
       (if (> old-tries *max-targeter-old-tries*)
-          (setf new (random-elt asts)
+          (setf new (tree-copy (random-elt asts))
                 new-tries (+ new-tries 1)
                 old-tries 0)))))
 
@@ -8140,7 +8140,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
          ((or valid (> new-tries *max-targeter-new-tries*))
           (if valid (list old new)))
       (if (> old-tries *max-targeter-old-tries*)
-          (setf new (random-elt asts)
+          (setf new (tree-copy (random-elt asts))
                 new-tries (+ new-tries 1)
                 old-tries 0)))))
 
