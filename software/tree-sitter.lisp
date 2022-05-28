@@ -8118,6 +8118,9 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 (defun pick-2-replaceable (software)
   (when-let ((asts (evolution-candidate-asts software)))
+    ;; need deep copy (tree-copy) to get new serial numbers on new ast
+    ;; TODO: remove this tree-copy when functional-trees get copy-on-collision
+    ;; support added.
     (do* ((old (random-elt asts) (random-elt asts))
           (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
@@ -8132,6 +8135,9 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 (defun pick-2-insertable (software)
   (when-let ((asts (evolution-candidate-asts software)))
+    ;; need deep copy (tree-copy) inserted ast to get new serial numbers
+    ;; TODO: remove this tree-copy when functional-trees get copy-on-collision
+    ;; support added.
     (do* ((old (random-elt asts) (random-elt asts))
           (new (tree-copy (random-elt asts)))
           (old-tries 0 (+ old-tries 1))
@@ -8147,6 +8153,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 (defun pick-2-swappable (software)
   "Return a random target of two asts which can be swapped in the software."
   (when-let ((asts (evolution-candidate-asts software)))
+    ;; since we are doing a swap we don't need a deep copy of either ast
     (do* ((ast1 (random-elt asts) (random-elt asts))
           (ast2 (random-elt asts))
           (ast1-tries 0 (+ ast1-tries 1))
@@ -8212,30 +8219,23 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 (defmethod apply-mutation ((software tree-sitter)
                            (mutation tree-sitter-replace))
   (let ((target (targets mutation)))
-    ;; need deep copy (tree-copy) to get new serial numbers on new ast
-    ;; TODO: remove this tree-copy when functional-trees get copy-on-collision
-    ;; support added.
     (setf (genome software)
           (with (genome software)
                 (first target)
-                (tree-copy (second target))))
+                (second target)))
     software))
 
 (defmethod apply-mutation ((software tree-sitter)
                            (mutation tree-sitter-insert))
   (let ((target (targets mutation)))
-    ;; need deep copy (tree-copy) inserted ast to get new serial numbers
-    ;; TODO: remove this tree-copy when functional-trees get copy-on-collision
-    ;; support added.
     (setf (genome software)
           (insert (genome software)
                   (first target)
-                  (tree-copy (second target))))
+                  (second target)))
     software))
 
 (defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-swap))
   (let ((target (targets mutation)))
-    ;; since we are doing a swap we don't need a deep copy of either mutation
     (setf (genome software)
           (swap (genome software)
                 (first target)
@@ -8244,7 +8244,6 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 (defmethod apply-mutation ((software tree-sitter) (mutation tree-sitter-move))
   (let ((target (targets mutation)))
-    ;; since we are doing a swap we don't need a deep copy of either mutation
     (setf (genome software)
           ;; first, remove the ast from its current location, then add it back
           ;; in at new location
