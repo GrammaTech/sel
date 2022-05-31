@@ -269,7 +269,7 @@ field."
 
 (defun tag-specifier-outer-declarations (ast cc)
   (let ((parent (get-parent-ast (attrs-root*) ast)))
-    (if (typep parent 'compound-ast)
+    (if (typep parent '(or compound-ast root-ast))
         ;; If the parent is a compound AST, this is a forward
         ;; declaration.
         (funcall cc)

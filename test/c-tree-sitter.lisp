@@ -132,7 +132,30 @@ int f(struct foo* p, struct foo s) { return p.x + s.x; }"))))
         (is (source-text= "int" (infer-type p.x)))
         (is (source-text= "int" (infer-type s.x)))))))
 
+(deftest test-struct-forward-declaration ()
+  (let* ((c (from-string 'c (fmt "~
+struct xyz;
 
+struct xyz *p;
+
+struct xyz {
+	int	a;
+	int	b;
+};
+
+struct xyz *q; ~%")))
+         (p (find-if (op (source-text= "p" _)) c))
+         (q (find-if (op (source-text= "q" _)) c))
+         (specs (collect-if (lambda (ast)
+                              (and (typep ast 'c-struct-specifier)
+                                   (typep (get-parent-ast c ast)
+                                          'root-ast)))
+                            c)))
+    (with-attr-table c
+      (let ((p-type (get-declaration-ast :type (infer-type p)))
+            (q-type (get-declaration-ast :type (infer-type q))))
+        (is (eql p-type (first specs)))
+        (is (eql q-type (second specs)))))))
 
 
 ;;; Tests
