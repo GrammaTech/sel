@@ -626,7 +626,7 @@ appears as a return statement is assumed to be the type of the function."
     (or (match (take 2 parents)
           ((list (type c/cpp-init-declarator)
                  (and decl (type c/cpp-declaration)))
-           (c/cpp-type decl)))
+           (extract-declaration-type decl)))
         (and-let* (((typep (first parents) 'c/cpp-return-statement))
                    ((equal (list ast) (children (first parents))))
                    (fn (find-if (of-type 'function-declaration-ast)
@@ -642,14 +642,9 @@ appears as a return statement is assumed to be the type of the function."
 
 (defmethod extract-declaration-type ((ast c/cpp-function-declarator)
                                      &aux (obj (attrs-root*)))
-  (when-let (fn (find-enclosing 'c/cpp-function-definition obj ast))
-    (extract-declaration-type fn)))
-
-(defmethod extract-declaration-type ((ast c/cpp-function-definition))
-  (c/cpp-type ast))
-
-(defmethod extract-declaration-type ((ast c/cpp-field-declaration))
-  (c/cpp-type ast))
+  (if-let (fn (find-enclosing 'c/cpp-function-definition obj ast))
+    (extract-declaration-type fn)
+    (call-next-method)))
 
 (defmethod extract-declaration-type ((decl c/cpp-ast)
                                      &aux (obj (attrs-root*)))
@@ -659,14 +654,15 @@ appears as a return statement is assumed to be the type of the function."
                (find-if (of-type '(and variable-declaration-ast
                                    (not c/cpp-init-declarator)
                                    (not c/cpp-assignment-expression)))
-                        ;; Inclusive of AST.
-                        (get-parent-asts obj decl))))
-     (c/cpp-type declaration))
+                        ;; Exclusive of AST.
+                        (get-parent-asts* obj decl))))
+     (extract-declaration-type declaration))
    ;; If the declaration is for a function, return that
    ;; function's type.
    (and-let* ((function (find-enclosing 'function-ast obj decl))
               ((eql decl (c/cpp-declarator function))))
-     (c/cpp-type function))))
+     (extract-declaration-type function))
+   (call-next-method)))
 
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))
