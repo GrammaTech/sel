@@ -521,7 +521,15 @@ pointer declarations which are nested on themselves."
   (:method ((field c/cpp-field-identifier) map)
     (add-field-as map :variable field))
   (:method ((field c/cpp-type-definition) map)
-    (add-field-as map :type (only-elt (c/cpp-declarator field)))))
+    (add-field-as map :type (only-elt (c/cpp-declarator field))))
+  (:method ((field c/cpp-pointer-declarator) map)
+    (reduce (flip #'field-adjoin)
+            (ensure-list (c/cpp-declarator field))
+            :initial-value map))
+  (:method ((field c/cpp-array-declarator) map)
+    (reduce (flip #'field-adjoin)
+            (ensure-list (c/cpp-declarator field))
+            :initial-value map)))
 
 (def-attr-fun field-table ()
   "Build an FSet map from field names to identifiers."

@@ -176,6 +176,35 @@ x var2 = 0;~%")))
       (is (typep (get-declaration-ast :type (infer-type var2))
                  'c-type-definition)))))
 
+(deftest test-pointer-and-array-field-type-inference ()
+  (let* ((c (from-string 'c (fmt "~
+typedef struct foo {
+  int x;
+} foo_t;
+
+typedef struct bar {
+  char x;
+  int y;
+  foo_t* z;
+  int u[10];
+  void* v;
+} bar_t;
+
+void f(bar_t* p) {
+  p->x;
+  p->y;
+  p->z;
+  p->u;
+  p->v;
+}~%")))
+         (exprs (collect-if (of-type 'c-field-expression) c)))
+    (is (length= 5 exprs))
+    (with-attr-table c
+      (iter (for type in '("char" "int" "foo_t*" "int[10]"
+                           "void*"))
+            (for expr in exprs)
+            (is (infer-type expr))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
