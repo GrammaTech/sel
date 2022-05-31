@@ -2238,7 +2238,34 @@ are ignored by templates, whereas named ones are preserved.")
          ((:TYPE . "SYMBOL") (:NAME . "try_statement"))
          ((:TYPE . "SYMBOL") (:NAME . "throw_statement"))
          ((:TYPE . "SYMBOL") (:NAME . "type_forward_declaration"))
-         ((:TYPE . "SYMBOL") (:NAME . "macro_forward_declaration")))))
+         ((:TYPE . "SYMBOL") (:NAME . "macro_forward_declaration"))))
+       (:PARAMETER-LIST (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
+               ((:TYPE . "SYMBOL") (:NAME . "optional_parameter_declaration"))
+               ((:TYPE . "SYMBOL") (:NAME . "variadic_parameter_declaration"))
+               ;; NOTE: change ... to variadic_declaration
+               ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration"))))
+             ((:TYPE . "REPEAT")
+              (:CONTENT
+               (:TYPE . "SEQ")
+               (:MEMBERS
+                ((:TYPE . "STRING") (:VALUE . ","))
+                ((:TYPE . "CHOICE")
+                 (:MEMBERS
+                  ((:TYPE . "SYMBOL") (:NAME . "parameter_declaration"))
+                  ((:TYPE . "SYMBOL") (:NAME . "optional_parameter_declaration"))
+                  ((:TYPE . "SYMBOL") (:NAME . "variadic_parameter_declaration"))
+                  ;; NOTE: change ... to variadic_declaration
+                  ((:TYPE . "SYMBOL") (:NAME . "variadic_declaration")))))))))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")")))))
       (:java
        (:MODIFIERS (:TYPE . "REPEAT1")
         (:CONTENT

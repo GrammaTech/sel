@@ -197,7 +197,7 @@
                           (general-identifier->identifier name)))
                   (:arguments
                    (:class . :argument-list)
-                   (:internal-asts-0 ,@(cpp-internal-asts-3 parameters))
+                   (:internal-asts-0 ,@(cpp-internal-asts-0 parameters))
                    (:children
                     ,@(mapcar #'convert-for-argument-list
                               (direct-children parameters)))
@@ -403,7 +403,8 @@
 (defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-parameter-declaration)) parse-tree
      &key)
-  (transform-c-declaration-specifiers parse-tree))
+  (transform-c-style-variadic-parameter
+   (transform-c-declaration-specifiers parse-tree)))
 
 (defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-optional-parameter-declaration)) parse-tree
