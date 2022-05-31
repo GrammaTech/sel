@@ -1187,7 +1187,13 @@ for the language.")
        (:root-ast c-translation-unit)
        (:comment-ast c-comment)
        (:declaration-ast c-field-declaration)
+       ;; A subclass of a declaration AST that isn't really a
+       ;; declaration.
        (:degenerate-declaration-ast
+        c-struct-tag-specifier
+        c-enum-tag-specifier
+        c-union-tag-specifier)
+       (:c-tag-specifier
         c-struct-tag-specifier
         c-enum-tag-specifier
         c-union-tag-specifier)
@@ -6914,10 +6920,11 @@ argument destructuring (e.g. ECMAScript).")
 
 (defgeneric inner-declarations (ast)
   (:documentation "Return a list of variable declarations affecting inner scopes.")
+  (:method-combination standard/context)
   (:method ((ast ast)) nil)
   (:method ((ast function-ast))
     (mappend #'parameter-names (function-parameters ast)))
-  (:method :around (ast)
+  (:method :context (ast)
     (handler-bind ((no-applicable-method-error
                     (lambda (condition)
                       (declare (ignorable condition))
@@ -6931,8 +6938,9 @@ argument destructuring (e.g. ECMAScript).")
   (:documentation
    "Return a list of variable declarations affecting outer scopes. This can
 return more information as values depending on the language.")
+  (:method-combination standard/context)
   (:method ((ast ast)) nil)
-  (:method :around (ast)
+  (:method :context (ast)
     ;; NOTE: this is to work around ASTs which may not have the expected ASTs
     ;;       in respective slots.
     (handler-bind ((no-applicable-method-error
@@ -7270,6 +7278,8 @@ a declaration AST, return AST unchanged."
      (list ast))
     ((:type (type-declaration-ast))
      (list ast))
+    ((:tag (type-declaration-ast))
+     (list ast))
     ((:macro (macro-declaration-ast))
      (list ast))
     ((nil _)
@@ -7287,6 +7297,8 @@ a declaration AST, return AST unchanged."
   (:method ((type (eql :function)) ast)
     (find-in-symbol-table ast type ast))
   (:method ((type (eql :type)) ast)
+    (find-in-symbol-table ast type ast))
+  (:method ((type (eql :tag)) ast)
     (find-in-symbol-table ast type ast))
   (:method ((type (eql :macro)) ast)
     (find-in-symbol-table ast type ast))
@@ -9718,12 +9730,15 @@ Otherwise, return PARSE-TREE."
 (deftype symbol-table-namespace ()
   "Possible namespaces in a symbol table."
   ;; The nil "namespace" is for languages that don't use namespaces.
-  '(member nil :variable :function :type :macro))
+  ;; The :tag namespace is for C (which has separate tag and type
+  ;; namespaces).
+  '(member nil :variable :function :type :tag :macro))
 
 (def +namespace-decl-type-table+
   '((:variable . variable-declaration-ast)
     (:function . function-declaration-ast)
     (:type . type-declaration-ast)
+    (:tag . type-declaration-ast)
     (:macro . macro-declaration-ast)
     (nil . declaration-ast)))
 

@@ -603,6 +603,13 @@
      (if (typep function 'cpp-template-function)
          (cpp-name function)
          function))))
+(defmethod call-name ((ast cpp-call-expression))
+  "If the call function is a template function, extract just the name of the template function without its arguments."
+  (source-text
+   (let ((function (call-function ast)))
+     (if (typep function 'cpp-template-function)
+         (cpp-name function)
+         function))))
 
 (defmethod scope-ast-p ((ast cpp-namespace-definition)) t)
 (defmethod scope-ast-p ((ast cpp-declaration-list)) t)
@@ -622,6 +629,22 @@
       ;; We don't want identifiers from type declarations.
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
+
+(defmethod get-declaration-ids ((ns (eql :tag)) (ast cpp-ast))
+  "Merge the tag and type namespaces."
+  (get-declaration-ids :type ast))
+
+(defmethod outer-declarations :context ((ast cpp-ast))
+  "Merge the tag and type namespaces."
+  (multiple-value-bind (decls types)
+      (call-next-method)
+    (values decls (substitute :type :tag types))))
+
+(defmethod inner-declarations :context ((ast cpp-ast))
+  "Merge the tag and type namespaces."
+  (multiple-value-bind (decls types)
+      (call-next-method)
+    (values decls (substitute :type :tag types))))
 
 (defmethod outer-declarations ((ast cpp-alias-declaration))
   (values (list (cpp-name ast)) '(:type)))

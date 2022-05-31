@@ -303,8 +303,8 @@ pointer declarations which are nested on themselves."
 
 (defmethod outer-declarations ((ast c/cpp-classoid-specifier))
   (if-let (name (c/cpp-name ast))
-          (values (list name) '(:type))
-          (values nil nil)))
+    (values (list name) '(:tag))
+    (values nil nil)))
 
 (defmethod inner-declarations ((ast c/cpp-classoid-specifier))
   ;; Make the type visible inside the type.
@@ -331,9 +331,8 @@ pointer declarations which are nested on themselves."
      (let* ((enumerator-names (mapcar #'c/cpp-name enumerators))
             (length (length enumerator-names)))
        (if name
-           ;; TODO: this is likely incorrect for C.
            (values (cons name enumerator-names)
-                   (cons :type #1=(repeat-sequence '(:variable) length)))
+                   (cons :tag #1=(repeat-sequence '(:variable) length)))
            (values enumerator-names
                    #1#))))))
 
@@ -563,7 +562,10 @@ pointer declarations which are nested on themselves."
        (let ((new-type (deref-type type)))
          (when (not (eql type new-type))
            (setf (attr-proxy new-type) type))
-         (get-declaration-ast :type new-type))))))
+         (get-declaration-ast
+          (if (typep new-type 'c-tag-specifier) ;A mixin class.
+              :tag :type)
+          new-type))))))
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
   (when-let (class (get-field-class ast))

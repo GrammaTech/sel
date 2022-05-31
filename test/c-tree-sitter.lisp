@@ -157,6 +157,25 @@ struct xyz *q; ~%")))
         (is (eql p-type (first specs)))
         (is (eql q-type (second specs)))))))
 
+(deftest test-c-tag-namespace ()
+  (let* ((c (from-string 'c (fmt "~
+struct x;
+typedef int x;
+
+struct x *var1;
+x var2 = 0;~%")))
+         (var1 (is (stmt-with-text c "var1")))
+         (var2 (is (stmt-with-text c "var2"))))
+    (with-attr-table c
+      (is (typep (get-declaration-ast :tag (infer-type var1))
+                 'c-struct-tag-specifier))
+      ;; Clients shouldn't have to know about the tag/type
+      ;; distinction.
+      (is (typep (get-declaration-ast :type (infer-type var1))
+                 'c-struct-tag-specifier))
+      (is (typep (get-declaration-ast :type (infer-type var2))
+                 'c-type-definition)))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
