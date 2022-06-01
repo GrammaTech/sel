@@ -797,7 +797,7 @@ then the return type of the call is the return type of the field."
     ((call-ast
       (call-function
        (and field (cpp-field-expression))))
-     (resolved-declaration-type field decl))
+     (resolve-declaration-type decl field))
     (otherwise (call-next-method))))
 
 (defgeneric resolve-container-element-type (type)

@@ -482,9 +482,9 @@ pointer declarations which are nested on themselves."
              (eql (call-function call) ast))))
     (if (function-position?)
         (when-let (fn (get-declaration-ast :function ast))
-          (resolved-declaration-type ast fn))
+          (resolve-declaration-type fn ast))
         (when-let* ((var (get-declaration-ast :variable ast)))
-          (resolved-declaration-type ast var)))))
+          (resolve-declaration-type var ast)))))
 
 (defmethod infer-type ((ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
@@ -630,7 +630,7 @@ appears as a return statement is assumed to be the type of the function."
     (or (match (take 2 parents)
           ((list (type c/cpp-init-declarator)
                  (and decl (type c/cpp-declaration)))
-           (resolved-declaration-type ast decl)))
+           (resolve-declaration-type decl ast)))
         (and-let* (((typep (first parents) 'c/cpp-return-statement))
                    ((equal (list ast) (children (first parents))))
                    (fn (find-if (of-type 'function-declaration-ast)
@@ -662,12 +662,12 @@ appears as a return statement is assumed to be the type of the function."
                                     (not c/cpp-assignment-expression)))
                          ;; Exclusive of AST.
                          (get-parent-asts* obj decl))))
-     (resolved-declaration-type decl declaration))
+     (resolve-declaration-type declaration decl))
    ;; If the declaration is for a function, return that
    ;; function's type.
    (and-let* ((function (find-enclosing 'function-ast obj decl))
               ((eql decl (c/cpp-declarator function))))
-     (resolved-declaration-type function decl))
+     (resolve-declaration-type decl function))
    (call-next-method)))
 
 (defgeneric make-pointer-type-descriptor (type))

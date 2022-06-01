@@ -600,7 +600,7 @@
            :infer-expression-type
            :expression-type
            :placeholder-type-p
-           :resolved-declaration-type
+           :resolve-declaration-type
            :declaration-type
            :find-enclosing
            :find-all-enclosing
@@ -7535,14 +7535,14 @@ for the compiler to infer the type.")
 (defun infer-type-from-declaration (ast)
   (when-let* ((decl-type (relevant-declaration-type ast))
               (decl (get-declaration-ast decl-type ast)))
-    (resolved-declaration-type ast decl)))
+    (resolve-declaration-type decl ast)))
 
 (def-attr-fun infer-type ()
   (:documentation "Return the type of AST as an a AST, or nil if it
   could not be determined.
 
 By default this first tries `expression-type', then invokes
-`resolved-declaration-type' on the result of
+`resolve-declaration-type' on the result of
 `get-declaration-ast'.")
   (:method (ast)
     (let ((expression-type (infer-expression-type ast)))
@@ -7567,23 +7567,19 @@ Calls `expression-type' by default."
   (:method ((ast t)) nil))
 
 (defgeneric resolve-declaration-type (decl-ast ast)
-  (:method ((decl-ast ast) ast)
-    (declaration-type decl-ast)))
-
-(def-attr-fun resolved-declaration-type (decl-ast)
-  "Return the type that DECL-AST in SOFTWARE specifies
+  (:documentation
+   "Return the type that DECL-AST in SOFTWARE specifies
   for AST, as an AST, or nil if it could not be determined.
 
-This differs from `extract-declaration-type' only in cases when
-the type declared differs between declarands (e.g. `auto' declarations
-in C++; `auto x = 1, y = 2.0' effectively declares `x' as an integer
-but `y' as a float.)
+This differs from `declaration-type' only in cases when the type
+declared differs between declarands (e.g. `auto' declarations in C++;
+`auto x = 1, y = 2.0' effectively declares `x' as an integer but `y'
+as a float; or `int y, *x' declares `y' as an integer but `x' as a
+pointer to integer.)
 
-By default simply calls `extract-declaration-type' with SOFTWARE and
-DECL-AST."
-  (:method (ast &optional decl-ast)
-    (assert (typep decl-ast 'ast))
-    (resolve-declaration-type decl-ast ast)))
+By default simply calls `declaration-type' on DECL-AST.")
+  (:method ((decl-ast ast) ast)
+    (declaration-type decl-ast)))
 
 (defgeneric declaration-type (declaration-ast)
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
