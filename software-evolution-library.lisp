@@ -806,7 +806,7 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
 This variable may be read to inspect a running search process, or
 written to as part of a running search process.")
 
-(defvar *generations* nil
+(defvar *generations* 0
   "Holds the running generation count.")
 
 (defvar *max-population-size* nil
@@ -960,13 +960,11 @@ Default selection function for `tournament'."
     (*max-population-size*)
     "*MAX-POPULATION-SIZE* should be an integer >= 0"))
 
-(defun initialize-evolutionary-loop (&key generations)
+(defun initialize-evolutionary-loop ()
   "Initialize common special variables used by the evolutionary loop and
 assert their validity."
   ;; NOTE: there are technically race conditions here, but they are likely
   ;;       not much of an issue.
-  (when generations
-    (setf *generations* 0))
   (unless *start-time*
     (setf *start-time* (get-internal-real-time)))
   (setf *running* t)
@@ -1206,7 +1204,7 @@ This differs from how evolve works."
 
   (prog1
       (loop
-        :initially (initialize-evolutionary-loop :generations t)
+        :initially (initialize-evolutionary-loop)
         :while (continue-evolutionary-loop-p
                 :max-time max-time
                 ;; TODO: fitness evals isn't incremented in this loop.
