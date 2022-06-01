@@ -526,14 +526,17 @@
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))
 
 (defmethod cpp-declarator ((ast cpp-reference-declarator))
-  (let ((children (children ast)))
-    (if (single children)
-        (cpp-declarator (first children))
-        (if-let ((first-non-terminal
-                  (find-if-not (of-type 'terminal-symbol)
-                               children)))
-          (cpp-declarator first-non-terminal)
-          (call-next-method)))))
+  (flet ((cpp-declarator* (child)
+           (or (slot-value-safe child 'cpp-declarator)
+               child)))
+    (let ((children (children ast)))
+      (if (single children)
+          (cpp-declarator* (first children))
+          (if-let ((first-non-terminal
+                    (find-if-not (of-type 'terminal-symbol)
+                                 children)))
+            (cpp-declarator* first-non-terminal)
+            (call-next-method))))))
 
 (defmethod c/cpp-declarator ((ast cpp-reference-declarator))
   (cpp-declarator ast))
