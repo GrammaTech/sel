@@ -482,9 +482,9 @@ pointer declarations which are nested on themselves."
              (eql (call-function call) ast))))
     (if (function-position?)
         (when-let (fn (get-declaration-ast :function ast))
-          (resolve-declaration-type ast fn))
+          (resolved-declaration-type ast fn))
         (when-let* ((var (get-declaration-ast :variable ast)))
-          (resolve-declaration-type ast var)))))
+          (resolved-declaration-type ast var)))))
 
 (defmethod infer-type ((ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
@@ -630,7 +630,7 @@ appears as a return statement is assumed to be the type of the function."
     (or (match (take 2 parents)
           ((list (type c/cpp-init-declarator)
                  (and decl (type c/cpp-declaration)))
-           (resolve-declaration-type ast decl)))
+           (resolved-declaration-type ast decl)))
         (and-let* (((typep (first parents) 'c/cpp-return-statement))
                    ((equal (list ast) (children (first parents))))
                    (fn (find-if (of-type 'function-declaration-ast)
@@ -660,19 +660,19 @@ appears as a return statement is assumed to be the type of the function."
                                     (not c/cpp-assignment-expression)))
                          ;; Exclusive of AST.
                          (get-parent-asts* obj decl))))
-     (resolve-declaration-type decl declaration))
+     (resolved-declaration-type decl declaration))
    ;; If the declaration is for a function, return that
    ;; function's type.
    (and-let* ((function (find-enclosing 'function-ast obj decl))
               ((eql decl (c/cpp-declarator function))))
-     (resolve-declaration-type function decl))
+     (resolved-declaration-type function decl))
    (call-next-method)))
 
 (defgeneric make-pointer-type-descriptor (type))
 
 (defgeneric make-array-type-descriptor (type size))
 
-(defmethod resolve-declaration-type ((ast c/cpp-ast)
+(defmethod resolved-declaration-type ((ast c/cpp-ast)
                                      &optional decl
                                      &aux (root (attrs-root*)))
   (flet ((relevant-declarator (declarators ast decl)

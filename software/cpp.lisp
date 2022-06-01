@@ -764,7 +764,7 @@
         ;; `vector<T>` vs. `vector<boolean>`.
         (cdr (extremum alist #'length<= :key #'car)))))
 
-(defmethod resolve-declaration-type ((ast cpp-ast)
+(defmethod resolved-declaration-type ((ast cpp-ast)
                                      &optional decl
                                      &aux (obj (attrs-root*)))
   (when-let (first-try (call-next-method))
@@ -789,7 +789,7 @@
      ;; Go with the original result.
      first-try)))
 
-(defmethod resolve-declaration-type :around ((ast call-ast) &optional decl)
+(defmethod resolved-declaration-type :around ((ast call-ast) &optional decl)
   "If AST is a call AST, and the declaration is a field declaration,
 then the return type of the call is the return type of the field."
   (if (typep decl 'cpp-field-declaration)
@@ -797,7 +797,7 @@ then the return type of the call is the return type of the field."
         ((call-ast
           (call-function
            (and field (cpp-field-expression))))
-         (resolve-declaration-type field decl))
+         (resolved-declaration-type field decl))
         (otherwise (call-next-method)))
       (call-next-method)))
 

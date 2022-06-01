@@ -601,7 +601,7 @@
            :expression-type
            :placeholder-type-p
            :extract-declaration-type
-           :resolve-declaration-type
+           :resolved-declaration-type
            :declaration-type
            :find-enclosing
            :find-all-enclosing
@@ -7538,13 +7538,13 @@ for the compiler to infer the type.")
   could not be determined.
 
 By default this first tries `expression-type', then invokes
-`resolve-declaration-type' on the result of
+`resolved-declaration-type' on the result of
 `get-declaration-ast'.")
   (:method (ast)
     (flet ((infer-type-from-declaration ()
              (when-let* ((decl-type (relevant-declaration-type ast))
                          (decl (get-declaration-ast decl-type ast)))
-               (resolve-declaration-type ast decl))))
+               (resolved-declaration-type ast decl))))
       (let ((expression-type (infer-expression-type ast)))
         (cond ((null expression-type)
                (infer-type-from-declaration))
@@ -7573,7 +7573,7 @@ By default calls `declaration-type' with DECL-AST.")
   (:method (ast)
     (declaration-type ast)))
 
-(def-attr-fun resolve-declaration-type (decl-ast)
+(def-attr-fun resolved-declaration-type (decl-ast)
   "Return the type that DECL-AST in SOFTWARE specifies
   for AST, as an AST, or nil if it could not be determined.
 
