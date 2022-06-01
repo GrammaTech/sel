@@ -600,7 +600,6 @@
            :infer-expression-type
            :expression-type
            :placeholder-type-p
-           :extract-declaration-type
            :resolved-declaration-type
            :declaration-type
            :find-enclosing
@@ -7566,16 +7565,9 @@ Calls `expression-type' by default."
   (:documentation "Extract the type from AST, an expression.")
   (:method ((ast t)) nil))
 
-(def-attr-fun extract-declaration-type ()
-  (:documentation "Return the type specified by DECL-AST in SOFTWARE, as an AST, or nil if it could not be determined.
-
-By default calls `declaration-type' with DECL-AST.")
-  (:method (ast)
-    (declaration-type ast)))
-
 (defgeneric resolve-declaration-type (decl-ast ast)
   (:method ((decl-ast ast) ast)
-    (extract-declaration-type decl-ast)))
+    (declaration-type decl-ast)))
 
 (def-attr-fun resolved-declaration-type (decl-ast)
   "Return the type that DECL-AST in SOFTWARE specifies

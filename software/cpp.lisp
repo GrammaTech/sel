@@ -827,7 +827,8 @@ then the return type of the call is the return type of the field."
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
 
-(defmethod extract-declaration-type ((ast cpp-type-parameter-declaration))
+(defmethod resolve-declaration-type ((decl-ast cpp-type-parameter-declaration)
+                                     (ast t))
   (second (children ast)))
 
 (defmethod expression-type ((ast cpp-call-expression))

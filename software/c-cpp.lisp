@@ -644,13 +644,15 @@ appears as a return statement is assumed to be the type of the function."
 (defmethod expression-type ((ast c/cpp-declaration))
   (cpp-type ast))
 
-(defmethod extract-declaration-type ((ast c/cpp-function-declarator)
+(defmethod resolve-declaration-type ((decl c/cpp-function-declarator)
+                                     (ast t)
                                      &aux (obj (attrs-root*)))
-  (if-let (fn (find-enclosing 'c/cpp-function-definition obj ast))
-    (extract-declaration-type fn)
+  (if-let (fn (find-enclosing 'c/cpp-function-definition obj decl))
+    (resolve-declaration-type fn ast)
     (call-next-method)))
 
-(defmethod extract-declaration-type ((decl c/cpp-ast)
+(defmethod resolve-declaration-type ((decl c/cpp-ast)
+                                     (ast c/cpp-ast)
                                      &aux (obj (attrs-root*)))
   (or
    ;; Look for a surrounding variable declaration.
