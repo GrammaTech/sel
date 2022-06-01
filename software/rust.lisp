@@ -207,4 +207,10 @@ around generic-type-with-turbofish being aliased to generic-type."
                                       (y t))
   "")
 
+(defmethod whitespace-between/parent ((parent rust-index-expression)
+                                      style
+                                      (x rust-ast)
+                                      (y (eql :|[|)))
+  "")
+
 ) ; #+:TREE-SITTER-RUST
