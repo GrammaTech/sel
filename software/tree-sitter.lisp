@@ -7551,12 +7551,7 @@ By default this first tries `expression-type', then invokes
               ((placeholder-type-p expression-type)
                (or (infer-type-from-declaration)
                    expression-type))
-              (t expression-type)))))
-  (:method ((ast declaration-ast))
-    (let ((type (extract-declaration-type ast)))
-      (if (placeholder-type-p type)
-          (call-next-method)
-          type))))
+              (t expression-type))))))
 
 (def-attr-fun infer-expression-type ()
   "Infer the type of AST in SOFTWARE as an expression.
