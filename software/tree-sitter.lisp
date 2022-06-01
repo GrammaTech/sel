@@ -7532,6 +7532,11 @@ for the compiler to infer the type.")
   (:documentation "Return the type that comes from dereferencing TYPE.")
   (:method (type) type))
 
+(defun infer-type-from-declaration (ast)
+  (when-let* ((decl-type (relevant-declaration-type ast))
+              (decl (get-declaration-ast decl-type ast)))
+    (resolved-declaration-type ast decl)))
+
 (def-attr-fun infer-type ()
   (:documentation "Return the type of AST as an a AST, or nil if it
   could not be determined.
@@ -7540,17 +7545,13 @@ By default this first tries `expression-type', then invokes
 `resolved-declaration-type' on the result of
 `get-declaration-ast'.")
   (:method (ast)
-    (flet ((infer-type-from-declaration ()
-             (when-let* ((decl-type (relevant-declaration-type ast))
-                         (decl (get-declaration-ast decl-type ast)))
-               (resolved-declaration-type ast decl))))
-      (let ((expression-type (infer-expression-type ast)))
-        (cond ((null expression-type)
-               (infer-type-from-declaration))
-              ((placeholder-type-p expression-type)
-               (or (infer-type-from-declaration)
-                   expression-type))
-              (t expression-type))))))
+    (let ((expression-type (infer-expression-type ast)))
+      (cond ((null expression-type)
+             (infer-type-from-declaration ast))
+            ((placeholder-type-p expression-type)
+             (or (infer-type-from-declaration ast)
+                 expression-type))
+            (t expression-type)))))
 
 (def-attr-fun infer-expression-type ()
   "Infer the type of AST in SOFTWARE as an expression.
