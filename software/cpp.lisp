@@ -764,8 +764,8 @@
         ;; `vector<T>` vs. `vector<boolean>`.
         (cdr (extremum alist #'length<= :key #'car)))))
 
-(defmethod resolved-declaration-type ((ast cpp-ast)
-                                     &optional decl
+(defmethod resolve-declaration-type ((decl cpp-ast)
+                                     (ast cpp-ast)
                                      &aux (obj (attrs-root*)))
   (when-let (first-try (call-next-method))
     (or
@@ -789,17 +789,16 @@
      ;; Go with the original result.
      first-try)))
 
-(defmethod resolved-declaration-type :around ((ast call-ast) &optional decl)
+(defmethod resolve-declaration-type :around ((decl cpp-field-declaration)
+                                             (ast call-ast))
   "If AST is a call AST, and the declaration is a field declaration,
 then the return type of the call is the return type of the field."
-  (if (typep decl 'cpp-field-declaration)
-      (match ast
-        ((call-ast
-          (call-function
-           (and field (cpp-field-expression))))
-         (resolved-declaration-type field decl))
-        (otherwise (call-next-method)))
-      (call-next-method)))
+  (match ast
+    ((call-ast
+      (call-function
+       (and field (cpp-field-expression))))
+     (resolved-declaration-type field decl))
+    (otherwise (call-next-method))))
 
 (defgeneric resolve-container-element-type (type)
   (:documentation "Assuming TYPE is a container type, try to get the

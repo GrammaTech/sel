@@ -672,8 +672,7 @@ appears as a return statement is assumed to be the type of the function."
 
 (defgeneric make-array-type-descriptor (type size))
 
-(defmethod resolved-declaration-type ((ast c/cpp-ast)
-                                     &optional decl
+(defmethod resolve-declaration-type ((decl c/cpp-ast) (ast c/cpp-ast)
                                      &aux (root (attrs-root*)))
   (flet ((relevant-declarator (declarators ast decl)
            (let* ((type

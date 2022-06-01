@@ -7573,6 +7573,10 @@ By default calls `declaration-type' with DECL-AST.")
   (:method (ast)
     (declaration-type ast)))
 
+(defgeneric resolve-declaration-type (decl-ast ast)
+  (:method ((decl-ast ast) ast)
+    (extract-declaration-type decl-ast)))
+
 (def-attr-fun resolved-declaration-type (decl-ast)
   "Return the type that DECL-AST in SOFTWARE specifies
   for AST, as an AST, or nil if it could not be determined.
@@ -7586,7 +7590,7 @@ By default simply calls `extract-declaration-type' with SOFTWARE and
 DECL-AST."
   (:method (ast &optional decl-ast)
     (assert (typep decl-ast 'ast))
-    (extract-declaration-type decl-ast)))
+    (resolve-declaration-type decl-ast ast)))
 
 (defgeneric declaration-type (declaration-ast)
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
