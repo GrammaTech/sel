@@ -290,6 +290,17 @@ field."
 (defmethod get-declaration-ids ((ns (eql :tag)) (ast c-tag-specifier))
   (get-declaration-ids :tag (c-name ast)))
 
+(defmethod make-pointer-type-descriptor ((type c-ast))
+  (make 'c-type-descriptor
+        :c-declarator (make 'c-abstract-pointer-declarator)
+        :c-type type))
+
+(defmethod make-array-type-descriptor ((type c-ast) (size c-ast))
+  (make 'c-type-descriptor
+        :c-declarator (make 'c-abstract-array-declarator
+                            :c-size size)
+        :c-type type))
+
 
 ;;; C Utility
 

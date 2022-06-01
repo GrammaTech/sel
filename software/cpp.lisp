@@ -789,9 +789,7 @@
      ;; Go with the original result.
      first-try)))
 
-(defmethod resolve-declaration-type ((ast call-ast)
-                                     &optional
-                                       decl)
+(defmethod resolve-declaration-type :around ((ast call-ast) &optional decl)
   "If AST is a call AST, and the declaration is a field declaration,
 then the return type of the call is the return type of the field."
   (if (typep decl 'cpp-field-declaration)
@@ -1094,6 +1092,16 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (with-attr-table sw
     (aliasee rhs)))
 
+(defmethod make-pointer-type-descriptor ((type cpp-ast))
+  (make 'cpp-type-descriptor
+        :cpp-declarator (make 'cpp-abstract-pointer-declarator)
+        :cpp-type type))
+
+(defmethod make-array-type-descriptor ((type cpp-ast) (size cpp-ast))
+  (make 'cpp-type-descriptor
+        :cpp-declarator (make 'cpp-abstract-array-declarator
+                              :cpp-size size)
+        :cpp-type type))
 
 
 ;;; Whitespace rules

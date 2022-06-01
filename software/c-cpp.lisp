@@ -465,11 +465,15 @@ pointer declarations which are nested on themselves."
       (when-let ((declarator (find-enclosing 'c/cpp-function-declarator root id)))
         (find-enclosing 'c/cpp-declaration root declarator))))
 
-(defmethod infer-type :context ((ast c/cpp-field-expression))
-  (let ((type (call-next-method)))
-    (if (source-text= (c/cpp-operator ast) "->")
-        (deref-type type)
-        type)))
+(defmethod deref-type ((ast c/cpp-type-descriptor))
+  (match ast
+    ((c/cpp-type-descriptor
+      (c/cpp-declarator
+       (or (c/cpp-abstract-pointer-declarator)
+           (c/cpp-abstract-array-declarator)))
+      (c/cpp-type type))
+     type)
+    (otherwise (call-next-method))))
 
 (defmethod infer-type ((ast c/cpp-field-expression)
                        &aux (obj (attrs-root*)))
@@ -478,9 +482,9 @@ pointer declarations which are nested on themselves."
              (eql (call-function call) ast))))
     (if (function-position?)
         (when-let (fn (get-declaration-ast :function ast))
-          (infer-type fn))
+          (resolve-declaration-type ast fn))
         (when-let* ((var (get-declaration-ast :variable ast)))
-          (infer-type var)))))
+          (resolve-declaration-type ast var)))))
 
 (defmethod infer-type ((ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
@@ -626,7 +630,7 @@ appears as a return statement is assumed to be the type of the function."
     (or (match (take 2 parents)
           ((list (type c/cpp-init-declarator)
                  (and decl (type c/cpp-declaration)))
-           (extract-declaration-type decl)))
+           (resolve-declaration-type ast decl)))
         (and-let* (((typep (first parents) 'c/cpp-return-statement))
                    ((equal (list ast) (children (first parents))))
                    (fn (find-if (of-type 'function-declaration-ast)
@@ -650,19 +654,54 @@ appears as a return statement is assumed to be the type of the function."
                                      &aux (obj (attrs-root*)))
   (or
    ;; Look for a surrounding variable declaration.
-   (when-let ((declaration
-               (find-if (of-type '(and variable-declaration-ast
-                                   (not c/cpp-init-declarator)
-                                   (not c/cpp-assignment-expression)))
-                        ;; Exclusive of AST.
-                        (get-parent-asts* obj decl))))
-     (extract-declaration-type declaration))
+   (when-let* ((declaration
+                (find-if (of-type '(and variable-declaration-ast
+                                    (not c/cpp-init-declarator)
+                                    (not c/cpp-assignment-expression)))
+                         ;; Exclusive of AST.
+                         (get-parent-asts* obj decl))))
+     (resolve-declaration-type decl declaration))
    ;; If the declaration is for a function, return that
    ;; function's type.
    (and-let* ((function (find-enclosing 'function-ast obj decl))
               ((eql decl (c/cpp-declarator function))))
-     (extract-declaration-type function))
+     (resolve-declaration-type function decl))
    (call-next-method)))
+
+(defgeneric make-pointer-type-descriptor (type))
+
+(defgeneric make-array-type-descriptor (type size))
+
+(defmethod resolve-declaration-type ((ast c/cpp-ast)
+                                     &optional decl
+                                     &aux (root (attrs-root*)))
+  (flet ((relevant-declarator (declarators ast decl)
+           (let* ((type
+                   (if (typep decl 'function-ast) :function :variable))
+                  (id (or (get-declaration-id type ast)
+                          decl)))
+             (find-if (op (ancestor-of-p root id _))
+                      declarators))))
+    (match decl
+      (nil (call-next-method))
+      ((declaration-ast)
+       (multiple-value-bind (type declarators)
+           (ignore-some-conditions (no-applicable-method-error)
+             (values (c/cpp-type decl)
+                     (c/cpp-declarator decl)))
+         (cond ((not (and type declarators))
+                (fail))
+               ((match (relevant-declarator declarators ast decl)
+                  ((c/cpp-pointer-declarator)
+                   (lret ((new-type (make-pointer-type-descriptor type)))
+                     (setf (attr-proxy new-type) type)))
+                  ((c/cpp-array-declarator
+                    (c/cpp-size size))
+                   (lret ((new-type (make-array-type-descriptor type size)))
+                     (setf (attr-proxy new-type) type)))))
+               (t (fail)))))
+      (otherwise
+       (call-next-method)))))
 
 (defun transform-c-declaration-specifiers
     (parse-tree &aux (position-slot :pre-specifiers))

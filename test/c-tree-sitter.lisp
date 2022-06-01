@@ -72,7 +72,7 @@ struct foo { int a; int b; };
 int f(struct foo* p) { return p->a; }
 "))))
     (with-attr-table c-code
-      (is (source-text= "struct foo"
+      (is (source-text= "struct foo*"
                         (infer-type
                          (lastcar
                           (collect-if (op (source-text= "p" _))
@@ -187,7 +187,8 @@ typedef struct bar {
   int y;
   foo_t* z;
   int u[10];
-  void* v;
+  // Test for multiple declarators.
+  void* v, w;
 } bar_t;
 
 void f(bar_t* p) {
@@ -196,14 +197,15 @@ void f(bar_t* p) {
   p->z;
   p->u;
   p->v;
-}~%")))
+}
+~%")))
          (exprs (collect-if (of-type 'c-field-expression) c)))
     (is (length= 5 exprs))
     (with-attr-table c
-      (iter (for type in '("char" "int" "foo_t*" "int[10]"
-                           "void*"))
+      (iter (for type in '("char" "int" "foo_t*" "int[10]" "void*"))
             (for expr in exprs)
-            (is (infer-type expr))))))
+            (is (infer-type expr))
+            (is (source-text= type (infer-type expr)))))))
 
 
 ;;; Tests
