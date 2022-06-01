@@ -8,7 +8,9 @@
    :stefil+
    :software-evolution-library
    :software-evolution-library/software/tree-sitter
-   :software-evolution-library/software/directory)
+   :software-evolution-library/software/directory
+   :software-evolution-library/software/javascript-project
+   :software-evolution-library/software/json)
   (:import-from :software-evolution-library/software/parseable
                 :source-text
                 :source-text=)
@@ -23,7 +25,7 @@
 (defixture fib-project-javascript
   (:setup
    (setf *soft*
-         (from-file (make-instance 'directory-project)
+         (from-file (make-instance 'javascript-project)
                     (asdf:system-relative-pathname
                      "software-evolution-library"
                      "test/etc/javascript/fib-project.js"))))
@@ -33,7 +35,7 @@
 (defixture fib-project-typescript
     (:setup
      (setf *soft*
-           (from-file (make-instance 'directory-project)
+           (from-file (make-instance 'typescript-project)
                       (asdf:system-relative-pathname
                        "software-evolution-library"
                        "test/etc/javascript/fib-project.ts"))))
