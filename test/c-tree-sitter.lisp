@@ -403,6 +403,7 @@ return 0;
     (is (equal source (source-text ast)))
     (is (find-if (of-type 'c-source-text-fragment) ast))))
 
+#+(or)
 (deftest c-source-text-fragments-nested-errors ()
   "source-text-fragments should successfully be created for nested error nodes."
   ;; NOTE: this will become an invalid test if the parser is changed such that
