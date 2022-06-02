@@ -26,8 +26,8 @@ RUN cd /root/sbcl && bash install.sh
 
 # # Install Clozure
 RUN mkdir /usr/share/ccl
-RUN git clone --branch=v1.12 https://github.com/Clozure/ccl.git /usr/share/ccl
-RUN curl -L https://github.com/Clozure/ccl/releases/download/v1.12/linuxx86.tar.gz \
+RUN git clone --branch=v1.12.1 https://github.com/Clozure/ccl.git /usr/share/ccl
+RUN curl -L https://github.com/Clozure/ccl/releases/download/v1.12.1/linuxx86.tar.gz \
     | tar xzvf - -C /usr/share/ccl
 RUN cd /usr/share/ccl && echo "(ccl:rebuild-ccl :full t)" \
     | ./lx86cl64 --no-init --quiet --batch
