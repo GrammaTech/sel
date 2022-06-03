@@ -1,22 +1,21 @@
-FROM quay.io/pypa/manylinux2010_x86_64
+FROM quay.io/pypa/manylinux_2_24_x86_64
 
 # Install required system packages
-RUN yum install -y autoconf build-essential git curl wget sbcl libffi libffi-devel zlib-devel
+RUN apt-get -y --fix-missing update && \
+    apt-get install -y autoconf build-essential git curl wget sbcl libffi-dev zlib1g-dev
+
+# Rebuild SBCL from scratch from a tag, enabling dynamic core so users
+# can expand the memory with a command line option
+RUN git clone --branch sbcl-2.2.5 https://git.code.sf.net/p/sbcl/sbcl /root/sbcl
+RUN cd /root/sbcl && bash make.sh --prefix=/usr --with-sb-linkable-runtime --with-sb-dynamic-core --dynamic-space-size=8Gb
+RUN apt-get -y remove sbcl
+RUN cd /root/sbcl && bash install.sh
 
 # Install QuickLisp
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp
 RUN sbcl --load quicklisp.lisp \
         --eval '(quicklisp-quickstart:install)' \
         --eval '(let ((ql-util::*do-not-prompt* t)) (ql:add-to-init-file))'
-
-# Install the latest version of SBCL
-WORKDIR /
-RUN git clone --branch sbcl-2.1.3 https://github.com/sbcl/sbcl
-WORKDIR /sbcl
-RUN find src/runtime -type f -exec sed -i 's/-ldl/-ldl -lrt/' {} \+
-# RUN sh make.sh --dynamic-space-size=4Gb
-RUN sh make.sh --dynamic-space-size=4Gb --fancy --with-sb-linkable-runtime --with-sb-dynamic-core
-RUN sh install.sh
 
 # Install tree-sitter
 WORKDIR /
