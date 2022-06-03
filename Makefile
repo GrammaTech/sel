@@ -96,8 +96,12 @@ TEST_ARTIFACTS = \
 
 # FIXME: move test binaries into test/bin or bin/test/
 # Extend cl.mk to have a separate build target for test binaries
-BINS = rest-server dump-store tree-sitter-interface tree-sitter-py-generator test-parse \
-       limit
+ifneq (,$(findstring sbcl, $(LISP)))
+BINS = rest-server dump-store tree-sitter-interface tree-sitter-py-generator test-parse limit
+else
+BINS = dump-store tree-sitter-interface tree-sitter-py-generator test-parse limit
+endif
+
 BIN_TEST_DIR = test/bin
 BIN_TESTS =			\
 	example-001-mutate
