@@ -192,7 +192,8 @@ are created if they're present in PARSE-TREE."
 (defmethod declaration-type ((decl python-function-definition))
   (python-return-type decl))
 
-(defmethod extract-declaration-type ((decl-ast python-identifier)
+(defmethod resolve-declaration-type ((decl-ast python-identifier)
+                                     ast
                                      &aux (obj (attrs-root*)))
   "Work around the fact that Python identifiers are declaration ASTs
 \(because they can appear by themselves in parameter lists)."
@@ -201,7 +202,7 @@ are created if they're present in PARSE-TREE."
       (if-let* ((parent (get-parent-ast obj decl-ast))
                 ;; Not including the given AST.
                 (decl (find-enclosing 'declaration-ast obj parent)))
-        (extract-declaration-type decl)
+        (resolve-declaration-type decl ast)
         (call-next-method))))
 
 (defmethod enclosing-scope ((obj python) (ast python-ast))
