@@ -90,29 +90,32 @@ and add it to PROJECT."))
     (setf (gethash path-string dict) value)))
 
 (defun clear-cache ()
-  (clrhash *system-header-cache*)
-  (clrhash *system-header-symbol-table-cache*))
+  (synchronized ('*system-header-cache*)
+    (clrhash *system-header-cache*))
+  (synchronized ('*system-header-symbol-table-cache*)
+    (clrhash *system-header-symbol-table-cache*)))
 
 (defmethod get-system-header ((project c/cpp-project) (path-string string)
                               &aux (genome (genome project)))
-  (symbol-macrolet ((header-hash (gethash
-                                  path-string
-                                  (system-headers/string->ast genome))))
-    (labels ((populate-header-entry (project path-string)
-               (lret ((system-header
-                       (ensure2 (cache-lookup *system-header-cache* project path-string)
-                         (make-instance
-                             'c/cpp-system-header
-                           :header-name path-string
-                           :children
-                           (nest (ensure-list)
-                                 (parse-header-synopsis path-string :class-ast)
-                                 (format-symbol :sel/sw/ts "~a-AST")
-                                 (component-class project))))))
-                 (setf header-hash system-header)
-                 (push system-header (system-headers genome)))))
-      (or header-hash
-          (populate-header-entry project path-string)))))
+  (synchronized ('*system-header-cache*)
+    (symbol-macrolet ((header-hash (gethash
+                                    path-string
+                                    (system-headers/string->ast genome))))
+      (labels ((populate-header-entry (project path-string)
+                 (lret ((system-header
+                         (ensure2 (cache-lookup *system-header-cache* project path-string)
+                           (make-instance
+                            'c/cpp-system-header
+                            :header-name path-string
+                            :children
+                            (nest (ensure-list)
+                                  (parse-header-synopsis path-string :class-ast)
+                                  (format-symbol :sel/sw/ts "~a-AST")
+                                  (component-class project))))))
+                   (setf header-hash system-header)
+                   (push system-header (system-headers genome)))))
+        (or header-hash
+            (populate-header-entry project path-string))))))
 
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
   "Return the text of PATH-AST with the quotes around it removed."
@@ -144,14 +147,15 @@ and add it to PROJECT."))
   (declare (fset:map in))
   (labels ((merge-cached-symbol-table (header)
              (let ((cached-table
-                    (ensure2 (cache-lookup *system-header-symbol-table-cache*
-                                           project header)
-                      (with-attr-table
-                          ;; Shallow-copy the root so we get a
-                          ;; separate table.
-                          (copy (attrs-root *attrs*))
-                        (symbol-table header (empty-map))
-                        (attrs-table *attrs*))))
+                    (synchronized ('*system-header-symbol-table-cache*)
+                      (ensure2 (cache-lookup *system-header-symbol-table-cache*
+                                             project header)
+                        (with-attr-table
+                            ;; Shallow-copy the root so we get a
+                            ;; separate table.
+                            (copy (attrs-root *attrs*))
+                          (symbol-table header (empty-map))
+                          (attrs-table *attrs*)))))
                    (target-table (attrs-table *attrs*)))
                (do-hash-table (node alist cached-table)
                  (if-let (old (gethash node target-table))
