@@ -106,30 +106,31 @@ int g() { return f(); }~
 (deftest infer-struct-member-type/typedef ()
   (let ((c-code (from-string 'c (fmt "~
 typedef struct foo { int x; } foo_t;
-int f(foo_t* p, foo_t s) { return p.x + s.x; }"))))
+int f(foo_t* p, foo_t s) { return p->x + s.x; }"))))
     (with-attr-table c-code
-      (let ((p.x (stmt-with-text c-code "p.x"))
+      (let ((p->x (stmt-with-text c-code "p->x"))
             (s.x (stmt-with-text c-code "s.x")))
-        (is (every (of-type 'c/cpp-field-expression) (list p.x s.x)))
+        (is (every (of-type 'c/cpp-field-expression) (list p->x s.x)))
+        (is (source-text= "foo_t*" (infer-type (c-argument p->x))))
+        (is (source-text= "int" (infer-type p->x)))
+        (is (source-text= "int" (infer-type s.x)))
         (is (source-text= "int"
                           (infer-type
-                           (stmt-with-text c-code "p.x + s.x"))))
-        (is (source-text= "int" (infer-type p.x)))
-        (is (source-text= "int" (infer-type s.x)))))))
+                           (stmt-with-text c-code "p->x + s.x"))))))))
 
 ;;; Issue #233.
 (deftest infer-struct-member-type-3 ()
   (let ((c-code (from-string 'c (fmt "~
 struct foo { int x; };
-int f(struct foo* p, struct foo s) { return p.x + s.x; }"))))
+int f(struct foo* p, struct foo s) { return p->x + s.x; }"))))
     (with-attr-table c-code
-      (let ((p.x (stmt-with-text c-code "p.x"))
+      (let ((p->x (stmt-with-text c-code "p->x"))
             (s.x (stmt-with-text c-code "s.x")))
-        (is (every (of-type 'c/cpp-field-expression) (list p.x s.x)))
+        (is (every (of-type 'c/cpp-field-expression) (list p->x s.x)))
         (is (source-text= "int"
                           (infer-type
-                           (stmt-with-text c-code "p.x + s.x"))))
-        (is (source-text= "int" (infer-type p.x)))
+                           (stmt-with-text c-code "p->x + s.x"))))
+        (is (source-text= "int" (infer-type p->x)))
         (is (source-text= "int" (infer-type s.x)))))))
 
 (deftest test-struct-forward-declaration ()

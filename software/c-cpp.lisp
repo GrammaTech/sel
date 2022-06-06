@@ -427,9 +427,6 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-ids :around (type (ast c/cpp-pointer-expression))
   (get-declaration-ids type (c/cpp-argument ast)))
 
-(defmethod get-declaration-ids :around (type (ast c/cpp-type-descriptor))
-  (get-declaration-ids type (c/cpp-type ast)))
-
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
 
@@ -571,9 +568,12 @@ pointer declarations which are nested on themselves."
      ;; Find the type of the argument.
      (when-let* ((type (infer-type arg)))
        ;; Get the declaration of the type of the argument.
-       (let ((new-type (deref-type type)))
-         (when (not (eql type new-type))
-           (setf (attr-proxy new-type) type))
+       (let ((new-type
+              (if (typep (c/cpp-operator field) 'c/cpp-->)
+                  (deref-type type)
+                  type)))
+         ;; (when (not (eql type new-type))
+         ;;   (setf (attr-proxy new-type) type))
          (get-declaration-ast
           (if (typep new-type 'c-tag-specifier) ;A mixin class.
               :tag :type)
