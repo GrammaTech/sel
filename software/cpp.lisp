@@ -526,6 +526,7 @@
 (defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))
 
 (defmethod cpp-declarator ((ast cpp-reference-declarator))
+  "Extract the declarator from a reference declarator AST."
   (flet ((cpp-declarator* (child)
            (or (slot-value-safe child 'cpp-declarator)
                child)))

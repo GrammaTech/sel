@@ -55,6 +55,7 @@
 
 ;;; Issue #228.
 (deftest infer-struct-type-through-typedef ()
+  "Test inferring the types of struct members when the struct is typedef'd."
   (let ((c-code (from-string 'c (fmt "~
 typedef struct foo { int a; int b; } foo_t;
 int f(foo_t* p) { return p->a; }~
@@ -67,6 +68,8 @@ int f(foo_t* p) { return p->a; }~
 
 ;; Issue #228.
 (deftest infer-struct-member-type-1 ()
+  "Test inferring the types of struct members through the C tag
+namespace."
   (let ((c-code (from-string 'c (fmt "~
 struct foo { int a; int b; };
 int f(struct foo* p) { return p->a; }
@@ -88,6 +91,7 @@ int f(struct foo* p) { return p->a; }
 
 ;;; Issue #230.
 (deftest test-c-declaration-is-variable-declaration ()
+  "Test that C declarations are considered variable declarations."
   (let ((c (from-string (make-instance 'c) "char x[10]; void f() { x; }")))
     (finishes (types-in-thing c c))
     (with-attr-table c
@@ -96,6 +100,7 @@ int f(struct foo* p) { return p->a; }
 
 ;;; Issue #232.
 (deftest test-c-prototype-function-lookup ()
+  "That that function prototypes are present in the symbol table."
   (let ((c (from-string 'c (fmt "~
 extern int f();
 int g() { return f(); }~
@@ -104,6 +109,7 @@ int g() { return f(); }~
 
 ;;; issue #233.
 (deftest infer-struct-member-type/typedef ()
+  "Test that we infer typedef'd struct member types."
   (let ((c-code (from-string 'c (fmt "~
 typedef struct foo { int x; } foo_t;
 int f(foo_t* p, foo_t s) { return p->x + s.x; }"))))
@@ -120,6 +126,7 @@ int f(foo_t* p, foo_t s) { return p->x + s.x; }"))))
 
 ;;; Issue #233.
 (deftest infer-struct-member-type-3 ()
+  "Test that we infer struct member types in the tag namespace."
   (let ((c-code (from-string 'c (fmt "~
 struct foo { int x; };
 int f(struct foo* p, struct foo s) { return p->x + s.x; }"))))
@@ -159,6 +166,7 @@ struct xyz *q; ~%")))
         (is (eql q-type (second specs)))))))
 
 (deftest test-c-tag-namespace ()
+  "Test that we separate the tag and typedef namespaces."
   (let* ((c (from-string 'c (fmt "~
 struct x;
 typedef int x;
@@ -178,6 +186,7 @@ x var2 = 0;~%")))
                  'c-type-definition)))))
 
 (deftest test-pointer-and-array-field-type-inference ()
+  "Test that we correctly infer the types of pointer and array fields."
   (let* ((c (from-string 'c (fmt "~
 typedef struct foo {
   int x;
@@ -642,6 +651,7 @@ int fun(int x) {
                source))))
 
 (deftest test-c-specifier-tag-subtypes ()
+  "Test that C type specifiers without bodies get their own classes."
   (is (typep (find-if (of-type 'c-enum-specifier) (c* "enum foo x = y;"))
              'c-enum-tag-specifier))
   (is (typep (find-if (of-type 'c-union-specifier) (c* "union foo x = y;"))
@@ -651,6 +661,9 @@ int fun(int x) {
 
 
 ;;;; SCOPES tests
+
+;;; Disabled since they are obsolete after the introduction of symbol
+;;; tables.
 
 #+(or)
 (deftest c-test-scopes ()

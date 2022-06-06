@@ -671,6 +671,9 @@ appears as a return statement is assumed to be the type of the function."
    (call-next-method)))
 
 (defgeneric wrap-type-descriptor (declarator type)
+  (:documentation "If DECLARATOR declares an indirect type, such as a
+  pointer, array, or reference, then wrap TYPE in a type descriptor
+  with an appropriate abstract descriptor.")
   (:method (declarator type)
     type)
   (:method ((d c/cpp-init-declarator) type)
@@ -678,6 +681,9 @@ appears as a return statement is assumed to be the type of the function."
 
 (defmethod resolve-declaration-type ((decl c/cpp-ast) (ast c/cpp-ast)
                                      &aux (root (attrs-root*)))
+  "Make sure that a declaration for an indirect type (pointer, array,
+  reference) returns an appropriate type descriptor and not just a
+  primitive type or type identifier."
   (flet ((relevant-declarator (declarators ast decl)
            (let* ((type
                    (if (typep decl 'function-ast) :function :variable))

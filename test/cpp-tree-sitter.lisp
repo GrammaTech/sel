@@ -699,6 +699,7 @@ func fptr = &actual_function;~
             (find-if (of-type 'cpp-initializer-list) cpp)))))))
 
 (deftest test-cpp-prototype-function-lookup ()
+  "Test that function prototypes are included in the symbol table."
   (let* ((cpp (from-string 'cpp (fmt "~
 extern int f();
 int g() { return f(); }~
@@ -708,7 +709,8 @@ int g() { return f(); }~
       (source-text= "int" (infer-type call)))))
 
 (deftest infer-struct-member-type ()
-  "Test that we infer the type of a struct member from a pointer."
+  "Test inferring the type of a struct member when dereferencing a
+pointer to struct."
   (let ((code (from-string 'cpp (fmt "~
 struct foo { int x; };
 int f(foo* p, foo s) { return p->x + s.x; }"))))
