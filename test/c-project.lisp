@@ -212,6 +212,10 @@
   (with-fixture grep-project
     (is (phenome *project*))))
 
+(deftest c-project-can-lookup ()
+  (with-fixture grep-project
+    (is (not (null (@ *project* "grep.c"))))))
+
 (deftest c-include-processing ()
   (with-fixture include-processing
     (let* ((all-files (all-files *project*))

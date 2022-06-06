@@ -61,6 +61,10 @@ by the symbol-table attribute."))
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING
 and add it to PROJECT."))
 
+(defmethod lookup ((obj c/cpp-root) (key string))
+  ;; Enables the use of the `@' macro directly against projects.
+  (lookup (project-directory obj) key))
+
 #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
 (progn
 
