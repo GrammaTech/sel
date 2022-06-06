@@ -219,10 +219,11 @@ evolve-files."
   (find-if (op (string= key (name _))) (entries obj)))
 
 (defmethod mapc (function (obj directory-project) &rest more)
-  (apply 'mapc function (genome obj) more))
+  (apply 'mapc function (genome obj) more)
+  obj)
 
 (defmethod mapcar (function (obj directory-project) &rest more)
-  (apply 'mapcar function (genome obj) more))
+  (copy obj :genome (apply 'mapcar function (genome obj) more)))
 
 (defmethod convert ((to-type (eql 'list)) (obj directory-project) &rest more)
   (apply 'convert to-type (genome obj) more))

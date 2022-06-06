@@ -58,6 +58,14 @@
     (is (subtypep (type-of *soft*) 'directory-project))
     (is (> (size *soft*) 100))))
 
+(deftest mapc-returns-project ()
+  (with-fixture fib-project-javascript
+    (is (typep (mapc #'identity *soft*) 'directory-project))))
+
+(deftest mapcar-returns-project ()
+  (with-fixture fib-project-javascript
+    (is (typep (mapcar #'identity *soft*) 'directory-project))))
+
 (deftest can-find-a-javascript-function-in-a-directory-w-mapcar ()
   (with-fixture fib-project-javascript
     (let (function)
