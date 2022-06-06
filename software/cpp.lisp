@@ -634,17 +634,17 @@
       ids)))
 
 (defmethod get-declaration-ids ((ns (eql :tag)) (ast cpp-ast))
-  "Merge the tag and type namespaces."
+  "Merge the tag and type namespaces for C++."
   (get-declaration-ids :type ast))
 
 (defmethod outer-declarations :context ((ast cpp-ast))
-  "Merge the tag and type namespaces."
+  "Merge the tag and type namespaces for C++."
   (multiple-value-bind (decls types)
       (call-next-method)
     (values decls (substitute :type :tag types))))
 
 (defmethod inner-declarations :context ((ast cpp-ast))
-  "Merge the tag and type namespaces."
+  "Merge the tag and type namespaces for C++."
   (multiple-value-bind (decls types)
       (call-next-method)
     (values decls (substitute :type :tag types))))
@@ -827,6 +827,16 @@ then the return type of the call is the return type of the field."
         (resolve-container-element-type type)
         (call-next-method))))
 
+(defmethod deref-type ((type cpp-type-descriptor))
+  "Dereference a reference type."
+  (match type
+    ((cpp-type-descriptor
+      (cpp-declarator
+       (cpp-abstract-reference-declarator))
+      (cpp-type type))
+     type)
+    (otherwise (call-next-method))))
+
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
 
@@ -908,6 +918,22 @@ then the return type of the call is the return type of the field."
 
 (defmethod placeholder-type-p ((ast cpp-placeholder-type-specifier))
   t)
+
+(defmethod infer-type :context ((id cpp-identifier))
+  "When computing the type of a C++ identifier, if the identifier is
+evaluated (in an expression AST) then implicitly dereference reference
+types."
+  (match (call-next-method)
+    ((and type
+          (cpp-type-descriptor
+           (cpp-declarator (cpp-abstract-reference-declarator))))
+     (if (or (find-if (of-type 'expression-ast)
+                      (get-parent-asts* (attrs-root*) id))
+             (typep (get-parent-ast (attrs-root*) id)
+                    'cpp-expression-statement))
+         (deref-type type)
+         (fail)))
+    (result result)))
 
 (defmethod infer-type :around ((ast cpp-field-expression))
   (let* ((field-type (call-next-method))
@@ -1095,15 +1121,22 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (with-attr-table sw
     (aliasee rhs)))
 
-(defmethod make-pointer-type-descriptor ((type cpp-ast))
+(defmethod wrap-type-descriptor ((d cpp-pointer-declarator) type)
   (make 'cpp-type-descriptor
         :cpp-declarator (make 'cpp-abstract-pointer-declarator)
         :cpp-type type))
 
-(defmethod make-array-type-descriptor ((type cpp-ast) (size cpp-ast))
+(defmethod wrap-type-descriptor ((d cpp-array-declarator) type)
   (make 'cpp-type-descriptor
         :cpp-declarator (make 'cpp-abstract-array-declarator
-                              :cpp-size size)
+                              :cpp-size (cpp-size d))
+        :cpp-type type))
+
+(defmethod wrap-type-descriptor ((d cpp-reference-declarator) type)
+  ;; type
+  (make 'cpp-type-descriptor
+        :cpp-declarator (make 'cpp-abstract-reference-declarator
+                              :text "&")
         :cpp-type type))
 
 

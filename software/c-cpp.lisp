@@ -670,9 +670,11 @@ appears as a return statement is assumed to be the type of the function."
      (resolve-declaration-type decl function))
    (call-next-method)))
 
-(defgeneric make-pointer-type-descriptor (type))
-
-(defgeneric make-array-type-descriptor (type size))
+(defgeneric wrap-type-descriptor (declarator type)
+  (:method (declarator type)
+    type)
+  (:method ((d c/cpp-init-declarator) type)
+    (wrap-type-descriptor (c/cpp-declarator d) type)))
 
 (defmethod resolve-declaration-type ((decl c/cpp-ast) (ast c/cpp-ast)
                                      &aux (root (attrs-root*)))
@@ -692,14 +694,11 @@ appears as a return statement is assumed to be the type of the function."
                      (c/cpp-declarator decl)))
          (cond ((not (and type declarators))
                 (fail))
-               ((match (relevant-declarator declarators ast decl)
-                  ((c/cpp-pointer-declarator)
-                   (lret ((new-type (make-pointer-type-descriptor type)))
-                     (setf (attr-proxy new-type) type)))
-                  ((c/cpp-array-declarator
-                    (c/cpp-size size))
-                   (lret ((new-type (make-array-type-descriptor type size)))
-                     (setf (attr-proxy new-type) type)))))
+               ((when-let* ((declarator (relevant-declarator declarators ast decl))
+                            (final-type (wrap-type-descriptor declarator type)))
+                  (unless (eql final-type type)
+                    (setf (attr-proxy final-type) type)
+                    final-type)))
                (t (fail)))))
       (otherwise
        (call-next-method)))))

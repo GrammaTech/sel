@@ -178,7 +178,7 @@
 
 (def +trim-front-types+
   '(("trim_front" . "std::list<Point>")
-    ("pts" . "std::list<Point>")
+    ("pts" . "std::list<Point>&")
     ;; TODO Should this be const float?
     ("dist" . "float")
     ("result" . "std::list<Point>")
@@ -188,7 +188,7 @@
     ("segdist" . "double")
     ("frac" . "double")
     ("midpoint" . "Point")
-    ("next_point" . "Point"))
+    ("next_point" . "Point&"))
   "The types extracted from the trim_front example.")
 
 (deftest test-relevant-declaration-type ()
