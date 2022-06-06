@@ -13,7 +13,8 @@
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:compdb-project
-    :software-evolution-library/software/compilation-database-project))
+    :software-evolution-library/software/compilation-database-project)
+   (:task :software-evolution-library/utility/task))
   (:shadowing-import-from :software-evolution-library/software/compilable
                           :flags :compiler :compilable)
   (:export :file-ast
@@ -37,6 +38,10 @@
            :collect-evolve-files*))
 (in-package :software-evolution-library/software/directory)
 (in-readtable :curry-compose-reader-macros)
+
+(defparameter *directory-project-parallel-minimum* 100
+  "If a project has fewer files than this, do not bother
+  parallelizing.")
 
 (define-software directory-project (project parseable) ()
   (:documentation "A directory of files and software.
@@ -424,12 +429,63 @@ optimization settings."
     (setf (contents (get-path ast path))
           (list (genome software-object)))))
 
+(deftype parsed-genome ()
+  '(or ast (cons (eql :error) t)))
+
+(defun parallel-parse-genomes
+    (evolve-files &key (progress-fn #'do-nothing))
+  (fbind (progress-fn)
+    (mvlet* ((files len
+              (iter (for len from 0)
+                    (for (nil . file) in evolve-files)
+                    (collect file into files)
+                    (finally (return (values files len))))))
+      (flet ((safe-genome (software)
+               (lret ((genome
+                       (handler-case
+                           (genome software)
+                         (error (e)
+                           (cons :error e)))))
+                 (funcall progress-fn genome))))
+        (if (< len *directory-project-parallel-minimum*)
+            (mapcar #'safe-genome files)
+            ;; Some form of makespan minimization might be useful
+            ;; here. E.g. the longest files could be evenly
+            ;; distributed across threads and processed first to
+            ;; avoid "tails" where one thread runs much longer
+            ;; than the others.
+            (task:task-map (count-cpus)
+                           #'safe-genome
+                           files))))))
+
 (defmethod collect-evolve-files :around ((obj directory-project))
-  (let ((evolve-files (call-next-method)))
-    (dolist (pair evolve-files evolve-files)
-      (with-simple-restart (continue "Skip evolve file")
-        (destructuring-bind (path . software-object) pair
-          (insert-file obj path software-object))))))
+  (let* ((evolve-files (call-next-method))
+         (genomes
+          (parallel-parse-genomes evolve-files
+                                  :progress-fn
+                                  (lambda (genome)
+                                    (synchronized ()
+                                      (etypecase-of parsed-genome genome
+                                        (ast
+                                         (format *error-output* ".")
+                                         (force-output *error-output*))
+                                        ((cons (eql :error) t)
+                                         (format *error-output* "X")
+                                         (force-output *error-output*))))))))
+    (iter (for (path . software-object) in evolve-files)
+          (for genome = (pop genomes))
+          (etypecase-of parsed-genome genome
+            (ast (insert-file obj path software-object))
+            ((cons (eql :error) t)
+             (restart-case
+                 (error (cdr genome))
+               (continue ()
+                 :report "Skip evolve file"
+                 (next-iteration))
+               (skip-all-unparsed-files ()
+                 :report "Skip all unparsed files"
+                 (setf genomes (remove-if #'consp genomes))
+                 (next-iteration))))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
