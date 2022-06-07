@@ -864,6 +864,22 @@ public:
                       (definition-name-ast
                        (find-if (of-type 'function-ast) cpp))))))
 
+(deftest test-cpp-operator-cast-name ()
+  (let* ((cpp (from-string 'cpp (fmt "~
+struct X
+{
+    // implicit conversion
+    operator int() const { return 7; }
+
+    // explicit conversion
+    explicit operator int*() const { return nullptr; }
+};~%")))
+         (fns (collect-if (of-type 'function-ast) cpp)))
+    (is (length= 2 fns))
+    (is (source-text= "int" (definition-name-ast (first fns))))
+    ;; Should this be int*?
+    (is (source-text= "int" (definition-name-ast (second fns))))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.

@@ -551,6 +551,9 @@
 (defmethod declarator-name-ast ((ast cpp-destructor-name))
   ast)
 
+(defmethod declarator-name-ast ((ast cpp-operator-cast))
+  (cpp-type ast))
+
 (defmethod definition-name-ast ((ast cpp-class-specifier))
   (cpp-name ast))
 
