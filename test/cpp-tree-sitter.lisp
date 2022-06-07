@@ -853,6 +853,17 @@ reproduced as source text."
     (is (typep name 'identifier-ast))
     (is (source-text= "operator-" name))))
 
+(deftest test-cpp-destructor-name ()
+  (let ((cpp (from-string 'cpp (fmt "~
+class Base
+{
+public:
+    virtual ~~Base() {}
+};~%"))))
+    (is (source-text= "~Base"
+                      (definition-name-ast
+                       (find-if (of-type 'function-ast) cpp))))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.
