@@ -4300,7 +4300,7 @@ it is true."
                       (if-let ((current-paths (and (eql i (caaar ordered-paths))
                                                    (pop ordered-paths))))
                         (cond
-                          ((= 1 (length (car current-paths)))
+                          ((length= 1 (car current-paths))
                            (collect (generate-internal-asts-slot))
                            (collect member))
                           (t (collect (handle-rule
@@ -4637,7 +4637,7 @@ recursive calls for this function. Returns a transformed version of RULE."
                "Merge SIMILAR-BRANCHES into one branch by
                 adding multiple types onto the end of the relevant
                 cons in the alist."
-               (if (< 1 (length similar-branches))
+               (if (length< 1 similar-branches)
                    (let ((types-stack
                            ;; NOTE: creating a stack of types that can
                            ;;       be used to markup the initial branch
@@ -4883,7 +4883,7 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                (prune-if (lambda (node)
                            (or (null node)
                                (and (listp node)
-                                    (= (length node) 1))))
+                                    (length= node 1))))
                          tree)))
       (collapse-sequences
        (collapse-choices
@@ -5626,7 +5626,7 @@ subclass based on the order of the children were read in."
                     ;;       in json-expansions to match pruned-rule.
                     json-expansions
                     (expand-choice-branches pruned-rule json-rule))
-                   (expansions? (not (= 1 (length pruned-rule-expansions))))
+                   (expansions? (not (length= 1 pruned-rule-expansions)))
                    (collapsed-rule-expansions
                     (mapcar [#'convert-to-lisp-types #'collapse-rule-tree]
                             pruned-rule-expansions))
@@ -6804,7 +6804,7 @@ If the key is `t', the call is left unchanged."
                                   (car parse-tree))))
     (cond
       (class parse-tree)
-      ((and descriptor (not (= 3 (length parse-tree))))
+      ((and descriptor (not (length= 3 parse-tree)))
        parse-tree)
       ;; :class
       ((keywordp descriptor)
@@ -6840,7 +6840,7 @@ is hand-written.")
                                   (car parse-tree))))
     (cond
       (class parse-tree)
-      ((and descriptor (not (= 3 (length parse-tree))))
+      ((and descriptor (not (length= 3 parse-tree)))
        parse-tree)
       ;; :class
       ((keywordp descriptor)
@@ -8232,7 +8232,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
     (cond
       ;; Prevent matching on an empty rule when there are children.
       ((or (not pruned-rule)
-           (= 1 (length pruned-rule)))
+           (length= 1 pruned-rule))
        (not (get-children)))
       (pruned-rule
        (mvlet ((parse-stack
