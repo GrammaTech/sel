@@ -6396,10 +6396,9 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
            ;; This provides access to extra ASTs, such as comments.
            (defmethod extra-asts ((language (eql ',(make-keyword name-prefix))))
-             (list
-              :error-variation-point
-              :inner-whitespace
-              ,@(iter
+             '(:error-variation-point
+               :inner-whitespace
+               ,@(iter
                   (for extra in (aget :extras grammar))
                   (when (equal (aget :type extra) "SYMBOL")
                     (collect
