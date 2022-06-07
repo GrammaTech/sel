@@ -880,6 +880,20 @@ struct X
     ;; Should this be int*?
     (is (source-text= "int" (definition-name-ast (second fns))))))
 
+(deftest test-cpp-default-constructor-name ()
+  (let* ((cpp (from-string 'cpp (fmt "~
+class VectorXY {
+public:
+  /**
+   * Default constructor
+   */
+  VectorXY<PrecisionT>() : x_(0.0), y_(0.0) {
+  }
+};~%")))
+         (fn (find-if (of-type 'function-declaration-ast)
+                      cpp)))
+    (is (source-text= "VectorXY<PrecisionT>" (definition-name-ast fn)))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.
