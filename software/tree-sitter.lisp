@@ -8093,7 +8093,8 @@ in #'convert and inlined into the parse tree received from cl-tree-sitter."
       (values tree matched? (cons token-count immediate-token-count)))))
 
 (defun match-parsed-children
-    (language-prefix json-rule pruned-rule child-types parse-tree)
+    (language-prefix json-rule pruned-rule child-types parse-tree
+     &aux (extra-asts (extra-asts (make-keyword language-prefix))))
   "Match a cl-tree-sitter PARSE-TREE as a PRUNED-RULE in LANGUGE-PREFIX.
 CHILD-TYPES is a list of lisp types that the children slot can contain.
 Returns as values whether the match succeeded and if so, returns a list
@@ -8111,8 +8112,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                  ,(mapcar
                    #'remove-ignorable-items
                    (remove-if
-                    (op (member (car _)
-                                (extra-asts (make-keyword language-prefix))))
+                    (op (memq (car _) extra-asts))
                     (caddr tree))))))
            (get-children ()
              "Get the children slots and their types from parse-tree."
