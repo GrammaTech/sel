@@ -240,7 +240,7 @@
 (defmethod outer-declarations ((ast c/cpp-declaration))
   (labels ((get-declarations (d)
              (match d
-               ((type c/cpp-identifier)
+               ((type (or c/cpp-identifier cpp-qualified-identifier))
                 (values (list d) '(:variable)))
                ((type (or c/cpp-array-declarator c/cpp-pointer-declarator
                           c/cpp-function-declarator))
