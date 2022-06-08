@@ -455,7 +455,7 @@ pointer declarations which are nested on themselves."
 
 (defmethod find-enclosing-declaration
     ((type (eql 'function-declaration-ast))
-     (root c/cpp-ast)
+     root
      (id c/cpp-identifier))
   "Handling finding the enclosing function declaration for a prototype."
   (or (call-next-method)

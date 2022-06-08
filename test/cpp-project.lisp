@@ -134,6 +134,17 @@
   (with-fixture cpp-sample-project
     (is (phenome *project*))))
 
+(deftest test-cpp-function-declaration-enclosing ()
+  (let ((cpp (from-string 'cpp-project (fmt "~
+boost::property_tree::ptree
+make_config(const std::string& path_prefix,
+            const std::unordered_map<std::string, std::string>& overrides = {},
+            const std::unordered_set<std::string>& removes = {});~%"))))
+    (with-attr-table cpp
+      (find-enclosing-declaration 'function-declaration-ast
+                                  cpp
+                                  (stmt-with-text cpp "make_config")))))
+
 
 ;;; Symbol Table
 (deftest cpp-project-symbol-table-1 ()
