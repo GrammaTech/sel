@@ -14,6 +14,7 @@
            :name
            :entries
            :contents
+           :full-pathname
            :get-path
            :evolve-files
            :other-files
@@ -41,7 +42,12 @@
 (eval-always
  (defclass directory-or-file-ast (functional-tree-ast)
    ((name :accessor name :initarg :name :type string
-          :documentation "Name of the directory"))
+          :documentation "Name of the directory")
+    (full-pathname
+     :accessor full-pathname
+     :initarg :full-pathname
+     :type pathname
+     :documentation "Full pathname (relative to project root)."))
    (:documentation "Node to hold a directory or a file.")))
 
 (define-node-class directory-ast (directory-or-file-ast)
@@ -79,14 +85,16 @@
     (assert (emptyp path)))
   (:method ((dir directory-ast) (path list))
     (when (emptyp path) (return-from ensure-path dir))
-    (if-let ((subdir (find-if (op (string= (car path) (name _1))) (entries dir))))
-      (ensure-path subdir (cdr path))
+    (if-let ((entry (find-if (op (string= (car path) (name _1))) (entries dir))))
+      (ensure-path entry (cdr path))
       (progn (push (make-instance 'directory-ast :name (car path)) (entries dir))
              (ensure-path dir path))))
   (:method (dir (path pathname))
     (multiple-value-bind (directory-list filename) (pathname-to-list path)
       (ensure-path dir (butlast directory-list))
-      (pushnew (make-instance 'file-ast :name filename)
+      (pushnew (make-instance 'file-ast
+                              :name filename
+                              :full-pathname path)
                (entries (@ dir (butlast directory-list))))
       dir))
   (:method (dir (path string))
@@ -95,11 +103,12 @@
 (defgeneric get-path (directory path)
   (:documentation "Return the contents of PATH under DIRECTORY.")
   (:method ((file file-ast) (path list))
-    (when (emptyp path) file))
+    (if (emptyp path) file
+        (error "Attempt to get entries of file: ~a" file)))
   (:method ((dir directory-ast) (path list))
     (when (emptyp path) (return-from get-path dir))
-    (if-let ((subdir (find-if (op (string= (car path) (name _1))) dir)))
-      (get-path subdir (cdr path))
+    (if-let ((entry (find-if (op (string= (car path) (name _1))) dir)))
+      (get-path entry (cdr path))
       (error "path ~a not found in directory ~a" path (name dir))))
   (:method (dir (path pathname))
     (get-path dir (pathname-to-list path)))
