@@ -741,6 +741,13 @@ public:
                             (op (source-text= _ "advice"))
                             cpp))))))
 
+(deftest test-enum-is-variable-declaration ()
+  (let ((cpp (cpp "enum IntersectCase { kWithin, kContains, kOutside, kIntersects };
+kWithin;")))
+    (with-attr-table cpp
+      (infer-type (lastcar (collect-if (op (source-text= _ "kWithin"))
+                                       cpp))))))
+
 
 ;;; Parsing tests
 

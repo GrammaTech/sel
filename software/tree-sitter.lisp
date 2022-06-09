@@ -1227,7 +1227,10 @@ for the language.")
        (:while-ast c-while-statement)
        (:loop-ast c-while-statement c-for-statement c-do-statement)
        (:parse-error-ast c-error)
-       (:variable-declaration-ast c-parameter-declaration c-declaration)
+       (:variable-declaration-ast
+        c-declaration
+        c-enumerator
+        c-parameter-declaration )
        (:variable-initialization-ast c-init-declarator)
        (:assignment-ast c-assignment-expression c-update-expression)
        (:function-declaration-ast c-function-definition)
@@ -1278,6 +1281,7 @@ for the language.")
        (:boolean-true-ast cpp-true)
        (:boolean-false-ast cpp-false)
        (:variable-declaration-ast
+        cpp-enumerator
         cpp-declaration
         cpp-parameter-declaration
         cpp-optional-parameter-declaration
