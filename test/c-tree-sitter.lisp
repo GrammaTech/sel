@@ -9,6 +9,7 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/c
+   :software-evolution-library/software/c-project
    :software-evolution-library/test/util-clang
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting
@@ -139,6 +140,20 @@ int f(struct foo* p, struct foo s) { return p->x + s.x; }"))))
                            (stmt-with-text c-code "p->x + s.x"))))
         (is (source-text= "int" (infer-type p->x)))
         (is (source-text= "int" (infer-type s.x)))))))
+
+;;; Issue #248
+(deftest include-of-local-file-in-subdirectory ()
+  "Test that #include properly finds the include file relative
+to the directory of the file"
+  (let* ((c-code (nest
+                  (from-file (make-instance 'c-project))
+                  (asdf:system-relative-pathname :software-evolution-library)
+                  "test/etc/c-tree-sitter/c-include/"))
+         (types (types-in-thing c-code c-code)))
+    (is (source-text= (caar (last types)) "c"))
+    (is (source-text= (cadar (last types)) "char"))
+    (is (source-text= (caar (last types 2)) "c"))
+    (is (source-text= (cadar (last types 2)) "char"))))    
 
 (deftest test-struct-forward-declaration ()
   (let* ((c (from-string 'c (fmt "~

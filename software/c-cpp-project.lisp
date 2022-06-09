@@ -11,7 +11,8 @@
         :software-evolution-library/software/parseable-project
         :software-evolution-library/software/project
         :software-evolution-library/software/compilable
-        :software-evolution-library/software/directory)
+        :software-evolution-library/software/directory
+        :software-evolution-library/components/file)
   (:export :c/cpp-project
            :get-system-header
            :header-name
@@ -168,12 +169,52 @@ and add it to PROJECT."))
            (process-relative-header (path-ast)
              "Get the corresponding symbol table for the relative path
               represented by PATH-AST."
-             (if-let ((software
-                       (aget (trim-path-string path-ast)
-                             (evolve-files project)
-                             :test #'equal)))
-               (symbol-table software in)
-               (empty-map))))
+             #+debug-fstfi (format t "Enter process-relative-header on ~a~%" path-ast)
+             (if-let* ((file (find-enclosing 'file-ast project include-ast))
+                       (project-dir (project-dir project))
+                       (file-path (make-pathname :name nil :type nil
+                                                 :directory
+                                                 (cons :relative
+                                                       (mapcar #'sel/sw/directory::name
+                                                               (cdr (reverse (get-parent-asts* project file)))))
+                                                 :defaults project-dir))
+                       (include-path (pathname (trim-path-string path-ast))))
+                      ;; Change :UP to :BACK in the include path's directory
+                      ;; This is because CANONICAL-PATHNAME only elides :BACK
+                      ;; We have no good way to normalize :UP, which goes through
+                      ;; the semantic .. link in a Unix directory tree.  It does
+                      ;; not cancel the previous directory entry if that was a symlink.
+                      (progn
+                        #+debug-fstfi
+                        (format t "file = ~a, file-path = ~a, include-path = ~a~%"
+                                file file-path include-path)
+                        (let* ((include-path-dir (substitute :back :up (pathname-directory include-path)))
+                               (absolute-include-path
+                                 (if (null include-path-dir)
+                                     (make-pathname :name (pathname-name include-path)
+                                                    :type (pathname-type include-path)
+                                                    :defaults file-path)
+                                     (ecase (car include-path-dir)
+                                       (:relative
+                                        (make-pathname :directory (append (pathname-directory file-path)
+                                                                          (cdr include-path-dir))
+                                                       :name (pathname-name include-path)
+                                                       :type (pathname-type include-path)
+                                                       :defaults file-path))
+                                       (:absolute include-path))))
+                               (include-path-string
+                                 (namestring (canonical-pathname absolute-include-path))))
+                          (unless (equal (pathname-directory include-path) include-path-dir)
+                            (warn "include ~A in ~A may be interpreted incorrecly in the presence of symlinks"
+                                  (source-text include-ast)
+                                  (namestring file-path)))
+                          (if-let ((software
+                                    (aget include-path-string
+                                          (evolve-files project)
+                                          :test #'equal)))
+                                  (symbol-table software in)
+                                  (empty-map))))
+                      (empty-map))))
     (ematch include-ast
       ((c/cpp-preproc-include
         (c/cpp-path (and path (c/cpp-string-literal))))
