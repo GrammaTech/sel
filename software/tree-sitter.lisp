@@ -8271,13 +8271,18 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 ;;; AST Construction
 (defgeneric whitespace-between/parent (parent style ast1 ast2)
-  (:method :around (parent style (ast1 alternative-ast) ast2)
-    (whitespace-between/parent parent style
-                               (get-representative-ast ast1 parent)
-                               ast2))
-  (:method :around (parent style ast1 (ast2 alternative-ast))
-    (whitespace-between/parent parent style ast1
-                               (get-representative-ast ast2 parent)))
+  (:method :around (parent style (ast1 alternative-ast) ast2
+                    &aux (representative-ast
+                          (get-representative-ast ast1 parent)))
+    (if (eq representative-ast ast1)
+        (call-next-method)
+        (whitespace-between/parent parent style representative-ast ast2)))
+  (:method :around (parent style ast1 (ast2 alternative-ast)
+                    &aux (representative-ast
+                          (get-representative-ast ast2 parent)))
+    (if (eq representative-ast ast2)
+        (call-next-method)
+        (whitespace-between/parent parent style ast1 representative-ast)))
   (:method ((parent t) style ast1 ast2)
     (whitespace-between style ast1 ast2))
   ;; No whitespace inside a terminal symbol.
