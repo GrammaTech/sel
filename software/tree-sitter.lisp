@@ -1277,8 +1277,14 @@ for the language.")
        (:call-ast cpp-call-expression)
        (:boolean-true-ast cpp-true)
        (:boolean-false-ast cpp-false)
-       (:variable-declaration-ast cpp-parameter-declaration cpp-declaration)
-       (:variable-initialization-ast cpp-init-declarator)
+       (:variable-declaration-ast
+        cpp-declaration
+        cpp-parameter-declaration
+        cpp-optional-parameter-declaration
+        cpp-variadic-parameter-declaration)
+       (:variable-initialization-ast
+        cpp-init-declarator
+        cpp-optional-parameter-declaration)
        (:assignment-ast cpp-assignment-expression cpp-update-expression)
        (:function-declaration-ast cpp-function-definition)
        (:unary-ast cpp-unary-expression)
@@ -1302,7 +1308,12 @@ for the language.")
         cpp-do-statement)
        (:parameter-ast
         cpp-parameter-declaration
-        cpp-type-parameter-declaration)
+        cpp-optional-parameter-declaration
+        cpp-optional-type-parameter-declaration
+        cpp-template-template-parameter-declaration
+        cpp-type-parameter-declaration
+        cpp-variadic-parameter-declaration
+        cpp-variadic-type-parameter-declaration)
        (:parameters-ast cpp-parameter-list cpp-template-parameter-list)
        (:arguments-ast cpp-argument-list)
        (:type-identifier-ast cpp-type-identifier)

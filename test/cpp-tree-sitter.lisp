@@ -724,6 +724,22 @@ int f(foo* p, foo s) { return p->x + s.x; }"))))
         (is (source-text= "int" (infer-type p->x)))
         (is (source-text= "int" (infer-type s.x)))))))
 
+(deftest test-parameter-initializer ()
+  (let ((cpp (cpp* "template <class T> class mem_map {
+public:
+  // construct with file
+  mem_map(const std::string& file_name,
+          size_t size,
+          int advice = POSIX_MADV_NORMAL,
+          bool readonly = false)
+      : ptr(nullptr), count(0), file_name(\"\") {
+    map(file_name, size, advice, readonly);
+  }
+}")))
+    (with-attr-table cpp
+      (infer-type (lastcar (collect-if
+                            (op (source-text= _ "advice"))
+                            cpp))))))
 
 
 ;;; Parsing tests
