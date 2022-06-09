@@ -748,6 +748,17 @@ kWithin;")))
       (infer-type (lastcar (collect-if (op (source-text= _ "kWithin"))
                                        cpp))))))
 
+(deftest test-declaration-in-condition ()
+  (let* ((cpp (from-string 'cpp "fn() {
+  if (auto item = ptree.get_optional<T>(name))
+    value = *item;
+}"))
+         (expr (stmt-with-text cpp "auto item = ptree.get_optional<T>(name)"))
+         (decl (find-if (of-type 'cpp-declaration) expr))
+         (item (stmt-with-text decl "item")))
+    (with-attr-table cpp
+      (is (source-text= "auto" (resolve-declaration-type decl item))))))
+
 
 ;;; Parsing tests
 

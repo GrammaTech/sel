@@ -795,9 +795,17 @@
          (infer-type (rhs init))))
      (match decl
        ((cpp-declaration
+         (cpp-declarator (eql ast))
+         (cpp-type type)
+         (cpp-value value))
+        (if (placeholder-type-p type)
+            (infer-type value)
+            type))
+       ((cpp-declaration
          (cpp-declarator (and decls (type list))))
         (dolist (decl decls)
-          (when (source-text= (lhs decl) ast)
+          (when (and (typep decl 'c/cpp-init-declarator)
+                     (source-text= (lhs decl) ast))
             (return (infer-type (rhs decl)))))))
      ;; Go with the original result.
      first-try)))
