@@ -462,6 +462,10 @@
            :parse-tree-matching-error-parse-tree
            :parse-tree-matching-error-subclasses
            :parse-tree-matching-error-child-types
+           :no-enclosing-declaration-error
+           :no-enclosing-declaration-error.type
+           :no-enclosing-declaration-error.root
+           :no-enclosing-declaration-error.id
 
            :javascript
            :python
@@ -10064,6 +10068,16 @@ looking them up.")
                 (ns-table (lookup symbol-table namespace)))
       (values (lookup ns-table query)))))
 
+(define-condition no-enclosing-declaration-error (error)
+  ((type :initarg :type :type symbol :reader no-enclosing-declaration-error.type)
+   (root :initarg :root :reader no-enclosing-declaration-error.root)
+   (id :initarg :id :type ast :reader no-enclosing-declaration-error.id))
+  (:report (lambda (c s)
+             (with-slots (type root id) c
+               (format s "No ~a for ~a in ~a~%Path: ~a"
+                       type id root
+                       (ast-path root id))))))
+
 (defgeneric find-enclosing-declaration (type root id)
   (:documentation "Like `find-enclosing', but implement special
   handling when languages don't clearly distinguish different kinds of
@@ -10072,9 +10086,10 @@ looking them up.")
   (:method :context (type root id)
     (or (call-next-method)
         (let ((root (attrs-root*)))
-          (error "No ~a for ~a~%Path: ~a"
-                 type id
-                 (ast-path root id)))))
+          (error 'no-enclosing-declaration-error
+                 :type type
+                 :root root
+                 :id id))))
   (:method :context (type (root software) id)
     (find-enclosing-declaration type (genome root) id))
   (:method :context ((type symbol) root id)
