@@ -1042,7 +1042,9 @@ for the language.")
        (cpp-binary-expression
         (cpp-left :reader lhs :initarg :lhs)
         (cpp-operator :reader operator :initarg :operator)
-        (cpp-right :reader rhs :initarg :rhs)))
+        (cpp-right :reader rhs :initarg :rhs))
+       (cpp-template-declaration
+        (cpp-parameters :reader function-parameters)))
       (:golang
        (golang-const-spec
         (golang-name :reader definition-name-ast))
