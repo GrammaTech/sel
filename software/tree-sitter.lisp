@@ -466,6 +466,9 @@
            :no-enclosing-declaration-error.type
            :no-enclosing-declaration-error.root
            :no-enclosing-declaration-error.id
+           :unresolved-overloads-error
+           :unresolved-overloads-error.ast
+           :unresolved-overloads-error.overloads
 
            :javascript
            :python
@@ -7366,19 +7369,25 @@ Every element in the list has the following form:
 (defgeneric variable-use-p (software ast &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in SOFTWARE as a variable."))
 
-(defcondition unresolved-overloads ()
-  ((ast :initarg :ast :type ast)
-   (overloads :initarg :overloads :type list))
+(define-condition unresolved-overloads-error (error)
+  ((ast :initarg :ast :type ast
+        :reader unresolved-overloads-error.ast)
+   (overloads :initarg :overloads :type list
+              :reader unresolved-overloads-error.overloads))
   (:documentation "Error when overloads cannot be resolved.")
   (:report (lambda (c s)
              (with-slots (ast overloads) c
                (format s "Multiple overloads for ~a:~%~{~a~%~^~}"
                        ast overloads)))))
 
+(-> unresolved-overloads (ast list)
+  (values null &optional))
 (defun unresolved-overloads (ast overloads)
-  (error 'unresolved-overloads
+  (cerror "Return nothing"
+          'unresolved-overloads-error
          :ast ast
-         :overloads overloads))
+         :overloads overloads)
+  nil)
 
 (defgeneric resolve-overloads (type ast &optional overloads)
   (:documentation "Resolve the overloads in OVERLOADS.
