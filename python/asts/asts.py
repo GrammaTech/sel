@@ -94,15 +94,29 @@ class AST:
         language: Optional[ASTLanguage] = None,
         *,
         deepest: Optional[bool] = False,
+        error_tree: Optional[bool] = True,
     ) -> "AST":
         """
         Parse source-code string source of language and return the root
-        of the resulting AST.  When passing the deepest keyword argument,
-        the deepest subnode in the tree still encompassing all of the
-        given source text will be returned.
+        of the resulting AST.
+
+        When passing the deepest keyword argument as true, the deepest
+        subnode in the tree still encompassing all of the given source
+        text will be returned.
+
+        When passing the error_tree keyword argument as true (the default),
+        error and text fragment nodes will use the best-effort tree
+        representation returned from tree-sitter to store their children
+        instead of a flat, text representation.
         """
         language = _guess_language(text) if not language else language
-        return _interface.dispatch(AST.from_string.__name__, text, language, deepest)
+        return _interface.dispatch(
+            AST.from_string.__name__,
+            text,
+            language,
+            deepest,
+            error_tree,
+        )
 
     # AST construction using templates
     @staticmethod

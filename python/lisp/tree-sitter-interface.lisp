@@ -189,11 +189,12 @@ function name from the API followed by the arguments."
             (handle-request request *standard-output*))))
 
 ;;;; API:
-(-> int/from-string (string string boolean) (values ast &optional))
-(defun int/from-string (source-text language deepest)
-  (convert (language-to-ast-symbol language)
-           source-text
-           :deepest deepest))
+(-> int/from-string (string string boolean boolean) (values ast &optional))
+(defun int/from-string (source-text language deepest use-variation-point-tree)
+  (let ((*use-variation-point-tree* use-variation-point-tree))
+    (convert (language-to-ast-symbol language)
+             source-text
+             :deepest deepest)))
 
 (-> int/--del-- (ast) t)
 (defun int/--del-- (ast)

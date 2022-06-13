@@ -116,6 +116,14 @@ parameter may optionally be elided.  For instance:
 >>> root = asts.AST.from_string(text)
 ```
 
+If tree-sitter cannot parse the source text into an AST, an error or text
+fragment AST node will be created starting at the location of the invalid
+parse.  By default, the children of this node will be the best-effort but
+potentially incorrect parse tree received from tree-sitter with all terminal
+tokens excepting zero-width ones included.  If instead of the tree you wish
+to have a flat, text representation child, you may pass `error_tree=False`
+as a keyword argument.
+
 Finally, by default, the AST returned is the top-level, module node of
 the parsed AST.  However, in some cases, we may wish get the deepest
 subnode still encompassing all of the given source text.  This allows

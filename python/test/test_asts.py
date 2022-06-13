@@ -15,6 +15,11 @@ def slurp(path: Path) -> Text:
         return f.read()
 
 
+def contains_type(ast, type):
+    """Return TRUE if AST or any of its children are instance of the given TYPE."""
+    return any(isinstance(c, type) for c in ast)
+
+
 class BinaryOperationTestDriver(unittest.TestCase):
     def setUp(self):
         self.root = AST.from_string("x + 88", ASTLanguage.Python)
@@ -530,3 +535,27 @@ class CommentTestDriver(unittest.TestCase):
     def test_transform_does_not_crash(self):
         transformed = AST.transform(self.root, lambda ast: None)
         self.assertEqual(self.root.source_text, transformed.source_text)
+
+
+class VariationPointTestDriver(unittest.TestCase):
+    def test_error_variation_point(self):
+        text = "int"
+        root = AST.from_string(text, ASTLanguage.C, error_tree=False)
+        self.assertTrue(contains_type(root, ErrorVariationPoint))
+        self.assertEqual(root.source_text, text)
+
+    def test_source_text_fragment_variation_point(self):
+        text = "int i"
+        root = AST.from_string(text, ASTLanguage.C, error_tree=False)
+        self.assertTrue(contains_type(root, SourceTextFragmentVariationPoint))
+        self.assertEqual(root.source_text, text)
+
+    def test_error_tree_true(self):
+        root = AST.from_string("int i", ASTLanguage.C, error_tree=True)
+        self.assertTrue(contains_type(root, CSourceTextFragmentTree))
+        self.assertFalse(contains_type(root, CSourceTextFragment))
+
+    def test_error_tree_false(self):
+        root = AST.from_string("int i", ASTLanguage.C, error_tree=False)
+        self.assertTrue(contains_type(root, CSourceTextFragment))
+        self.assertFalse(contains_type(root, CSourceTextFragmentTree))
