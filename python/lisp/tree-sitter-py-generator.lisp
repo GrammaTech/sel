@@ -148,8 +148,7 @@ in top-down order.")
              "Return a string defining a python property for the given
               SLOT in CLASS."
              (destructuring-bind (symbol . arity) slot
-               (nest (indent)
-                     (join-with-newlines)
+               (nest (join-with-newlines)
                      (list "@cached_property"
                            (format nil "def ~a(self) -> ~a:"
                                    (python-property-name class symbol)
