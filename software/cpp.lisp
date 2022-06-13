@@ -1035,17 +1035,102 @@ types."
     (cons (cpp-scope ast)
           (qualified-name->list (cpp-name ast)))))
 
+(define-condition unqualifiable-ast-error (error)
+  ((asts :initarg :asts :type (soft-list-of ast)
+         :reader unqualifiable-ast-error.asts)
+   (error :initarg :error :type error))
+  (:report (lambda (c s)
+             (with-slots (asts error) c
+               (format s "Cannot compose qualified identifier from ~s because:~%~a"
+                       asts
+                       error)))))
+
+(-> list->qualified-name ((soft-list-of cpp-ast))
+    (values cpp-ast &optional))
 (defun list->qualified-name (list)
+  "Compose a cpp-qualified-identifier from LIST, a list of identifiers.
+
+Since the tree-sitter grammar treats the same text differently
+depending on which side of the :: of a qualified name it appears on,
+this involves handling some translations between types."
   (when (null list)
     (error "Empty lists cannot become qualified names!"))
-  (reduce (lambda (scope name)
-            (if (typep name 'cpp-primitive-type)
-                name
-                (make 'cpp-qualified-identifier
-                      :cpp-scope scope
-                      :cpp-name name)))
-          list
-          :from-end t))
+  (labels ((type-id->ns-id (type-id)
+             "Create a namespace identifier from a text identifier."
+             (lret ((ns-id
+                     (make 'cpp-namespace-identifier
+                           :text (source-text type-id))))
+               (setf (attr-proxy ns-id) type-id)))
+           (ns-id->type-id (ns-id)
+             "Create a type identifier from a namespace identifier."
+             (lret ((type-id
+                     (make 'cpp-type-identifier
+                           :text (source-text ns-id))))
+               (setf (attr-proxy type-id) ns-id)))
+           (dependent-type->dependent-name (dtype)
+             "Create a cpp-dependent-name from a cpp-dependent-type."
+             ;; TODO cpp-dependent-type is an alias for
+             ;; cpp-dependent-name; should this be automatic?
+             (lret ((dname (change-class (copy dtype) 'cpp-dependent-name)))
+               (setf (attr-proxy dname) dtype)))
+           (fix-scope (scope)
+             "Make sure SCOPE is an AST that can appear in the scope
+              slot of a qualified identifier."
+             (etypecase scope
+               (cpp-type-identifier
+                (type-id->ns-id scope))
+               (cpp-dependent-type
+                (dependent-type->dependent-name scope))
+               ((or cpp-namespace-identifier
+                    cpp-template-type
+                    cpp-dependent-name)
+                scope)))
+           (fix-name (name)
+             "Make sure NAME is an AST that can appear in the name
+              slot of a qualified identifier."
+             (etypecase name
+               (cpp-namespace-identifier
+                (ns-id->type-id name))
+               (cpp-dependent-type
+                (dependent-type->dependent-name name))
+               ((or cpp-dependent-name
+                    cpp-type-identifier
+                    cpp-qualified-identifier
+                    cpp-template-function
+                    cpp-identifier
+                    cpp-operator-name
+                    cpp-destructor-name)
+                name)))
+           (qualify (list)
+             "Right-fold LIST into a qualified name."
+             (reduce (lambda (scope name)
+                       (cond ((typep name 'cpp-primitive-type) name)
+                             ((no scope) name)
+                             (t (make 'cpp-qualified-identifier
+                                      :cpp-scope (fix-scope scope)
+                                      :cpp-name (fix-name name)))))
+                     list
+                     :from-end t))
+           (check-result (result-ast)
+             "Check that RESULT-AST is printable."
+             (prog1 nil
+               (source-text result-ast))))
+    (restart-case
+        (handler-bind ((error
+                        (lambda (e)
+                          (error 'unqualifiable-ast-error
+                                 :asts list
+                                 :error e))))
+          (lret ((result (qualify list)))
+            ;; Check that it's valid.
+            (check-result result)))
+      (continue ()
+        :report "Drop the first element"
+        :test (lambda (c)
+                (declare (ignore c))
+                (rest list))
+        (return-from list->qualified-name
+          (list->qualified-name (rest list)))))))
 
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")

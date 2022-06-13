@@ -469,6 +469,9 @@
            :unresolved-overloads-error
            :unresolved-overloads-error.ast
            :unresolved-overloads-error.overloads
+           :unqualifiable-ast-error
+           :unqualifiable-ast-error.asts
+           :unqualifiable-ast-error.error
 
            :javascript
            :python
