@@ -7727,6 +7727,9 @@ for the compiler to infer the type.")
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
+  (:method :context ((ast ast))
+    (with-simple-restart (continue "Return nil")
+      (call-next-method)))
   (:method (ast)
     (let ((expression-type (infer-expression-type ast)))
       (cond ((null expression-type)
