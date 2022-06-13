@@ -548,6 +548,11 @@
            :goto-ast
            :terminal-symbol
            :canonical-type
+           ;; Variation points
+           :variation-point
+           :error-variation-point
+           :source-text-fragment-variation-point
+           :*use-variation-point-tree*
            ;; Generics
            ;; TODO: should this be in parseable?
            :collect-fun-uses
@@ -3495,6 +3500,22 @@ stored as a list of interleaved text. This should ideally only be used for leaf
     (:documentation "A mixin for ASTs that represent fragments of source text.")
     (:default-initargs :indent-adjustment 0))
 
+  (defclass variation-point (alternative-ast)
+    ()
+    (:documentation "A mixin to represent variations"))
+
+  (defclass error-variation-point (variation-point)
+    ()
+    (:documentation "Node for error variation points."))
+
+  (defclass source-text-fragment-variation-point (variation-point)
+    ()
+    (:documentation "Node for source-text fragment variation points."))
+
+  (defclass error-tree (parse-error-ast)
+    ()
+    (:documentation "Node for errors represented as a tree."))
+
   (defclass inner-whitespace (text-fragment)
     ()
     (:documentation "An AST that represents whitespace between two
@@ -6057,7 +6078,129 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
              (create-external-classes (grammar)
                "Create classes for the external rules for the grammar file."
                (filter-map (op (create-external-class (aget :name _)))
-                           (aget :externals grammar))))
+                           (aget :externals grammar)))
+             (generate-variation-point-code ()
+               "Generate the code for source-text-fragment and error
+                variation-points."
+               ;; TODO: need to make sure that the slots and accessors are
+               ;;       exported so that match can access the slots for
+               ;;       templates.
+               `(progn
+                  (define-node-class ,(make-class-name "error-variation-point")
+                      ,(remove-duplicates
+                        `(error-variation-point
+                          ,ast-superclass
+                          ,@(get-supertypes-for-type "error-variation-point"))
+                        :from-end t)
+                    ((#1=,(convert-to-lisp-type name-prefix "parse-error-ast")
+                         :accessor ,(make-accessor-name name-prefix 'parse-error-ast)
+                         :accessor parse-error-ast
+                         :initform nil
+                         :initarg :parse-error-ast)
+                     (,(convert-to-lisp-type name-prefix  "error-tree")
+                      :accessor ,(make-accessor-name name-prefix  'error-tree)
+                      :accessor error-tree
+                      :initform nil
+                      :initarg :error-tree)
+                     (child-slots :initform '((#1# . 1))
+                                  :allocation :class))
+                    (:documentation "Generated for error variation points."))
+
+                  (define-node-class
+                      ,(make-class-name "error-variation-point-tree")
+                      ,(remove-duplicates
+                        `(error-variation-point
+                          ,ast-superclass
+                          ,@(get-supertypes-for-type
+                             "error-variation-point-tree"))
+                        :from-end t)
+                    ((,(convert-to-lisp-type name-prefix  "parse-error-ast")
+                      :accessor ,(make-accessor-name name-prefix 'parse-error-ast)
+                      :accessor parse-error-ast
+                      :initform nil
+                      :initarg :parse-error-ast)
+                     (#2=,(convert-to-lisp-type name-prefix  "error-tree")
+                         :accessor ,(make-accessor-name name-prefix 'error-tree)
+                         :accessor error-tree
+                         :initform nil
+                         :initarg :error-tree)
+                     (child-slots :initform '((#2# . 1))
+                                  :allocation :class))
+                    (:documentation "Generated for error variation points."))
+
+                  (define-node-class
+                      ,(make-class-name "source-text-fragment-variation-point")
+                      ,(remove-duplicates
+                        `(source-text-fragment-variation-point
+                          ,ast-superclass
+                          ,@(get-supertypes-for-type
+                             "source-text-fragment-variation-point"))
+                        :from-end t)
+                    ((#3=,(convert-to-lisp-type
+                           name-prefix "source-text-fragment")
+                         :accessor ,(make-accessor-name name-prefix 'source-text-fragment)
+                         :accessor source-text-fragment
+                         :initform nil
+                         :initarg :source-text-fragment)
+                     (,(convert-to-lisp-type
+                        name-prefix  "source-text-fragment-tree")
+                      :accessor ,(make-accessor-name name-prefix 'source-text-fragment-tree)
+                      :accessor source-text-fragment-tree
+                      :initform nil
+                      :initarg :source-text-fragment-tree)
+                     (child-slots :initform '((#3# . 1))
+                                  :allocation :class))
+                    (:documentation
+                     "Generated for source text fragment variation points."))
+
+                  (define-node-class
+                      ,(make-class-name
+                        "source-text-fragment-variation-point-tree")
+                      ,(remove-duplicates
+                        `(source-text-fragment-variation-point
+                          ,ast-superclass
+                          ,@(get-supertypes-for-type
+                             "source-text-fragment-variation-point"))
+                        :from-end t)
+                    ((,(convert-to-lisp-type name-prefix  "source-text-fragment")
+                      :accessor ,(make-accessor-name name-prefix 'source-text-fragment)
+                      :accessor source-text-fragment
+                      :initform nil
+                      :initarg :source-text-fragment)
+                     (#4=,(convert-to-lisp-type
+                           name-prefix  "source-text-fragment-tree")
+                         :accessor ,(make-accessor-name name-prefix
+                                     'source-text-fragment-tree)
+                         :accessor source-text-fragment-tree
+                         :initform nil
+                         :initarg :source-text-fragment-tree)
+                     (child-slots :initform '((#4# . 1))
+                                  :allocation :class))
+                    (:documentation
+                     "Generated for source text fragment variation points."))
+
+                  (define-node-class ,(make-class-name "error-tree")
+                      ,(remove-duplicates
+                        `(error-tree
+                          ,ast-superclass
+                          ,@(get-supertypes-for-type "error-tree"))
+                        :from-end t)
+                    ((child-slots :initform '((children . 0))
+                                  :allocation :class))
+                    (:documentation "Generated for error trees."))
+
+                  (define-node-class
+                      ,(make-class-name "source-text-fragment-tree")
+                      ,(remove-duplicates
+                        `(error-tree
+                          ,ast-superclass
+                          ,@(get-supertypes-for-type
+                             "source-text-fragment-tree"))
+                        :from-end t)
+                    ((child-slots :initform '((children . 0))
+                                  :allocation :class))
+                    (:documentation
+                     "Generated for source-text-fragment trees.")))))
       (add-additional-supertypes additional-supertypes)
       (initialize-subtype->supertypes)
       (initialize-class->extra-slot-options)
@@ -6164,6 +6307,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
                ()
                (:documentation "Generated for source text fragments."))
 
+             ,(generate-variation-point-code)
+
              ,@(create-external-classes grammar)
 
              ;; NOTE: we want to maintain the order of the classes as they
@@ -6192,17 +6337,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
              spec)
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (spec list)
-                               &key string-pass-through
-                                 computed-text-parent-p
-                                 line-octets-cache
-                                 patch-whitespace
-                               &allow-other-keys)
-             (convert 'tree-sitter-ast spec
-                      :patch-whitespace patch-whitespace
-                      :superclass to-type
-                      :string-pass-through string-pass-through
-                      :computed-text-parent-p computed-text-parent-p
-                      :line-octets-cache line-octets-cache))
+                               &rest args &key &allow-other-keys)
+             (apply #'convert 'tree-sitter-ast spec :superclass to-type args))
 
            (defmethod convert ((to-type (eql ',ast-superclass)) (string string)
                                &rest args &key &allow-other-keys)
@@ -6252,7 +6388,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
            ;; This provides access to extra ASTs, such as comments.
            (defmethod extra-asts ((language (eql ',(make-keyword name-prefix))))
              (list
-              :error
+              :error-variation-point
               :inner-whitespace
               ,@(iter
                   (for extra in (aget :extras grammar))
@@ -6422,6 +6558,9 @@ are ordered for reproduction as source text.")
   (:method ((ast text-fragment) &rest rest &key &allow-other-keys)
     (declare (ignorable rest))
     (list (before-text ast) (text ast) (after-text ast)))
+  (:method ((ast variation-point) &rest rest &key &allow-other-keys)
+    (declare (ignorable rest))
+    `(,(before-text ast) ,@(children ast) ,(after-text ast)))
   (:method :around ((ast structured-text)
                     &rest rest &key finalized-type &allow-other-keys)
     (declare (ignorable rest))
@@ -6677,7 +6816,7 @@ If the key is `t', the call is left unchanged."
         rest))
       (t parse-tree)))
   (:method :around (language class parse-tree &rest rest &key)
-    ;; Create source-text-fragments where they're needed.
+    ;; Create source-text-fragment-variation-points where they're needed.
     (declare (ignore rest))
     (if class
         (transform-malformed-parse-tree (call-next-method) :recursive nil)
@@ -6746,6 +6885,10 @@ children. (This can happen when they store alternative ASTs)."
 
 
 ;;; tree-sitter parsing
+(defvar *use-variation-point-tree* nil
+  "Controls whether variation points for errors and source text fragments use
+the tree representation as opposed to the string representation.")
+
 (defun position-after-leading-newline (str &aux (pos 0))
   "Returns 1+ the position of the first newline in STR,
 assuming it can be reached only by skipping over whitespace
@@ -6928,7 +7071,8 @@ argument destructuring (e.g. ECMAScript).")
                     (lambda (condition)
                       (declare (ignorable condition))
                       (when (find-if
-                             (of-type '(or source-text-fragment parse-error-ast))
+                             (of-type '(or source-text-fragment-variation-point
+                                        error-variation-point))
                              ast)
                         (return-from inner-declarations)))))
       (call-next-method))))
@@ -6946,7 +7090,8 @@ return more information as values depending on the language.")
                     (lambda (condition)
                       (declare (ignorable condition))
                       (when (find-if
-                             (of-type '(or source-text-fragment parse-error-ast))
+                             (of-type '(or source-text-fragment-variation-point
+                                        error-variation-point))
                              ast)
                         (return-from outer-declarations)))))
       (call-next-method))))
@@ -7598,7 +7743,8 @@ Equivalent type descriptors should be equal under `equal?'.")
 
 (defun contains-error-ast-p (ast)
   "Return non-NIL if AST is an error AST or contains an error AST child."
-  (fbind ((test (of-type '(or parse-error-ast source-text-fragment))))
+  (fbind ((test (of-type '(or source-text-fragment-variation-point
+                           error-variation-point))))
     (find-if (lambda (ast)
                (or (test ast)
                    (some #'test (before-asts ast))
@@ -7672,7 +7818,6 @@ By default just returns CHILD-AST.")
   (:method ((ast conflict-ast) parent-ast)
     (some #'cadr (conflict-ast-child-alist ast))))
 
-
 (defun children-parser (ast pruned-rule slots &aux (child-stack-key '#.(gensym)))
   "Return the children of AST in order based on PRUNED-RULE. SLOTS specifies
 which slots are expected to be used."
@@ -7725,13 +7870,16 @@ which slots are expected to be used."
            (handle-child (rule slot->stack)
              (when (typep (get-matchable-value
                            (car (get* 'children slot->stack)))
-                          ;; Treat source-text-fragment as a wild card.
-                          (append '(or source-text-fragment) (cdr rule)))
+                          ;; Treat source-text-fragment-variation-point
+                          ;; as a wild card.
+                          (append '(or source-text-fragment-variation-point)
+                                  (cdr rule)))
                (trim-slot-stack 'children slot->stack)))
            (handle-field (rule slot->stack &aux (slot (cadr rule)))
              (when (typep (get-matchable-value
                            (car (get* slot slot->stack)))
-                          (append '(or source-text-fragment) (cddr rule)))
+                          (append '(or source-text-fragment-variation-point)
+                                  (cddr rule)))
                (trim-slot-stack slot slot->stack)))
            (handle-slot (rule slot->stack &aux (slot (cadr rule)))
              (ensure-get* slot slot->stack (slot-value ast slot))
@@ -7983,8 +8131,9 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                      (not (null child))
                      ;; Confirm tree is the relevant thing on the stack.
                      (member (convert-to-lisp-type language-prefix child)
-                             ;; Treat source-text-fragment as a wild card.
-                             (cons 'source-text-fragment
+                             ;; Treat source-text-fragment-variation-point as a
+                             ;; wild card.
+                             (cons 'source-text-fragment-variation-point
                                    (cdr rule))
                              :test #'subtypep))
                 (values (cdr parse-stack) t (cons 1 inner-asts-order)))
@@ -8004,8 +8153,9 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                      (member
                       (convert-to-lisp-type
                        language-prefix (cadr field-pair))
-                      ;; Treat source-text-fragment as a wild card.
-                      (cons 'source-text-fragment
+                      ;; Treat source-text-fragment-variation-point as a wild
+                      ;; card.
+                      (cons 'source-text-fragment-variation-point
                             (cddr rule))
                       :test #'subtypep))
                 (values (cdr parse-stack) t (cons 1 inner-asts-order)))
@@ -8746,7 +8896,8 @@ the indentation slots."
 
 (defun convert-parse-tree
     (spec prefix superclass string
-     &key computed-text-parent-p line-octets-cache
+     &key computed-text-parent-p line-octets-cache variation-point-tree-parent-p
+     &allow-other-keys
      &aux (*package* (symbol-package superclass))
        (class (symbolicate prefix '-
                            (let ((type (car spec)))
@@ -8839,10 +8990,18 @@ the indentation slots."
                (subtypep class 'terminal-symbol)))
            ;; TODO: refactor as this function is used under a different
            ;;       name below.
-           (skip-terminal-field-p (field-spec slot-info)
+           (skip-terminal-field-p (field-spec slot-info
+                                   &aux (range (cadr field-spec)))
              "Return T if FIELD-SPEC represents a terminal symbol that shouldn't
               appear in the resulting AST."
              (cond
+               ;; all terminals should be stored under a variation point to give
+               ;; maximum control to users that want to modify the variation
+               ;; point trees.
+               (variation-point-tree-parent-p
+                ;; NOTE: we actually do want to skip zero-width tokens.
+                (when (equal (car range) (cadr range))
+                  t))
                ;; Has an associated slot or has children
                ((or (listp slot-info) (caddr field-spec)) nil)
                (t (terminal-symbol-class-p slot-info))))
@@ -8883,7 +9042,14 @@ the indentation slots."
                     (convert superclass field
                              :string-pass-through string
                              :computed-text-parent-p computed-text-p
-                             :line-octets-cache line-octets))
+                             :line-octets-cache line-octets
+                             :variation-point-tree-parent-p
+                             (member
+                              (if (consp slot-info)
+                                  (cadr slot-info)
+                                  slot-info)
+                              '(:error-tree
+                                :source-text-fragment-tree))))
                ;; cl-tree-sitter appears to put the
                ;; slot name first unless the list goes
                ;; into the children slot.
@@ -8901,7 +9067,8 @@ the indentation slots."
                  ((and computed-text-p
                        (typep converted-field 'inner-whitespace)))
                  ((and (not computed-text-p)
-                       (typep converted-field '(or comment-ast parse-error-ast
+                       (typep converted-field '(or comment-ast
+                                                error-variation-point
                                                 inner-whitespace)))
                   ;; NOTE: this won't put the comment in the children slot
                   ;;       when it's allowed. There may need to be a function
@@ -9101,8 +9268,7 @@ the indentation slots."
     ;; Don't store the ASTs inside errors since they're likely not useful.
     (mvlet ((converted-fields inner-asts (and (not error-p)
                                               (get-converted-fields))))
-      (unless error-p
-        (set-slot-values (merge-same-fields converted-fields) inner-asts)))
+      (set-slot-values (merge-same-fields converted-fields) inner-asts))
     (set-surrounding-text)
     (set-text)
     (update-slots-based-on-arity)
@@ -9163,16 +9329,16 @@ correct class name for subclasses of SUPERCLASS."
       (patch-whitespace ast))))
 
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec list)
-                    &key superclass string-pass-through computed-text-parent-p
-                      line-octets-cache
+                    &rest args
+                    &key superclass string-pass-through
                     &allow-other-keys)
   "Create a TO-TYPE AST from the SPEC (specification) list."
   (if string-pass-through
-      (convert-parse-tree
+      (apply
+       #'convert-parse-tree
        spec (get-language-from-superclass superclass) superclass
        string-pass-through
-       :computed-text-parent-p computed-text-parent-p
-       :line-octets-cache line-octets-cache)
+       args)
       (convert-spec
        spec (get-language-from-superclass superclass) superclass)))
 
@@ -9329,8 +9495,10 @@ with SUPERCLASS.")
 ;;; By default, don't indent comments, text fragments or parsing errors.
 (defmethod indentablep ((ast comment-ast)) nil)
 (defmethod indentablep ((ast parse-error-ast)) nil)
+(defmethod indentablep ((ast error-variation-point)) nil)
 (defmethod indentablep ((ast text-fragment)) nil)
 (defmethod indentablep ((ast source-text-fragment)) nil)
+(defmethod indentablep ((ast source-text-fragment-variation-point)) nil)
 
 (defmethod get-indentation-at ((ast inner-whitespace) (parents list)
                                &aux (parent (car parents)))
@@ -9667,7 +9835,10 @@ the rebinding"
   "Return a modified version of PARSE-TREE if it is malformed.
 This occurs when the source text is not accurately represented by the parse tree
 which is caused by dropped tokens or added zero-width tokens.
-Otherwise, returns PARSE-TREE."
+When a slot contains an error node, the issue is instead promoted to the parent,
+making it a source-text-fragment.
+This function also modifies error nodes, though they're not strictly malformed
+per se. Otherwise, returns PARSE-TREE."
   (labels ((walk-parse-tree (function parse-tree)
              (funcall function parse-tree)
              (map nil {walk-parse-tree function} (caddr parse-tree)))
@@ -9679,11 +9850,15 @@ Otherwise, returns PARSE-TREE."
              ;;       on the lisp side and do not occur in trees retrieved from
              ;;       tree-sitter. They are patched out here because most of the
              ;;       code assumes that they will not happen.
-             (iter
-               (for child in (caddr subtree))
-               (for slot/type = (car child))
-               (thereis (and (listp slot/type)
-                             (eql (cadr slot/type) :error)))))
+             ;; NOTE: error-variation-points are created by this function, and
+             ;;       are not problematic even though they have an error in a
+             ;;       slot.
+             (unless (eql :error-variation-point (car subtree))
+               (iter
+                 (for child in (caddr subtree))
+                 (for slot/type = (car child))
+                 (thereis (and (listp slot/type)
+                               (eql (cadr slot/type) :error))))))
            (problematicp (subtree)
              (and (listp subtree)
                   (or (zero-width-p subtree)
@@ -9698,13 +9873,41 @@ Otherwise, returns PARSE-TREE."
                  (find-if
                   (lambda (subtree)
                     (problematicp subtree))
-                  (caddr tree)))))
-    (if (problematic-subtree-p parse-tree)
-        `(,(if (consp (car parse-tree))
-               (list (caar parse-tree) :source-text-fragment)
-               :source-text-fragment)
-          ,(cadr parse-tree) nil)
-        parse-tree)))
+                  (caddr tree))))
+           (strip-slots-from-children (tree)
+             "Strip slots from the children of TREE."
+             (let ((children (caddr tree)))
+               (mapcar (lambda (child-tree)
+                         (if (listp (car child-tree))
+                             `(,(cadar child-tree) ,@(cdr child-tree))
+                             child-tree))
+                       children))))
+    (let ((range (cadr parse-tree))
+          (stored-in-slot? (consp (car parse-tree)))
+          (error-class (if *use-variation-point-tree*
+                           :error-variation-point-tree
+                           :error-variation-point))
+          (source-text-fragment-class
+            (if *use-variation-point-tree*
+                :source-text-fragment-variation-point-tree
+                :source-text-fragment-variation-point)))
+      (cond
+        ((eql :error (car parse-tree))
+         `(,error-class
+           ,range
+           (((:parse-error-ast :error) ,range nil)
+            ((:error-tree :error-tree) ,range
+             ,(strip-slots-from-children parse-tree)))))
+        ((problematic-subtree-p parse-tree)
+         `(,(if stored-in-slot?
+                (list (caar parse-tree) source-text-fragment-class)
+                source-text-fragment-class)
+           ,range
+           (((:source-text-fragment :source-text-fragment) ,range nil)
+            ((:source-text-fragment-tree :source-text-fragment-tree)
+             ,range
+             ,(strip-slots-from-children parse-tree)))))
+        (t parse-tree)))))
 
 (defun transform-c-style-variadic-parameter (parse-tree)
   "If PARSE-TREE represents a variadic function, return a modified version of it.

@@ -41,6 +41,8 @@
 (defgeneric ellipsis-match-p (node result)
   (:method ((node t) (result t)) nil)
   (:method ((node parse-error-ast) (result list))
+    (equal (source-text node) "..."))
+  (:method ((node error-variation-point) (result list))
     (equal (source-text node) "...")))
 
 (defgeneric ast-for-match (language string &key software context tolerant)
@@ -155,6 +157,8 @@ similar matches, and elipses for matching series of ASTs."
                ((null val) (pop result))
                ((and (listp val) (every «and #'stringp #'emptyp» val)) (pop result))
                ((and (stringp val) (emptyp val)) (pop result))
+               ((ellipsis-match-p val result)
+                (push 'ellipsis-match result))
                ((consp val)
                 (if (some (op (ellipsis-match-p _ result)) val)
                     (push 'ellipsis-match result)

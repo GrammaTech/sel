@@ -363,3 +363,73 @@ indentation slots in :before and :after groupings."
                                        (stmt-with-text root "()")
                                        (tree-copy (stmt-with-text root
                                                                   "int a;")))))))
+
+
+;;; Variation Point (Errors and Source-text-fragments)
+(deftest tree-sitter-error-variation-point ()
+  "Error variation points are created when an error occurs and contain the
+correct source text."
+  ;; NOTE: this test can fail if the parser or tree-sitter itself change how
+  ;;       errors are created in the parse tree.
+  (let* ((source "int")
+         (target-ast (find-if (of-type 'error-variation-point)
+                              (convert 'c-ast source))))
+    (is (source-text= source target-ast))))
+
+(deftest tree-sitter-source-text-fragment-variation-point ()
+  "Source-text-fragment variation points are created when an error occurs and
+contain the correct source text."
+  ;; NOTE: this test can fail if the parser or tree-sitter itself change how
+  ;;       zero-width tokens are created in the parse tree.
+  (let* ((source "int i")
+         (target-ast (find-if (of-type 'source-text-fragment-variation-point)
+                              (convert 'c-ast source))))
+    (is (source-text= source target-ast))))
+
+(deftest tree-sitter-variation-point-trees ()
+  "*use-variation-point-tree* can be used to set either a tree representation
+or a non-tree representation for error and source-text-fragment variation
+points."
+  (let* ((*use-variation-point-tree* nil)
+         (source "int i")
+         (root (convert 'c-ast source)))
+    (is (find-if (of-type 'c-source-text-fragment)
+                 root))
+    (is (not (find-if (of-type 'c-source-text-fragment-tree)
+                      root)))
+    (is (source-text= source root)))
+  (let* ((*use-variation-point-tree* t)
+         (source "int i")
+         (root (convert 'c-ast source)))
+    (is (find-if (of-type 'c-source-text-fragment-tree)
+                 root))
+    (is (not (find-if (of-type 'c-source-text-fragment)
+                      root)))))
+
+(deftest tree-sitter-variation-point-trees-contain-tokens ()
+  "*use-variation-point-tree* can be used to set either a tree representation
+or a non-tree representation for error and source-text-fragment variation
+points."
+  (let* ((*use-variation-point-tree* t)
+         (source "int i")
+         (root (convert 'c-ast source)))
+    (is (source-text=
+         "int"
+         (find-if (of-type 'c-primitive-type)
+                  root)))
+    (is (source-text=
+         "i"
+         (find-if (of-type 'c-identifier)
+                  root))))
+  (let* ((*use-variation-point-tree* t)
+         (source "for (;;) {")
+         (root (convert 'c-ast source)))
+    (is (find-if (of-type '|C-{|)
+                 root))))
+
+(deftest tree-sitter-source-text-fragment-trees-zero-width-tokens ()
+  "Source-text-fragment variation point trees don't contain zero-width tokens."
+  (let ((*use-variation-point-tree* t)
+         (source "int i"))
+    (is (not (find-if (of-type '|C-;|)
+                      (convert 'c-ast source))))))
