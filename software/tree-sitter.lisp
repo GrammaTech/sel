@@ -8726,8 +8726,8 @@ setting it if it isn't already set."
                       (whitespace-between/parent
                        ast
                        style
-                       (get-representative-ast previous-item ast)
-                       (get-representative-ast item ast)))
+                       previous-item
+                       item))
                  (when (and recursive
                             (typep item '(and tree-sitter-ast
                                           (not terminal-symbol)))
