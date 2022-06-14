@@ -47,9 +47,16 @@ identifiers."
      parse-tree &key)
   "Transform PARSE-TREE such that positional-only and keyword-only classes
 are created if they're present in PARSE-TREE."
-  (labels ((positional-only-p (subtree &aux (children (lastcar subtree)))
+  (labels ((get-error-tree (error-subtree)
+             "Get the relevant error-tree subtree from ERROR-SUBTREE."
+             (find-if (op (and (listp (car _1))
+                               (eql :error-tree (caar _1))))
+                      (parse-tree-children error-subtree)))
+           (positional-only-p (subtree
+                               &aux (error-tree (get-error-tree subtree))
+                                 (children (parse-tree-children error-tree)))
              "Return true if subtree represents a positional only separator."
-             (and (eql :error (car subtree))
+             (and (eql :error-tree (caar error-tree))
                   (eql :/ (caar children))
                   (eql :|,| (caadr children))))
            (keyword-only-p (subtree)
@@ -63,9 +70,13 @@ are created if they're present in PARSE-TREE."
         (for child-tree in (lastcar parse-tree))
         (cond
           ((positional-only-p child-tree)
-           (let ((children (lastcar child-tree)))
-             (collect (cons :positional-only-separator (cdar children)))
-             (collect (cadr children))))
+           (let* ((error-tree (get-error-tree child-tree))
+                  (error-children (parse-tree-children error-tree))
+                  (position-/ (car error-children)))
+             (collect (list :positional-only-separator
+                            (parse-tree-range position-/)
+                            (list position-/)))
+             (collect (cadr error-children))))
           ((keyword-only-p child-tree)
            (collect (cons :keyword-only-separator (cdr child-tree))))
           (t (collect child-tree))))))))
