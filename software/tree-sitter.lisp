@@ -8762,6 +8762,7 @@ parent in the cases where the parent indentation changes.")
                 (get-style-indentation style software parent)))
         (patch-whitespace
          (lookup new-software ast-path)
+         :allow-other-keys t
          :recursive t :prettify t :software new-software :style style))))
 
 (defmacro define-empty-whitespace-methods ((&optional (style t))
