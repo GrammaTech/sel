@@ -386,6 +386,19 @@ contain the correct source text."
                               (convert 'c-ast source))))
     (is (source-text= source target-ast))))
 
+(deftest tree-sitter-source-text-fragment-variation-point/tree-copy ()
+  "Calling tree-copy on a variation point preserves the alternatives."
+  ;; NOTE: this test can fail if the parser or tree-sitter itself change how
+  ;;       zero-width tokens are created in the parse tree.
+  (let* ((source "int")
+         (target-ast (find-if (of-type 'error-variation-point)
+                              (convert 'c-ast source))))
+    (is (source-text= (tree-copy target-ast) target-ast)))
+  (let* ((source "int i")
+         (target-ast (find-if (of-type 'source-text-fragment-variation-point)
+                              (convert 'c-ast source))))
+    (is (source-text= (tree-copy target-ast) target-ast))))
+
 (deftest tree-sitter-variation-point-trees ()
   "*use-variation-point-tree* can be used to set either a tree representation
 or a non-tree representation for error and source-text-fragment variation

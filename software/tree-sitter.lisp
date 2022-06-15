@@ -5933,6 +5933,14 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                              "-"
                              name-keyword)))
                  (ensure-gethash name symbols-to-export t)))
+             (make-node-initargs (prefix initarg)
+               "Return a list of two initargs, suitable for splicing
+                into a node definition. One is just INITARG; the other
+                other is INITARG prefixed with NAME-PREFIX."
+               ;; `ft:tree-copy' relies on every slot having a keyword
+               ;; initarg that is string= to the slot's name.
+               (list :initarg initarg
+                     :initarg (make-keyword (string+ prefix "-" initarg))))
              (make-accessor-names (name-keyword)
                "Create accessor names based on NAME-PREFIX and
                 `*tree-sitter-ast-extra-prefixes*` and add them to the
@@ -6096,12 +6104,12 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                          :accessor ,(make-accessor-name name-prefix 'parse-error-ast)
                          :accessor parse-error-ast
                          :initform nil
-                         :initarg :parse-error-ast)
+                         ,@(make-node-initargs name-prefix :parse-error-ast))
                      (,(convert-to-lisp-type name-prefix  "error-tree")
                       :accessor ,(make-accessor-name name-prefix  'error-tree)
                       :accessor error-tree
                       :initform nil
-                      :initarg :error-tree)
+                      ,@(make-node-initargs name-prefix :error-tree))
                      (child-slots :initform '((#1# . 1))
                                   :allocation :class))
                     (:documentation "Generated for error variation points."))
@@ -6118,12 +6126,12 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                       :accessor ,(make-accessor-name name-prefix 'parse-error-ast)
                       :accessor parse-error-ast
                       :initform nil
-                      :initarg :parse-error-ast)
+                      ,@(make-node-initargs name-prefix :parse-error-ast))
                      (#2=,(convert-to-lisp-type name-prefix  "error-tree")
                          :accessor ,(make-accessor-name name-prefix 'error-tree)
                          :accessor error-tree
                          :initform nil
-                         :initarg :error-tree)
+                         ,@(make-node-initargs name-prefix :error-tree))
                      (child-slots :initform '((#2# . 1))
                                   :allocation :class))
                     (:documentation "Generated for error variation points."))
@@ -6141,13 +6149,13 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                          :accessor ,(make-accessor-name name-prefix 'source-text-fragment)
                          :accessor source-text-fragment
                          :initform nil
-                         :initarg :source-text-fragment)
+                         ,@(make-node-initargs name-prefix :source-text-fragment))
                      (,(convert-to-lisp-type
                         name-prefix  "source-text-fragment-tree")
                       :accessor ,(make-accessor-name name-prefix 'source-text-fragment-tree)
                       :accessor source-text-fragment-tree
                       :initform nil
-                      :initarg :source-text-fragment-tree)
+                      ,@(make-node-initargs name-prefix :source-text-fragment-tree))
                      (child-slots :initform '((#3# . 1))
                                   :allocation :class))
                     (:documentation
@@ -6166,14 +6174,15 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                       :accessor ,(make-accessor-name name-prefix 'source-text-fragment)
                       :accessor source-text-fragment
                       :initform nil
-                      :initarg :source-text-fragment)
+                      ,@(make-node-initargs name-prefix :source-text-fragment))
                      (#4=,(convert-to-lisp-type
                            name-prefix  "source-text-fragment-tree")
                          :accessor ,(make-accessor-name name-prefix
                                      'source-text-fragment-tree)
                          :accessor source-text-fragment-tree
                          :initform nil
-                         :initarg :source-text-fragment-tree)
+                         ,@(make-node-initargs name-prefix
+                                               :source-text-fragment-tree))
                      (child-slots :initform '((#4# . 1))
                                   :allocation :class))
                     (:documentation
