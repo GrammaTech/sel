@@ -35,4 +35,11 @@
         (string-replace "/*"
                         (read-file-into-string file)
                         "/* synopsis ")))
+      ((equal (pathname-name file) "iterator")
+       (extract-synopsis-from-string
+        ;; Fix up an unparseable argument by turning hyphens into
+        ;; underscores.
+        (string-replace "a-private-type"
+                        (read-file-into-string file)
+                        "a_private_type")))
       (t (extract-synopsis-from-string (read-file-into-string file))))))
