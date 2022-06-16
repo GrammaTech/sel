@@ -186,9 +186,6 @@ field."
   (find-enclosing '(or definition-ast c-primitive-type)
                   sw ast))
 
-(defmethod definition-name-ast ((ast c-type-definition))
-  (c-declarator ast))
-
 ;; TODO: Convert other methods implemented for JavaScript but not C.
 
 ;; Implement the generic format-genome method for C objects.

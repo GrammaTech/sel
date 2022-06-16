@@ -336,6 +336,14 @@ pointer declarations which are nested on themselves."
            (values enumerator-names
                    #1#))))))
 
+(defmethod resolve-declaration-type ((decl c/cpp-enumerator) ast
+                                     &aux (root (attrs-root*)))
+  (let ((enum (find-enclosing 'c/cpp-enum-specifier root decl)))
+    ;; If the enum is typedef'd, we probably want the typedef name.
+    (or (when-let (typedef (find-enclosing 'c/cpp-type-definition root enum))
+          (definition-name-ast typedef))
+        (definition-name-ast enum))))
+
 (defmethod outer-declarations ((ast c/cpp-function-declarator))
   ;; TODO: in regards to function overloading, may need to add a keyword argument
   ;;       to the multi map union to support it.

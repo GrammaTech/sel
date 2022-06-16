@@ -232,6 +232,66 @@ void f(bar_t* p) {
             (is (infer-type expr))
             (is (source-text= type (infer-type expr)))))))
 
+;;; #256
+(deftest test-infer-type-on-enum ()
+  (nest
+   (let ((c (from-string 'c (fmt "~
+enum f { FOO };
+
+void f() { FOO; }~%")))))
+   (with-attr-table c)
+   (let ((foo (lastcar
+               (collect-if (op (source-text= "FOO" _))
+                           c))))
+     (is (source-text= "FOO" (get-declaration-ast :variable foo)))
+     (is (source-text= "f" (infer-type foo))))))
+
+(deftest test-infer-type-on-enum/typedef ()
+  (nest
+   (let ((c (from-string 'c (fmt "~
+typedef enum { FOO } f_t;
+
+void f() { FOO; }~%")))))
+   (with-attr-table c)
+   (let ((foo (lastcar
+               (collect-if (op (source-text= "FOO" _))
+                           c))))
+     (is (source-text= "FOO" (get-declaration-ast :variable foo)))
+     (is (source-text= "f_t" (infer-type foo))))))
+
+(deftest test-infer-type-on-enum/constant ()
+  (nest
+   (let ((c (from-string 'c (fmt "~
+enum f { kRandom = 17 };
+
+void f() { kRandom; }~%")))))
+   (with-attr-table c)
+   (let ((k-random (lastcar (collect-if (op (source-text= "kRandom" _)) c))))
+     (is (source-text= "kRandom = 17" (get-declaration-ast :variable k-random)))
+     (is (source-text= "f" (infer-type k-random))))))
+
+(deftest test-infer-type-on-enum/constant-and-typedef ()
+  (nest
+   (let ((c (from-string 'c (fmt "~
+typedef enum { kRandom = 17 } f_t;
+
+void f() { kRandom; }~%")))))
+   (with-attr-table c)
+   (let ((k (lastcar (collect-if (op (source-text= "kRandom" _)) c))))
+     (is (source-text= "kRandom = 17" (get-declaration-ast :variable k)))
+     (is (source-text= "f_t" (infer-type k))))))
+
+(deftest test-infer-type-on-enum/constant-and-typedef/enum-name ()
+  (nest
+   (let ((c (from-string 'c (fmt "~
+typedef enum f { kRandom = 17 } f_t;
+
+void f() { kRandom; }~%")))))
+   (with-attr-table c)
+   (let ((k-random (lastcar (collect-if (op (source-text= "kRandom" _)) c))))
+     (is (source-text= "kRandom = 17" (get-declaration-ast :variable k-random)))
+     (is (source-text= "f_t" (infer-type k-random))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
