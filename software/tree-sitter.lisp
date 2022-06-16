@@ -1133,7 +1133,15 @@ for the language.")
         (rust-function :reader call-function :initarg :function)
         (rust-arguments :reader call-arguments :initarg :arguments))
        (rust-range-expression
-        (rust-operator :reader operator :initarg :operator)))
+        (rust-operator :reader operator :initarg :operator))
+       (rust-for-expression
+        (rust-body :reader body :initarg :body))
+       (rust-loop-expression
+        (rust-body :reader body :initarg :body))
+       (rust-while-expression
+        (rust-body :reader body :initarg :body))
+       (rust-while-let-expression
+        (rust-body :reader body :initarg :body)))
       ((:typescript-ts :typescript-tsx)
        ;; Anonymous function (function keyword).
        (typescript-ts-function
@@ -1636,7 +1644,8 @@ for the language.")
        (:loop-ast
         rust-for-expression
         rust-loop-expression
-        rust-while-expression)
+        rust-while-expression
+        rust-while-let-expression)
        (:parameter-ast rust-parameter rust-self-parameter)
        (:parameters-ast rust-parameters)
        (:parenthesized-expression-ast rust-parenthesized-expression)
