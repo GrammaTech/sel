@@ -1812,12 +1812,10 @@ definitions.")
          (:seq (:field c-name c-type-identifier))))
        (c-union-specifier
         (c-union-tag-specifier
-         (:seq (:field c-name c-type-identifier)
-          (:field c-body c-field-declaration-list null))))
+         (:seq (:field c-name c-type-identifier))))
        (c-enum-specifier
         (c-enum-tag-specifier
-         (:seq (:field c-name c-type-identifier)
-          (:field c-body c-enumerator-list null)))))
+         (:seq (:field c-name c-type-identifier)))))
       (:cpp
        (cpp-update-expression
         (cpp-update-expression-prefix
@@ -2107,16 +2105,67 @@ are ignored by templates, whereas named ones are preserved.")
               (:NAME . "name")
               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
              ;; Move the choice from inside the body to around the body.
-             ((:TYPE . "CHOICE")
-              (:MEMBERS
+             ((:type . "CHOICE")
+              (:members
                ((:TYPE . "FIELD")
                 (:NAME . "body")
                 (:CONTENT (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))
-               ((:TYPE . "BLANK"))))))
+               ((:type . "BLANK"))))))
            ((:TYPE . "FIELD")
             (:NAME . "body")
             (:CONTENT
              (:TYPE . "SYMBOL") (:NAME . "field_declaration_list")))))))
+       (:UNION-SPECIFIER
+        (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "union"))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "ms_declspec_modifier"))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD")
+              (:NAME . "name")
+              (:CONTENT
+               (:TYPE . "SYMBOL")
+               (:NAME . "_type_identifier")))
+             ;; Move the choice from inside the body to around the body.
+             ((:type . "CHOICE")
+              (:members
+               ((:TYPE . "FIELD")
+                (:NAME . "body")
+                (:CONTENT
+                 (:TYPE . "SYMBOL")
+                 (:NAME . "field_declaration_list")))
+               ((:type . "BLANK"))))))
+           ((:TYPE . "FIELD")
+            (:NAME . "body")
+            (:CONTENT (:TYPE . "SYMBOL")
+                      (:NAME . "field_declaration_list")))))))
+       (:ENUM-SPECIFIER
+        (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "enum"))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "FIELD")
+              (:NAME . "name")
+              (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
+             ;; Move the choice from inside the body to around the body.
+             ((:type . "CHOICE")
+              (:members
+               ((:TYPE . "FIELD")
+                (:NAME . "body")
+                (:CONTENT
+                 (:TYPE . "SYMBOL")
+                 (:NAME . "enumerator_list")))
+               ((:type . "BLANK")))
+              )))
+           ((:TYPE . "FIELD")
+            (:NAME . "body")
+            (:CONTENT (:TYPE . "SYMBOL") (:NAME . "enumerator_list")))))))
        (:LABELED-STATEMENT
         (:TYPE . "SEQ")
         (:MEMBERS
