@@ -228,4 +228,6 @@ pub unsafe fn auto() -> MmapChoice {
 struct MyType<T> { x: T, y: T }")
   (check-patch-whitespace "impl<T> Foo<T> {}")
   (check-patch-whitespace "Point::<f32>::new();")
-  (check-patch-whitespace "x[1];"))
+  (check-patch-whitespace "x[1];")
+  (check-patch-whitespace "for i in 0..n {}")
+  (check-patch-whitespace "for i in 0..=n {}"))
