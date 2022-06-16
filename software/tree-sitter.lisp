@@ -2106,6 +2106,7 @@ are ignored by templates, whereas named ones are preserved.")
              ((:TYPE . "FIELD")
               (:NAME . "name")
               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_type_identifier")))
+             ;; Move the choice from inside the body to around the body.
              ((:TYPE . "CHOICE")
               (:MEMBERS
                ((:TYPE . "FIELD")
