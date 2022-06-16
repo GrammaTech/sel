@@ -8127,7 +8127,7 @@ in #'convert and inlined into the parse tree received from cl-tree-sitter."
 (defun match-parsed-children
     (language-prefix json-rule pruned-rule child-types parse-tree
      &aux (extra-asts (extra-asts (make-keyword language-prefix))))
-  "Match a cl-tree-sitter PARSE-TREE as a PRUNED-RULE in LANGUGE-PREFIX.
+  "Match a cl-tree-sitter PARSE-TREE as a PRUNED-RULE in LANGUAGE-PREFIX.
 CHILD-TYPES is a list of lisp types that the children slot can contain.
 Returns as values whether the match succeeded and if so, returns a list
 specifying how to populate the inner-asts slots--'symbols' indicate a slot
