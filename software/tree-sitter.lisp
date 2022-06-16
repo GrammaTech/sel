@@ -452,6 +452,7 @@
            :ast-mixin-subclasses
            :ast-language-class
            :language-ast-class
+           :parse-tree
 
            :matching-error
            :rule-matching-error
@@ -9451,13 +9452,33 @@ correct class name for subclasses of SUPERCLASS."
        spec (get-language-from-superclass superclass) superclass)))
 
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
-                    &key superclass &allow-other-keys
-                    &aux (prefix (get-language-from-superclass superclass))
+                    &key superclass
                       (line-octets-cache
                        (map
                         'vector
                         #'string-to-octets
-                        (lines string :keep-eols t))))
+                        (lines string :keep-eols t)))
+                    &allow-other-keys)
+  (process-indentation
+   (convert
+    to-type
+    (convert 'parse-tree
+             string
+             :superclass superclass
+             :line-octets-cache line-octets-cache)
+    :superclass superclass
+    :string-pass-through string
+    :line-octets-cache line-octets-cache)))
+
+(defmethod convert ((to-type (eql 'parse-tree)) (string string)
+                    &key superclass
+                      (line-octets-cache
+                       (map
+                        'vector
+                        #'string-to-octets
+                        (lines string :keep-eols t)))
+                    &allow-other-keys
+                    &aux (prefix (get-language-from-superclass superclass)))
   (labels
       ((ensure-beginning-bound (parse-tree)
          "Desctructively ensures that the beginning bound of PARSE-TREE is the
@@ -9582,16 +9603,10 @@ correct class name for subclasses of SUPERCLASS."
                  annotated-children))
                ;; If either is nil, it means that there isn't text for that slot.
                (list parent-from parent-to)))))))
-    (process-indentation
-     (convert
-      to-type
-      (annotate-surrounding-text
-       (transform-tree
-        (ensure-beginning-bound
-         (parse-language superclass string))))
-      :superclass superclass
-      :string-pass-through string
-      :line-octets-cache line-octets-cache))))
+    (annotate-surrounding-text
+     (transform-tree
+      (ensure-beginning-bound
+       (parse-language superclass string))))))
 
 (defgeneric parse-language (superclass string &key)
   (:documentation "Get a parse tree for STRING using the language associated
