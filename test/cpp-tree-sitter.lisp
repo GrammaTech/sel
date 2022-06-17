@@ -759,6 +759,21 @@ kWithin;")))
     (with-attr-table cpp
       (is (source-text= "auto" (resolve-declaration-type decl item))))))
 
+(deftest test-lookup-in-scoped-enum ()
+  (let* ((cpp (from-string 'cpp "enum class Color { red, green = 20, blue };
+Color r = Color::blue;
+
+switch(r)
+{
+    case Color::red  : std::cout << \"red\n\";   break;
+    case Color::green: std::cout << \"green\n\"; break;
+    case Color::blue : std::cout << \"blue\n\";  break;
+}")))
+    (with-attr-table cpp
+      (let ((ast (find-if (op (source-text= "Color::blue" _)) cpp)))
+        (is (typep ast 'cpp-qualified-identifier))
+        (is (typep (get-declaration-ast :variable ast) 'cpp-enumerator))))))
+
 
 ;;; Parsing tests
 

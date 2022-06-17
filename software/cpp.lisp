@@ -1263,46 +1263,43 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
 
 ;;; Namespace Attr
 
-(defmethod namespace ((ast cpp-namespace-definition)
-                      &optional in
-                      &aux (name (cpp-name ast)))
-  (labels ((get-namespace (ast)
-             (declare (ignore ast))
-             ;; NOTE: tree-sitter-cpp doesn't currently handle
-             ;;       inline namespaces
-             ;; TODO: look at implicit namespaces and incorporate or factor
-             ;;       out what is needed from there.
-             (cond
-               ;; Anonyous namespace
-               ((not name) in)
-               ((emptyp in) #1=(text name))
-               (t (string+ in "::" #1#)))))
-    (mapcar {namespace _ (get-namespace ast)}
-            (children ast))
-    in))
-
-(defmethod namespace ((ast cpp-class-specifier)
-                      &optional in)
+(defun handle-namespace-as-scope (ast in)
+  "Propagate a new namespace based on the `cpp-name' of AST to AST's
+children."
   (let* ((name (source-text (cpp-name ast)))
-         (out (if (emptyp in) name
-                  (string+ in "::" name))))
-    ;; Prevent std::list::list in the symbol table.
-    (namespace (cpp-name ast) in)
-    (mapcar (op (namespace _ out))
-            (children ast))
-    in))
-
-(defmethod namespace ((ast cpp-struct-specifier)
-                      &optional in)
-  (let* ((name (source-text (cpp-name ast)))
-         (out (cond ((emptyp name) in)
-                    ((emptyp in) name)
-                    (t (string+ in "::" name)))))
+         (out (cond
+                ;; E.g. an anonymous namespace.
+                ((emptyp name) in)
+                ((emptyp in) name)
+                (t (string+ in "::" name)))))
+    ;; Prevent e.g. std::list::list in the symbol table.
     (unless (emptyp name)
       (namespace (cpp-name ast) in))
     (mapcar (op (namespace _ out))
             (children ast))
     in))
+
+(defmethod namespace ((ast cpp-namespace-definition)
+                      &optional in)
+  ;; NOTE: tree-sitter-cpp doesn't currently handle
+  ;;       inline namespaces
+  ;; TODO: look at implicit namespaces and incorporate or factor
+  ;;       out what is needed from there.
+  (handle-namespace-as-scope ast in))
+
+(defmethod namespace ((ast cpp-class-specifier)
+                      &optional in)
+  (handle-namespace-as-scope ast in))
+
+(defmethod namespace ((ast cpp-struct-specifier)
+                      &optional in)
+  (handle-namespace-as-scope ast in))
+
+(defmethod namespace ((ast cpp-enum-specifier)
+                      &optional in)
+  (if (not (cpp-scope ast))
+      (call-next-method)
+      (handle-namespace-as-scope ast in)))
 
 (defmethod namespace ((ast cpp-qualified-identifier) &optional in)
   "No scope (e.g. `::x`) means the global scope."
