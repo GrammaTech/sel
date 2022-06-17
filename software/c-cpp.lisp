@@ -435,6 +435,9 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-ids :around (type (ast c/cpp-pointer-expression))
   (get-declaration-ids type (c/cpp-argument ast)))
 
+(defmethod get-declaration-ids :around (type (ast c/cpp-type-descriptor))
+  (get-declaration-ids type (c/cpp-type ast)))
+
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
 
