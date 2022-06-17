@@ -477,6 +477,13 @@
     ((:typename :class) (label-as :keyword))))
 
 (defmethod transform-parse-tree
+    ((language (eql :cpp)) (class (eql 'cpp-enum-specifier))
+     parse-tree &key)
+  "Label the class/struct terminal of an enum class."
+  (with-modify-parse-tree (parse-tree)
+    ((:class :struct) (label-as :scope))))
+
+(defmethod transform-parse-tree
     ((language (eql :cpp)) (class (eql 'cpp-reference-declarator))
      parse-tree &key)
   (with-modify-parse-tree (parse-tree)

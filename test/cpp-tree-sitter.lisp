@@ -928,6 +928,12 @@ public:
                       cpp)))
     (is (source-text= "VectorXY<PrecisionT>" (definition-name-ast fn)))))
 
+(deftest test-cpp-scoped-enum-specifier ()
+  "Test that the class/struct terminal of an enum class is preserved."
+  (is (null (cpp-scope (cpp* "enum foo {}"))))
+  (is (typep (cpp-scope (cpp* "enum class foo {}")) 'cpp-class))
+  (is (typep (cpp-scope (cpp* "enum struct foo {}")) 'cpp-struct)))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.

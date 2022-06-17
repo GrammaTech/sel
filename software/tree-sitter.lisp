@@ -895,6 +895,7 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
        (cpp-declaration
         (:pre-specifiers (:multiple . t))
         (:post-specifiers (:multiple . t)))
+       (cpp-enum-specifier (:scope))
        (cpp-function-definition
         (:pre-specifiers (:multiple . t))
         (:post-specifiers (:multiple . t)))
@@ -3032,7 +3033,16 @@ tree-sitter.")
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "typename"))
            ((:TYPE . "STRING") (:VALUE . "class"))))
-         :as "keyword")))
+         :as "keyword"))
+       (:enum-specifier
+        (:label
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "CHOICE")
+            (:MEMBERS ((:TYPE . "STRING") (:VALUE . "class"))
+                      ((:TYPE . "STRING") (:VALUE . "struct"))))
+           ((:TYPE . "BLANK"))))
+         :as "scope")))
       (:rust
        (:arguments
         (:replace
