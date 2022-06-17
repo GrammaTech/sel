@@ -609,6 +609,7 @@
            :variable-name
            :no-fallthrough
            :infer-type
+           :infer-type-as-nil          ;Restart
            :infer-expression-type
            :expression-type
            :placeholder-type-p
@@ -7778,8 +7779,11 @@ By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
   (:method :context ((ast ast))
-    (with-simple-restart (continue "Return nil")
-      (call-next-method)))
+    (restart-case
+        (call-next-method)
+      (infer-type-as-nil ()
+        :report "Return nil from infer-type"
+        nil)))
   (:method (ast)
     (let ((expression-type (infer-expression-type ast)))
       (cond ((null expression-type)
