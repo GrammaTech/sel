@@ -142,8 +142,22 @@ and add it to PROJECT."))
    table-1 table-2
    :allow-multiple (multi-declaration-keys root)))
 
+(defparameter *include-file-stack* nil
+  "Stack of include file names currently being processed during type
+inference.  Used to prevent circular attr propagation.")
+
+(defparameter *global-search-for-include-files* nil
+  "When true, search for include files in the entire directory tree
+of a project.  Used to set default value of the :GLOBAL keyword
+arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.")
+
 (defun find-symbol-table-from-include (project include-ast
-                                       &optional (in (empty-map)))
+                                       &key (in (empty-map))
+                                            (global *global-search-for-include-files*))
+  "Find the symbol table in PROJECT for the include file
+included by INCLUDE-AST.  IN is the symbol table before entry
+to the include-ast.  If GLOBAL is true, search for non-system
+include files in all directories of the project."
   (declare (fset:map in))
   (labels ((merge-cached-symbol-table (header)
              (let ((cached-table
@@ -183,41 +197,56 @@ and add it to PROJECT."))
                                                                (cdr (reverse (get-parent-asts* project file)))))
                                                  :defaults project-dir))
                        (include-path (pathname (trim-path-string path-ast))))
-                      ;; Change :UP to :BACK in the include path's directory
-                      ;; This is because CANONICAL-PATHNAME only elides :BACK
-                      ;; We have no good way to normalize :UP, which goes through
-                      ;; the semantic .. link in a Unix directory tree.  It does
-                      ;; not cancel the previous directory entry if that was a symlink.
                       (progn
                         #+debug-fstfi
                         (format t "file = ~a, file-path = ~a, include-path = ~a~%"
                                 file file-path include-path)
-                        (let* ((include-path-dir (substitute :back :up (pathname-directory include-path)))
-                               (absolute-include-path
-                                 (if (null include-path-dir)
-                                     (make-pathname :name (pathname-name include-path)
-                                                    :type (pathname-type include-path)
-                                                    :defaults file-path)
-                                     (ecase (car include-path-dir)
-                                       (:relative
-                                        (make-pathname :directory (append (pathname-directory file-path)
-                                                                          (cdr include-path-dir))
-                                                       :name (pathname-name include-path)
-                                                       :type (pathname-type include-path)
-                                                       :defaults file-path))
-                                       (:absolute include-path))))
-                               (include-path-string
-                                 (namestring (canonical-pathname absolute-include-path))))
-                          (unless (equal (pathname-directory include-path) include-path-dir)
-                            (warn "include ~A in ~A may be interpreted incorrecly in the presence of symlinks"
-                                  (source-text include-ast)
-                                  (namestring file-path)))
-                          (if-let ((software
-                                    (aget include-path-string
-                                          (evolve-files project)
-                                          :test #'equal)))
-                                  (symbol-table software in)
-                                  (empty-map))))
+                        (let ((software
+                                (if global
+                                    ;; Search for the include file everywhere
+                                    (cdr (find-if (op (let ((p (original-path (cdr _))))
+                                                        (and (equal (pathname-name p)
+                                                                    (pathname-name include-path))
+                                                             (equal (pathname-type p)
+                                                                    (pathname-type include-path)))))
+                                                  (evolve-files project)))
+                                    ;; Search relative to the location of the file
+                                    ;; containing the include-ast.  TODO: add a set
+                                    ;; of paths to search in
+                                    (let* (;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
+                                           ;; Warn about this below if this happened.
+                                           (include-path-dir (substitute :back :up (pathname-directory include-path)))
+                                           (absolute-include-path
+                                             (if (null include-path-dir)
+                                                 (make-pathname :name (pathname-name include-path)
+                                                                :type (pathname-type include-path)
+                                                                :defaults file-path)
+                                                 (ecase (car include-path-dir)
+                                                   (:relative
+                                                    (make-pathname :directory (append (pathname-directory file-path)
+                                                                                      (cdr include-path-dir))
+                                                                   :name (pathname-name include-path)
+                                                                   :type (pathname-type include-path)
+                                                                   :defaults file-path))
+                                                   (:absolute include-path))))
+                                           (include-path-string
+                                             (namestring (canonical-pathname absolute-include-path))))
+                                      (unless (equal (pathname-directory include-path) include-path-dir)
+                                        (warn "~A in ~A may be interpreted incorrecly in the presence of symlinks"
+                                              (source-text include-ast)
+                                              (namestring file-path)))
+                                       (aget include-path-string
+                                             (evolve-files project)
+                                             :test #'equal))
+                                    )))
+                          (if (or (null software)
+                                  (member software *include-file-stack*))
+                              (progn
+                                (when (null software)
+                                  (warn "Not found: ~a" (source-text include-ast)))
+                                (empty-map))
+                              (let ((*include-file-stack* (cons software *include-file-stack*)))
+                                (symbol-table software in)))))
                       (empty-map))))
     (ematch include-ast
       ((c/cpp-preproc-include
@@ -232,7 +261,7 @@ and add it to PROJECT."))
     (if (typep root 'directory-project)
         (symbol-table-union root
                             in
-                            (find-symbol-table-from-include root node in))
+                            (find-symbol-table-from-include root node :in in))
         (call-next-method))))
 
 (defmethod symbol-table ((node c/cpp-system-header) &optional in)
