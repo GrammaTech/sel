@@ -1301,11 +1301,46 @@ children."
       (call-next-method)
       (handle-namespace-as-scope ast in)))
 
+(defvar-unbound *initial-namespace*
+  "Bound by a qualified identifier to store the initial namespace.")
+
 (defmethod namespace ((ast cpp-qualified-identifier) &optional in)
-  "No scope (e.g. `::x`) means the global scope."
-  (declare (ignore in))
-  (if (null (cpp-scope ast)) ""
-      (call-next-method)))
+  "Handle two quirks of qualified identifiers:
+
+1. No scope (e.g. `::x`) means the global scope.
+
+2. The RHS is in the namespace of the LHS, unless the RHS is a
+template function, in which case its arguments are in whatever IN was
+for the outermost qualified namespace."
+  (if (null (cpp-scope ast))
+      (progn
+        (namespace (cpp-name ast) "")
+        "")
+      (let* ((*initial-namespace*
+              (or (bound-value '*initial-namespace*)
+                  in))
+             (ns (source-text (cpp-scope ast)))
+             (out (if (emptyp in)
+                      ns
+                      (string+ in "::" ns))))
+        (declare (special initial*))
+        (namespace (cpp-scope ast) in)
+        (namespace (cpp-name ast) out)
+        in)))
+
+(defmethod namespace ((ast cpp-template-type) &optional in)
+  "Don't qualify cpp-template-type arguments."
+  (namespace (cpp-name ast) in)
+  (let ((in (or (bound-value '*initial-namespace*) in)))
+    (namespace (cpp-arguments ast) in))
+  in)
+
+(defmethod namespace ((ast cpp-template-function) &optional in)
+  "Don't qualify cpp-template-function arguments."
+  (namespace (cpp-name ast) in)
+  (let ((in (or (bound-value '*initial-namespace*) in)))
+    (namespace (cpp-arguments ast) in))
+  in)
 
 
 ;;; Symbol Table

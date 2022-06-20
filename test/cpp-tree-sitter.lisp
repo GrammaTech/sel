@@ -154,6 +154,36 @@
     (with-attr-table cpp
       (is (string*= "x = 1" (source-text (get-declaration-ast :variable qid)))))))
 
+(deftest test-namespace/nested-qualified-identifier ()
+  (let* ((cpp (from-string 'cpp-project
+                           "namespace Whatever {
+    ::testing::Test x;
+}")))
+    (with-attr-table cpp
+      (is (equal "testing"
+                 (namespace
+                  (find-if (op (source-text= "Test" _))
+                           cpp))))
+      (is (equal ""
+                 (namespace
+                  (find-if (op (source-text= "testing" _))
+                           cpp)))))))
+
+(deftest test-qualified-identifier-namespace-with-template ()
+  (let* ((cpp (from-string 'cpp-project
+                           "namespace Whatever {
+    x<a>::y<b>::z<c>;
+}")))
+    (with-attr-table cpp
+      (flet ((find* (name)
+               (find-if (op (source-text= name _)) cpp)))
+        (is (equal "Whatever" (namespace (find* "x"))))
+        (is (equal "Whatever" (namespace (find* "a"))))
+        (is (equal "Whatever::x" (namespace (find* "y"))))
+        (is (equal "Whatever" (namespace (find* "b"))))
+        (is (equal "Whatever::x::y" (namespace (find* "z"))))
+        (is (equal "Whatever" (namespace (find* "c"))))))))
+
 (deftest test-namespace-deepest-match ()
   "Check that we return the deepest matching namespace."
   (let* ((cpp
