@@ -6977,7 +6977,7 @@ the tree representation as opposed to the string representation.")
 assuming it can be reached only by skipping over whitespace
 or comments.  NIL if no such newline exists."
   (loop
-    (when (>= pos (length str)) (return nil))
+    (when (length>= pos str) (return nil))
     (let ((c (elt str pos)))
       (case c
         (#\Newline (return (1+ pos)))
@@ -8900,7 +8900,7 @@ the indentation slots."
               the relevant indentation slot updated."
              (cond-let leading-indentation
                ((and indentation
-                     (= indentation (length text))
+                     (length= indentation text)
                      not-empty-string-p)
                 (setf indentation-carryover
                       (+ indentation-carryover
@@ -8980,7 +8980,7 @@ the indentation slots."
                                           (newline (ends-with-newline-p text)))
                                 ;; NOTE: only set to 0 if the very last thing
                                 ;;       is a newline.
-                                (when (eql (1+ newline) (length text))
+                                (when (length= (1+ newline) text)
                                   0))))))
                    (cdr (butlast output-transformation)))
              (setf (after-text ast)
@@ -9678,7 +9678,7 @@ for ASTs which need to appear in the surrounding text slots.")
                 (setf (unbox indent-p) nil
                       (unbox indentation-ast) nil)
                 text)
-               ((and (< 1 (length split-text))
+               ((and (length< 1 split-text)
                      (not (computed-text-node-p ast)))
                 (with-output-to-string (s)
                   (write-string (car split-text) s)

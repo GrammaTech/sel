@@ -54,7 +54,7 @@
 Return a second value which is the base git repository, the GIT_WORK_TREE.
 Raise an error if no such parent exists."
   (labels ((git-directory- (d)
-             (when (< (length d) 2)
+             (when (length< d 2)
                (error
                 (make-condition 'git-error
                   :description (format nil "~s is not in a git repository."

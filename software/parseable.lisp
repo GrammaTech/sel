@@ -259,8 +259,8 @@ RECURSIVE is passed, recursive AST children will also be returned.")
   (:method :before ((ast ast)
                     &aux (children (remove nil (children ast))))
     (assert (or (null (ast-annotation ast :child-order))
-                (= (length children)
-                   (length (ast-annotation ast :child-order))))
+                (length= children
+                         (ast-annotation ast :child-order)))
             (ast)
             "The number of elements in the AST's :child-order annotation ~
             defining the order of the children does not match the number ~
@@ -985,7 +985,7 @@ the `genome' of the software object."
   (:method (function (ast ast) &aux (deepest 0) result)
     (do-tree (node ast :index rpath :value result)
       (when (and (funcall function node)
-                 (> (length rpath) deepest))
+                 (length> rpath deepest))
         (setf result node
               deepest (length rpath)))
       nil)))

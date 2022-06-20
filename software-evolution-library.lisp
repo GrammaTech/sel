@@ -457,8 +457,8 @@ Each crossover and mutation will be paired with one of the following tags;
         (push (cons (mutation-key crossed mutation)
                     *fitness-evals*)
               *mutation-improvements*)
-        (when (>= (length *mutation-improvements*)
-                  *max-saved-mutation-improvements*)
+        (when (length>= *mutation-improvements*
+                        *max-saved-mutation-improvements*)
           (setf *mutation-improvements*
                 (butlast *mutation-improvements*))))
       (push (setf result (list effect *fitness-evals* fit old-fit))
@@ -854,7 +854,7 @@ number will automatically be promoted).")
   "Incorporate SOFTWARE into POPULATION, keeping POPULATION size constant."
   (push software *population*)
   (loop :while (and *max-population-size*
-                    (> (length *population*) *max-population-size*))
+                    (length> *population* *max-population-size*))
      :do (evict)))
 
 (defvar *tie-breaker-predicate* #'>
@@ -948,7 +948,7 @@ Default selection function for `tournament'."
             (unless (and (null variant) (null mutation-info))
               (collect variant into variants)
               (collect mutation-info into infos)))
-          (while (< (length variants) count))
+          (while (length< variants count))
           (finally (return (values variants infos))))))
 
 (defun validate-evolution-parameters ()
@@ -993,7 +993,7 @@ evolutionary loop:
 (defun remove-elite-individuals ()
   "Remove *ELITISM* individuals from population and return them."
   (assert (and (typep *elitism* '(integer 0 *))
-               (< *elitism* (length *population*)))
+               (length< *elitism* *population*))
     (*elitism*)
     "*ELITISM* is out of range--must be an integer >0 ~
                             and < (length *POPULATION*)")
@@ -1234,7 +1234,7 @@ This differs from how evolve works."
                               ;; after the select operation.
                               (- *max-population-size* *elitism*)))
                (add-elite-individuals elite-individuals)
-               (assert (<= (length *population*) *max-population-size*))))
+               (assert (length<= *population* *max-population-size*))))
            (if (and period period-fn (zerop (mod *generations* period)))
                (funcall period-fn))
         :finally (deinitialize-evolutionary-loop))))
@@ -1271,7 +1271,7 @@ list of the mutations applied to produce those children."
 
 (defun simple-select (population max-size &aux new-pop)
   (declare (ignorable population)) ; tournament uses global *population*
-  (iter (until (= max-size (length new-pop)))
+  (iter (until (length= max-size new-pop))
         (restart-case (push (tournament) new-pop)
           (ignore-failed-selection ()
             :report "Ignore failed `tournament' selection."))))

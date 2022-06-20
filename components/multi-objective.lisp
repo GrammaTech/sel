@@ -41,11 +41,9 @@ PREDICATES is a list of functions, of equal length to the fitness
 values, which are used to compare each element of the fitness values.
 "
   (every (lambda (compare)
-           (assert (eq (length (fitness candidate))
-                       (length (fitness compare))))
-           (assert (eq (length (fitness candidate))
-                       (length predicates)))
-
+           (assert (length= (fitness candidate)
+                            (fitness compare)
+                            predicates))
            (and (some #'funcall predicates (fitness candidate)
                       (fitness compare))
                 (notany #'funcall predicates (fitness compare)

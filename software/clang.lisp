@@ -813,7 +813,7 @@ Other keys are allowed but are silently ignored.
     (%push :full-stmt full-stmt)
     (%push :guard-stmt guard-stmt)
     (%push :opcode opcode)
-    (%push :name (when (= (length declares) 1)
+    (%push :name (when (length= declares 1)
                    ;; clang name attribute is not aggregated
                    (ast-name (first declares))))
     (make-instance 'clang-ast
@@ -1446,7 +1446,7 @@ software object."))
               (lastcar (child-asts guarded))))
             (:IfStmt
              (let ((children (child-asts guarded)))
-               (if (= 2 (length children))
+               (if (length= 2 children)
                    ;; If with only one branch.
                    (compose-children (second children))
                    ;; If with both branches.
@@ -2204,7 +2204,7 @@ already in scope, it will keep that name.")
          (bind (((head . tail) path)
                 (children (children tree)))
                (assert (>= head 0))
-               (assert (< head (length children)))
+               (assert (length< head children))
                (if tail
                    ;; Recurse into child
                    (replace-nth-child tree head (helper (nth head children) tail))
@@ -4163,7 +4163,7 @@ on various ast classes"))
 
 (defun ast-args-equal (args1 args2)
   "Compare two lists as returned by AST-ARGS"
-  (and (= (length args1) (length args2))
+  (and (length= args1 args2)
        (every #'ast-arg-equal args1 args2)))
 
 (defmethod ast-declares ((c string)) nil)
@@ -6419,8 +6419,7 @@ children.")
     (let* ((children (children ast))
            (new-children (mapcar (lambda (a) (remove-asts-if a fn))
                                  (remove-if fn children))))
-      (unless (and (= (length children)
-                      (length new-children))
+      (unless (and (length= children new-children)
                    (every #'eql children new-children))
         (setf (children ast) new-children)))
     ast)

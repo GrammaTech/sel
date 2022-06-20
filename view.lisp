@@ -110,7 +110,7 @@ For example a description of the evolution target.")
   "Offset into the lines of the best candidate to show.")
 
 (defun view-truncate (line &optional (less 2))
-  (if (> (length line) (- *view-length* less))
+  (if (length> line (- *view-length* less))
       (subseq line 0 (- *view-length* less))
       line))
 

@@ -161,7 +161,7 @@ Used by `homologous-crossover'."
            (aget :id (elt (genome obj) id))))
     (let* ((id-a (lookup-id a point-a))
            ;; adjust if id-a is beyond length of b
-           (start (if (>= id-a (length (genome b)))
+           (start (if (length>= id-a (genome b))
                       (1- (length (genome b)))
                       id-a))
            ;; max value we can add to start and still have a valid index in b

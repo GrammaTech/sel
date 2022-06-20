@@ -106,7 +106,7 @@
                                              (elt (genome elf) (third mut))))))
             (:swap   (elf-swap elf (second mut) (third mut)))))
     elf
-    (assert (= (length (genome elf)) starting-length)
+    (assert (length= (genome elf) starting-length)
             (elf) "mutation ~S changed size of genome [~S -> ~S]"
             mut starting-length (length (genome elf)))))
 
@@ -160,7 +160,7 @@ A value of nil means never replace.")
                  :do
                  (cond
                    ;; don't cross borders or leave the genome
-                   ((or (member (+ s1 i) borders) (>= (+ s1 i) (length genome)))
+                   ((or (member (+ s1 i) borders) (length>= (+ s1 i) genome))
                     (setf forwards-p nil))
                    ((or (member (- s1 i) borders) (< (- s1 i) 0))
                     (setf backwards-p nil))

@@ -459,11 +459,11 @@ directories and if files based on their extensions."
            (cond
              (project-p
               (best-guess guesses))
-             ((= 1 (length sources))
+             ((length= 1 sources)
               ;; For a single file either return the guess, or return
               ;; SIMPLE if no language matched.
               (or (car guesses) 'simple))
-             ((= 1 (length (remove-duplicates guesses)))
+             ((length= 1 (remove-duplicates guesses))
               ;; Multiple non-project files must all be equal to return a guess.
               (or (car guesses) 'simple))))))
     (guess-helper sources nil)))

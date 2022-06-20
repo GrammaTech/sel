@@ -91,7 +91,7 @@ Otherwise, consider all ASTs."
                               (full-stmt
                                (ast-database-full-stmt-list db))
                               (t (ast-database-list db))))))
-    (if (and limit (< limit (length snippets)))
+    (if (and limit (length< limit snippets))
         (mapcar {aref (coerce snippets 'vector)}
                 (random-sample-without-replacement (length snippets) limit))
         snippets)))

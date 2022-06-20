@@ -205,7 +205,7 @@ If NEWLINES is provided it should be the value returned for TEXT by
            (line-start-pos remaining
             (cond ((= line 1) (values -1 0))
                   (newlines
-                   (if (> line (length newlines))
+                   (if (length> line newlines)
                        (values (last-elt newlines)
                                (- line (length newlines) 1))
                        (values (aref newlines (- line 2))

@@ -648,7 +648,7 @@ command or an invalid Coq command, NIL otherwise."
   "Return T if SEXPR is tagged as VernacImport or VernacRequire, NIL otherwise."
   ;; ASTs for imports have length 2 where the first element is located info
   ;; and the second is either VernacImport or VernacRequire.
-  (and (= 2 (length sexpr))
+  (and (length= 2 sexpr)
        (is-loc-info (first sexpr))
        (or (is-type (intern "VernacImport" :sel/cp/serapi-io)
                     (second sexpr))
@@ -945,7 +945,7 @@ Return a list of IDs for the ASTs that were added."
 (defun tokenize-coq-type (type-string)
   (labels ((find-matching-paren (str pos depth)
              (cond
-               ((equal pos (length str)) nil)
+               ((length= pos str) nil)
                ((and (equal (elt str pos) #\)) (zerop depth))
                 pos)
                ((equal (elt str pos) #\))
@@ -1034,7 +1034,7 @@ Use Ident for unqualified names and Qualid for qualified names."
                       {intern _  :sel/cp/serapi-io } ]
                      (cdr quals))))
       (when (and quals (listp quals))
-        (if (= 1 (length quals))
+        (if (length= 1 quals)
             (wrap-coq-constr-expr #!`(CRef ,(MAKE-COQ-IDENT ID) ()))
             (wrap-coq-constr-expr
              #!`(CRef

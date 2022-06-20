@@ -90,7 +90,7 @@ This is used to intern string names by `expression'."
 "
   (cond
     ((listp expression)
-     (assert (= 3 (length expression)))
+     (assert (length= 3 expression))
      (format nil "(~a ~a ~a)"
              (expression-to-c (second expression))
              (symbol-name (car expression))
@@ -153,7 +153,7 @@ This is used to intern string names by `expression'."
       (cond
         ((listp expression)
          ;; TODO: support functions/operators with different arity
-         (unless (= (length expression) 3)
+         (unless (length= 3 expression)
            (error (make-condition 'eval-error
                     :text (format nil
                                   "Wrong number of arguments. Expected 2 got ~a"

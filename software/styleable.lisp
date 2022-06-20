@@ -372,7 +372,7 @@ Metadata, META1 and META2 is ignored."
   (bind ((node-asts (remove-if-not {eql node-type} (asts clang)
                                    :key #'ast-class))
          (depths (mapcar {ast-depth clang} node-asts)))
-    (if (zerop (length depths))
+    (if (length= 0 depths)
         (values 0 0)
         (values (mean depths) (length depths)))))
 
@@ -559,7 +559,7 @@ otherwise. Only searches ASTs whose `ast-class' is in
             (if (scan keyword (source-text ast))
                 1 0))
           ('(:IfStmt) ; Count if keyword is "else" and ast has 3 children.
-            (if (= 3 (length (child-asts ast)))
+            (if (length= 3 (child-asts ast))
                 1 0))
           ('(:UnaryExprOrTypeTraitExpr :Record)
             ;; Only count if src-text begins with alignof, sizeof, struct, union.
@@ -637,10 +637,10 @@ to be a `styleable' object containing the merged feature vectors and metadata.
 * RESULT a styleable software object in which to save merged vectors. May be
 `eq' to STYLE1 or STYLE2.
 "
-  (assert (= (length (feature-vecs style1))
-             (length (feature-vecs style2))
-             (length (feature-vec-meta style1))
-             (length (feature-vec-meta style2)))
+  (assert (length= (feature-vecs style1)
+                   (feature-vecs style2)
+                   (feature-vec-meta style1)
+                   (feature-vec-meta style2))
           (style1 style2)
           "Feature vector mismatch. Unable to merge styleables ~a and ~a."
           style1 style2)
@@ -678,7 +678,7 @@ returns two values: the extracted feature vector and its metadata.
   (let ((index (position feature (features style)))
         (num-features (length (features style))))
     (when index
-      (unless (= num-features (length (feature-vecs style)))
+      (unless (length= num-features (feature-vecs style))
         (setf (feature-vecs style)
               (coerce (repeatedly num-features nil) 'vector))
         (setf (feature-vec-meta style)
@@ -730,7 +730,7 @@ May be a subset of the features tracked in project.
         ;; and all objects in project
         (let* ((index (position feature (features project)))
                (obj (cdr (first files))))
-          (when (< 0 (length files))
+          (when (length< 0 files)
             ;; init feature vecs/meta on project to that of first obj
             (setf (elt (feature-vecs project) index)
                   (elt (feature-vecs obj) index))

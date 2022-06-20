@@ -306,7 +306,7 @@ the alist.")
              (setf (aget src-file (evolve-files project) :test #'equal) obj)
              project))
     (iter (for evolve-file in (evolve-files project))
-          (while (< (length results) n))
+          (while (length< results n))
           (multiple-value-bind (single-file-results single-file-mutations)
               (apply-mutations-single-file evolve-file
                                            mut
@@ -330,7 +330,7 @@ the alist.")
              (setf (aget src-file (evolve-files project) :test #'equal) obj)
              project))
     (iter (for i upfrom 0)
-          (while (and (< (length results) n)
+          (while (and (length< results n)
                       (< i (* n (ceiling (/ (size project) 1000))))))
           (bind ((evolve-file (nth (pick-file project) (evolve-files project)))
                  ((:values result mutation)
@@ -373,7 +373,7 @@ If there's one artifact, it will be copied directly to BIN without
 making a directory."
   (let ((artifacts (artifacts project)))
     (cond
-      ((> (length artifacts) 1)
+      ((length> artifacts 1)
        ;; Copy artifacts to BIN.
        (iter (for artifact in artifacts)
              (for target-dir = (namestring (merge-pathnames-as-directory

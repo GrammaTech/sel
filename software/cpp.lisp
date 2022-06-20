@@ -54,7 +54,7 @@
   (nlet rec ((pos 0)
              (bracket-count 0)
              (acc nil))
-    (if (>= pos (length string))
+    (if (length>= pos string)
         (if (> bracket-count 0)
             ;; Not actually delimiters. E.g. operator<.
             string

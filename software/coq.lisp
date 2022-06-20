@@ -652,7 +652,7 @@ unqualified type names."
              (type-matches (string ty1) (string ty2)))
             ;; Two type lists of the same length: check that every element
             ;; matches.
-            ((and (listp ty1) (listp ty2) (= (length ty1) (length ty2)))
+            ((and (listp ty1) (listp ty2) (length= ty1 ty2))
              (every #'identity (mapcar #'type-matches ty1 ty2)))
             (t nil)))
          ((:flet extend-env (type scopes))
@@ -664,7 +664,7 @@ E.g., for type \"bool\", the list includes \"(implb true) : bool -> bool\" and
                 (name (first type))
                 (type-ast (second type)))
             ;; Ensure that TYPE is a function (has at least 1 :->).
-            (when (< 1 (length split-type))
+            (when (length< 1 split-type)
               ;; Iterate over SCOPES, finding items with the correct type.
               (iter (for (scope-name scope-ast colon . scope-ty) in scopes)
                     (declare (ignorable colon))

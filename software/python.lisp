@@ -964,8 +964,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                                  name)
                :key {enclosing-scope obj})
               (lambda (ast1 ast2)
-                (< (length (ast-path obj (enclosing-scope obj ast1)))
-                   (length (ast-path obj (enclosing-scope obj ast2)))))
+                (length< (ast-path obj (enclosing-scope obj ast1))
+                         (ast-path obj (enclosing-scope obj ast2))))
               :key #'car)))
       ;; Don't pass in the first scope of assorted-by-scope as the first
       ;; one may include a parameter which find-var-uses would misinterpret
@@ -1256,10 +1256,10 @@ in the same namespace."
              (:children . ,values))))
 
 (-> create-dictionary (list list) (values (or python-ast null) &optional))
-(defun create-dictionary (keys values &aux (length (length keys)))
+(defun create-dictionary (keys values)
   "Create a new dictionary AST that maps KEYS to VALUES.
 Returns nil if the length of KEYS is not the same as VALUES'."
-  (when (= length (length values))
+  (when (length= keys values)
     (convert 'python-ast
              `((:class . :dictionary)
                (:children

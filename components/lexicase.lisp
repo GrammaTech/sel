@@ -25,7 +25,7 @@
 The same individual may be selected multiple times."
   (without-compiler-notes
     (assert
-     (= 1 (length (remove-duplicates population :key [#'length #'fitness])))
+     (length= 1 (remove-duplicates population :key [#'length #'fitness]))
      (population)
      "All fitness vectors must be the same length."))
   (iter (for n below max-size)
