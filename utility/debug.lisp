@@ -56,7 +56,7 @@ with `cl-user:trace'."
        #'finish-output
        (mapc
         (lambda (stream)
-          (format stream ";;~a: ~?~%"
+          (format stream "~&;;~a: ~?~%"
                   (print-time nil)
                   format-control
                   format-args))
