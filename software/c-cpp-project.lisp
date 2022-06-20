@@ -17,7 +17,8 @@
            :get-system-header
            :header-name
            :system-headers
-           :c/cpp-root))
+           :c/cpp-root
+           :*global-search-for-include-files*))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
