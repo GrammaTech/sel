@@ -9396,21 +9396,23 @@ the indentation slots."
 ;; Make inline to save stack space.
 (declaim (inline convert-spec))
 (defun convert-spec (spec prefix superclass
-                     &aux (package (symbol-package superclass)))
+                     &aux (package (symbol-package superclass))
+                       (class (aget :class spec)))
   "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
 correct class name for subclasses of SUPERCLASS."
   (lret ((instance
-          (make-instance
-           (symbol-cat-in-package
-            package
-            prefix
-            (let ((class (aget :class spec)))
-              (if (stringp class)
-                  (nest (make-keyword)
-                        (string-upcase)
-                        (translate-camelcase-name)
-                        class)
-                  class))))))
+          (if (eql :text-fragment class)
+              (make-instance 'text-fragment)
+              (make-instance
+               (symbol-cat-in-package
+                package
+                prefix
+                (if (stringp class)
+                    (nest (make-keyword)
+                          (string-upcase)
+                          (translate-camelcase-name)
+                          class)
+                    class))))))
     (iter
       (iter:with child-types = (child-slots instance))
       (iter:with annotations = nil)
@@ -9451,7 +9453,9 @@ correct class name for subclasses of SUPERCLASS."
                     &rest args
                     &key superclass string-pass-through
                     &allow-other-keys)
-  "Create a TO-TYPE AST from the SPEC (specification) list."
+  "Create a TO-TYPE AST from the SPEC (specification) list.
+See CONVERT-TO-LIST-SPECIFICATION in tree-sitter-dev for easy generation of
+list specifications."
   (if string-pass-through
       (apply
        #'convert-parse-tree

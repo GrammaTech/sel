@@ -271,3 +271,84 @@ representation."
     (for (nil . obj) in (sel/sw/project:evolve-files project))
     (when-let ((ambiguities (ambiguous-asts obj)))
       (collect (list obj ambiguities)))))
+
+(defun trim-prefix (prefix symbol)
+  (make-keyword
+   (drop-prefix (string+ prefix "-") (string symbol))))
+
+(defun get-default-slot-value (ast slot)
+  (slot-definition-initform
+   (find slot (class-slots (class-of ast))
+         :key #'slot-definition-name)))
+
+(defgeneric convert-to-list-specification (prefix ast &key)
+  (:documentation
+   "Convert AST to a list specification that can be used with #'convert.
+Can pass :NORMALIZE-INDENTATION to normalize the indentation for being placed
+in an existing AST.")
+  (:method (prefix ast &key &allow-other-keys)
+    ast)
+  (:method (prefix (list list)
+            &rest keys
+            &key)
+    (iter
+      (for item in list)
+      (collect (apply #'convert-to-list-specification prefix item keys))))
+  (:method :around (prefix (ast functional-tree-ast)
+                    &key &allow-other-keys
+                    &aux (specification (call-next-method)))
+    ;; NOTE: any car that doesn't have a slot corresponding slot will be put
+    ;;       in the annotations slot.
+    (with-slots (annotations) ast
+      (if annotations
+          (append specification annotations)
+          specification)))
+  (:method :around (prefix (ast text-fragment) &key &allow-other-keys)
+    (cons (cons :text (text ast))
+          (call-next-method)))
+  (:method :around (prefix (ast indentation)
+                    &key normalize-indentation &allow-other-keys
+                    &aux (specification (call-next-method)))
+    (with-slots (indent-children indent-adjustment) ast
+      (if-let ((indentation-slots
+                `(,@(when indent-children
+                      `((:indent-children . ,(if normalize-indentation
+                                                 t
+                                                 indent-children))))
+                  ,@(when indent-adjustment
+                      `((:indent-adjustment . ,indent-adjustment))))))
+        (append specification indentation-slots)
+        specification)))
+  (:method :around (prefix (ast structured-text)
+                    &key &allow-other-keys
+                    &aux (specification (call-next-method)))
+    (with-slots (before-text after-text) ast
+      (if-let ((text-slots
+                `(,@(when (not (emptyp before-text))
+                      `((:before-text . ,before-text)))
+                  ,@(when (not (emptyp after-text))
+                      `((:after-text . ,after-text))))))
+        (append specification text-slots)
+        specification)))
+  (:method :around (prefix (ast tree-sitter-ast) &key &allow-other-keys)
+    (cons (cons :class (trim-prefix prefix (type-of ast)))
+          (call-next-method)))
+  (:method :around (prefix (ast computed-text)
+                    &key &allow-other-keys
+                    &aux (specification (call-next-method))
+                      (text (text ast)))
+    (cond
+      ((slot-value ast 'children) specification)
+      ((equal text (get-default-slot-value ast 'text)) specification)
+      (t (append1 specification
+                  (cons :text (text ast))))))
+  (:method (prefix (ast tree-sitter-ast) &rest keys &key &allow-other-keys)
+    (iter
+      (for (slot . nil) in (child-slots ast))
+      (for slot-value = (apply #'convert-to-list-specification
+                               prefix
+                               (slot-value ast slot)
+                               keys))
+      (when slot-value
+        (collect
+            (cons (trim-prefix prefix slot) slot-value))))))
