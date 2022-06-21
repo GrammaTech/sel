@@ -588,6 +588,12 @@
     :ast-type 'cpp-ast
     :canonical-type 'cpp-canonical-type))
 
+(defmethod canonicalize-type ((declaration cpp-optional-parameter-declaration)
+                              &key ast-type canonical-type)
+  (make canonical-type
+        :specifier (get-specifier-list ast-type declaration)
+        :declarator (canonicalize-declarator (c/cpp-declarator declaration))))
+
 ;;; TODO Generalize include handling to C as well as C++. (This will
 ;;; involve pulling the declarations from the std namespace, and only
 ;;; for the C compatibility headers.)

@@ -1402,6 +1402,12 @@ operator."
                                 :target-ast-type cpp-function-definition)
     (test-declarator-type :function 'cpp-parameter-list)))
 
+(deftest cpp-canonicalize-type/optional-parameter ()
+  "Canonicalize-type returns works on a function definition with optional parameters."
+  (with-canonicalize-type-test ("int x (int x = 3, int y = 4) { return x + y; }"
+                                :target-ast-type cpp-function-definition)
+    (test-declarator-type :function 'cpp-parameter-list)))
+
 (deftest cpp-canonicalize-type-6 ()
   "Canonicalize-type returns works on a parameter declaration."
   (with-canonicalize-type-test ("int x (const int *x) { return x + y; }"
