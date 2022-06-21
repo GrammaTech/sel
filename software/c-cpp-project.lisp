@@ -18,7 +18,11 @@
            :header-name
            :system-headers
            :c/cpp-root
-           :*global-search-for-include-files*))
+           :*global-search-for-include-files*
+           :include-not-found-warning
+           :include-conflict-error
+           :include-conflict-error.ast
+           :include-conflict-error.candidates))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -60,6 +64,8 @@ by the symbol-table attribute."))
 
 (defgeneric get-system-header (project system-header-string)
   (:method (project system-header-string) nil)
+  (:method (project (system-header-ast c/cpp-system-lib-string))
+    (get-system-header project (trim-path-string system-header-ast)))
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING
 and add it to PROJECT."))
 
@@ -138,6 +144,26 @@ and add it to PROJECT."))
 
 ;;; Symbol Table
 
+(define-condition include-conflict-error (error)
+  ((ast :initarg :ast :type ast :reader include-conflict-error.ast)
+   (candidates :initarg :candidates :type (soft-list-of software)
+               :reader include-conflict-error.candidates))
+  (:documentation "Error for multiple headers matching an include")
+  (:report (lambda (c s)
+             (with-slots (ast candidates) c
+               (format s "Clash in header candidate includes: ~a~%~{~a~^~%~}"
+                       ast
+                       (mapcar (op (original-path (cdr _))) candidates))))))
+
+(define-condition include-not-found-warning (warning)
+  ((include-ast
+    :initarg :include-ast
+    :reader include-not-found-warning.include-ast))
+  (:documentation "Warning for an include whose header cannot be found")
+  (:report (lambda (c s)
+             (with-slots (include-ast) c
+               (format s "Not found: ~a" (source-text include-ast))))))
+
 (defmethod symbol-table-union ((root c/cpp-project) table-1 table-2 &key)
   (multi-map-symbol-table-union
    table-1 table-2
@@ -154,7 +180,7 @@ arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.")
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
-                                            (global *global-search-for-include-files*))
+                                         (global *global-search-for-include-files*))
   "Find the symbol table in PROJECT for the include file
 included by INCLUDE-AST.  IN is the symbol table before entry
 to the include-ast.  If GLOBAL is true, search for non-system
@@ -184,7 +210,7 @@ include files in all directories of the project."
                (progn
                  (merge-cached-symbol-table system-header)
                  (symbol-table system-header in))
-               (empty-map)))
+               nil))
            (process-relative-header (path-ast)
              "Get the corresponding symbol table for the relative path
               represented by PATH-AST."
@@ -204,16 +230,35 @@ include files in all directories of the project."
                                 file file-path include-path)
                         (let ((software
                                 (if global
-                                    ;; Search for the include file everywhere
-                                    (cdr (find-if (op (let ((p (original-path (cdr _))))
-                                                        (and (equal (pathname-name p)
-                                                                    (pathname-name include-path))
-                                                             (equal (pathname-type p)
-                                                                    (pathname-type include-path)))))
-                                                  (evolve-files project)))
+                                    (let ((matches
+                                           (filter
+                                            ;; Search for the include file everywhere.
+                                            (op (let ((p (original-path (cdr _))))
+                                                  (and (equal (pathname-name p)
+                                                              (pathname-name include-path))
+                                                       (equal (pathname-type p)
+                                                              (pathname-type include-path)))))
+                                            (evolve-files project))))
+                                      (if (cdr matches)
+                                          (restart-case
+                                              (error 'include-conflict-error
+                                                     :ast path-ast
+                                                     :candidates matches)
+                                            (ignore ()
+                                              :report "Ignore the conflict, return nil"
+                                              nil)
+                                            (first ()
+                                              :report "Return the first candidate"
+                                              (cdar matches))
+                                            (whichever ()
+                                              :report "Pick one at random"
+                                              (cdr (random-elt matches))))
+                                          (cdar matches)))
                                     ;; Search relative to the location of the file
                                     ;; containing the include-ast.  TODO: add a set
-                                    ;; of paths to search in
+                                    ;; of paths to search in. TODO: Allow searching
+                                    ;; up through grandparent directories (as some
+                                    ;; compilers do).
                                     (let* (;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
                                            ;; Warn about this below if this happened.
                                            (include-path-dir (substitute :back :up (pathname-directory include-path)))
@@ -238,24 +283,29 @@ include files in all directories of the project."
                                               (namestring file-path)))
                                        (aget include-path-string
                                              (evolve-files project)
-                                             :test #'equal))
-                                    )))
+                                             :test #'equal)))))
                           (if (or (null software)
                                   (member software *include-file-stack*))
-                              (progn
-                                (when (null software)
-                                  (warn "Not found: ~a" (source-text include-ast)))
-                                (empty-map))
+                              nil
                               (let ((*include-file-stack* (cons software *include-file-stack*)))
                                 (symbol-table software in)))))
-                      (empty-map))))
+                      nil)))
     (ematch include-ast
       ((c/cpp-preproc-include
         (c/cpp-path (and path (c/cpp-string-literal))))
-       (process-relative-header path))
+       (or (process-relative-header path)
+           ;; If a quoted header cannot be found, we should fall back
+           ;; to looking in system headers.
+           (process-system-header project path)
+           (progn
+             (warn 'include-not-found-warning :include-ast include-ast)
+             (empty-map))))
       ((c/cpp-preproc-include
         (c/cpp-path (and path (c/cpp-system-lib-string))))
-       (process-system-header project path)))))
+       (or (process-system-header project path)
+           (progn
+             (warn 'include-not-found-warning :include-ast include-ast)
+             (empty-map)))))))
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (let ((root (attrs-root *attrs*)))
