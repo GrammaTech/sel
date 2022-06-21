@@ -691,6 +691,16 @@
                               :test #'source-text=))
                :initial-value (empty-map))))))
 
+(defmethod field-table ((typedef cpp-type-definition))
+  "Given a typedef for a template type, recursively resolve the
+templated definition's field table."
+  (match typedef
+    ((cpp-type-definition
+      (cpp-type (and type (cpp-template-type))))
+     (when-let (class (get-declaration-ast :type type))
+       (field-table class)))
+    (otherwise (call-next-method))))
+
 (defmethod outer-declarations ((ast cpp-template-declaration))
   ;; TODO Store the template parameters somehow in the symbol table?
   (when-let ((definitions (filter (of-type '(or definition-ast declaration-ast))

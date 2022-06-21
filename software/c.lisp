@@ -264,6 +264,16 @@ field."
 ;;; Special handling for tag specifiers to work around the fact that
 ;;; they share a superclass with actual declarations.
 
+(defmethod field-table ((typedef c-type-definition))
+  "Given a typedef for a struct defined elsewhere,
+recursively resolve that struct's field table."
+  (match typedef
+    ((c-type-definition
+      (c-type (and type (c-tag-specifier))))
+     (when-let (class (get-declaration-ast :tag type))
+       (field-table class)))
+    (otherwise (call-next-method))))
+
 (defun tag-specifier-outer-declarations (ast cc)
   (let ((parent (get-parent-ast (attrs-root*) ast)))
     (if (typep parent '(or compound-ast root-ast))

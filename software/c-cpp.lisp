@@ -566,7 +566,7 @@ pointer declarations which are nested on themselves."
     (match ast
       ((c/cpp-type-definition
         (c/cpp-type
-         (and struct (c/cpp-struct-specifier))))
+         (and struct (c/cpp-classoid-specifier))))
        (field-table struct)))))
 
 (defun lookup-in-field-table (class ns key)

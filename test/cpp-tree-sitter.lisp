@@ -804,6 +804,19 @@ switch(r)
         (is (typep ast 'cpp-qualified-identifier))
         (is (typep (get-declaration-ast :variable ast) 'cpp-enumerator))))))
 
+(deftest infer-template-type-through-subsequent-typedef ()
+  "Test inferring the types of template members when the template is typedef'd."
+  (let ((cpp (from-string 'cpp (fmt "~
+class foo<A> { public: int a; int b; };
+typedef foo<int> foo_t;
+int f(foo_t* p) { return p->a; }~
+"))))
+    (with-attr-table cpp
+      (is (source-text= "int"
+                        (infer-type
+                         (is (find-if (op (source-text= _ "p->a"))
+                                      cpp))))))))
+
 
 ;;; Parsing tests
 

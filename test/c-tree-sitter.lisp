@@ -67,6 +67,19 @@ int f(foo_t* p) { return p->a; }~
                          (is (find-if (op (source-text= _ "p->a"))
                                       c-code))))))))
 
+(deftest infer-struct-type-through-subsequent-typedef ()
+  "Test inferring the types of struct members when the struct is typedef'd later."
+  (let ((c-code (from-string 'c (fmt "~
+struct foo { int a; int b; };
+typedef struct foo foo_t;
+int f(foo_t* p) { return p->a; }~
+"))))
+    (with-attr-table c-code
+      (is (source-text= "int"
+                        (infer-type
+                         (is (find-if (op (source-text= _ "p->a"))
+                                      c-code))))))))
+
 ;; Issue #228.
 (deftest infer-struct-member-type-1 ()
   "Test inferring the types of struct members through the C tag
