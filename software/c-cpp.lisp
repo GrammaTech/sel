@@ -1278,7 +1278,7 @@ array, function parameter, parens, and pointer information.")
   (make-instance
    canonical-type
    :specifier (get-specifier-list ast-type declaration)
-   :declarator (canonicalize-declarator (cpp-declarator declaration))))
+   :declarator (canonicalize-declarator (c/cpp-declarator declaration))))
 
 (defmethod canonicalize-type
     ((declaration c/cpp-parameter-declaration)
@@ -1286,7 +1286,7 @@ array, function parameter, parens, and pointer information.")
   (make-instance
    canonical-type
    :specifier (get-specifier-list ast-type declaration)
-   :declarator (canonicalize-declarator (cpp-declarator declaration))))
+   :declarator (canonicalize-declarator (c/cpp-declarator declaration))))
 
 (defmethod canonical-type= ((canonical-type-1 c/cpp-canonical-type)
                             (canonical-type-2 c/cpp-canonical-type)
