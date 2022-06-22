@@ -772,7 +772,7 @@ by `compose-mutations', `sequence-mutations' first targets and applies A and the
   (setf (fitness obj) nil))
 
 (defmethod apply-all-mutations ((obj software) (mut mutation))
-  (apply-mutations obj mut infinity))
+  (apply-mutations obj mut (1- array-dimension-limit)))
 
 (defmethod apply-mutations ((obj software) (mut mutation) n)
   (setf (object mut) obj)
