@@ -252,7 +252,11 @@ include files in all directories of the project."
                                               (cdar matches))
                                             (whichever ()
                                               :report "Pick one at random"
-                                              (cdr (random-elt matches))))
+                                              (cdr (random-elt matches)))
+                                            (use-value (match)
+                                              :report "Specify the header to use"
+                                              (assert (member match matches))
+                                              (cdr match)))
                                           (cdar matches)))
                                     ;; Search relative to the location of the file
                                     ;; containing the include-ast.  TODO: add a set
