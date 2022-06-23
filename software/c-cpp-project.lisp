@@ -283,7 +283,7 @@ include files in all directories of the project."
                                              (namestring (canonical-pathname absolute-include-path))))
                                       (unless (equal (pathname-directory include-path) include-path-dir)
                                         (warn "~A in ~A may be interpreted incorrecly in the presence of symlinks"
-                                              (source-text include-ast)
+                                              (remove #\Newline (source-text include-ast))
                                               (namestring file-path)))
                                        (aget include-path-string
                                              (evolve-files project)
