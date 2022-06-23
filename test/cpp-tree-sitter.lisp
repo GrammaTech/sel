@@ -817,6 +817,16 @@ int f(foo_t* p) { return p->a; }~
                          (is (find-if (op (source-text= _ "p->a"))
                                       cpp))))))))
 
+(deftest test-array-declarator-outer-declarations ()
+  (is (typep
+       (nest
+        (car)
+        (outer-declarations)
+        (is)
+        (find-if (of-type 'cpp-declaration))
+        (genome)
+        (from-string 'cpp "uint32_t offsets[kBinCount] = {static_cast<uint32_t>(bins[0].size())};"))
+       'cpp-identifier)))
 
 ;;; Parsing tests
 

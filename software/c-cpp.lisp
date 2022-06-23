@@ -255,6 +255,11 @@
                   (c/cpp-pointer-declarator
                    (c/cpp-declarator d))))
                 (values (list d) '(:variable)))
+               ((c/cpp-init-declarator
+                 (c/cpp-declarator
+                  (c/cpp-array-declarator
+                   (c/cpp-declarator d))))
+                (values (list d) '(:variable)))
                ;; Special handling for uninitialized variables.
                (otherwise
                 (values (list (c/cpp-declarator d)) '(:variable))))))
