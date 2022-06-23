@@ -51,20 +51,22 @@
 (-> strip-template-arguments (string) string)
 (defun strip-template-arguments (string)
   "Strip template arguments (in angle brackets) from STRING."
-  (nlet rec ((pos 0)
-             (bracket-count 0)
-             (acc nil))
-    (if (length>= pos string)
-        (if (> bracket-count 0)
-            ;; Not actually delimiters. E.g. operator<.
-            string
-            (coerce (nreverse acc) 'string))
-        (case-let (char (char string pos))
-          (#\< (rec (1+ pos) (1+ bracket-count) acc))
-          (#\> (rec (1+ pos) (1- bracket-count) acc))
-          (t (if (> bracket-count 0)
-                 (rec (1+ pos) bracket-count acc)
-                 (rec (1+ pos) bracket-count (cons char acc))))))))
+  (with-string-dispatch () string
+    (nlet rec ((pos 0)
+               (bracket-count 0)
+               (acc nil))
+      (declare (array-index pos bracket-count))
+      (if (length>= pos string)
+          (if (> bracket-count 0)
+              ;; Not actually delimiters. E.g. operator<.
+              string
+              (coerce (nreverse acc) 'string))
+          (case-let (char (vref string pos))
+            (#\< (rec (1+ pos) (1+ bracket-count) acc))
+            (#\> (rec (1+ pos) (1- bracket-count) acc))
+            (t (if (> bracket-count 0)
+                   (rec (1+ pos) bracket-count acc)
+                   (rec (1+ pos) bracket-count (cons char acc)))))))))
 
 #+:TREE-SITTER-CPP
 (progn
