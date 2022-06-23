@@ -7526,8 +7526,11 @@ a declaration AST, return AST unchanged."
       (or (not (type declaration-ast))
           (type degenerate-declaration-ast)))
      (let ((root (attrs-root*)))
-       (mapcar (op (find-enclosing-declaration type root _))
-               (get-declaration-ids type ast))))
+       (iter (for id in (get-declaration-ids type ast))
+             (restart-case
+                 (collect (find-enclosing-declaration type root id))
+               (continue ()
+                 :report "Ignore this ID")))))
     ((:variable (variable-declaration-ast))
      (list ast))
     ((:function (function-declaration-ast))
