@@ -181,7 +181,7 @@ void f() { 17; 21U; 32l; 43UL; 'x'; \"abc\"; 67.0; 50.2f; 89.0d; }"))))
 
 (deftest infer-pointer-deref-type ()
   "Test that the dereference of a pointer is the target type"
-  (let ((c-code (from-string 'c (form "~
+  (let ((c-code (from-string 'c (fmt "~
 typedef struct foo_s { int x; } foo_t;
 void f(struct foo_s* p1, foo_t* p2, int* p3, char* p4, float* p5, double* p6) {
    *p1; *p2; *p3; *p4; *p5; *p6;
@@ -190,7 +190,8 @@ void f(struct foo_s* p1, foo_t* p2, int* p3, char* p4, float* p5, double* p6) {
       (multiple-value-bind (s1 s2 s3 s4 s5 s6)
           (apply #'values
                  (iter (for i from 1 to 6)
-                       (stmt-with-text c-code (fmt "*p~a" i))))
+                       (collecting
+                         (stmt-with-text c-code (fmt "*p~a" i)))))
         (is (source-text= "struct foo_s" (infer-type s1)))
         (is (source-text= "foo_t" (infer-type s2)))
         (is (source-text= "int" (infer-type s3)))
