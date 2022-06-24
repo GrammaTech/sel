@@ -1275,7 +1275,8 @@ for the language.")
         cpp-field-declaration
         cpp-enum-specifier cpp-preproc-def
         cpp-preproc-function-def
-        cpp-namespace-definition)
+        cpp-namespace-definition
+        cpp-function-definition)
        (:type-declaration-ast cpp-type-definition cpp-struct-specifier
         cpp-union-specifier
         cpp-enum-specifier
