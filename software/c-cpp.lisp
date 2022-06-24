@@ -501,7 +501,7 @@ pointer declarations which are nested on themselves."
 
 (defmethod infer-type ((ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
-  (let ((type (call-next-method)))
+  (let ((type (infer-type (c/cpp-argument ast)))) ; (call-next-method)
     (if (source-text= "*" (c/cpp-operator ast))
         (deref-type type)
         type)))
