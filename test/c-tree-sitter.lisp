@@ -154,6 +154,50 @@ int f(struct foo* p, struct foo s) { return p->x + s.x; }"))))
         (is (source-text= "int" (infer-type p->x)))
         (is (source-text= "int" (infer-type s.x)))))))
 
+;;; Issue #231
+(deftest infer-literal-types ()
+  "Test that number, character, and string literals are given types"
+  (let ((c-code (from-string 'c (fmt "~
+void f() { 17; 21U; 32l; 43UL; 'x'; \"abc\"; 67.0; 50.2f; 89.0d; }"))))
+    (with-attr-table c-code
+      (let ((s17 (stmt-with-text c-code "17"))
+            (s21 (stmt-with-text c-code "21U"))
+            (s32 (stmt-with-text c-code "32l"))
+            (s43 (stmt-with-text c-code "43UL"))
+            (sx (stmt-with-text c-code "'x'"))
+            (sabc (stmt-with-text c-code "\"abc\""))
+            (s67 (stmt-with-text c-code "67.0"))
+            (s50 (stmt-with-text c-code "50.2f"))
+            (s89 (stmt-with-text c-code "89.0d")))
+        (is (source-text= "int" (infer-type s17)))
+        (is (source-text= "unsigned int" (infer-type s21)))
+        (is (source-text= "long int" (infer-type s32)))
+        (is (source-text= "unsigned long int" (infer-type s43)))
+        (is (source-text= "int" (infer-type sx)))
+        (is (source-text= "char[]" (infer-type sabc)))
+        (is (source-text= "double" (infer-type s67)))
+        (is (source-text= "float" (infer-type s50)))
+        (is (source-text= "double" (infer-type s89)))))))
+
+(deftest infer-pointer-deref-type ()
+  "Test that the dereference of a pointer is the target type"
+  (let ((c-code (from-string 'c (form "~
+typedef struct foo_s { int x; } foo_t;
+void f(struct foo_s* p1, foo_t* p2, int* p3, char* p4, float* p5, double* p6) {
+   *p1; *p2; *p3; *p4; *p5; *p6;
+}"))))
+    (with-attr-table c-code
+      (multiple-value-bind (s1 s2 s3 s4 s5 s6)
+          (apply #'values
+                 (iter (for i from 1 to 6)
+                       (stmt-with-text c-code (fmt "*p~a" i))))
+        (is (source-text= "struct foo_s" (infer-type s1)))
+        (is (source-text= "foo_t" (infer-type s2)))
+        (is (source-text= "int" (infer-type s3)))
+        (is (source-text= "char" (infer-type s4)))
+        (is (source-text= "float" (infer-type s5)))
+        (is (source-text= "double" (infer-type s6)))))))
+
 ;;; Issue #248
 (deftest include-of-local-file-in-subdirectory ()
   "Test that #include properly finds the include file relative
@@ -166,7 +210,7 @@ to the directory of the file"
     (is (source-text= (caar (last types)) "c"))
     (is (source-text= (cadar (last types)) "char"))
     (is (source-text= (caar (last types 2)) "c"))
-    (is (source-text= (cadar (last types 2)) "char"))))    
+    (is (source-text= (cadar (last types 2)) "char"))))
 
 (deftest test-struct-forward-declaration ()
   (let* ((c (from-string 'c (fmt "~
