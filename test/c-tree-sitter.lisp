@@ -199,6 +199,18 @@ void f(struct foo_s* p1, foo_t* p2, int* p3, char* p4, float* p5, double* p6) {
         (is (source-text= "float" (infer-type s5)))
         (is (source-text= "double" (infer-type s6)))))))
 
+;;; Issue #235
+(deftest infer-union-member-types ()
+  "Dereferencing of a field of a union type works"
+  (let ((c-code (from-string 'c (fmt "~
+typedef union foo_s { int x; float y; } foo_t;
+void f(foo_t u) { u.x; u.y; }"))))
+    (with-attr-table c-code
+      (let ((sx (stmt-with-text c-code "u.x"))
+            (sy (stmt-with-text c-code "u.y")))
+        (is (source-text= "int" (infer-type sx)))
+        (is (source-text= "float" (infer-type sy)))))))
+
 ;;; Issue #248
 (deftest include-of-local-file-in-subdirectory ()
   "Test that #include properly finds the include file relative

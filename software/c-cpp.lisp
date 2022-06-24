@@ -567,6 +567,19 @@ pointer declarations which are nested on themselves."
       ((c/cpp-struct-specifier
         (c/cpp-body nil))
        (empty-map))))
+  (:method ((ast c/cpp-union-specifier))
+    (ematch ast
+      ((c/cpp-union-specifier
+        (c/cpp-body
+         (and (type c/cpp-field-declaration-list)
+              (access #'direct-children fields))))
+       (assure fset:map
+         (reduce (flip #'field-adjoin)
+                 fields
+                 :initial-value (empty-map))))
+      ((c/cpp-union-specifier
+        (c/cpp-body nil))
+       (empty-map))))
   (:method ((ast c/cpp-type-definition))
     (match ast
       ((c/cpp-type-definition
