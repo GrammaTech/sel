@@ -141,6 +141,35 @@ field."
 (defmethod no-fallthrough ((ast c-continue-statement)) t)
 (defmethod no-fallthrough ((ast c-break-statement)) t)
 
+(defmethod expression-type ((ast c-number-literal))
+  ;; There should be a global controlling the integer size model
+  (match
+   (string-downcase (text ast))
+   ;; TODO: hex constants
+   ((and string (ppcre "^[0-9]+$"))
+    (make 'c-primitive-type :text "int"))
+   ((and string (ppcre "^[0-9]+u$"))
+    (c-type (convert 'c-ast "unsigned int a;" :deepest t)))
+   ((and string (ppcre "^[0-9]+l$"))
+    (c-type (convert 'c-ast "long int a;" :deepest t)))
+   ((and string (ppcre "^[0-9]+ul$"))
+    (c-type (convert 'c-ast "unsigned long int a;" :deepest t)))
+   ;; TODO: ll constants
+   ((ppcre "^[0-9]+\\.[0-9]*(|[ep][0-9]+)(|d)$" _ _)
+    (make 'c-primitive-type :text "double"))
+   ((ppcre "^[0-9]+\\.[0-9]*(|[ep][0-9]+)l$" _)
+    (c-type (convert 'c-ast "long double a;" :deepest t)))
+   ((ppcre "^[0-9]+\\.[0-9]*(|[ep][0-9]+)f$" _)
+    (make 'c-primitive-type :text "float"))))
+
+(defmethod expression-type ((ast c-string-literal))
+  (make 'c-type-descriptor
+        :c-type (make 'c-primitive-type :text "char")
+        :c-declarator (make 'c-abstract-array-declarator)))
+
+(defmethod expression-type ((ast c-char-literal))
+  (make 'c-primitive-type :text "int"))
+
 (defmethod infer-type ((ast c-ast) &aux (obj (attrs-root*)))
   (if-let ((decl (find-if «or {typep _ 'c-declaration}
                               {typep _ 'c-parameter-declaration}»
