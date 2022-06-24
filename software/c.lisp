@@ -146,13 +146,13 @@ field."
   (match
    (string-downcase (text ast))
    ;; TODO: hex constants
-   ((and string (ppcre "^[0-9]+$"))
+   ((ppcre "^[0-9]+$")
     (make 'c-primitive-type :text "int"))
-   ((and string (ppcre "^[0-9]+u$"))
+   ((ppcre "^[0-9]+u$")
     (c-type (convert 'c-ast "unsigned int a;" :deepest t)))
-   ((and string (ppcre "^[0-9]+l$"))
+   ((ppcre "^[0-9]+l$")
     (c-type (convert 'c-ast "long int a;" :deepest t)))
-   ((and string (ppcre "^[0-9]+ul$"))
+   ((ppcre "^[0-9]+ul$")
     (c-type (convert 'c-ast "unsigned long int a;" :deepest t)))
    ;; TODO: ll constants
    ((ppcre "^[0-9]+\\.[0-9]*(|[ep][0-9]+)(|d)$" _ _)
