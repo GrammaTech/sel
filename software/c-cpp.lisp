@@ -501,10 +501,19 @@ pointer declarations which are nested on themselves."
 
 (defmethod infer-type ((ast c/cpp-pointer-expression))
   "Get the type for a pointer dereference."
-  (let ((type (infer-type (c/cpp-argument ast)))) ; (call-next-method)
-    (if (source-text= "*" (c/cpp-operator ast))
-        (deref-type type)
-        type)))
+  (let ((type (infer-type (c/cpp-argument ast)))
+        (op (text (c/cpp-operator ast))))
+    (cond
+      ((equal "*" op) (deref-type type))
+      ((equal "&" op)
+       (if (typep ast 'c-pointer-expression)
+           (make-instance 'c-type-descriptor
+                          :c-declarator (make-instance 'c-abstract-pointer-declarator)
+                          :c-type (infer-type (c-argument ast)))
+           (make-instance 'cpp-type-descriptor
+                          :cpp-declarator (make-instance 'cpp-abstract-pointer-declarator)
+                          :cpp-type (infer-type (cpp-argument ast)))))
+      (t type))))
 
 (defmethod infer-type ((ast c/cpp-subscript-expression))
   (deref-type (call-next-method)))
@@ -514,6 +523,9 @@ pointer declarations which are nested on themselves."
 
 (defmethod infer-type ((ast c/cpp-parenthesized-expression))
   (infer-type (only-elt (children ast))))
+
+(defmethod infer-type ((ast c/cpp-cast-expression))
+  (c/cpp-type ast))
 
 (-> add-field-as (fset:map symbol-table-namespace ast) fset:map)
 (defun add-field-as (map ns id)

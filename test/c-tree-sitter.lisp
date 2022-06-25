@@ -199,6 +199,27 @@ void f(struct foo_s* p1, foo_t* p2, int* p3, char* p4, float* p5, double* p6) {
         (is (source-text= "float" (infer-type s5)))
         (is (source-text= "double" (infer-type s6)))))))
 
+;;; Issue #247
+(deftest infer-ref-expression-types ()
+  "Test that & expressions are pointer types"
+  (let ((c-code (from-string 'c (fmt "~
+int x;
+void f() { &x; }
+"))))
+    (with-attr-table c-code
+      (let ((s (stmt-with-text c-code "&x")))
+        (is (source-text= "int*" (infer-type s)))))))
+
+;;; Issue #234
+(deftest infer-cast-type ()
+  (let ((c-code (from-string 'c (fmt "~
+int x;
+void f(int* p) { (void*)p; }
+"))))
+    (with-attr-table c-code
+      (let ((s (stmt-with-text c-code "(void*)p")))
+        (is (source-text= "void*" (infer-type s)))))))  
+
 ;;; Issue #235
 (deftest infer-union-member-types ()
   "Dereferencing of a field of a union type works"
