@@ -179,6 +179,36 @@ field."
         (c-type decl))
     (call-next-method)))
 
+(defmethod infer-type ((ast c-comma-expression))
+  (infer-type (c-right ast)))
+
+(defun make-c-int-type ()
+  (make-instance 'c-primitive-type :text "int"))
+
+(defmethod infer-type-binary-expression ((op c-==) (ast c-binary-expression))
+  (make-c-int-type))
+(defmethod infer-type-binary-expression ((op c-!=) (ast c-binary-expression))
+  (make-c-int-type))
+(defmethod infer-type-binary-expression ((op c-<) (ast c-binary-expression))
+  (make-c-int-type))
+(defmethod infer-type-binary-expression ((op c-<=) (ast c-binary-expression))
+  (make-c-int-type))
+(defmethod infer-type-binary-expression ((op c->) (ast c-binary-expression))
+  (make-c-int-type))
+(defmethod infer-type-binary-expression ((op c->=) (ast c-binary-expression))
+  (make-c-int-type))
+(defmethod infer-type-binary-expression ((op c-&&) (ast c-binary-expression))
+  (make-c-int-type))
+(defmethod infer-type-binary-expression ((op c-\|\|) (ast c-binary-expression))
+  (make-c-int-type))
+
+;; TODO -- binary arithmetic, bit operators
+
+(defmethod infer-type ((ast c-unary-expression))
+  (if (typep (c-operator ast) 'c-!)
+      (make-c-int-type)
+      (call-next-method)))
+
 (defun fix-nil-internal-asts-slots (ast)
   "Fix missing line endings in c preprocessor #if statements.
  If any slots named INTERNAL-ASTS-<nn> are null, set their values to a

@@ -179,6 +179,48 @@ void f() { 17; 21U; 32l; 43UL; 'x'; \"abc\"; 67.0; 50.2f; 89.0d; }"))))
         (is (source-text= "float" (infer-type s50)))
         (is (source-text= "double" (infer-type s89)))))))
 
+;;; Issue #241 (partial)
+;;; Logical boolean operators have type int
+(deftest infer-logical-boolean-expr-types ()
+  (let ((c-code (from-string 'c (fmt "~
+void f() { 1||2; 3&&4; !5; }"))))
+    (with-attr-table c-code
+      (let ((s1 (stmt-with-text c-code "1||2"))
+            (s2 (stmt-with-text c-code "3&&4"))
+            (s3 (stmt-with-text c-code "!5")))
+        (is (source-text= "int" (infer-type s1)))
+        (is (source-text= "int" (infer-type s2)))
+        (is (source-text= "int" (infer-type s3)))))))
+
+(deftest infer-comparison-expr-types ()
+  "Comparison operators have int type"
+  (let ((c-code (from-string 'c (fmt "~
+void f(float x, float y) { x==y; x<y; x>y; x!=y; x<=y; x>=y; }"))))
+    (with-attr-table c-code
+      (let ((s1 (stmt-with-text c-code "x==y"))
+            (s2 (stmt-with-text c-code "x<y"))
+            (s3 (stmt-with-text c-code "x>y"))
+            (s4 (stmt-with-text c-code "x!=y"))
+            (s5 (stmt-with-text c-code "x<=y"))
+            (s6 (stmt-with-text c-code "x>=y")))
+        (is (source-text= "int" (infer-type s1)))
+        (is (source-text= "int" (infer-type s2)))
+        (is (source-text= "int" (infer-type s3)))
+        (is (source-text= "int" (infer-type s4)))
+        (is (source-text= "int" (infer-type s5)))
+        (is (source-text= "int" (infer-type s6)))))))
+
+(deftest infer-comma-expr-types ()
+  (let ((c-code (from-string 'c (fmt "~
+void f(int x, float y, char z) { x,y; y,x; x,z,y; }"))))
+    (with-attr-table c-code
+      (let ((s1 (stmt-with-text c-code "x,y"))
+            (s2 (stmt-with-text c-code "y,x"))
+            (s3 (stmt-with-text c-code "x,z,y")))
+        (is (source-text= "float" (infer-type s1)))
+        (is (source-text= "int" (infer-type s2)))
+        (is (source-text= "float" (infer-type s3)))))))
+
 (deftest infer-pointer-deref-type ()
   "Test that the dereference of a pointer is the target type"
   (let ((c-code (from-string 'c (fmt "~

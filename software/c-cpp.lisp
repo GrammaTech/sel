@@ -527,6 +527,15 @@ pointer declarations which are nested on themselves."
 (defmethod infer-type ((ast c/cpp-cast-expression))
   (c/cpp-type ast))
 
+(defmethod infer-type ((ast c/cpp-binary-expression))
+  (or (infer-type-binary-expression (c/cpp-operator ast) ast)
+      (call-next-method)))
+
+(defgeneric infer-type-binary-expression (op ast)
+  (:documentation "Function used to compute (infer-type ast) where op
+is the operator of a binary ast.")
+  (:method (op ast) nil))
+
 (-> add-field-as (fset:map symbol-table-namespace ast) fset:map)
 (defun add-field-as (map ns id)
   "Add ID to MAP in NS, a namespace such as `:type' or `:variable'."
