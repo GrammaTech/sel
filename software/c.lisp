@@ -179,9 +179,6 @@ field."
         (c-type decl))
     (call-next-method)))
 
-(defmethod infer-type ((ast c-comma-expression))
-  (infer-type (c-right ast)))
-
 (defun make-c-int-type ()
   (make-instance 'c-primitive-type :text "int"))
 
