@@ -1018,6 +1018,9 @@ for the language.")
        (c-binary-expression
         (c-left :reader lhs :initarg :lhs)
         (c-operator :reader operator :initarg :operator)
+        (c-right :reader rhs :initarg :rhs))
+       (c-comma-expression
+        (c-left :reader lhs :initarg :lhs)
         (c-right :reader rhs :initarg :rhs)))
       (:cpp
        (cpp-init-declarator
@@ -1050,7 +1053,10 @@ for the language.")
         (cpp-operator :reader operator :initarg :operator)
         (cpp-right :reader rhs :initarg :rhs))
        (cpp-template-declaration
-        (cpp-parameters :reader function-parameters)))
+        (cpp-parameters :reader function-parameters))
+       (cpp-comma-expression
+        (cpp-left :reader lhs :initarg :lhs)
+        (cpp-right :reader rhs :initarg :rhs)))
       (:golang
        (golang-const-spec
         (golang-name :reader definition-name-ast))
