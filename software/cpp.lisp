@@ -997,6 +997,12 @@ types."
               field-type))
         field-type)))
 
+;;; There does not seem to be a c/cpp-comma-expression class,
+;;; so separate methods are defined here (and in c.lisp) on
+;;; cpp- and c-comma-expression.
+(defmethod infer-type ((ast cpp-comma-expression))
+  (infer-type (cpp-right ast)))
+
 (defmethod infer-expression-type ((ast cpp-initializer-list))
   (match (get-parent-ast (attrs-root*) ast)
     ((cpp-compound-literal-expression

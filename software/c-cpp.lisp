@@ -531,6 +531,9 @@ pointer declarations which are nested on themselves."
   (or (infer-type-binary-expression (c/cpp-operator ast) ast)
       (call-next-method)))
 
+(defmethod infer-type ((ast c/cpp-assignment-expression))
+  (infer-type (c/cpp-left ast)))
+
 (defgeneric infer-type-binary-expression (op ast)
   (:documentation "Function used to compute (infer-type ast) where op
 is the operator of a binary ast.")
