@@ -1468,7 +1468,8 @@ for the language.")
        (:c/cpp-unary-expression c-unary-expression cpp-unary-expression)
        (:c/cpp-union-specifier c-union-specifier cpp-union-specifier)
        (:c/cpp-update-expression c-update-expression cpp-update-expression)
-       (:c/cpp-while-statement c-while-statement cpp-while-statement))
+       (:c/cpp-while-statement c-while-statement cpp-while-statement)
+       (:expression-ast c/cpp-comma-expression))
       (:cl
        (:literal-ast cl-char-lit cl-kwd-lit cl-list-lit cl-map-lit
         cl-package-lit cl-path-lit cl-quoting-lit cl-read-cond-lit
