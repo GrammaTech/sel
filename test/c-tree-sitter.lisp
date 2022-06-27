@@ -240,6 +240,15 @@ void f() { a=b; a+=b; a-=b; a*=b; a/=b; a&=b; a|=b; a^=b; a<<=b; a>>=b; }"))))
         (is (source-text= "long int" (infer-type s9)))
         (is (source-text= "long int" (infer-type s10)))))))
 
+(deftest infer-array-access-types ()
+  (let ((c-code (from-string 'c (fmt "~
+void f(int *a, char b[]) { a[1]; b[2]; }"))))
+    (with-attr-table c-code
+      (let ((s1 (stmt-with-text c-code "a[1]"))
+            (s2 (stmt-with-text c-code "b[2]")))
+        (is (source-text= "int" (infer-type s1)))
+        (is (source-text= "char" (infer-type s2)))))))
+
 (deftest infer-comma-expr-types ()
   (let ((c-code (from-string 'c (fmt "~
 void f(int x, float y, char z) { x,y; y,x; x,z,y; }"))))

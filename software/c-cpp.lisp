@@ -516,7 +516,7 @@ pointer declarations which are nested on themselves."
       (t type))))
 
 (defmethod infer-type ((ast c/cpp-subscript-expression))
-  (deref-type (call-next-method)))
+  (deref-type (infer-type (c/cpp-argument ast))))
 
 (defmethod infer-type ((ast c/cpp-return-statement))
   (infer-type (only-elt (children ast))))
