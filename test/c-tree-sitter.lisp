@@ -210,6 +210,36 @@ void f(float x, float y) { x==y; x<y; x>y; x!=y; x<=y; x>=y; }"))))
         (is (source-text= "int" (infer-type s5)))
         (is (source-text= "int" (infer-type s6)))))))
 
+(deftest infer-assignment-expr-types ()
+  "Assignment expressions have the same type as the left hand side"
+  ;; The C++ version of this test should check that the type
+  ;; is a ref type.
+  (let ((c-code (from-string 'c (fmt "~
+long int a;
+int b;
+void f() { a=b; a+=b; a-=b; a*=b; a/=b; a&=b; a|=b; a^=b; a<<=b; a>>=b; }"))))
+    (with-attr-table c-code
+      (let ((s1 (stmt-with-text c-code "a=b"))
+            (s2 (stmt-with-text c-code "a+=b"))
+            (s3 (stmt-with-text c-code "a-=b"))
+            (s4 (stmt-with-text c-code "a*=b"))
+            (s5 (stmt-with-text c-code "a/=b"))
+            (s6 (stmt-with-text c-code "a&=b"))
+            (s7 (stmt-with-text c-code "a|=b"))
+            (s8 (stmt-with-text c-code "a^=b"))
+            (s9 (stmt-with-text c-code "a<<=b"))
+            (s10 (stmt-with-text c-code "a>>=b")))
+        (is (source-text= "long int" (infer-type s1)))
+        (is (source-text= "long int" (infer-type s2)))
+        (is (source-text= "long int" (infer-type s3)))
+        (is (source-text= "long int" (infer-type s4)))
+        (is (source-text= "long int" (infer-type s5)))
+        (is (source-text= "long int" (infer-type s6)))
+        (is (source-text= "long int" (infer-type s7)))
+        (is (source-text= "long int" (infer-type s8)))
+        (is (source-text= "long int" (infer-type s9)))
+        (is (source-text= "long int" (infer-type s10)))))))
+
 (deftest infer-comma-expr-types ()
   (let ((c-code (from-string 'c (fmt "~
 void f(int x, float y, char z) { x,y; y,x; x,z,y; }"))))

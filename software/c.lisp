@@ -209,6 +209,9 @@ field."
       (make-c-int-type)
       (call-next-method)))
 
+(defmethod infer-type ((ast c-assignment-expression))
+  (infer-type (c-left ast)))
+
 (defun fix-nil-internal-asts-slots (ast)
   "Fix missing line endings in c preprocessor #if statements.
  If any slots named INTERNAL-ASTS-<nn> are null, set their values to a
