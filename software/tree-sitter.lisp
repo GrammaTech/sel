@@ -1395,6 +1395,7 @@ for the language.")
         cpp-struct-specifier
         cpp-class-specifier
         cpp-union-specifier)
+       (:c/cpp-comma-expression c-comma-expression cpp-comma-expression)
        (:c/cpp-comment c-comment cpp-comment)
        (:c/cpp-compound-statement c-compound-statement cpp-compound-statement)
        (:c/cpp-condition-clause c-condition-clause cpp-condition-clause)
