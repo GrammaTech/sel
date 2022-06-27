@@ -579,6 +579,10 @@ void f() { kRandom; }~%")))))
   (with-fixture w/while
     (is (stringp (source-text (find-if {typep _ 'c-while-statement} *soft*))))))
 
+(deftest test-c-or-mixins ()
+  (is (typep (c-operator (c* "x|y")) 'c/cpp-\|))
+  (is (typep (c-operator (c* "x||y")) 'c/cpp-\|\|)))
+
 
 ;;;; tree-sitter rule substitution tests
 

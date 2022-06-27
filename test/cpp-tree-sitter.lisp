@@ -1002,6 +1002,10 @@ public:
   (is (typep (cpp-scope (cpp* "enum class foo {}")) 'cpp-class))
   (is (typep (cpp-scope (cpp* "enum struct foo {}")) 'cpp-struct)))
 
+(deftest test-cpp-or-mixins ()
+  (is (typep (cpp-operator (cpp* "x|y")) 'c/cpp-\|))
+  (is (typep (cpp-operator (cpp* "x||y")) 'c/cpp-\|\|)))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.
