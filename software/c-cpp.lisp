@@ -260,6 +260,8 @@
                   (c/cpp-array-declarator
                    (c/cpp-declarator d))))
                 (values (list d) '(:variable)))
+               ((c/cpp-parenthesized-declarator)
+                (outer-declarations d))
                ;; Special handling for uninitialized variables.
                (otherwise
                 (values (list (c/cpp-declarator d)) '(:variable))))))
