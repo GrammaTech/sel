@@ -1293,6 +1293,8 @@ for the language.")
         cpp-class-specifier)
        (:macro-declaration-ast
         cpp-macro-forward-declaration)
+       (:namespace-declaration-ast
+        cpp-namespace-definition)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
        (:expression-ast cpp--expression)
        (:statement-ast cpp--statement cpp-function-definition cpp-declaration)
@@ -3711,6 +3713,9 @@ need not associate a name with anything."))
 
  (defclass macro-declaration-ast (declaration-ast) ()
    (:documentation "Mix-in for AST classes that are macro declarations."))
+
+ (defclass namespace-declaration-ast (declaration-ast) ()
+   (:documentation "Mix-in for AST classes that are namespace declarations."))
 
  (defclass class-ast (type-declaration-ast) ()
    (:documentation "Mix-in for AST classes that are class declarations."))
@@ -10080,6 +10085,7 @@ Otherwise, return PARSE-TREE."
     (:type . type-declaration-ast)
     (:tag . type-declaration-ast)
     (:macro . macro-declaration-ast)
+    (:namespace . namespace-declaration-ast)
     (nil . declaration-ast)))
 
 (defun namespace-decl-type-table ()
