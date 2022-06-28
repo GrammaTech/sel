@@ -56,7 +56,10 @@
         (nlet rec ((pos 0)
                    (bracket-count 0)
                    (acc nil))
-          (declare (array-index pos bracket-count))
+          (declare (array-index pos)
+                   ;; bracket-count is not an index since it can go
+                   ;; below 0 in pathalogical cases.
+                   (fixnum bracket-count))
           (if (length>= pos string)
               (if (> bracket-count 0)
                   ;; Not actually delimiters. E.g. operator<.
