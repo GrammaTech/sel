@@ -394,6 +394,11 @@
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-parameter-list)) parse-tree
+     &key)
+  (transform-c-style-variadic-parameter parse-tree))
+
+(defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-operator-cast)) parse-tree
      &key)
   (transform-c-declaration-specifiers parse-tree))
@@ -690,6 +695,16 @@
       ;; We don't want identifiers from type declarations.
       (remove-if (op (shares-path-of-p ast _ type)) ids)
       ids)))
+
+(defmethod parameter-name ((ast cpp-variadic-type-parameter-declaration))
+  (if (parameter-names ast)
+      (call-next-method)
+      "..."))
+
+(defmethod parameter-name ((ast cpp-variadic-declaration))
+  (if (parameter-names ast)
+      (call-next-method)
+      "..."))
 
 (defmethod get-declaration-ids ((ns (eql :tag)) (ast cpp-ast))
   "Merge the tag and type namespaces for C++."

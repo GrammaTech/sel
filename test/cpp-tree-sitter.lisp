@@ -827,6 +827,24 @@ int f(foo_t* p) { return p->a; }~
         (genome)
         (from-string 'cpp "uint32_t offsets[kBinCount] = {static_cast<uint32_t>(bins[0].size())};"))
        'cpp-identifier)))
+
+(deftest test-variadic-type-parameter-name ()
+  (let* ((source "template <typename...> static std::false_type test(...);")
+         (cpp (from-string 'cpp source))
+         (param (is (find-if (of-type 'parameter-ast) cpp))))
+    (is (equal (parameter-name param) "..."))))
+
+(deftest test-cpp-round-trip-anonymous-variadic-parameter ()
+  (let* ((source "void foo(...) {};")
+         (cpp (from-string 'cpp source)))
+    (is (equal source (source-text cpp)))))
+
+(deftest test-anonymous-variadic-parameter-name ()
+  (let* ((cpp (from-string 'cpp "void foo(...) {};"))
+         (param (is (find-if (of-type 'parameter-ast) cpp))))
+    (is (equal (parameter-name param) "..."))))
+
+
 
 ;;; Parsing tests
 
