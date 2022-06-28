@@ -48,29 +48,29 @@
 (define-language-alias-mappings
     cpp ("c plus plus" "c++" "c-plus-plus" "cc" "cp" "cpp" "cxx" "hpp"))
 
-(-> strip-template-arguments (string) string)
-(defun strip-template-arguments (string)
-  "Strip template arguments (in angle brackets) from STRING."
-  (with-string-dispatch () string
-    (if (not (position #\< string)) string
-        (nlet rec ((pos 0)
-                   (bracket-count 0)
-                   (acc nil))
-          (declare (array-index pos)
-                   ;; bracket-count is not an index since it can go
-                   ;; below 0 in pathalogical cases.
-                   (fixnum bracket-count))
-          (if (length>= pos string)
-              (if (> bracket-count 0)
-                  ;; Not actually delimiters. E.g. operator<.
-                  string
-                  (coerce (nreverse acc) 'string))
-              (case-let (char (vref string pos))
-                (#\< (rec (1+ pos) (1+ bracket-count) acc))
-                (#\> (rec (1+ pos) (1- bracket-count) acc))
-                (t (if (> bracket-count 0)
-                       (rec (1+ pos) bracket-count acc)
-                       (rec (1+ pos) bracket-count (cons char acc))))))))))
+(defgeneric strip-template-arguments (template)
+  (:documentation "Strip template arguments (in angle brackets) from STRING.")
+  (:method ((string string))
+    (with-string-dispatch () string
+      (if (not (position #\< string)) string
+          (nlet rec ((pos 0)
+                     (bracket-count 0)
+                     (acc nil))
+            (declare (array-index pos)
+                     ;; bracket-count is not an index since it can go
+                     ;; below 0 in pathalogical cases.
+                     (fixnum bracket-count))
+            (if (length>= pos string)
+                (if (> bracket-count 0)
+                    ;; Not actually delimiters. E.g. operator<.
+                    string
+                    (coerce (nreverse acc) 'string))
+                (case-let (char (vref string pos))
+                  (#\< (rec (1+ pos) (1+ bracket-count) acc))
+                  (#\> (rec (1+ pos) (1- bracket-count) acc))
+                  (t (if (> bracket-count 0)
+                         (rec (1+ pos) bracket-count acc)
+                         (rec (1+ pos) bracket-count (cons char acc)))))))))))
 
 #+:TREE-SITTER-CPP
 (progn
@@ -607,6 +607,35 @@
 (defun find-std-header (name &key (language 'cpp))
   "Find the standard library header named NAME."
   (from-string language (extract-header-synopsis name)))
+
+(defmethod strip-template-arguments ((template cpp-template-function))
+  (match template
+    ((cpp-template-function
+      (cpp-arguments args))
+     (handler-case
+         (source-text
+          (copy template
+                :cpp-arguments
+                (copy args :children nil)))
+       (error ()
+         (fail))))
+    (otherwise (call-next-method))))
+
+(defmethod strip-template-arguments ((template cpp-template-type))
+  (match template
+    ((cpp-template-type
+      (cpp-arguments args))
+     (handler-case
+         (source-text
+          (copy template
+                :cpp-arguments
+                (copy args :children nil)))
+       (error ()
+         (fail))))
+    (otherwise (call-next-method))))
+
+(defmethod strip-template-arguments ((ast cpp-ast))
+  (strip-template-arguments (source-text ast)))
 
 
 ;;; Methods common to all software objects
