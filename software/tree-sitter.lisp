@@ -7145,7 +7145,9 @@ should be rebound.")
 (defgeneric parameter-name (parameter-ast)
   (:documentation "Return the name of PARAMETER-AST.")
   (:method ((ast ast))
-    (source-text (only-elt (parameter-names ast)))))
+    (if-let (names (parameter-names ast))
+      (source-text (only-elt (parameter-names ast)))
+      nil)))
 
 (defgeneric parameter-names (parameter-ast)
   (:documentation "Return the names of PARAMETER-AST.
