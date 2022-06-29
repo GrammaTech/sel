@@ -507,12 +507,23 @@ pointer declarations which are nested on themselves."
       ((equal "*" op) (deref-type type))
       ((equal "&" op)
        (if (typep ast 'c-pointer-expression)
-           (make-instance 'c-type-descriptor
-                          :c-declarator (make-instance 'c-abstract-pointer-declarator)
-                          :c-type (infer-type (c-argument ast)))
-           (make-instance 'cpp-type-descriptor
-                          :cpp-declarator (make-instance 'cpp-abstract-pointer-declarator)
-                          :cpp-type (infer-type (cpp-argument ast)))))
+           (when-let ((arg-type (infer-type (c-argument ast))))
+             (if (typep (c-declarator arg-type) 'c-abstract-pointer-declarator)
+                 ;; Added this check to prevent the constructed c-type-descriptor
+                 ;; from breaking the print-object method
+                 ;; TODO: make this work with pointers to pointers, for example:
+                 ;;    void f() { int* x; &x; }
+                 arg-type
+                 (make-instance 'c-type-descriptor
+                                :c-declarator (make-instance 'c-abstract-pointer-declarator)
+                                :c-type arg-type)))
+           (when-let ((arg-type (infer-type (cpp-argument ast))))
+             (if (typep (cpp-declarator arg-type) 'cpp-abstract-pointer-declarator)
+                 ;; Similar to hack for C.  TODO: make this work with pointers to pointers
+                 arg-type
+                 (make-instance 'cpp-type-descriptor
+                                :cpp-declarator (make-instance 'cpp-abstract-pointer-declarator)
+                                :cpp-type arg-type)))))
       (t type))))
 
 (defmethod infer-type ((ast c/cpp-subscript-expression))
@@ -612,7 +623,9 @@ is the operator of a binary ast.")
        (field-table struct)))))
 
 (defun lookup-in-field-table (class ns key)
-  (@ (or (@ (field-table class) ns) (empty-map))
+  (@ (or (when-let ((field-table (field-table class)))
+            (@ field-table ns))
+         (empty-map))
      (source-text key)))
 
 (defun get-field-class (field)
