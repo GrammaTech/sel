@@ -226,7 +226,10 @@ evolve-files."
 
 (defmethod lookup ((obj directory-ast) (key string))
   ;; Enables the use of the `@' macro directly against projects.
-  (find-if (op (string= key (name _))) (entries obj)))
+  (handler-case
+      (get-path obj key)
+    (error ()
+      (values nil nil))))
 
 (defmethod mapc (function (obj directory-project) &rest more)
   (apply 'mapc function (genome obj) more)
