@@ -508,7 +508,8 @@ pointer declarations which are nested on themselves."
       ((equal "&" op)
        (if (typep ast 'c-pointer-expression)
            (when-let ((arg-type (infer-type (c-argument ast))))
-             (if (typep (c-declarator arg-type) 'c-abstract-pointer-declarator)
+             (if (and (typep arg-type 'c-type-descriptor)
+                      (typep (c-declarator arg-type) 'c-abstract-pointer-declarator))
                  ;; Added this check to prevent the constructed c-type-descriptor
                  ;; from breaking the print-object method
                  ;; TODO: make this work with pointers to pointers, for example:
@@ -518,7 +519,8 @@ pointer declarations which are nested on themselves."
                                 :c-declarator (make-instance 'c-abstract-pointer-declarator)
                                 :c-type arg-type)))
            (when-let ((arg-type (infer-type (cpp-argument ast))))
-             (if (typep (cpp-declarator arg-type) 'cpp-abstract-pointer-declarator)
+             (if (and (typep arg-type 'cpp-type-descriptor)
+                      (typep (cpp-declarator arg-type) 'cpp-abstract-pointer-declarator))
                  ;; Similar to hack for C.  TODO: make this work with pointers to pointers
                  arg-type
                  (make-instance 'cpp-type-descriptor
