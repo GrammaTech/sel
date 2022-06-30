@@ -539,7 +539,13 @@ pointer declarations which are nested on themselves."
   (infer-type (only-elt (children ast))))
 
 (defmethod infer-type ((ast c/cpp-parenthesized-expression))
-  (infer-type (only-elt (children ast))))
+  ;; This previously used ONLY-ELT, but if there is a parse
+  ;; error the children list may have more than one element.
+  ;; Example:  (char c)
+  (let ((c (children ast)))
+    (typecase c
+      ((cons t null) (infer-type (car c)))
+      (t nil))))
 
 (defmethod infer-type ((ast c/cpp-cast-expression))
   (c/cpp-type ast))
