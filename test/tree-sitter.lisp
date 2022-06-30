@@ -21,7 +21,8 @@
                 :preserve-properties
                 :evolution-candidate-ast-p
                 :check-ast-swappable
-                :operation-matches-rule-p))
+                :operation-matches-rule-p
+                :ordered-children))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -446,3 +447,25 @@ points."
          (source "int i"))
     (is (not (find-if (of-type '|C-;|)
                       (convert 'c-ast source))))))
+
+
+;;; Ordered Children
+
+(deftest tree-sitter-ordered-children-is-auto-populated-1 ()
+  "The ordered-children slot is automatically populated and used when it is
+accessed. #'children uses the populated value when it exists."
+  (let* ((source "int a, b, c;")
+         (declaration (find-if (of-type 'c-declaration)
+                                 (convert 'c-ast source))))
+    ;; Direct access of ordered-children populates it when it is unbound.
+    (is (eq (slot-value declaration 'ordered-children)
+            (children declaration)))))
+
+(deftest tree-sitter-ordered-children-is-auto-populated-2 ()
+  "#'children populates the ordered-children slot."
+  (let* ((source "int a, b, c;")
+         (declaration (find-if (of-type 'c-declaration)
+                                 (convert 'c-ast source))))
+    ;; Children populates ordered-children when it is unbound.
+    (is (eq (children declaration)
+            (slot-value declaration 'ordered-children)))))

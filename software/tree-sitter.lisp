@@ -3575,7 +3575,12 @@ stored as a list of interleaved text. This should ideally only be used for leaf
       :initarg :after-asts
       :initform nil
       :documentation
-      "A list of comments and errors that procede the after text of an AST."))
+      "A list of comments and errors that procede the after text of an AST.")
+     (ordered-children
+      :reader ordered-children
+      :documentation
+      "A cache slot for ordered children to speed up retrieving the children
+of an AST."))
     (:documentation "Mix-in for structured text ASTs."))
 
   (defclass tree-sitter-ast (indentation
@@ -6968,6 +6973,12 @@ is hand-written.")
         parse-tree))
       (t parse-tree))))
 
+(defmethod children :around ((ast structured-text))
+  (symbol-macrolet ((ordered-children (slot-value ast 'ordered-children)))
+    (if (slot-boundp ast 'ordered-children)
+        ordered-children
+        (setf ordered-children (call-next-method)))))
+
 (defmethod children ((ast structured-text))
   (remove-if
    (of-type 'inner-whitespace)
@@ -8376,6 +8387,10 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
          (unless parse-stack
            (values success? (reverse inner-asts-order))))))))
 
+(defmethod slot-unbound ((class t)
+                         (obj structured-text)
+                         (slot-name (eql 'ordered-children)))
+  (setf (slot-value obj slot-name) (children obj)))
 
 ;;;
 ;;; Primitive mutation types
