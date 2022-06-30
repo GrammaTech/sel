@@ -8543,6 +8543,13 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
 
 (define-mutation tree-sitter-nop (tree-sitter-mutation) ())
 
+(defmethod apply-mutation ((root root-ast)
+                           (mutation mutation))
+  "Wrapper to allow mutation of AST objects by wrapping and unwrapping them in
+temporary software objects."
+  (genome (apply-mutation (make (ast-language-class root) :genome root)
+                          mutation)))
+
 (defmethod apply-mutation :around ((software tree-sitter)
                                    (mutation tree-sitter-mutation))
   (unless (targets mutation)
