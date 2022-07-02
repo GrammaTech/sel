@@ -176,7 +176,8 @@ inference.  Used to prevent circular attr propagation.")
 (defparameter *global-search-for-include-files* nil
   "When true, search for include files in the entire directory tree
 of a project.  Used to set default value of the :GLOBAL keyword
-arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.")
+arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.  If there are duplicates
+but the file is available locally, prioritize the local file.")
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
@@ -215,85 +216,94 @@ include files in all directories of the project."
              "Get the corresponding symbol table for the relative path
               represented by PATH-AST."
              #+debug-fstfi (format t "Enter process-relative-header on ~a~%" path-ast)
-             (if-let* ((file (find-enclosing 'file-ast project include-ast))
-                       (project-dir (project-dir project))
-                       (file-path (make-pathname :name nil :type nil
-                                                 :directory
-                                                 (cons :relative
-                                                       (mapcar #'sel/sw/directory::name
-                                                               (cdr (reverse (get-parent-asts* project file)))))
-                                                 :defaults project-dir))
-                       (include-path (pathname (trim-path-string path-ast))))
-                      (progn
-                        #+debug-fstfi
-                        (format t "file = ~a, file-path = ~a, include-path = ~a~%"
-                                file file-path include-path)
-                        (let ((software
-                                (if global
-                                    (let ((matches
-                                           (filter
-                                            ;; Search for the include file everywhere.
-                                            (op (let ((p (original-path (cdr _))))
-                                                  (and (equal (pathname-name p)
-                                                              (pathname-name include-path))
-                                                       (equal (pathname-type p)
-                                                              (pathname-type include-path)))))
-                                            (evolve-files project))))
-                                      (if (cdr matches)
-                                          (restart-case
-                                              (error 'include-conflict-error
-                                                     :ast path-ast
-                                                     :candidates matches)
-                                            (ignore ()
-                                              :report "Ignore the conflict, return nil"
-                                              nil)
-                                            (first ()
-                                              :report "Return the first candidate"
-                                              (cdar matches))
-                                            (whichever ()
-                                              :report "Pick one at random"
-                                              (cdr (random-elt matches)))
-                                            (use-value (match)
-                                              :report "Specify the header to use"
-                                              (assert (member match matches))
-                                              (cdr match)))
-                                          (cdar matches)))
-                                    ;; Search relative to the location of the file
-                                    ;; containing the include-ast.  TODO: add a set
-                                    ;; of paths to search in. TODO: Allow searching
-                                    ;; up through grandparent directories (as some
-                                    ;; compilers do).
-                                    (let* (;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
-                                           ;; Warn about this below if this happened.
-                                           (include-path-dir (substitute :back :up (pathname-directory include-path)))
-                                           (absolute-include-path
-                                             (if (null include-path-dir)
-                                                 (make-pathname :name (pathname-name include-path)
-                                                                :type (pathname-type include-path)
-                                                                :defaults file-path)
-                                                 (ecase (car include-path-dir)
-                                                   (:relative
-                                                    (make-pathname :directory (append (pathname-directory file-path)
-                                                                                      (cdr include-path-dir))
-                                                                   :name (pathname-name include-path)
-                                                                   :type (pathname-type include-path)
-                                                                   :defaults file-path))
-                                                   (:absolute include-path))))
-                                           (include-path-string
-                                             (namestring (canonical-pathname absolute-include-path))))
-                                      (unless (equal (pathname-directory include-path) include-path-dir)
-                                        (warn "~A in ~A may be interpreted incorrecly in the presence of symlinks"
-                                              (remove #\Newline (source-text include-ast))
-                                              (namestring file-path)))
-                                       (aget include-path-string
-                                             (evolve-files project)
-                                             :test #'equal)))))
-                          (if (or (null software)
-                                  (member software *include-file-stack*))
-                              nil
-                              (let ((*include-file-stack* (cons software *include-file-stack*)))
-                                (symbol-table software in)))))
-                      nil)))
+             (if-let* ((file (find-enclosing 'file-ast project include-ast)))
+               (let* ((project-dir (project-dir project))
+                      (file-path (make-pathname :name nil :type nil
+                                                :directory
+                                                (cons :relative
+                                                      (mapcar #'sel/sw/directory::name
+                                                              (cdr (reverse (get-parent-asts* project file)))))
+                                                :defaults project-dir))
+                      (include-path (pathname (trim-path-string path-ast)))
+                      ;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
+                      ;; Warn about this below if this happened.
+                      (include-path-dir (substitute :back :up (pathname-directory include-path)))
+                      (absolute-include-path
+                        (if (null include-path-dir)
+                            (make-pathname :name (pathname-name include-path)
+                                           :type (pathname-type include-path)
+                                           :defaults file-path)
+                            (ecase (car include-path-dir)
+                              (:relative
+                               (make-pathname :directory (append (pathname-directory file-path)
+                                                                 (cdr include-path-dir))
+                                              :name (pathname-name include-path)
+                                              :type (pathname-type include-path)
+                                              :defaults file-path))
+                              (:absolute include-path))))
+                      (include-path-string
+                        (namestring (canonical-pathname absolute-include-path))))
+                 #+debug-fstfi
+                 (macrolet ((%d (v)
+                              `(format t "~a = ~s~%" ',v ,v)))
+                   (%d project-dir) (%d file-path) (%d include-path) (%d include-path-dir)
+                   (%d absolute-include-path) (%d include-path-string))
+                 (unless (equal (pathname-directory include-path) include-path-dir)
+                   (warn "~A in ~A may be interpreted incorrecly in the presence of symlinks"
+                         (remove #\Newline (source-text include-ast))
+                         (namestring file-path)))
+                 (let ((software
+                         (if global
+                             (let ((matches
+                                     (filter
+                                      ;; Search for the include file everywhere.
+                                      (op (let ((p (original-path (cdr _))))
+                                            (and (equal (pathname-name p)
+                                                        (pathname-name include-path))
+                                                 (equal (pathname-type p)
+                                                        (pathname-type include-path)))))
+                                      (evolve-files project))))
+                               (if (null (cdr matches))
+                                   (cdar matches)
+                                   (if-let* ((m (find absolute-include-path matches
+                                                      :key (op (original-path (cdr _)))
+                                                      :test #'equal)))
+                                            ;; If one of the matches is in the directory
+                                            ;; targeted by the include relative to the including
+                                            ;; file, choose it even if there are files elsewhere
+                                            ;; with the same name.
+                                            (cdr m)
+                                            (restart-case
+                                                (error 'include-conflict-error
+                                                       :ast path-ast
+                                                       :candidates matches)
+                                              (ignore ()
+                                                :report "Ignore the conflict, return nil"
+                                                nil)
+                                              (first ()
+                                                :report "Return the first candidate"
+                                                (cdar matches))
+                                              (whichever ()
+                                                :report "Pick one at random"
+                                                (cdr (random-elt matches)))
+                                              (use-value (match)
+                                                :report "Specify the header to use"
+                                                (assert (member match matches))
+                                                (cdr match))))))
+                             ;; Search only relative to the location of the file
+                             ;; containing the include-ast.  TODO: add a set
+                             ;; of paths to search in. TODO: Allow searching
+                             ;; up through grandparent directories (as some
+                             ;; compilers do).
+                             (aget include-path-string
+                                   (evolve-files project)
+                                          :test #'equal))))
+                   (if (or (null software)
+                           (member software *include-file-stack*))
+                       nil
+                       (let ((*include-file-stack* (cons software *include-file-stack*)))
+                         (symbol-table software in)))))
+               nil)))
     (ematch include-ast
       ((c/cpp-preproc-include
         (c/cpp-path (and path (c/cpp-string-literal))))

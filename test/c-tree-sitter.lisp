@@ -10,6 +10,7 @@
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/c
    :software-evolution-library/software/c-project
+   :software-evolution-library/software/c-cpp-project
    :software-evolution-library/test/util-clang
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting
@@ -326,6 +327,20 @@ to the directory of the file"
     (is (source-text= (cadar (last types)) "char"))
     (is (source-text= (caar (last types 2)) "c"))
     (is (source-text= (cadar (last types 2)) "char"))))
+
+(deftest include-with-same-name ()
+  "Test that include files with the same name are still handled
+properly if the includes are from files in the same directory"
+  (let* ((*global-search-for-include-files* t)
+         (c-code (nest
+                  (from-file (make-instance 'c-project))
+                  (asdf:system-relative-pathname :software-evolution-library)
+                  "test/etc/c-tree-sitter/c-include2/")))
+     (with-attr-table c-code
+       (let ((sxp (stmt-with-text c-code "x.p"))
+             (syp (stmt-with-text c-code "y.p")))
+         (is (source-text= "int" (infer-type sxp)))
+         (is (source-text= "float" (infer-type syp)))))))
 
 (deftest test-struct-forward-declaration ()
   (let* ((c (from-string 'c (fmt "~
