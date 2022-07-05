@@ -8391,6 +8391,26 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                          (obj structured-text)
                          (slot-name (eql 'ordered-children)))
   (setf (slot-value obj slot-name) (children obj)))
+
+(defmethod copy :after ((ast structured-text) &key &allow-other-keys)
+  "Invalidate the ordered-children cache after a copy."
+  (slot-makunbound ast 'ordered-children))
+
+(defmethod update-instance-for-different-class
+    :after
+    ((previous structured-text)
+     (current structured-text) &key)
+  "Invalidate the ordered-children cache if the instance changes class."
+  (slot-makunbound current 'ordered-children))
+
+(defmethod update-instance-for-redefined-class
+    :after
+    ((instance structured-text)
+     added discarded plist &key)
+  "Invalidate the ordered-children cache if the class is redefined."
+  (when (slot-exists-p instance 'ordered-children)
+    (slot-makunbound instance 'ordered-children)))
+
 
 ;;;
 ;;; Primitive mutation types
