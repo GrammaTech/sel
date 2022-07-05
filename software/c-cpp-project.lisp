@@ -228,19 +228,22 @@ include files in all directories of the project."
                       (include-path (pathname (trim-path-string path-ast)))
                       ;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
                       ;; Warn about this below if this happened.
-                      (include-path-dir (substitute :back :up (pathname-directory include-path)))
-                      (absolute-include-path (path-join absolute-file-path
-                                                        (make-pathname :directory include-path-dir
-                                                                       :defaults include-path)))
+                      (tweaked-include-path-dir (substitute :back :up (pathname-directory include-path)))
+                      (tweaked-include-path (make-pathname :directory tweaked-include-path-dir
+                                                           :defaults include-path))
+                      (absolute-include-path (path-join absolute-file-path tweaked-include-path))
+                      (relative-include-path (path-join file-path tweaked-include-path))
                       (include-path-string
-                        (namestring (canonical-pathname absolute-include-path))))
+                        (namestring (canonical-pathname relative-include-path))))
                  #+debug-fstfi
                  (macrolet ((%d (v)
                               `(format t "~a = ~s~%" ',v ,v)))
                    (%d project-dir) (%d file-path) (%d absolute-file-path)
-                   (%d include-path) (%d include-path-dir)
-                   (%d absolute-include-path) (%d include-path-string))
-                 (unless (equal (pathname-directory include-path) include-path-dir)
+                   (%d include-path) (%d tweaked-include-path-dir)
+                   (%d absolute-include-path)
+                   (%d relative-include-path)
+                   (%d include-path-string))
+                 (unless (equal (pathname-directory include-path) tweaked-include-path-dir)
                    (warn "~A in ~A may be interpreted incorrecly in the presence of symlinks"
                          (remove #\Newline (source-text include-ast))
                          (namestring file-path)))
@@ -289,7 +292,7 @@ include files in all directories of the project."
                              ;; compilers do).
                              (aget include-path-string
                                    (evolve-files project)
-                                          :test #'equal))))
+                                   :test #'equal))))
                    (if (or (null software)
                            (member software *include-file-stack*))
                        nil
