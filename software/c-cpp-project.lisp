@@ -224,29 +224,21 @@ include files in all directories of the project."
                                                       (mapcar #'sel/sw/directory::name
                                                               (cdr (reverse (get-parent-asts* project file)))))
                                                 :defaults project-dir))
+                      (absolute-file-path (path-join project-dir file-path))
                       (include-path (pathname (trim-path-string path-ast)))
                       ;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
                       ;; Warn about this below if this happened.
                       (include-path-dir (substitute :back :up (pathname-directory include-path)))
-                      (absolute-include-path
-                        (if (null include-path-dir)
-                            (make-pathname :name (pathname-name include-path)
-                                           :type (pathname-type include-path)
-                                           :defaults file-path)
-                            (ecase (car include-path-dir)
-                              (:relative
-                               (make-pathname :directory (append (pathname-directory file-path)
-                                                                 (cdr include-path-dir))
-                                              :name (pathname-name include-path)
-                                              :type (pathname-type include-path)
-                                              :defaults file-path))
-                              (:absolute include-path))))
+                      (absolute-include-path (path-join absolute-file-path
+                                                        (make-pathname :directory include-path-dir
+                                                                       :defaults include-path)))
                       (include-path-string
                         (namestring (canonical-pathname absolute-include-path))))
                  #+debug-fstfi
                  (macrolet ((%d (v)
                               `(format t "~a = ~s~%" ',v ,v)))
-                   (%d project-dir) (%d file-path) (%d include-path) (%d include-path-dir)
+                   (%d project-dir) (%d file-path) (%d absolute-file-path)
+                   (%d include-path) (%d include-path-dir)
                    (%d absolute-include-path) (%d include-path-string))
                  (unless (equal (pathname-directory include-path) include-path-dir)
                    (warn "~A in ~A may be interpreted incorrecly in the presence of symlinks"
