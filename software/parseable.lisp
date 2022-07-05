@@ -6,7 +6,8 @@
         :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/components/file
-        :software-evolution-library/utility/range)
+        :software-evolution-library/utility/range
+        :software-evolution-library/utility/newline-limit-stream)
   (:import-from :functional-trees
    :path-later-p :slot-specifier-slot :slot-specifier-class
    :slot-specifier)
@@ -205,7 +206,8 @@ Provided to make it easier to debug problems with AST printing.")
         (format stream "~a~@[ :TEXT ~s~]"
                 (serial-number obj)
                 (and +print-object-source-text+
-                     (ellipsize (or (first (lines (source-text obj) :count 1)) "<NIL>")
+                     (ellipsize (or (source-text-first-line obj)
+                                    "<NIL>")
                                 cutoff))))))
 
 (defmethod print-object ((obj conflict-ast) stream)
@@ -568,6 +570,22 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
 
 (defgeneric from-alist (symbol alist)
   (:documentation "Convert alist to struct representation."))
+
+(defun source-text-first-line (ast)
+  "Return the first line of the source text of AST in constant time."
+  (let ((dest (make-string-output-stream)))
+    (tagbody
+       (source-text
+        ast
+        :stream (make-newline-limit-stream dest
+                                           (lambda ()
+                                             (go :finish))
+                                           :limit 1))
+     :finish
+       (return-from source-text-first-line
+         ;; The restriction is approximate so there may actually be
+         ;; more than one line.
+         (first (lines (get-output-stream-string dest) :count 1))))))
 
 (defgeneric source-text (ast &key stream &allow-other-keys)
   (:documentation "Return the source code corresponding to an AST,
