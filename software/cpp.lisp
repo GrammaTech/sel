@@ -931,6 +931,10 @@ then the return type of the call is the return type of the field."
 (defmethod expression-type ((ast cpp-compound-literal-expression))
   (cpp-type ast))
 
+(defmethod expression-type ((ast cpp-sizeof-expression))
+  ;; Do I need to do something special to put this in the std namespace?
+  (make 'cpp-primitive-type :text "size_t"))
+
 (defmethod resolve-declaration-type ((decl-ast cpp-type-parameter-declaration)
                                      (ast t))
   (second (children ast)))

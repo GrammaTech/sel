@@ -817,6 +817,16 @@ int f(foo_t* p) { return p->a; }~
                          (is (find-if (op (source-text= _ "p->a"))
                                       cpp))))))))
 
+;;; Issue 264
+(deftest infer-type-sizeof ()
+  "Type of sizeof expressions"
+  (let* ((cpp-code (from-string 'cpp "void f() { int x; sizeof x; sizeof(int*); }")))
+    (with-attr-table cpp-code
+      (let ((s1 (stmt-with-text cpp-code "sizeof x"))
+            (s2 (stmt-with-text cpp-code "sizeof(int*)")))
+        (is (source-text= "size_t" (infer-type s1)))
+        (is (source-text= "size_t" (infer-type s2)))))))
+
 (deftest test-array-declarator-outer-declarations ()
   (is (typep
        (nest

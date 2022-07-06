@@ -170,6 +170,9 @@ field."
 (defmethod expression-type ((ast c-char-literal))
   (make 'c-primitive-type :text "int"))
 
+(defmethod expression-type ((ast c-sizeof-expression))
+  (make 'c-primitive-type :text "size_t"))
+
 (defmethod infer-type ((ast c-ast) &aux (obj (attrs-root*)))
   (if-let ((decl (find-if «or {typep _ 'c-declaration}
                               {typep _ 'c-parameter-declaration}»

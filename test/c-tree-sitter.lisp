@@ -328,6 +328,16 @@ to the directory of the file"
     (is (source-text= (caar (last types 2)) "c"))
     (is (source-text= (cadar (last types 2)) "char"))))
 
+;;; Issue 264
+(deftest infer-type-sizeof ()
+  "Type of sizeof expressions"
+  (let* ((c-code (from-string 'c "void f() { int x; sizeof x; sizeof(int*); }")))
+    (with-attr-table c-code
+      (let ((s1 (stmt-with-text c-code "sizeof x"))
+            (s2 (stmt-with-text c-code "sizeof(int*)")))
+        (is (source-text= "size_t" (infer-type s1)))
+        (is (source-text= "size_t" (infer-type s2)))))))
+
 (deftest include-with-same-name ()
   "Test that include files with the same name are still handled
 properly if the includes are from files in the same directory"
