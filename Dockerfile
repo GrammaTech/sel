@@ -61,42 +61,9 @@ RUN chmod +x /usr/bin/git-lisp-format
 RUN mkdir /root/common-lisp
 RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8.tar.gz| tar xzC /root/common-lisp
 
-# Install tree-sitter
-WORKDIR /
-RUN git clone https://github.com/tree-sitter/tree-sitter
-WORKDIR /tree-sitter
-RUN PREFIX=/usr make all install
-WORKDIR /
-# Withheld languages: agda c-sharp julia ocaml/interface ocaml/ocaml php ql ruby scala
-# Special case: pin tree-sitter-python to 24b530c until https://github.com/tree-sitter/tree-sitter/issues/1654 is resolved
-RUN for language in bash c cpp css go html java javascript jsdoc json python regex rust typescript/tsx typescript/typescript;do \
-        [ -d tree-sitter-${language%/*} ] || git clone https://github.com/tree-sitter/tree-sitter-${language%/*};               \
-        cd /tree-sitter-${language}/src;                                                                                        \
-        if [ ${language} = "python" ];then                                                                                      \
-            git reset --hard 24b530c;                                                                                           \
-        fi;                                                                                                                     \
-        if test -f "scanner.cc"; then                                                                                           \
-            clang++ -fPIC scanner.cc -c -lstdc++;                                                                               \
-            clang -std=c99 -fPIC parser.c -c;                                                                                   \
-            clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                     \
-        elif test -f "scanner.c"; then                                                                                          \
-            clang -std=c99 -fPIC scanner.c -c;                                                                                  \
-            clang -std=c99 -fPIC parser.c -c;                                                                                   \
-            clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                       \
-        else                                                                                                                    \
-            clang -std=c99 -fPIC parser.c -c;                                                                                   \
-            clang -shared parser.o -o /usr/lib/tree-sitter-$(echo ${language}|sed 's|/|-|').so;                                 \
-        fi;                                                                                                                     \
-        mkdir -p /usr/share/tree-sitter/${language}/;                                                                           \
-        cp grammar.json node-types.json /usr/share/tree-sitter/${language};                                                     \
-        cd -;                                                                                                                   \
-    done
-RUN git clone --depth=1 https://github.com/theHamsta/tree-sitter-commonlisp.git \
-    && cd tree-sitter-commonlisp/src \
-    && clang -std=c99 -fPIC parser.c -c \
-    && clang -shared parser.o -o /usr/lib/tree-sitter-commonlisp.so \
-    && mkdir -p /usr/share/tree-sitter/commonlisp/ \
-    && cp -f grammar.json node-types.json /usr/share/tree-sitter/commonlisp
+# Install tree-sitter and tree-sitter parsers
+COPY tools/tree-sitter-install.sh /bin
+RUN env WORKDIR= tree-sitter-install.sh
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
