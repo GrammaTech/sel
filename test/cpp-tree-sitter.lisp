@@ -827,6 +827,15 @@ int f(foo_t* p) { return p->a; }~
         (is (source-text= "size_t" (infer-type s1)))
         (is (source-text= "size_t" (infer-type s2)))))))
 
+(deftest infer-type-bool-constants ()
+  "Types of the boolean constants true and false"
+  (let* ((cpp-code (from-string 'cpp "void f() { true; false; }")))
+    (with-attr-table cpp-code
+      (let ((s1 (stmt-with-text cpp-code "true"))
+            (s2 (stmt-with-text cpp-code "false")))
+        (is (source-text= "bool" (infer-type s1)))
+        (is (source-text= "bool" (infer-type s2)))))))
+
 (deftest test-array-declarator-outer-declarations ()
   (is (typep
        (nest
