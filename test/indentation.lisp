@@ -150,6 +150,19 @@ int main() {
 "))
     (is (equal (source-text (convert 'c-ast source)) source))))
 
+(deftest indentation-indents-text-fragments-1 ()
+  "Computed text nodes which contain text-fragments are indented correctly."
+  (let ((c-source "printf (
+    \"test\\n\"
+);")
+        (python-source "class TestIndent:
+    \"\"\"\\\\
+    \"\"\"
+"))
+    (is (equal c-source (source-text (convert 'c-ast c-source))))
+    (is (equal python-source
+               (source-text (convert 'python-ast python-source))))))
+
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()

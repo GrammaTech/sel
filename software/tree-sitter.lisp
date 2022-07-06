@@ -9697,6 +9697,7 @@ with SUPERCLASS.")
 (defmethod indentablep ((ast text-fragment)) nil)
 (defmethod indentablep ((ast source-text-fragment)) nil)
 (defmethod indentablep ((ast source-text-fragment-variation-point)) nil)
+(defmethod indentablep ((ast inner-whitespace)) nil)
 
 (defmethod get-indentation-at ((ast inner-whitespace) (parents list)
                                &aux (parent (car parents)))
@@ -9811,10 +9812,30 @@ for ASTs which need to appear in the surrounding text slots.")
                (setf (unbox indent-p) t
                      (unbox indentation-ast) ast)))
            (handle-indentation (text ast indentablep parents
-                                &key ancestor-check
-                                &aux (empty? (emptyp text)))
+                                &key ancestor-check first-child
+                                &aux
+                                  (parent (car parents))
+                                  (indentable-parent? (indentablep parent))
+                                  (indent-computed-text?
+                                   (and first-child
+                                        (typep parent 'computed-text)))
+                                  (empty? (emptyp text))
+                                  (ignore-empty?
+                                   (and empty?
+                                        (not indent-computed-text?)))
+                                  (indentablep (or indentablep
+                                                   (and indent-computed-text?
+                                                        indentable-parent?))))
              "If indentation to be written to stream, handle
             writing it."
+             ;; NOTE: computed text nodes with children are a bit of an edge case
+             ;;       where the computed text node turns into more of a wrapper
+             ;;       class, and the first child gets the intended indentation.
+             ;;       Since the first child is generally a text fragment, the
+             ;;       indentation is lost since it isn't indentablep. The
+             ;;       variables indentable-parent?, indent-computed-text?, and
+             ;;       ignore-empty? are used to work around this, indenting the
+             ;;       first child of a computed text node if it is needed.
              (when (and (unbox indent-p)
                         ;; Prevent indentation from being
                         ;; wasted on empty strings before it
@@ -9824,18 +9845,20 @@ for ASTs which need to appear in the surrounding text slots.")
                         ;; which is checking if it should be
                         ;; skipped.
                         (not (and ancestor-check
-                                  empty?
+                                  ignore-empty?
                                   (ancestor-of-p
                                    root (unbox indentation-ast) ast))))
-               (unless empty?
+               (unless ignore-empty?
                  (setf (unbox indent-p) nil
                        (unbox indentation-ast) nil))
-               (unless (or empty? (not indentablep) trim)
+               (unless (or ignore-empty?
+                           (not indentablep)
+                            trim)
                  (write-string
                   (make-indentation-string (indentation-length ast parents))
                   stream))))
            (handle-text (text ast indentablep parents
-                         &key ancestor-check surrounding-text)
+                         &key ancestor-check surrounding-text first-child)
              "Handle writing TEXT to stream, updating any indentation
             variables that need updated."
              ;; Suppress indentation if TEXT begins with a newline.
@@ -9844,7 +9867,8 @@ for ASTs which need to appear in the surrounding text slots.")
                              text)))
                (handle-leading-newline text)
                (handle-indentation text ast indentablep parents
-                                   :ancestor-check ancestor-check)
+                                   :ancestor-check ancestor-check
+                                   :first-child first-child)
                ;; Set indentation flag  when TEXT ends with a newline.
                (handle-trailing-newline text ast indentablep)
                (unless trim
@@ -9860,15 +9884,23 @@ for ASTs which need to appear in the surrounding text slots.")
                           :indentation-ast indentation-ast
                           :trim nil
                           :root root)))
-    (let ((indentablep (indentablep ast)))
+    (let ((indentablep (indentablep ast))
+          ;; NOTE: keep track of whether its the first child of a node.
+          ;;       This still allows computed text nodes to have the correct
+          ;;       indentation when they have children.
+          (first-child t))
       ;; before and after text is always considered indentable.
-      (handle-text (before-text ast) ast t parents :surrounding-text t)
+      (handle-text (before-text ast) ast t parents :surrounding-text t
+                                                   :first-child t)
       (mapc (lambda (output &aux trim)
               (declare (special trim))
-              (if (stringp output)
-                  (handle-text output ast indentablep parents
-                               :ancestor-check t)
-                  (handle-ast output)))
+              (cond
+                ((stringp output)
+                 (handle-text output ast indentablep parents
+                              :ancestor-check t
+                              :first-child first-child))
+                (t (handle-ast output)
+                   (setf first-child nil))))
             (cdr (butlast (output-transformation ast))))
       (handle-text (after-text ast) ast t parents :surrounding-text t))))
 
