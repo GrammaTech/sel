@@ -300,8 +300,8 @@ first value from the `phenome' method."
 (defmethod (setf fitness-extra-data) (extra-data (obj software))
   (declare (ignorable extra-data)))
 
-(defmethod copy ((obj software) &key)
-  (make-instance (class-of obj) :fitness (fitness obj)))
+(defmethod copy ((obj software) &key (fitness (fitness obj)))
+  (make-instance (class-of obj) :fitness fitness))
 
 (defmethod size ((software software))
   "Return the size of the `genome' of SOFTWARE."
