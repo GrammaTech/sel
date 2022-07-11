@@ -2565,6 +2565,21 @@ are ignored by templates, whereas named ones are preserved.")
              ((:TYPE . "STRING") (:VALUE . ","))))
            ((:TYPE . "SYMBOL") (:NAME . "_collection_elements"))
            ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")"))))
+       (:TUPLE-PATTERN
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+          ;; inline _patterns and modify it to require a comma
+          ;; in certain cases.
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "pattern"))
+             ((:TYPE . "STRING") (:VALUE . ","))))
+           ((:TYPE . "SYMBOL") (:NAME . "_patterns"))
+           ((:TYPE . "BLANK"))))
          ((:TYPE . "STRING") (:VALUE . ")")))))
       (:rust
        (:MATCH-BLOCK (:TYPE . "SEQ")

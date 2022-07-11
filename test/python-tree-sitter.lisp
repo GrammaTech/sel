@@ -886,6 +886,11 @@ x"
   (let ((source "x = (1,)"))
     (is (source-text= source (convert 'python-ast source)))))
 
+(deftest python-tuple-pattern-substitution-1 ()
+  "Single element tuples can be reproduced."
+  (let ((source "(x,) = y"))
+    (is (source-text= source (convert 'python-ast source)))))
+
 
 
 ;;; Parsing tests
