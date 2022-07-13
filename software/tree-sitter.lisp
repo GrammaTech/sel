@@ -103,6 +103,12 @@
 ;;;
 ;;;     tools/tree-sitter-setup.sh
 ;;;
+;;; By default the tree-sitter parsers installed by the script are
+;;; pinned to specific commits. You can install the latest versions by
+;;; setting the NOPIN environment variable:
+;;;
+;;;     NOPIN=1 tools/tree-sitter-setup.sh
+;;;
 ;;; On Arch Linux the
 ;;; @url{https://aur.archlinux.org/packages/tree-sitter-languages-git/,
 ;;; tree-sitter-languages-git} AUR package may be used to install

@@ -9,6 +9,8 @@ declare -ar default_languages=(
     typescript/tsx typescript/typescript
 )
 
+NOPIN=${NOPIN:-}
+
 # Pinned versions.
 declare -A pins
 pins[tree-sitter]=efe009f4
@@ -40,11 +42,15 @@ repos[commonlisp]=https://github.com/theHamsta/tree-sitter-commonlisp.git
 cd "$WORKDIR"
 
 pin_repo() {
-    # Pull only if the commit does not exist locally.
-    readonly rev=$1
-    if [ -n $rev ]; then
-        git cat-file -t $rev &>/dev/null || git pull
-        git reset --hard $rev
+    if [ -z "$NOPIN" ]; then
+        readonly rev=$1
+        if [ -n "$rev" ]; then
+            # Pull only if the commit does not exist locally.
+            git cat-file -t "$rev" &>/dev/null || git pull
+            git reset --hard "$rev"
+        fi
+    else
+        git pull
     fi
 }
 

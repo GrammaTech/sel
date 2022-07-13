@@ -63,7 +63,9 @@ RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8
 
 # Install tree-sitter and tree-sitter parsers
 COPY tools/tree-sitter-install.sh /bin
-RUN env WORKDIR= tree-sitter-install.sh
+# To build without pinning, pass --build-arg NOPIN=1 to docker-build.
+ARG NOPIN
+RUN env NOPIN=${NOPIN} WORKDIR= tree-sitter-install.sh
 RUN git clone https://github.com/death/cl-tree-sitter /root/quicklisp/local-projects/cl-tree-sitter
 # Work around bug in cl-unicode in quicklisp.
 RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
