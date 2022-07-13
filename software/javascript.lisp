@@ -3,7 +3,7 @@
   (:use :gt/full
         :cl-json
         :software-evolution-library
-        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/tree-sitter-base
         :software-evolution-library/software/template))
 
 (in-package :software-evolution-library/software/tree-sitter)
@@ -12,7 +12,7 @@
 ;;;===================================================
 ;;; Generate the language definitions
 ;;;===================================================
-(create-tree-sitter-language "javascript")
+(create-tree-sitter-language-cache "javascript")
 ;;;===================================================
 
 (define-language-alias-mappings javascript ("javascript" "js" "mjs"))

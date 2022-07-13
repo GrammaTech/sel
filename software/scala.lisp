@@ -2,7 +2,7 @@
   (:nicknames :sel/software/scala :sel/sw/scala)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/tree-sitter-base
         :software-evolution-library/software/template))
 
 (in-package :software-evolution-library/software/tree-sitter)
@@ -11,7 +11,7 @@
 ;;;===================================================
 ;;; Generate the language definitions
 ;;;===================================================
-(create-tree-sitter-language "scala")
+(create-tree-sitter-language-cache "scala")
 ;;;===================================================
 
 (define-language-alias-mappings scala ("scala"))

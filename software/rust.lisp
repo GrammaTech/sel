@@ -2,7 +2,7 @@
   (:nicknames :sel/software/rust :sel/sw/rust)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/tree-sitter-base
         :software-evolution-library/software/template))
 
 (in-package :software-evolution-library/software/tree-sitter)
@@ -11,7 +11,7 @@
 ;;;===================================================
 ;;; Generate the language definitions
 ;;;===================================================
-(create-tree-sitter-language "rust")
+(create-tree-sitter-language-cache "rust")
 ;;;===================================================
 
 (define-language-alias-mappings rust ("rs" "rust"))

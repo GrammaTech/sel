@@ -3,7 +3,7 @@
   (:use :gt/full
         :cl-json
         :software-evolution-library
-        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/tree-sitter-base
         :software-evolution-library/software/template
         :software-evolution-library/software/c-cpp))
 

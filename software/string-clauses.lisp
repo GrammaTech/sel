@@ -4,7 +4,7 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/parseable
-        :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/tree-sitter-base
         :software-evolution-library/utility/range))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
