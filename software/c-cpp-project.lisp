@@ -179,14 +179,24 @@ of a project.  Used to set default value of the :GLOBAL keyword
 arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.  If there are duplicates
 but the file is available locally, prioritize the local file.")
 
+#+debug-fstfi2
+(defparameter *include-files-to-note*
+  "A list of strings that, if present in the namestring of
+an include file, cause the symbol table of that
+file to be printed for debugging purposes.")
+
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
-                                         (global *global-search-for-include-files*))
+                                         (global *global-search-for-include-files*)
+                                       &aux #+debug-fstfi2
+                                         (iftn *include-files-to-note*))
   "Find the symbol table in PROJECT for the include file
 included by INCLUDE-AST.  IN is the symbol table before entry
 to the include-ast.  If GLOBAL is true, search for non-system
 include files in all directories of the project."
   (declare (fset:map in))
+  (format t "Enter find-symbol-table-from-include on ~a~%"
+          (source-text include-ast))
   (labels ((merge-cached-symbol-table (header)
              (let ((cached-table
                     (synchronized ('*system-header-symbol-table-cache*)
@@ -294,10 +304,22 @@ include files in all directories of the project."
                                    (evolve-files project)
                                    :test #'equal))))
                    (if (or (null software)
-                           (member software *include-file-stack*))
-                       nil
-                       (let ((*include-file-stack* (cons software *include-file-stack*)))
-                         (symbol-table software in)))))
+                           (member software *include-file-stack* :test #'equal))
+                       (progn
+                         (when software
+                           (format t "Note: skipping nested include of ~a~%" software))
+                         nil)
+                       (progn
+                         (let ((*include-file-stack* (cons software *include-file-stack*)))
+                           (let ((st (symbol-table software in)))
+                             #+debug-fstfi2
+                             (progn
+                               (format t "~3@{~a~:*~}~a~a~%" #\Space
+                                       software)
+                               (let ((ns (name-string (original-path software))))
+                                 (when (some (op (search _ ns)) iftn)
+                                   (format t "~a~%" st))))
+                             st))))))
                nil)))
     (ematch include-ast
       ((c/cpp-preproc-include

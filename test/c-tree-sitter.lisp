@@ -339,12 +339,18 @@ to the directory of the file"
         (is (source-text= "size_t" (infer-type s2)))))))
 
 (deftest infer-type-bool-constants ()
-  (let* ((c-code (from-string 'c "void f() { true; false; }")))
+  (let ((c-code (from-string 'c "void f() { true; false; }")))
     (with-attr-table c-code
       (let ((s1 (stmt-with-text c-code "true"))
             (s2 (stmt-with-text c-code "false")))
         (is (source-text= "bool" (infer-type s1)))
         (is (source-text= "bool" (infer-type s2)))))))
+
+(deftest infer-type-concatenated-string ()
+  (let ((c-code (from-string 'c "void f() { \"ab\" \"cd\"; }")))
+    (with-attr-table c-code
+      (let ((s (stmt-with-text c-code "\"ab\" \"cd\"")))
+        (is (source-text= "char[]" (infer-type s)))))))
 
 (deftest include-with-same-name ()
   "Test that include files with the same name are still handled

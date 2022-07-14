@@ -167,6 +167,11 @@ field."
         :c-type (make 'c-primitive-type :text "char")
         :c-declarator (make 'c-abstract-array-declarator)))
 
+(defmethod expression-type ((ast c-concatenated-string))
+  (make 'c-type-descriptor
+        :c-type (make 'c-primitive-type :text "char")
+        :c-declarator (make 'c-abstract-array-declarator)))
+
 (defmethod expression-type ((ast c-char-literal))
   (make 'c-primitive-type :text "int"))
 
