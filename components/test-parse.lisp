@@ -54,12 +54,17 @@ Built from SEL ~a, and ~a ~a.~%"
                (and error-pattern (cl-ppcre:scan error-pattern (format nil "~s" e)))
                (and (not error-type) (not error-pattern)))))
     (handler-case
-        (let ((g (genome (create-software source :language language))))
+        (let ((g (genome (create-software source :language language)))
+              (trimmed-file
+                (remove-if #'whitespacep (read-file-into-string source))))
+          (when (emptyp trimmed-file)
+            (exit-command test-parse 1 nil))
           (when round-trip
-            (unless (eql (search (remove-if #'whitespacep (source-text g))
-                                 (remove-if #'whitespacep (read-file-into-string source)))
-                         0)
-              (exit-command test-parse 0 nil)))
+            (let ((trimmed-genome (remove-if #'whitespacep (source-text g))))
+              (unless (and (not (emptyp trimmed-genome))
+                           (eql (search trimmed-genome trimmed-file)
+                                0))
+                (exit-command test-parse 0 nil))))
           (when idempotent
             (when (member-if {typep _ 'parse-error-ast} (convert 'list g))
               (exit-command test-parse 1 nil))
