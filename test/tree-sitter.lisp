@@ -527,6 +527,13 @@ points."
     (is (not (find-if (of-type '|C-;|)
                       (convert 'c-ast source))))))
 
+(deftest tree-sitter-variation-point-trees-dont-drop-source-text ()
+  "variation-point-trees don't lose their source text."
+  (let* ((*use-variation-point-tree* t)
+         (source "#")
+         (root (convert 'c-ast source)))
+    (is (source-text= source root))))
+
 
 ;;; Ordered Children
 

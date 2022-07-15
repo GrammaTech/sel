@@ -6499,6 +6499,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
            ;; This provides access to extra ASTs, such as comments.
            (defmethod extra-asts ((language (eql ',(make-keyword name-prefix))))
              '(:error-variation-point
+               :error-variation-point-tree
                :inner-whitespace
                ,@(iter
                   (for extra in (aget :extras grammar))
@@ -10068,7 +10069,8 @@ per se. Otherwise, returns PARSE-TREE."
              ;; NOTE: error-variation-points are created by this function, and
              ;;       are not problematic even though they have an error in a
              ;;       slot.
-             (unless (eql :error-variation-point (car subtree))
+             (unless (member (car subtree) '(:error-variation-point
+                                             :error-variation-point-tree))
                (iter
                  (for child in (caddr subtree))
                  (for slot/type = (car child))
@@ -10105,9 +10107,14 @@ per se. Otherwise, returns PARSE-TREE."
           (source-text-fragment-class
             (if *use-variation-point-tree*
                 :source-text-fragment-variation-point-tree
-                :source-text-fragment-variation-point)))
+                :source-text-fragment-variation-point))
+          (error? (eql :error (car parse-tree))))
       (cond
-        ((eql :error (car parse-tree))
+        ;; Edge case where the input is completely erroneous and the lexer can't
+        ;; even do anything with it.
+        ((and error? (not (parse-tree-children parse-tree)))
+         parse-tree)
+        (error?
          `(,error-class
            ,range
            (((:parse-error-ast :error) ,range nil)
