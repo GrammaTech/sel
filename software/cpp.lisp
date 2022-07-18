@@ -937,9 +937,9 @@ then the return type of the call is the return type of the field."
 
 (defmethod expression-type ((ast cpp-true))
   (make 'cpp-primitive-type :text "bool"))
-  
+
 (defmethod expression-type ((ast cpp-false))
-  (make 'cpp-primitive-type :text "bool"))  
+  (make 'cpp-primitive-type :text "bool"))
 
 (defmethod resolve-declaration-type ((decl-ast cpp-type-parameter-declaration)
                                      (ast t))

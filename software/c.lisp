@@ -180,9 +180,9 @@ field."
 
 (defmethod expression-type ((ast c-true))
   (make 'c-primitive-type :text "bool"))
-  
+
 (defmethod expression-type ((ast c-false))
-  (make 'c-primitive-type :text "bool"))  
+  (make 'c-primitive-type :text "bool"))
 
 (defmethod infer-type ((ast c-ast) &aux (obj (attrs-root*)))
   (if-let ((decl (find-if «or {typep _ 'c-declaration}
