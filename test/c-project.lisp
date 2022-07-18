@@ -247,12 +247,11 @@
 (deftest c-project-system-headers-2 ()
   "System headers that can't be found create an entry without children."
   (with-fixture symbol-table-project
-    (with-slots (system-headers) (genome *project*)
-      (let ((system-header (get-system-header *project* "doesn't-exist")))
-        (is (null (children system-header)))
-        (is (eq system-header
-                (find-if (op (equal (header-name _) "doesn't-exist"))
-                         system-headers)))))))
+    (let ((system-header (get-system-header *project* "doesn't-exist")))
+      (is (null (children system-header)))
+      (is (eq system-header
+              (find-if (op (equal (header-name _) "doesn't-exist"))
+                       (system-headers (genome *project*))))))))
 
 
 ;;; Symbol Table

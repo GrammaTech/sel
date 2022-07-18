@@ -33,7 +33,7 @@
   (:documentation "Mixin for common project functionality between C and C++."))
 
 (define-node-class c/cpp-root (functional-tree-ast normal-scope-ast)
-  ((system-headers :accessor system-headers
+  ((system-headers :reader system-headers
                    :initarg :system-headers
                    :initform nil)
    (system-headers/string->ast :accessor system-headers/string->ast
@@ -120,7 +120,11 @@ and add it to PROJECT."))
                                   (format-symbol :sel/sw/ts "~a-AST")
                                   (component-class project))))))
                    (setf header-hash system-header)
-                   (push system-header (system-headers genome)))))
+                   (assert (slot-exists-p (genome project) 'system-headers))
+                   (setf (genome project)
+                         (copy (genome project)
+                               :system-headers (cons system-header
+                                                     (system-headers genome)))))))
         (or header-hash
             (populate-header-entry project path-string))))))
 

@@ -88,6 +88,15 @@
                                            "cpp-symbol-table-project2")))))
   (:teardown (setf *project* nil)))
 
+(defixture cpp-symbol-table-project3
+    (:setup
+     (setf *project*
+           (from-file 'cpp-project
+                      (make-pathname
+                       :directory (append1 +etc-dir+
+                                           "cpp-symbol-table-project3")))))
+  (:teardown (setf *project* nil)))
+
 (defmethod test-method ((obj simple) value)
   value)
 
@@ -192,3 +201,31 @@ symbol table of the file including it."
                (return-symbol-table (symbol-table return-ast)))
           (is (lookup-type target-symbol-table "N::my_class"))
           (is (lookup-type return-symbol-table "N::my_class")))))))
+
+(deftest cpp-project-symbol-table-3 ()
+  "Check that we handle the case where a header is added that was not
+present when the project was created."
+  (with-fixture cpp-symbol-table-project3
+    (let* ((main (aget "main.cc" (evolve-files *project*)
+                       :test #'equal))
+           (genome (genome main))
+           (include (is (find-if (of-type 'cpp-system-lib-string) genome)))
+           (new-genome
+            (with genome include (copy include :text "<vector>")))
+           (new-genome
+            (mapcar (hash-table-function
+                     (maphash-into
+                      (make-hash-table)
+                      (lambda (ast)
+                        (if (source-text= ast "list")
+                            (values ast (copy ast :text "vector"))
+                            (values ast ast)))
+                      (convert 'list genome)))
+                    new-genome))
+           (new-project
+            (with *project* genome new-genome)))
+      (with-attr-table new-project
+        (get-declaration-ids
+         :function
+         (find-if (of-type 'cpp-field-expression)
+                  new-genome))))))
