@@ -211,10 +211,11 @@ include files in all directories of the project."
                           (attrs-table *attrs*)))))
                    (target-table (attrs-table *attrs*)))
                (do-hash-table (node alist cached-table)
-                 (if-let (old (gethash node target-table))
-                   ;; Preserve any previously computed attributes.
-                   (append old alist)
-                   alist))))
+                 (setf (gethash node target-table)
+                       (if-let (old (gethash node target-table))
+                         ;; Preserve any previously computed attributes.
+                         (append alist old)
+                         alist)))))
            (process-system-header (project path-ast)
              (if-let ((system-header
                        (get-system-header
