@@ -7,7 +7,7 @@
         :software-evolution-library
         :software-evolution-library/components/file
         :software-evolution-library/utility/range
-        :software-evolution-library/utility/newline-limit-stream)
+        :software-evolution-library/utility/limit-stream)
   (:import-from :functional-trees
    :path-later-p :slot-specifier-slot :slot-specifier-class
    :slot-specifier)
@@ -577,10 +577,10 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
     (tagbody
        (source-text
         ast
-        :stream (make-newline-limit-stream dest
-                                           (lambda ()
-                                             (go :finish))
-                                           :limit 1))
+        :stream (make-limit-stream dest
+                                   (lambda ()
+                                     (go :finish))
+                                   :limit 1))
      :finish
        (return-from source-text-first-line
          ;; The restriction is approximate so there may actually be
