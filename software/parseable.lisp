@@ -40,6 +40,7 @@
            :combine-conflict-asts-in-list
            :source-text
            :source-text=
+           :source-text-take
            :rebind-vars
            :collect-if
            ;; Parseable software object.
