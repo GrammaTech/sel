@@ -992,6 +992,15 @@ reproduced as source text."
     (is (typep name 'identifier-ast))
     (is (source-text= "operator-" name))))
 
+(deftest test-qualified-definition-ast ()
+  (let* ((cpp (from-string 'cpp "::months() const NOEXCEPT
+  { return date::months{1}; }"))
+         (name (definition-name-ast
+                (find-if (of-type 'function-declaration-ast)
+                         cpp))))
+    (is (typep name 'identifier-ast))
+    (is (source-text= "::months" name))))
+
 (deftest test-cpp-destructor-name ()
   (let ((cpp (from-string 'cpp (fmt "~
 class Base

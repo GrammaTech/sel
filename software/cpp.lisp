@@ -563,6 +563,9 @@
 (defmethod declarator-name-ast ((ast cpp-reference-declarator))
   (cpp-declarator ast))
 
+(defmethod declarator-name-ast ((ast cpp-qualified-identifier))
+  ast)
+
 (defmethod declarator-name-ast ((ast cpp-operator-name))
   ast)
 
