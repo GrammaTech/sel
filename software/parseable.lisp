@@ -41,6 +41,7 @@
            :source-text
            :source-text=
            :source-text-take
+           :source-text-take-lines
            :rebind-vars
            :collect-if
            ;; Parseable software object.
@@ -207,7 +208,7 @@ Provided to make it easier to debug problems with AST printing.")
         (format stream "~a~@[ :TEXT ~s~]"
                 (serial-number obj)
                 (and +print-object-source-text+
-                     (ellipsize (or (source-text-first-line obj)
+                     (ellipsize (or (first (source-text-take-lines 1 obj))
                                     "<NIL>")
                                 cutoff))))))
 
@@ -572,8 +573,8 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
 (defgeneric from-alist (symbol alist)
   (:documentation "Convert alist to struct representation."))
 
-(defun source-text-first-line (ast)
-  "Return the first line of the source text of AST in constant time."
+(defun source-text-take-lines (n ast)
+  "Return (at most) N lines of the source text of AST in constant time."
   (let ((dest (make-string-output-stream)))
     (tagbody
        (source-text
@@ -581,12 +582,12 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
         :stream (make-limit-stream dest
                                    (lambda ()
                                      (go :finish))
-                                   :newline-limit 1))
+                                   :newline-limit n))
      :finish
-       (return-from source-text-first-line
+       (return-from source-text-take-lines
          ;; The restriction is approximate so there may actually be
          ;; more than one line.
-         (first (lines (get-output-stream-string dest) :count 1))))))
+         (take n (lines (get-output-stream-string dest) :count n))))))
 
 (defgeneric source-text (ast &key stream &allow-other-keys)
   (:documentation "Return the source code corresponding to an AST,
