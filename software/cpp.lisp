@@ -933,6 +933,7 @@ then the return type of the call is the return type of the field."
 
 ;;; Do I need to do something special to put this in the std namespace?
 (defmethod expression-type ((ast cpp-sizeof-expression))
+  ;; TODO -- check if std is visible in the namespace and use std::size_t if not
   (make 'cpp-primitive-type :text "size_t"))
 
 (defmethod expression-type ((ast cpp-true))
