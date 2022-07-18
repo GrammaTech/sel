@@ -180,7 +180,7 @@ arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.  If there are duplicates
 but the file is available locally, prioritize the local file.")
 
 #+debug-fstfi2
-(defparameter *include-files-to-note*
+(defparameter *include-files-to-note* nil
   "A list of strings that, if present in the namestring of
 an include file, cause the symbol table of that
 file to be printed for debugging purposes.")
