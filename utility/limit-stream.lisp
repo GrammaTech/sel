@@ -56,7 +56,9 @@ greater."
 
 (defmethod gray:stream-write-string ((stream limit-stream)
                                      (string string)
-                                     &optional (start 0)
-                                       (end (length string)))
-  (increment-chars stream (- end start))
-  (increment-newlines stream (count #\Newline string :start start :end end)))
+                                     &optional start end)
+  ;; Workaround for CCL, to ensure end is not nil.
+  (let ((start (or start 0))
+        (end (or end (length string))))
+    (increment-chars stream (- end start))
+    (increment-newlines stream (count #\Newline string :start start :end end))))
