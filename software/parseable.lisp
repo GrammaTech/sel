@@ -580,7 +580,7 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
         :stream (make-limit-stream dest
                                    (lambda ()
                                      (go :finish))
-                                   :limit 1))
+                                   :newline-limit 1))
      :finish
        (return-from source-text-first-line
          ;; The restriction is approximate so there may actually be
@@ -624,6 +624,23 @@ optionally writing to STREAM.")
   (:method ((software parseable) &rest args &key)
     (apply #'source-text (genome software) args)))
 
+(defun source-text-take (n ast)
+  "Take (at most) N characters from the source text of AST in constant
+time."
+  (let ((dest (make-string-output-stream)))
+    (tagbody
+       (source-text
+        ast
+        :stream (make-limit-stream dest
+                                   (lambda ()
+                                     (go :finish))
+                                   :char-limit n))
+     :finish
+       (return-from source-text-take
+         ;; The restriction is approximate so there may actually be
+         ;; more than N chars.
+         (take n (get-output-stream-string dest))))))
+
 (defgeneric source-text= (x y)
   (:documentation "Return T if X and Y have the same source text under `string='.")
   (:method-combination standard/context)
@@ -632,6 +649,11 @@ optionally writing to STREAM.")
         (call-next-method)))
   (:method ((x string) (y string))
     (string= x y))
+  (:method ((x ast) (y string))
+    (source-text= y x))
+  (:method ((x string) (y ast))
+    ;; Add 1 to the length in case X is a prefix of Y.
+    (string= x (source-text-take (1+ (length x)) y)))
   (:method ((x string) (y t))
     (string= x (source-text y)))
   (:method ((x t) (y string))

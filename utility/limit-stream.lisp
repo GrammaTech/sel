@@ -6,13 +6,19 @@
 
 (defclass limit-stream (gray:fundamental-character-output-stream)
   ((newlines :initform 0)
-   (limit :initarg :limit)
+   (chars :initform 0)
+   (newline-limit :initarg :newline-limit)
+   (char-limit :initarg :char-limit)
    (callback :initarg :callback :type function))
-  (:default-initargs :limit 1)
+  (:default-initargs
+   :newline-limit 0
+   :char-limit 0)
   (:documentation "A stream that invokes a callback after seeing a
   certain number of newlines."))
 
-(defun make-limit-stream (stream callback &key (limit 1))
+(defun make-limit-stream (stream callback &key
+                                            (newline-limit 0)
+                                            (char-limit 0))
   "Return a stream that wraps STREAM and invokes CALLBACK after
 writing LIMIT newlines.
 
@@ -22,23 +28,35 @@ greater."
    stream
    (make 'limit-stream
          :callback callback
-         :limit limit)))
+         :newline-limit newline-limit
+         :char-limit char-limit)))
 
 (defun increment-newlines (stream n)
-  (with-slots (newlines limit callback) stream
-    (incf newlines n)
-    (when (= newlines limit)
-      (funcall callback))))
+  (with-slots (newlines newline-limit callback) stream
+    (unless (zerop newline-limit)
+      (incf newlines n)
+      (when (>= newlines newline-limit)
+        (funcall callback)))))
+
+(defun increment-chars (stream n)
+  (with-slots (chars char-limit callback) stream
+    (unless (zerop char-limit)
+      (incf chars n)
+      (when (>= chars char-limit)
+        (funcall callback)))))
 
 (defmethod gray:stream-write-char ((stream limit-stream)
                                    (char (eql #\Newline)))
-  (increment-newlines stream 1))
+  (increment-newlines stream 1)
+  (increment-chars stream 1))
 
 (defmethod gray:stream-terpri ((stream limit-stream))
-  (increment-newlines stream 1))
+  (increment-newlines stream 1)
+  (increment-chars stream 1))
 
 (defmethod gray:stream-write-string ((stream limit-stream)
                                      (string string)
                                      &optional (start 0)
                                        (end (length string)))
+  (increment-chars stream (- end start))
   (increment-newlines stream (count #\Newline string :start start :end end)))
