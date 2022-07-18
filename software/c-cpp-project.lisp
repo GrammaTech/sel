@@ -195,6 +195,7 @@ included by INCLUDE-AST.  IN is the symbol table before entry
 to the include-ast.  If GLOBAL is true, search for non-system
 include files in all directories of the project."
   (declare (fset:map in))
+  #+debug-fstfi
   (format t "Enter find-symbol-table-from-include on ~a~%"
           (source-text include-ast))
   (labels ((merge-cached-symbol-table (header)
