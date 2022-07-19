@@ -304,23 +304,23 @@ include files in all directories of the project."
                              (aget include-path-string
                                    (evolve-files project)
                                    :test #'equal))))
-                   (if (or (null software)
+                   (cond
+                     ((or (null software)
                            (member software *include-file-stack* :test #'equal))
-                       (progn
-                         (when software
-                           (format t "Note: skipping nested include of ~a~%" software))
-                         nil)
-                       (progn
-                         (let* ((*include-file-stack* (cons software *include-file-stack*))
-                                (st (symbol-table software in)))
-                           #+debug-fstfi2
-                           (progn
-                             (format t "~3@{~a~:*~}~a~a~%" #\Space
-                                     software)
-                             (let ((ns (name-string (original-path software))))
-                               (when (some (op (search _ ns)) iftn)
-                                 (format t "~a~%" st))))
-                           st)))))
+                      (when software
+                        (format t "Note: skipping nested include of ~a~%" software))
+                      nil)
+                     (t
+                      (let* ((*include-file-stack* (cons software *include-file-stack*))
+                             (st (symbol-table software in)))
+                        #+debug-fstfi2
+                        (progn
+                          (format t "~3@{~a~:*~}~a~a~%" #\Space
+                                  software)
+                          (let ((ns (name-string (original-path software))))
+                            (when (some (op (search _ ns)) iftn)
+                              (format t "~a~%" st))))
+                        st)))))
                nil)))
     (ematch include-ast
       ((c/cpp-preproc-include
