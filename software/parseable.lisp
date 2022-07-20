@@ -735,12 +735,15 @@ time."
             (t (@ obj (butlast path)))))))
 
 (defgeneric get-parent-asts (obj ast)
-  (:documentation "Return the parent nodes of AST in OBJ including AST.")
+  (:documentation "Return the parent nodes of AST in OBJ including AST.
+If OBJ is an AST, it is also included.")
   (:method (obj (ast ast))
     (nest (remove-if-not {typep _ 'ast})  ; Remove non-ASTs.
           (mapcar {lookup obj})           ; Lookup each prefix.
           (maplist #'reverse) (reverse)   ; Prefixes of path.
-          (ast-path obj ast))))
+          (ast-path obj ast)))
+  (:method ((obj ast) (ast ast))
+    (append1 (call-next-method) obj)))
 
 (defgeneric get-parent-asts* (obj ast)
   (:documentation "Return the parent nodes of AST in OBJ not including AST.")
