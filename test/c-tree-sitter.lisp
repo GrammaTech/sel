@@ -16,6 +16,8 @@
    :software-evolution-library/components/formatting
    :functional-trees/attrs)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
+  (:import-from :software-evolution-library/software/tree-sitter
+                :outer-defs)
   (:export :test-c-tree-sitter))
 (in-package :software-evolution-library/test/c-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -388,7 +390,9 @@ struct xyz *q; ~%")))
     (with-attr-table c
       (let ((p-type (get-declaration-ast :type (infer-type p)))
             (q-type (get-declaration-ast :type (infer-type q))))
-        (is (eql p-type (first specs)))
+        ;; NOTE: actual struct declaraction is preferred over forward
+        ;;       declaration.
+        (is (eql p-type (second specs)))
         (is (eql q-type (second specs)))))))
 
 (deftest test-c-tag-namespace ()
@@ -502,6 +506,26 @@ void f() { kRandom; }~%")))))
    (let ((k-random (lastcar (collect-if (op (source-text= "kRandom" _)) c))))
      (is (source-text= "kRandom = 17" (get-declaration-ast :variable k-random)))
      (is (source-text= "f_t" (infer-type k-random))))))
+
+(deftest test-infer-type-on-tag-specifiers ()
+  (let* ((c (from-string 'c "
+struct foo_s;
+
+typedef struct bar_s {
+  struct foo_s *q;
+} bar_t;
+
+typedef struct foo_s {
+  int x;
+} foo_t;
+
+void f(bar_t* p) {
+  p->q->x;
+}
+"))
+         (target-ast (find-if (of-type 'c-field-expression) c)))
+    (with-attr-table c
+      (is (source-text= "int" (infer-type target-ast))))))
 
 
 ;;; Tests
@@ -1408,6 +1432,24 @@ when its surrounding text is removed."
          (root (convert 'c-ast source))
          (case-statement (stmt-with-text root "case" :at-start t)))
     (is (= 2 (length (c-statements case-statement))))))
+
+
+;;; outer-decls tests
+(deftest outer-decls-struct-tag-specifier ()
+  "outer-decls returns the actual declaration and not the forward declaration."
+  (let* ((root (convert 'c-ast "
+struct foo_s;
+
+struct foo_s {
+  int x;
+};
+"))
+         (tag-specifier (find-if (of-type 'c-struct-tag-specifier) root))
+         (identifiers (collect-if (of-type 'c-type-identifier) root)))
+    (with-attr-table root
+      (let ((outer-defs (outer-defs tag-specifier)))
+        (is (eq (car (lookup (lookup outer-defs :tag) "foo_s"))
+                (cadr identifiers)))))))
 
 
 ;;; Symbol Table

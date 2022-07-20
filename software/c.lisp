@@ -379,6 +379,35 @@ recursively resolve that struct's field table."
         :c-type type))
 
 
+;;; Symbol Table
+
+(defun tag-specifier-outer-defs (node target-type)
+  (mvlet* ((name (definition-name node))
+           (declaration
+            (or
+             (find-if (lambda (ast)
+                        (and (typep ast target-type)
+                             (string= name (definition-name ast))))
+                      (attrs-root*))
+             node))
+           (declarations namespaces (outer-declarations declaration)))
+    (convert 'fset:map
+             (convert-grouped-namespaces
+              (group-by-namespace declarations namespaces)))))
+
+(defmethod outer-defs ((node c-struct-tag-specifier))
+  (tag-specifier-outer-defs node '(and c-struct-specifier
+                                   (not c-struct-tag-specifier))))
+
+(defmethod outer-defs ((node c-enum-tag-specifier))
+  (tag-specifier-outer-defs node '(and c-enum-specifier
+                                   (not c-enum-tag-specifier))))
+
+(defmethod outer-defs ((node c-union-tag-specifier))
+  (tag-specifier-outer-defs node '(and c-union-specifier
+                                   (not c-union-tag-specifier))))
+
+
 ;;; C Utility
 
 (defun c-functions (c-soft)
