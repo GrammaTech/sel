@@ -195,22 +195,35 @@ list."))
   "Maximum number of characters to print for TEXT in
 PRINT-OBJECT method on AST structures.")
 
+(defparameter *ast-print-min* 5
+  "Minimum number of characters to print for TEXT in
+PRINT-OBJECT method on AST structures.")
+
+(defparameter *inline-newline-escape* "⏎"
+  "String to substitute for a newline when printing an AST.")
+
 (def +print-object-source-text+ t
   "Flag to control whether to print source text for an object.
 
 Provided to make it easier to debug problems with AST printing.")
 
 (defmethod print-object ((obj functional-tree-ast) stream
-                         &aux (cutoff *ast-print-cutoff*))
+                         &aux (cutoff *ast-print-cutoff*)
+                           (min *ast-print-min*))
   (if *print-readably*
       (call-next-method)
       (print-unreadable-object (obj stream :type t)
         (format stream "~a~@[ :TEXT ~s~]"
                 (serial-number obj)
                 (and +print-object-source-text+
-                     (ellipsize (or (first (source-text-take-lines 1 obj))
-                                    "<NIL>")
-                                cutoff))))))
+                     (ellipsize
+                      (if-let (first-line (first (source-text-take-lines 1 obj)))
+                        (if (length> first-line min) first-line
+                            (string-replace-all (string #\Newline)
+                                                (source-text-take min obj)
+                                                *inline-newline-escape*))
+                        "<NIL>")
+                      cutoff))))))
 
 (defmethod print-object ((obj conflict-ast) stream)
   (if *print-readably*
