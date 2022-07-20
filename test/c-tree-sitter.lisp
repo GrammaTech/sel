@@ -547,6 +547,12 @@ void f(fp_t p) { p->x; p->y; }
       (is (source-text= "int" (infer-type (car target-asts))))
       (is (source-text= "char" (infer-type (cadr target-asts)))))))
 
+(deftest test-infer-type-from-init-declarator-lhs ()
+  (let ((c (from-string 'c "int x = 0.1;")))
+    (with-attr-table c
+      (let ((id (find-if (op (source-text= "x" _)) c)))
+        (is (source-text= "int" (infer-type id)))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

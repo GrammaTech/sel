@@ -763,6 +763,12 @@ appears as a return statement is assumed to be the type of the function."
   (:method ((d c/cpp-init-declarator) type)
     (wrap-type-descriptor (c/cpp-declarator d) type)))
 
+(defmethod resolve-declaration-type ((decl c/cpp-init-declarator)
+                                     (ast c/cpp-identifier))
+  (if-let (outer-decl (find-enclosing 'c/cpp-declaration (attrs-root*) decl))
+    (resolve-declaration-type outer-decl ast)
+    (call-next-method)))
+
 (defmethod resolve-declaration-type ((decl c/cpp-ast) (ast c/cpp-ast)
                                      &aux (root (attrs-root*)))
   "Make sure that a declaration for an indirect type (pointer, array,
