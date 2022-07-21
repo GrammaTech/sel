@@ -34,15 +34,13 @@ greater."
 (defun increment-newlines (stream n)
   (with-slots (newlines newline-limit callback) stream
     (unless (zerop newline-limit)
-      (incf newlines n)
-      (when (>= newlines newline-limit)
+      (when (>= (incf newlines n) newline-limit)
         (funcall callback)))))
 
 (defun increment-chars (stream n)
   (with-slots (chars char-limit callback) stream
     (unless (zerop char-limit)
-      (incf chars n)
-      (when (>= chars char-limit)
+      (when (>= (incf chars n) char-limit)
         (funcall callback)))))
 
 (defmethod gray:stream-write-char ((stream limit-stream)
