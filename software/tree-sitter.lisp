@@ -7578,25 +7578,19 @@ a declaration AST, return AST unchanged."
     (get-declaration-ids type (call-function ast)))
   (:method ((type symbol) ast)
     (get-declaration-ids (assure keyword (decl-type-namespace type)) ast))
-  (:method :around ((type t) (identifier identifier-ast))
-    (when (keywordp type)
-      (setf type (namespace-decl-type type)))
+  (:method :around ((type t) (identifier identifier-ast)
+                    &aux (decl-type (when (keywordp type)
+                                      (namespace-decl-type type))))
     (or
      ;; Check if this identifier is part of a declaration before
      ;; checking scopes to avoid returning a shadowed variable.
      (ensure-list
       (iter
-       (for parent in (filter (of-type type)
+       (for parent in (filter (of-type decl-type)
                               (get-parent-asts* (attrs-root*) identifier)))
-       (thereis (and (typep parent type)
-                     ;; TODO
+       (thereis (and (typep parent decl-type)
                      (not (typep parent 'degenerate-declaration-ast))
-                     (find identifier
-                           ;; TODO use outer-defs and inner-defs
-                           (append (outer-declarations parent)
-                                   (inner-declarations parent))
-                           ;; Looking for the exact AST.
-                           :test #'eq)))))
+                     (find-in-defs parent type (source-text identifier))))))
      (call-next-method))))
 
 (def-attr-fun relevant-declaration-type ()
@@ -10277,6 +10271,27 @@ looking them up.")
   (:method ((ast ast) (namespace symbol) (query string))
     (when-let* ((symbol-table (symbol-table ast))
                 (ns-table (lookup symbol-table namespace)))
+      (values (lookup ns-table query)))))
+
+(defun outer-and-inner-defs (ast)
+  (symbol-table-union
+   (attrs-root*)
+   (outer-defs ast)
+   (inner-defs ast)))
+
+(defgeneric find-in-defs (ast namespace query)
+  (:documentation "Lookup QUERY in the inner-decls and outer-decls for AST
+using NAMESPACE.")
+  (:method ((ast ast) (ns null) (query string))
+    (let* ((defs (outer-and-inner-defs ast)))
+      (lookup defs query)))
+  (:method ((ast ast) (ns null) (query ast))
+    (find-in-defs ast ns (qualify-declared-ast-name query)))
+  (:method ((ast ast) (ns symbol) (query ast))
+    (find-in-defs ast ns (qualify-declared-ast-name query)))
+  (:method ((ast ast) (namespace symbol) (query string))
+    (when-let* ((defs (outer-and-inner-defs ast))
+                (ns-table (lookup defs namespace)))
       (values (lookup ns-table query)))))
 
 (define-condition no-enclosing-declaration-error (error)

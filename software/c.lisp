@@ -407,6 +407,16 @@ recursively resolve that struct's field table."
   (tag-specifier-outer-defs node '(and c-union-specifier
                                    (not c-union-tag-specifier))))
 
+(defmethod outer-defs ((node c-type-definition))
+    (let ((return-value (call-next-method))
+          (type (c-type node)))
+      (cond
+        ((typep type '(or c-struct-tag-specifier c-enum-tag-specifier
+                       c-union-tag-specifier))
+         ;; TODO: find the definition and add it in.
+         (symbol-table-union (attrs-root*) return-value (outer-defs type)))
+        (t return-value))))
+
 
 ;;; C Utility
 

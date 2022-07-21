@@ -527,6 +527,21 @@ void f(bar_t* p) {
     (with-attr-table c
       (is (source-text= "int" (infer-type target-ast))))))
 
+(deftest test-infer-type-on-typedefs ()
+  (let* ((c (from-string 'c "
+typedef struct foo_s * fp_t;
+typedef struct foo_s {
+  int x;
+  char y;
+} foo_t;
+
+void f(fp_t p) { p->x; p->y; }
+"))
+         (target-asts (collect-if (of-type 'c-field-expression) c)))
+    (with-attr-table c
+      (is (source-text= "int" (infer-type (car target-asts))))
+      (is (source-text= "char" (infer-type (cadr target-asts)))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
