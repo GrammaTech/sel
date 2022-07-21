@@ -382,6 +382,9 @@ recursively resolve that struct's field table."
 ;;; Symbol Table
 
 (defun tag-specifier-outer-defs (node target-type)
+  "Return the outer-defs for the declaration of type TARGET-TYPE which the
+forward declaration NODE refers to. If the relevant declaration can not be found,
+the outer-defs for NODE are returned instead."
   (mvlet* ((name (definition-name node))
            (declaration
             (or
