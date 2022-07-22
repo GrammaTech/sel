@@ -665,6 +665,9 @@
     (otherwise
      (call-next-method))))
 
+(defmethod get-declaration-ids ((type (eql :type)) (ast cpp-template-type))
+  (get-declaration-ids type (cpp-name ast)))
+
 (defmethod call-name ((ast cpp-call-expression))
   "If the call function is a template function, extract just the name of the template function without its arguments."
   (source-text

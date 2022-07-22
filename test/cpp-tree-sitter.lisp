@@ -863,6 +863,22 @@ int f(foo_t* p) { return p->a; }~
          (param (is (find-if (of-type 'parameter-ast) cpp))))
     (is (equal (parameter-name param) "..."))))
 
+(deftest test-infer-type-for-templated-struct ()
+  (let* ((cpp (from-string 'cpp "template <typename T>
+struct Point {
+  T x,y;
+  Point<T> operator-(const Point<T>& p) const {
+    Point<T> p1 = Point<T>{x - p.x, y - p.y}
+    return p1;
+  }
+};"))
+         (p1 (find-if (op (source-text= _ "p1"))
+                      cpp)))
+    ;; NB This fails because it is looking for Point::Point rather
+    ;; than Point.
+    (with-attr-table cpp
+      (is (typep (get-declaration-ast :type (infer-type p1))
+                 'cpp-struct-specifier)))))
 
 
 ;;; Parsing tests
