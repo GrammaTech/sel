@@ -6,7 +6,10 @@
   (:use :gt/full
         :cl-json
         :software-evolution-library
-        :software-evolution-library/software/tree-sitter))
+   :software-evolution-library/software/tree-sitter)
+  (:import-from :overlord
+                :depends-on
+                :file-target))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -5908,3 +5911,115 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
 (eval-always
  (define-and-export-all-mixin-classes))
+
+
+(defmacro create-tree-sitter-language-cache
+    (name &aux
+            (upcase-name (string-upcase name))
+            (cache-file-var
+             (format-symbol :sel/sw/ts "+~A-CACHE-FILE+" upcase-name))
+            (compiled-cache-file-var (format-symbol :sel/sw/ts "+~A-CACHE-FASL+" upcase-name))
+            (load-canary
+             (format-symbol :sel/sw/ts "+~a-LOAD-CANARY+" upcase-name))
+            (name-string (string-downcase name))
+            (lisp-cache
+             (format nil ".cache/tree-sitter/~a.lisp" name-string))
+            (compiled-cache
+             (format nil ".cache/tree-sitter/~a.~a"
+                     name-string
+                     (pathname-type
+                      (compile-file-pathname "none")))))
+  "Given the name (string) of the tree-sitter language, generate
+ all the classes, methods and other artifacts that define the language."
+  ;; NOTE: this comes from #'create-tree-sitter-language and is
+  ;;       needed here so it is present at compile time.
+  (when (find name *tree-sitter-language-files*
+              :key 'car :test 'equal)
+    (pushnew
+     (intern (concatenate 'string "TREE-SITTER-" upcase-name)
+             :keyword)
+     *features*))
+  `(eval-always
+     ;; Generate lisp code.
+     (overlord:file-target ,cache-file-var (:path ,lisp-cache :out out)
+       (progn
+         (with-output-to-file (s out :if-exists :supersede)
+           (with-standard-io-syntax
+             (let ((*package* (find-package :sel/sw/ts)))
+               (format t "Expanding language definitions~%")
+               (write
+                (list 'progn
+                      (macroexpand-1
+                       '(create-tree-sitter-language ,name-string)))
+                :stream s
+                :readably t)
+               (finish-output s)))))
+       (overlord:depends-on
+        (asdf:system-relative-pathname "software-evolution-library"
+                                       "software/tree-sitter-code-gen.lisp")
+        (pathname ,(format nil "/usr/share/tree-sitter/~a/node-types.json"
+                           name-string))
+        (pathname ,(format nil "/usr/share/tree-sitter/~a/grammar.json"
+                           name-string))))
+     ;; Generate FASL.
+     (overlord:file-target ,compiled-cache-file-var
+         (:path ,compiled-cache :out out)
+       (overlord:depends-on ,cache-file-var)
+       (format t "Compiling Language Definitions~%")
+       (with-standard-io-syntax
+         (let ((*package* (find-package :sel/sw/ts)))
+           (handler-bind (#+sbcl (style-warning #'muffle-warning))
+             (format t "Compile File: ~a~%"
+                     (compile-file ,cache-file-var :output-file out))))))
+     ;; Actually load in the tree-sitter code.
+     (overlord:define-target-var ,load-canary
+         (progn
+           (format *error-output* "Loading compiled file for ~a~%" ,name-string)
+           (load ,compiled-cache-file-var)
+           (format *error-output* "Finished loading compiled file~%"))
+       (overlord:depends-on ,compiled-cache-file-var))))
+
+;;;
+;;; This is used by the individual language files (c.lisp, python.lisp, etc.)
+;;;
+(defmacro create-tree-sitter-language (name)
+  "Given the name (string) of the tree-sitter language, generate
+ all the classes, methods and other artifacts that define the language."
+  (when-let ((tree-sitter-files
+               (find name
+                     *tree-sitter-language-files*
+                     :key 'car :test 'equal)))
+    `(eval-always
+      (encode-tree-sitter-version ,@tree-sitter-files)
+       (progn
+       ,@(apply 'tree-sitter-ast-classes
+                tree-sitter-files)
+       ;; add the language :TREE-SITTER-<name> to the *FEATURES* list
+       (pushnew
+        (intern (concatenate 'string
+                             "TREE-SITTER-"
+                             (string-upcase ,name)) :keyword)
+        *features*)))))
+
+(defun file-md5 (file)
+  "Return the MD5 of FILE as a hex string."
+  (with-output-to-string (out)
+    (do-each (byte (md5:md5sum-file file) 'list)
+      (format out "~(~2,'0x~)" byte))))
+
+(defmacro encode-tree-sitter-version (name grammar-file node-types-file)
+  "Warn at load time if GRAMMAR-FILE and NODE-TYPES-FILE have changed
+ since the definitions were compiled."
+  (let ((grammar-file-hash (file-md5 grammar-file))
+        (node-types-file-hash (file-md5 node-types-file)))
+    `(eval-when (:load-toplevel)
+       (when (file-exists-p ,grammar-file)
+         (unless (equal ,grammar-file-hash (file-md5 ,grammar-file))
+           (warn "~a has changed, recompile ~a"
+                 ,grammar-file
+                 ',name)))
+       (when (file-exists-p ,node-types-file)
+         (unless (equal ,node-types-file-hash (file-md5 ,node-types-file))
+           (warn "~a has changed, recompile ~a"
+                 ,node-types-file
+                 ',name))))))

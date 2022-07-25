@@ -5,11 +5,7 @@
   (:use :gt/full
         :cl-json
         :software-evolution-library
-        :software-evolution-library/software/tree-sitter)
-  (:import-from :overlord
-                :depends-on
-                :file-target))
-
+        :software-evolution-library/software/tree-sitter))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -510,50 +506,6 @@ or comments.  NIL if no such newline exists."
         (car (lastcar (first runs))))
       (call-next-method)))
 
-;;;
-;;; This is used by the individual language files (c.lisp, python.lisp, etc.)
-;;;
-(defmacro create-tree-sitter-language (name)
-  "Given the name (string) of the tree-sitter language, generate
- all the classes, methods and other artifacts that define the language."
-  (when-let ((tree-sitter-files
-               (find name
-                     *tree-sitter-language-files*
-                     :key 'car :test 'equal)))
-    `(eval-always
-      (encode-tree-sitter-version ,@tree-sitter-files)
-       (progn
-       ,@(apply 'tree-sitter-ast-classes
-                tree-sitter-files)
-       ;; add the language :TREE-SITTER-<name> to the *FEATURES* list
-       (pushnew
-        (intern (concatenate 'string
-                             "TREE-SITTER-"
-                             (string-upcase ,name)) :keyword)
-        *features*)))))
-
-(defun file-md5 (file)
-  "Return the MD5 of FILE as a hex string."
-  (with-output-to-string (out nil :element-type 'base-char)
-    (do-each (byte (md5:md5sum-file file) 'list)
-      (format out "~(~2,'0x~)" byte))))
-
-(defmacro encode-tree-sitter-version (name grammar-file node-types-file)
-  "Warn at load time if GRAMMAR-FILE and NODE-TYPES-FILE have changed
- since the definitions were compiled."
-  (let ((grammar-file-hash (file-md5 grammar-file))
-        (node-types-file-hash (file-md5 node-types-file)))
-    `(eval-when (:load-toplevel)
-       (when (file-exists-p ,grammar-file)
-         (unless (equal ,grammar-file-hash (file-md5 ,grammar-file))
-           (warn "~a has changed, recompile ~a"
-                 ,grammar-file
-                 ',name)))
-       (when (file-exists-p ,node-types-file)
-         (unless (equal ,node-types-file-hash (file-md5 ,node-types-file))
-           (warn "~a has changed, recompile ~a"
-                 ,node-types-file
-                 ',name))))))
 
 (defmethod get-parent-full-stmt (obj (ast tree-sitter-ast))
   (if (typep ast 'statement-ast)
