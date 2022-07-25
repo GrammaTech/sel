@@ -9,7 +9,8 @@
    :software-evolution-library/software/tree-sitter)
   (:import-from :overlord
                 :depends-on
-                :file-target))
+                :file-target
+                :use-threads-p))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -5912,6 +5913,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
 (eval-always
  (define-and-export-all-mixin-classes))
 
+(setf (overlord:use-threads-p) nil)
 
 (defmacro create-tree-sitter-language-cache
     (name &aux
