@@ -354,6 +354,11 @@ to the directory of the file"
       (let ((s (stmt-with-text c-code "\"ab\" \"cd\"")))
         (is (source-text= "char[]" (infer-type s)))))))
 
+(deftest infer-type-in-initializer ()
+  (let* ((c-code (from-string 'c (format nil "typedef struct foo_s { int x; } foo_t;~%void f(foo_t* p) { char c = p->x; }~%"))))
+    (is (equal (mapcar [#'source-text #'cadr] (types-in-thing c-code c-code))
+               '("void" "* p" "char" "int" "foo_t*")))))
+
 (deftest include-with-same-name ()
   "Test that include files with the same name are still handled
 properly if the includes are from files in the same directory"

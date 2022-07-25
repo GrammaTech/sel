@@ -185,13 +185,21 @@ field."
   (make 'c-primitive-type :text "bool"))
 
 (defmethod infer-type ((ast c-ast) &aux (obj (attrs-root*)))
-  (if-let ((decl (find-if «or {typep _ 'c-declaration}
-                              {typep _ 'c-parameter-declaration}»
-                          (get-parent-asts obj ast))))
-    (if (typep (c-declarator decl) 'c-pointer-declarator)
-        (c-declarator decl)
-        (c-type decl))
-    (call-next-method)))
+  (let ((ancestors (get-parent-asts* obj ast))
+        (prev ast))
+    (iter (for a in ancestors)
+          (typecase a
+            ((or c-declaration c-parameter-declaration)
+             (return
+               (let ((d (c-declarator a)))
+                 (if (typep d 'c-pointer-declarator)
+                     d
+                     (c-type a)))))
+            (c-init-declarator
+             (when (eql prev (c-value a))
+               (return (call-next-method)))))
+          (setf prev a)
+          (finally (return (call-next-method))))))
 
 (defun make-c-int-type ()
   (make-instance 'c-primitive-type :text "int"))
