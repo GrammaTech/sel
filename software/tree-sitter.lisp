@@ -10351,7 +10351,21 @@ using NAMESPACE.")
     in)
   (:method ((software software) &optional in)
     (namespace (genome software) in)
-    in))
+    in)
+  (:method :context ((ast tree-sitter-ast) &optional in)
+    "Ensure a table is available for interning namespaces."
+    (declare (ignore in))
+    (if (boundp 'namespaces*)
+        (call-next-method)
+        (let ((namespaces* (dict)))
+          (declare (special namespaces*))
+          (call-next-method))))
+  (:method :around ((ast tree-sitter-ast) &optional in)
+    "Intern computed namespaces."
+    (declare (ignore in)
+             (special namespaces*))
+    (let ((result (call-next-method)))
+      (ensure-gethash result namespaces* result))))
 
 (defmethod attr-missing ((fn-name (eql 'namespace)) node
                          &aux (attrs-root (attrs-root*)))
