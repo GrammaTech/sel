@@ -1360,8 +1360,8 @@ children."
     ;; Prevent e.g. std::list::list in the symbol table.
     (unless (emptyp name)
       (namespace (cpp-name ast) in))
-    (mapcar (op (namespace _ out))
-            (children ast))
+    (mapc (op (namespace _ out))
+          (children ast))
     in))
 
 (defmethod namespace ((ast cpp-namespace-definition)
