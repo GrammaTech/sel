@@ -1183,6 +1183,8 @@ this involves handling some translations between types."
                 (ns-id->type-id name))
                (cpp-dependent-type
                 (dependent-type->dependent-name name))
+               (cpp-type-descriptor
+                (cpp-type name))
                ((or cpp-dependent-name
                     cpp-type-identifier
                     cpp-qualified-identifier
