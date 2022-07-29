@@ -129,6 +129,7 @@ around generic-type-with-turbofish being aliased to generic-type."
   :|.| rust-ast
   rust-ast :|.|
   rust-ast rust-arguments
+  rust-ast rust-type-arguments
   rust-ast :|;|
   rust-ast :|;|
   rust-ast :|:|
@@ -138,8 +139,12 @@ around generic-type-with-turbofish being aliased to generic-type."
   :< rust-type-identifier
   rust-type-identifier :>
   :< rust-primitive-type
+  :< rust-lifetime
+  rust-lifetime :>
+  :|'| rust-identifier
   rust-primitive-type :>
   :& rust-ast
+  rust-& rust-self
   rust-type-identifier rust-type-arguments
   rust-type-identifier rust-type-parameters
   rust-identifier rust-parameters
