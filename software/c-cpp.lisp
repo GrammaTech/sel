@@ -348,6 +348,11 @@ pointer declarations which are nested on themselves."
            (values enumerator-names
                    #1#))))))
 
+(defmethod inner-declarations ((ast c/cpp-enum-specifier))
+  (let ((enumerators (children (c/cpp-body ast))))
+    (values enumerators
+            (mapcar (constantly :variable) enumerators))))
+
 (defmethod resolve-declaration-type ((decl c/cpp-enumerator) ast
                                      &aux (root (attrs-root*)))
   (let ((enum (find-enclosing 'c/cpp-enum-specifier root decl)))

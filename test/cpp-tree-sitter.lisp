@@ -880,6 +880,19 @@ struct Point {
       (is (typep (get-declaration-ast :type (infer-type p1))
                  'cpp-struct-specifier)))))
 
+(deftest test-enumerator-inner-declaration ()
+  "Test that we find the enclosing enumerator as a declaration
+  starting from its enclosed ID."
+  (let ((cpp (cpp* "enum Unit { IN }")))
+    (with-attr-table cpp
+      (is (typep
+           (get-declaration-ast
+            :variable
+            (lastcar
+             (collect-if (op (source-text= "IN" _))
+                         cpp)))
+           'cpp-enumerator)))))
+
 
 ;;; Parsing tests
 
