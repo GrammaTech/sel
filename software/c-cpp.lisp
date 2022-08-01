@@ -436,6 +436,8 @@ pointer declarations which are nested on themselves."
   (c/cpp-type ast))
 (defmethod declaration-type ((ast c/cpp-declaration))
   (c/cpp-type ast))
+(defmethod declaration-type ((ast c/cpp-enumerator))
+  (c/cpp-name (find-enclosing 'c/cpp-enum-specifier (attrs-root*) ast)))
 
 (defmethod field-name-asts ((ast c/cpp-field-declaration))
   (collect-if (of-type 'c/cpp-field-identifier) ast))
