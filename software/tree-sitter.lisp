@@ -10353,6 +10353,7 @@ using NAMESPACE.")
   (:method ((ast ast) (ns symbol) (query ast))
     (find-in-defs ast ns (qualify-declared-ast-name query)))
   (:method ((ast ast) (namespace symbol) (query string))
+    (assert (keywordp namespace))
     (when-let* ((defs (outer-and-inner-defs ast))
                 (ns-table (lookup defs namespace)))
       (values (lookup ns-table query)))))
@@ -10387,20 +10388,17 @@ using NAMESPACE.")
         (call-next-method)))
   (:method :context ((type symbol) root (id identifier-ast))
     (assert (not (keywordp type)))
-    (or
-     ;; Check if this identifier is part of a declaration before
-     ;; checking the symbol table to avoid returning a shadowed variable.
-     (iter
-      (for parent in (get-parent-asts* (attrs-root*) id))
-      (finding parent such-that
-               (and (typep parent type)
-                    (member id
-                            ;; TODO use outer-defs and inner-defs
-                            (append (outer-declarations parent)
-                                    (inner-declarations parent))
-                            ;; Looking for the exact AST.
-                            :test #'eq))))
-     (call-next-method)))
+    (let ((ns (decl-type-namespace type))
+          (id-string (qualify-declared-ast-name id)))
+      (or
+       ;; Check if this identifier is part of a declaration before
+       ;; checking the symbol table to avoid returning a shadowed variable.
+       (iter
+        (for parent in (get-parent-asts* (attrs-root*) id))
+        (finding parent such-that
+                 (and (typep parent type)
+                      (find-in-defs parent ns id-string))))
+       (call-next-method))))
   (:method ((type symbol) root id)
     (find-enclosing type (attrs-root*) id)))
 
