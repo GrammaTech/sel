@@ -7532,8 +7532,8 @@ there is more than one."
       (() ids)
       ((list id) id)
       (otherwise
-       (let* ((decls (get-declaration-asts type ast))
-              (decl (resolve-overloads type ast decls)))
+       (when-let* ((decls (get-declaration-asts type ast))
+                   (decl (resolve-overloads type ast decls)))
          (nth (position decl decls) ids))))))
 
 (-> get-declaration-asts (symbol ast)
