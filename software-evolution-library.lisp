@@ -119,7 +119,9 @@
    :*fitness-scalar-fn*
    :fitness-scalar
    :ignore-failed-mutation
-   :try-another-mutation))
+   :try-another-mutation
+   ;; logging functions
+   :log-new-individuals))
 (in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -949,6 +951,7 @@ Default selection function for `tournament'."
     (iter (multiple-value-bind (variant mutation-info)
               (safe-mutate)
             (unless (and (null variant) (null mutation-info))
+              (log-new-individuals variant mutation-info)
               (collect variant into variants)
               (collect mutation-info into infos)))
           (while (length< variants count))
@@ -1278,3 +1281,10 @@ list of the mutations applied to produce those children."
         (restart-case (push (tournament) new-pop)
           (ignore-failed-selection ()
             :report "Ignore failed `tournament' selection."))))
+
+
+;;; Logging
+
+(defgeneric log-new-individuals (variant mutation-info &key)
+  (:documentation "")
+  (:method (variant mutation-info &key)))
