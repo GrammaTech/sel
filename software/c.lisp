@@ -138,8 +138,20 @@ field."
 
 (defmethod variable-name ((ast c-identifier)) (source-text ast))
 
-(defmethod no-fallthrough ((ast c-continue-statement)) t)
-(defmethod no-fallthrough ((ast c-break-statement)) t)
+(defmethod maybe-side-effect-p ((ast c-conditional-expression))
+  (some #'maybe-side-effect-p (children ast)))
+(defmethod maybe-side-effect-p ((ast c-binary-expression))
+  (some #'maybe-side-effect-p (children ast)))
+(defmethod maybe-side-effect-p ((ast c-unary-expression))
+  (some #'maybe-side-effect-p (children ast)))
+(defmethod maybe-side-effect-p ((ast c-comma-expression))
+  (some #'maybe-side-effect-p (children ast)))
+(defmethod maybe-side-effect-p ((ast c-field-expression))
+  (some #'maybe-side-effect-p (children ast)))
+(defmethod maybe-side-effect-p ((ast c-declaration))
+  (some #'maybe-side-effect-p (c-declarator ast)))
+(defmethod maybe-side-effect-p ((ast c-init-declarator))
+  (maybe-side-effect-p (c-value ast)))
 
 (defmethod expression-type ((ast c-number-literal))
   ;; There should be a global controlling the integer size model

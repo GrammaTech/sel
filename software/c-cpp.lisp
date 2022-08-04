@@ -219,6 +219,11 @@
 (defmethod no-fallthrough ((ast c/cpp-continue-statement)) t)
 (defmethod no-fallthrough ((ast c/cpp-break-statement)) t)
 
+(defmethod maybe-side-effect-p ((ast c/cpp-parenthesized-expression))
+  (some #'maybe-side-effect-p (children ast)))
+(defmethod maybe-side-effect-p ((ast c/cpp-expression-statement))
+  (some #'maybe-side-effect-p (children ast)))
+
 (defmethod inner-declarations ((ast c/cpp-function-definition))
   ;; Annotate the defaults as variables.
   (let ((decls (call-next-method)))

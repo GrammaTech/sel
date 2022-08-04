@@ -559,6 +559,7 @@
            :body
            :lhs
            :rhs
+           :maybe-side-effect-p
            ;; Not currently exported, too many conflicts.
            ;; :condition
            :consequence
@@ -7021,7 +7022,7 @@ or comments.  NIL if no such newline exists."
         (t (return nil))))))
 
 (defun get-language-from-superclass (superclass)
-  "Get the tree-sitter  language associated with SUPERCLASS."
+  "Get the tree-sitter language associated with SUPERCLASS."
   (or (gethash superclass *superclass->language*)
       (error "No tree-sitter language known for ~a." superclass)))
 
@@ -7058,7 +7059,7 @@ or comments.  NIL if no such newline exists."
 
 (defun file-md5 (file)
   "Return the MD5 of FILE as a hex string."
-  (with-output-to-string (out)
+  (with-output-to-string (out nil :element-type 'base-char)
     (do-each (byte (md5:md5sum-file file) 'list)
       (format out "~(~2,'0x~)" byte))))
 
@@ -7869,6 +7870,19 @@ Equivalent type descriptors should be equal under `equal?'.")
     (make-keyword (source-text type-ast))))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
+
+(defgeneric maybe-side-effect-p (ast)
+  (:documentation "True if AST is something that may have a side effect")
+  (:method ((ast comment-ast)) nil)
+  (:method ((ast definition-ast)) nil)
+  (:method ((ast type-declaration-ast)) nil)
+  (:method ((ast composite-type-ast)) nil)
+  (:method ((ast macro-declaration-ast)) nil)
+  (:method ((ast function-declaration-ast)) nil)
+  (:method ((ast identifier-ast)) nil)
+  (:method ((ast field-ast)) nil)
+  (:method ((ast literal-ast)) nil)
+  (:method ((ast t)) t))
 
 (defun contains-error-ast-p (ast)
   "Return non-NIL if AST is an error AST or contains an error AST child."
@@ -9083,7 +9097,14 @@ the indentation slots."
              (lines string :keep-eols t))))
        (computed-text-p (computed-text-node-p instance)))
   "Convert SPEC from a parse tree into an instance of SUPERCLASS."
-  (labels ((safe-subseq
+  (labels ((octets-to-string-or-base-string (octets)
+             "Convert OCTETS to a string, choosing a base string if that is possible"
+             (declare (type (array (*) (unsigned-byte 8)) octets))
+             #-sbcl (octets-to-string octets)
+             #+sbcl (if (every (of-type '(integer 0 127)) octets)
+                        (map 'simple-base-string #'code-char octets)
+                        (octets-to-string octets)))
+           (safe-subseq
                (start end
                 &aux (start-loc
                       (make-instance
@@ -9099,7 +9120,7 @@ the indentation slots."
                   start
                   end
                   (source-< start-loc end-loc))
-                 (octets-to-string
+                 (octets-to-string-or-base-string
                   (source-range-subseq
                    line-octets
                    (make-instance 'source-range :begin start-loc :end end-loc)))
@@ -9701,6 +9722,37 @@ for ASTs which need to appear in the surrounding text slots.")
   (:method ((ast alternative-ast)) (source-text ast))
   (:method ((ast source-text-fragment)) (text ast)))
 
+;;; Cache space and tab strings used in indentation, so we
+;;; don't have to generate the same string more than once.
+
+(defvar *space-strings-table* (make-array '(1000) :initial-element nil))
+(defvar *tab-strings-table* (make-array '(100) :initial-element nil))
+
+(defun space-string (n)
+  "Create a string of N spaces, or use an existing one in the cache"
+  (declare (type (integer 0) n))
+  (cached-rep-string #\Space n '*space-strings-table*))
+
+(defun tab-string (n)
+  "Create a string of N tabs, or use an existing one in the cache"
+  (declare (type (integer 0) n))
+  (cached-rep-string #\Tab n '*tab-strings-table*))
+
+(defun cached-rep-string (c n tabvar)
+  (declare (type (integer 0) n))
+  (declare (type character c))
+  (let* ((tab (symbol-value tabvar))
+         (len (length tab)))
+    (declare (type simple-vector tab))
+    (if (< n len)
+        (or (svref tab n)
+            (setf (svref tab n)
+                  (make-string n :element-type (type-of c) :initial-element c)))
+        (let ((newtab (make-array (list (* 2 n)) :initial-element nil)))
+          (setf (cl:subseq newtab 0 len) tab
+                (symbol-value tabvar) newtab)
+          (cached-rep-string c n tabvar)))))
+
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.
 (defmethod source-text ((ast indentation)
@@ -9731,10 +9783,12 @@ for ASTs which need to appear in the surrounding text slots.")
                    (mvlet ((tabs spaces (floor protected-indentation
                                                *spaces-per-tab*)))
                      (concatenate
-                      'string
-                      (repeat-sequence "	" tabs)
-                      (repeat-sequence " " spaces)))
-                   (repeat-sequence " " protected-indentation))))
+                      'base-string
+                      (tab-string tabs)
+                      (space-string spaces)
+                      ))
+                   (space-string protected-indentation)
+                   )))
            (indentation-length (ast parent-list)
              "Get the indentation at AST with its parents provided
             in PARENT-LIST."
@@ -9765,7 +9819,7 @@ for ASTs which need to appear in the surrounding text slots.")
                 text)
                ((and (length< 1 split-text)
                      (not (computed-text-node-p ast)))
-                (with-output-to-string (s)
+                (with-output-to-string (s nil :element-type (array-element-type text))
                   (write-string (car split-text) s)
                   (dolist (subseq (cdr split-text))
                     (format s "~%~a~a"
@@ -9807,8 +9861,7 @@ for ASTs which need to appear in the surrounding text slots.")
                                   (indentablep (or indentablep
                                                    (and indent-computed-text?
                                                         indentable-parent?))))
-             "If indentation to be written to stream, handle
-            writing it."
+             "If indentation to be written to stream, handle writing it."
              ;; NOTE: computed text nodes with children are a bit of an edge case
              ;;       where the computed text node turns into more of a wrapper
              ;;       class, and the first child gets the intended indentation.
