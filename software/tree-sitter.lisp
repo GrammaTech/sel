@@ -9100,10 +9100,14 @@ the indentation slots."
   (labels ((octets-to-string-or-base-string (octets)
              "Convert OCTETS to a string, choosing a base string if that is possible"
              (declare (type (array (*) (unsigned-byte 8)) octets))
-             #-sbcl (octets-to-string octets)
-             #+sbcl (if (every (of-type '(integer 0 127)) octets)
-                        (map 'simple-base-string #'code-char octets)
-                        (octets-to-string octets)))
+             (let ((s (octets-to-string octets)))
+               ;; CCL has no distinct base-strings
+               #+ccl s
+               ;; It might be possible to convert the octets to a base-string
+               ;; directly, but I'm not sure that's proper in every external format.
+               #-ccl (if (every (of-type 'base-char) s)
+                         (coerce s 'simple-base-string)
+                         s)))
            (safe-subseq
                (start end
                 &aux (start-loc
