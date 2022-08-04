@@ -406,6 +406,7 @@
                 :include-paths :include-paths-mixin)
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
   (:import-from :functional-trees :map-children)
+  (:import-from :trivial-garbage :make-weak-hash-table)
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:import-from :cl-tree-sitter :register-language)
         (values))
@@ -9097,18 +9098,7 @@ the indentation slots."
              (lines string :keep-eols t))))
        (computed-text-p (computed-text-node-p instance)))
   "Convert SPEC from a parse tree into an instance of SUPERCLASS."
-  (labels ((octets-to-string-or-base-string (octets)
-             "Convert OCTETS to a string, choosing a base string if that is possible"
-             (declare (type (array (*) (unsigned-byte 8)) octets))
-             (let ((s (octets-to-string octets)))
-               ;; CCL has no distinct base-strings
-               #+ccl s
-               ;; It might be possible to convert the octets to a base-string
-               ;; directly, but I'm not sure that's proper in every external format.
-               #-ccl (if (every (of-type 'base-char) s)
-                         (coerce s 'simple-base-string)
-                         s)))
-           (safe-subseq
+  (labels ((safe-subseq
                (start end
                 &aux (start-loc
                       (make-instance
@@ -9124,10 +9114,15 @@ the indentation slots."
                   start
                   end
                   (source-< start-loc end-loc))
-                 (octets-to-string-or-base-string
-                  (source-range-subseq
-                   line-octets
-                   (make-instance 'source-range :begin start-loc :end end-loc)))
+                 ;; I considered converting this to a base string,
+                 ;; but this breaks templates because trivia match doesn't
+                 ;; match a non-base-string against a string= base-string
+                 ;; pattern.  Instead, canonicalize the string
+                 (canon-string
+                  (octets-to-string
+                   (source-range-subseq
+                    line-octets
+                    (make-instance 'source-range :begin start-loc :end end-loc))))
                  ""))
            (get-start (ast)
              "Return the start offset into STRING from the AST representation."
@@ -9756,6 +9751,18 @@ for ASTs which need to appear in the surrounding text slots.")
           (setf (cl:subseq newtab 0 len) tab
                 (symbol-value tabvar) newtab)
           (cached-rep-string c n tabvar)))))
+
+(defvar *string-canon-table* (make-weak-hash-table :test #'equal :weakness :value)
+  "Table of canonical strings.  It must be the case that (string= key value)
+   and (typep value 'simple-string).  Use weak value because if all values
+   are gone we can never detect that new calls with this string (up to string=)
+   reused that previous object.")
+
+(defun canon-string (s)
+  (ensure-gethash s *string-canon-table*
+                  (etypecase s
+                    (simple-string s)
+                    (string (coerce s 'simple-string)))))
 
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.
