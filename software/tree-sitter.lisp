@@ -3483,11 +3483,25 @@ stored on the AST or external rules.")
 
 ;;; Defining tree-sitter classes
 
+(eval-always
+ (defvar *tree-sitter-packages*
+   '(:sel/sw/ts)))
+
+(eval-always
+ (defun export-tree-sitter* (syms)
+   (dolist (package *tree-sitter-packages*)
+     (import syms package)
+     (export syms package))))
+
+(defmacro export/tree-sitter (syms)
+  `(eval-always
+    (export-tree-sitter* ,syms)))
+
 (defmacro define-template-builder (class ast-class)
   (let ((class* (intern (string+ class '*)
                         (symbol-package class))))
     `(progn
-       (export-always ',class*)
+       (export/tree-sitter ',class*)
 
        (defun ,class
            (template &rest args)
@@ -6448,9 +6462,10 @@ Unlike the `children` methods which collects all children of an AST from any slo
                 ,(format nil "Mutation interface for ~a software objects."
                          name-prefix)))
 
-             (export ',(iter
-                         (for (symbol) in-hashtable symbols-to-export)
-                         (collect symbol))))
+             (export/tree-sitter
+              ',(iter
+                 (for (symbol) in-hashtable symbols-to-export)
+                 (collect symbol))))
 
            (defmethod convert
                ((to-type (eql ',ast-superclass)) (spec ,ast-superclass)
@@ -6538,7 +6553,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
                            (drop -4 (string class)))
                        (string class))))
                  (collect `(progn
-                             (export ',class :sel/sw/ts)
+                             (export/tree-sitter ',class)
                              (unless (find-class ',class nil)
                                (defclass ,class (ast)
                                  ()
