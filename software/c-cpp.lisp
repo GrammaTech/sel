@@ -31,9 +31,17 @@
 (defun get-context-for (ast context-table)
   ;; TODO: remove this.
   ;; NOTE: this is a temporary function until a symbol table is ready.
+  (declare (ignore context-table))
   (etypecase ast
-    ((or c/cpp-identifier c/cpp-type-identifier)
-     (gethash (text ast) context-table))))
+    ((or c/cpp-identifier c/cpp-type-identifier cpp-qualified-identifier)
+     (cond ((get-declaration-id :tag ast)
+            :type)
+           ((get-declaration-id :type ast)
+            :type)
+           ((get-declaration-id :variable ast)
+            :variable)
+           ((get-declaration-id :function ast)
+            :function)))))
 
 (defun binary-expression->cast-expression (ast-type ast)
   "Converts BINARY-EXPRESSION into its corresponding cast expression."
@@ -60,26 +68,19 @@
 
 (defmethod contextualize-ast ((software c/cpp)
                               (ast c/cpp-binary-expression)
-                              (context hash-table)
-                              &key ast-type
-                                (parents (get-parent-asts* software ast))
-                              &allow-other-keys)
-  ;; TODO: this works around some issues with sizeof for the time being.
-  ;;       https://github.com/tree-sitter/tree-sitter-c/issues/51
-  (unless (typep (car parents) 'c/cpp-sizeof-expression)
-    (match ast
-      ((c/cpp-binary-expression
-        :c/cpp-left
-        (c/cpp-parenthesized-expression
-         :children (list (and identifier (c/cpp-identifier)))))
-       (when (eql (get-context-for identifier context) :type)
-         (binary-expression->cast-expression ast-type ast))))))
-
-(defmethod contextualize-ast ((software c/cpp)
-                              (ast c/cpp-binary-expression)
                               context
                               &key ast-type
                                 (parents (get-parent-asts* software ast))
+                              &allow-other-keys)
+  (contextualize-ast (genome software) ast context
+                     :ast-type ast-type
+                     :parents parents))
+
+(defmethod contextualize-ast ((root c/cpp-ast)
+                              (ast c/cpp-binary-expression)
+                              context
+                              &key ast-type
+                                (parents (get-parent-asts* root ast))
                               &allow-other-keys)
   ;; TODO: this works around some issues with sizeof for the time being.
   ;;       https://github.com/tree-sitter/tree-sitter-c/issues/51
@@ -90,12 +91,11 @@
       ((c/cpp-binary-expression
         :c/cpp-left
         (c/cpp-parenthesized-expression
-         :children (list (c/cpp-identifier)))
+         :children (list (and identifier (c/cpp-identifier))))
         :c/cpp-operator
         (or (c/cpp-*) (c/cpp--) (c/cpp-+) (c/cpp-&)))
-       ;; TODO: improve this. Currently assumes that we will want it to be a
-       ;;       cast expression regardless.
-       (binary-expression->cast-expression ast-type ast)))))
+       (when (eql (get-context-for identifier context) :type)
+         (binary-expression->cast-expression ast-type ast))))))
 
 
 ;;; Symbol Table

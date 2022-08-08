@@ -655,6 +655,7 @@
            :tree-sitter-nop
            :parameter-ast
            :return-type
+           :contextualize-ast
            ;; When redefining the tree-sitter package during
            ;; development, preserve exports that have been added by
            ;; language-specific files.

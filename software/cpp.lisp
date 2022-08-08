@@ -286,41 +286,18 @@
 
 (defmethod contextualize-ast ((software cpp)
                               (ast cpp-function-declarator)
-                              (context hash-table)
-                              &key &allow-other-keys)
-  ;; TODO: this can be further improved.
-  ;;       Currently, it only checks if the parameters are valid types.
-  ;;       Can probably check if parent is a function definition; on the other
-  ;;       hand, this may be redundant.
-  (labels ((definitely-a-type-p (parameter-ast)
-             "Return T if PARAMETER-AST definitely represents a type in
-              context."
-             (match parameter-ast
-               ((cpp-parameter-declaration
-                 :cpp-type (and identifier (identifier-ast))
-                 ;; Currently assumes that abstract function declarators won't
-                 ;; be used unless another valid type is found.
-                 :cpp-declarator (not (cpp-abstract-function-declarator)))
-                (eql :type (get-context-for identifier context)))
-               ((cpp-optional-parameter-declaration
-                 :cpp-type (and identifier (identifier-ast)))
-                (eql :type (get-context-for identifier context)))))
-           (definitely-parameters-p (parameters)
-             "Return T if PARAMETERS definitely contains a parameter."
-             (find-if «or #'definitely-a-parameter-p #'definitely-a-type-p»
-                      (direct-children parameters))))
-    (match ast
-      ((cpp-function-declarator
-        :cpp-declarator identifier
-        :cpp-parameters parameters)
-       (when (or (equal :function (get-context-for identifier context))
-                 (find-if #'definitely-parameters-p parameters))
-         (function-declarator->init-declarator ast))))))
+                              context
+                              &rest kwargs
+                              &key (parents (get-parent-asts* software ast))
+                              &allow-other-keys)
+  (apply #'contextualize-ast (genome software) ast context
+         :parents parents
+         kwargs))
 
-(defmethod contextualize-ast ((software cpp)
+(defmethod contextualize-ast ((root cpp-ast)
                               (ast cpp-function-declarator)
                               context
-                              &key (parents (get-parent-asts* software ast))
+                              &key (parents (get-parent-asts* root ast))
                               &allow-other-keys)
   (labels ((top-level-p (parents)
              "Return T if AST is likely a top-level form in SOFTWARE."
@@ -333,18 +310,32 @@
                                cpp-reference-declarator cpp-pointer-declarator
                                cpp-template-declaration))
                     parents))
-           (part-of-definition-p (software ast parents)
+           (part-of-definition-p (root ast parents)
              "Return T if AST is part of the declaration of a function
               definition."
              (when-let ((definition (find-if (of-type 'cpp-function-definition)
                                              parents)))
-               (shares-path-of-p software ast (cpp-declarator definition))))
+               (shares-path-of-p root ast (cpp-declarator definition))))
+           (definitely-a-type-p (parameter-ast)
+             "Return T if PARAMETER-AST definitely represents a type in
+              context."
+             (match parameter-ast
+               ((cpp-parameter-declaration
+                 :cpp-type (and identifier (identifier-ast))
+                 ;; Currently assumes that abstract function declarators won't
+                 ;; be used unless another valid type is found.
+                 :cpp-declarator (not (cpp-abstract-function-declarator)))
+                (eql :type (get-context-for identifier context)))
+               ((cpp-optional-parameter-declaration
+                 :cpp-type (and identifier (identifier-ast)))
+                (eql :type (get-context-for identifier context)))))
            (definitely-parameters-p (ast)
              "Return T if PARAMETERS definitely contains a parameter."
              (match ast
                ((cpp-function-declarator
                  :cpp-parameters parameters)
-                (find-if #'definitely-a-parameter-p (direct-children parameters)))))
+                (find-if «or #'definitely-a-parameter-p #'definitely-a-type-p»
+                         (direct-children parameters)))))
            (trailing-specifiers-p (ast)
              "Return non-NIL if AST has any trailing specifiers."
              (match ast
@@ -353,7 +344,7 @@
                 children))))
     ;; NOTE: assume that function declarators are the intention in header files.
     (unless (or (top-level-p parents)
-                (part-of-definition-p software ast parents)
+                (part-of-definition-p root ast parents)
                 (definitely-parameters-p ast)
                 (trailing-specifiers-p ast))
       ;; NOTE: perform blanket transformation for now.

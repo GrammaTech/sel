@@ -1298,7 +1298,9 @@ line, after a comment if there is one."
            (nth
             target-ast-position
             (collect-if (of-type target-ast-type) root)))
-         (result (contextualize-ast software target-ast context-table))
+         (result
+          (with-attr-table root
+            (contextualize-ast software target-ast context-table)))
          (result-root (mapcar (lambda (ast)
                                 (if (eq ast target-ast)
                                     result
@@ -1395,9 +1397,10 @@ specializers."
   "Contextualize-ast turns a function-declarator into an init declarator when
 it doesn't contain any valid types."
   (contextualization-check
-   "Obj object(a, x = 10);"
+   "int myfun () { Obj object(a, x = 10); }"
    'cpp-function-declarator
    :context-table (dict "x" :type)
+   :target-ast-position 1
    :result-type 'cpp-init-declarator
    :unexpected-type '(or cpp-abstract-function-declarator
                       cpp-type-identifier cpp-optional-parameter-declaration)))
@@ -1407,7 +1410,8 @@ it doesn't contain any valid types."
 the left hand side is a parenthesized identifier and doesn't contain
 parenthesized expressions or binary expressions."
   (contextualization-check
-   "(Type) * variable;"
+   "struct Type {};
+(Type) * variable;"
    'cpp-binary-expression
    :result-type 'cpp-cast-expression
    :unexpected-type '(or cpp-binary-expression cpp-parenthesized-expression)))
@@ -1432,7 +1436,8 @@ when it is contextualized."
 the left hand side is a type and the binary operator is also a valid prefix
 operator."
   (contextualization-check
-   "(Type) * variable;"
+   "struct Type {};
+(Type) * variable;"
    'cpp-binary-expression
    :context-table (dict "Type" :type)
    :result-type 'cpp-cast-expression
