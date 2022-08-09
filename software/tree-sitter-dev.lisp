@@ -250,7 +250,7 @@ string.")
        :format-delimiter (make-string indent :initial-element #\Space)
        :format-fn #'summarize-ast))))
 
-(defun ambiguous-asts (software &key context)
+(defun ambiguous-asts (software)
   "Return a list that contains a list of an ambiguous AST and its contextualized
 representation."
   (let (contextualization-stack)
@@ -258,7 +258,7 @@ representation."
                "Push information onto the contextualization stack if AST needs to
                 be contextualized."
                (let ((contextualized-ast
-                       (contextualize-ast software ast context)))
+                      (contextualize-ast software ast)))
                  (unless (eq contextualized-ast ast)
                    (push (list ast contextualized-ast)
                          contextualization-stack)))))

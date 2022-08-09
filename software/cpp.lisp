@@ -164,11 +164,11 @@
 ;;;
 ;;;    where 'x' can be type name or a variable.
 
-(defmethod contextualize-ast :around (software (ast cpp-ast) context &rest rest
+(defmethod contextualize-ast :around (software (ast cpp-ast) &rest rest
                                       &key ast-type &allow-other-keys)
   (if ast-type
       (call-next-method)
-      (apply #'call-next-method software ast context :ast-type 'cpp-ast rest)))
+      (apply #'call-next-method software ast :ast-type 'cpp-ast rest)))
 
 (defun function-declarator->init-declarator (function-declarator)
   "Convert FUNCTION-DECLARATOR into an init-declarator."
@@ -286,17 +286,15 @@
 
 (defmethod contextualize-ast ((software cpp)
                               (ast cpp-function-declarator)
-                              context
                               &rest kwargs
                               &key (parents (get-parent-asts* software ast))
                               &allow-other-keys)
-  (apply #'contextualize-ast (genome software) ast context
+  (apply #'contextualize-ast (genome software) ast
          :parents parents
          kwargs))
 
 (defmethod contextualize-ast ((root cpp-ast)
                               (ast cpp-function-declarator)
-                              context
                               &key (parents (get-parent-asts* root ast))
                               &allow-other-keys)
   (labels ((top-level-p (parents)
@@ -325,10 +323,10 @@
                  ;; Currently assumes that abstract function declarators won't
                  ;; be used unless another valid type is found.
                  :cpp-declarator (not (cpp-abstract-function-declarator)))
-                (eql :type (get-context-for identifier context)))
+                (eql :type (get-context-for identifier)))
                ((cpp-optional-parameter-declaration
                  :cpp-type (and identifier (identifier-ast)))
-                (eql :type (get-context-for identifier context)))))
+                (eql :type (get-context-for identifier)))))
            (definitely-parameters-p (ast)
              "Return T if PARAMETERS definitely contains a parameter."
              (match ast

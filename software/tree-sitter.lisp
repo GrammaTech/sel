@@ -10453,11 +10453,11 @@ using NAMESPACE.")
 
 
 ;;; Contextualization
-(defgeneric contextualize-ast (software ast context
+(defgeneric contextualize-ast (software ast
                                &key ast-type parents
                                &allow-other-keys)
-  (:method (software ast context &key &allow-other-keys) ast)
-  (:method :around (software ast context &key &allow-other-keys)
+  (:method (software ast &key &allow-other-keys) ast)
+  (:method :around (software ast &key &allow-other-keys)
     (or (call-next-method) ast))
   (:documentation "Return a version of AST which has been patched, if needed,
 to take CONTEXT into account."))
@@ -10466,12 +10466,12 @@ to take CONTEXT into account."))
 (defgeneric add-context (software &key)
   (:documentation
    "Add context to SOFTWARE that wasn't available at parse time.")
-  (:method ((software software) &key context)
+  (:method ((software software) &key)
     ;; TODO: figure out how to pass the parent ASTs in. Right now,
     ;;       the relevant methods will look them up if unavailable.
     (copy software
           :genome
-          (mapcar (op (contextualize-ast software _ context))
+          (mapcar (op (contextualize-ast software _))
                   (genome software)))))
 
 

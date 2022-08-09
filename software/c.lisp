@@ -30,11 +30,11 @@
 
 (defmethod ext :around ((obj c)) (or (call-next-method) "c"))
 
-(defmethod contextualize-ast :around (software (ast c-ast) context &rest rest
+(defmethod contextualize-ast :around (software (ast c-ast) &rest rest
                                       &key ast-type &allow-other-keys)
   (if ast-type
       (call-next-method)
-      (apply #'call-next-method software ast context :ast-type 'c-ast rest)))
+      (apply #'call-next-method software ast :ast-type 'c-ast rest)))
 
 (defclass c-variadic-declaration (c-parameter-declaration c-identifier)
   ((text :accessor text

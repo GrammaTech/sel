@@ -28,10 +28,8 @@
 
 
 ;;; Contextualization
-(defun get-context-for (ast context-table)
-  ;; TODO: remove this.
-  ;; NOTE: this is a temporary function until a symbol table is ready.
-  (declare (ignore context-table))
+  (defun get-context-for (ast)
+    "Return a keyword giving the context for AST."
   (etypecase ast
     ((or c/cpp-identifier c/cpp-type-identifier cpp-qualified-identifier)
      (cond ((get-declaration-id :tag ast)
@@ -68,17 +66,15 @@
 
 (defmethod contextualize-ast ((software c/cpp)
                               (ast c/cpp-binary-expression)
-                              context
                               &key ast-type
                                 (parents (get-parent-asts* software ast))
                               &allow-other-keys)
-  (contextualize-ast (genome software) ast context
+  (contextualize-ast (genome software) ast
                      :ast-type ast-type
                      :parents parents))
 
 (defmethod contextualize-ast ((root c/cpp-ast)
                               (ast c/cpp-binary-expression)
-                              context
                               &key ast-type
                                 (parents (get-parent-asts* root ast))
                               &allow-other-keys)
@@ -94,7 +90,7 @@
          :children (list (and identifier (c/cpp-identifier))))
         :c/cpp-operator
         (or (c/cpp-*) (c/cpp--) (c/cpp-+) (c/cpp-&)))
-       (when (eql (get-context-for identifier context) :type)
+       (when (eql (get-context-for identifier) :type)
          (binary-expression->cast-expression ast-type ast))))))
 
 

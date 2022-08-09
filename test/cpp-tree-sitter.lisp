@@ -1290,7 +1290,7 @@ line, after a comment if there is one."
 
 ;;; Contextualize-ast Tests
 (defun contextualization-check (source target-ast-type
-                                &key result-type unexpected-type context-table
+                                &key result-type unexpected-type
                                   (target-ast-position 0))
   (let* ((root (convert 'cpp-ast source))
          (software (make-instance 'cpp :genome root))
@@ -1300,7 +1300,7 @@ line, after a comment if there is one."
             (collect-if (of-type target-ast-type) root)))
          (result
           (with-attr-table root
-            (contextualize-ast software target-ast context-table)))
+            (contextualize-ast software target-ast)))
          (result-root (mapcar (lambda (ast)
                                 (if (eq ast target-ast)
                                     result
@@ -1399,7 +1399,6 @@ it doesn't contain any valid types."
   (contextualization-check
    "int myfun () { Obj object(a, x = 10); }"
    'cpp-function-declarator
-   :context-table (dict "x" :type)
    :target-ast-position 1
    :result-type 'cpp-init-declarator
    :unexpected-type '(or cpp-abstract-function-declarator
@@ -1439,7 +1438,6 @@ operator."
    "struct Type {};
 (Type) * variable;"
    'cpp-binary-expression
-   :context-table (dict "Type" :type)
    :result-type 'cpp-cast-expression
    :unexpected-type '(or cpp-binary-expression cpp-parenthesized-expression)))
 
