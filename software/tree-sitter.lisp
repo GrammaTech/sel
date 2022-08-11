@@ -9114,10 +9114,12 @@ the indentation slots."
                   start
                   end
                   (source-< start-loc end-loc))
-                 ;; I considered converting this to a base string,
-                 ;; but this breaks templates because trivia match doesn't
-                 ;; match a non-base-string against a string= base-string
-                 ;; pattern.  Instead, canonicalize the string
+                 ;; Canon-string will convert strings to base-strings
+                 ;; if possible, and canonicalize them with a weak
+                 ;; value hash table.  Base-strings themselves
+                 ;; cannot be used in templates for matching in
+                 ;; trivia, so there we convert them back to
+                 ;; (array character (*)) to avoid the bug.
                  (canon-string
                   (octets-to-string
                    (source-range-subseq
@@ -9759,13 +9761,14 @@ for ASTs which need to appear in the surrounding text slots.")
    reused that previous object.")
 
 (defun canon-string (s)
-  (when (and (not (typep s 'base-string))
-             (every (of-type 'base-char) s))
-    (setf s (coerce s 'base-string)))
   (ensure-gethash s *string-canon-table*
                   (etypecase s
-                    (simple-string s)
-                    (string (coerce s 'simple-string)))))
+                    (simple-base-string s)
+                    (base-string (coerce s 'simple-base-string))
+                    (string
+                     (if (every (of-type 'base-char) s)
+                         (coerce s 'simple-base-string)
+                         (coerce s 'simple-string))))))
 
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.
