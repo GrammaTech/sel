@@ -99,6 +99,7 @@
   (format-symbol :sel/sw/string-clauses "WILD-~a" wildcard-name))
 
 (defmethod convert ((to-type (eql 'match)) (not-ast t) &key &allow-other-keys) not-ast)
+(defmethod convert ((to-type (eql 'match)) (s string) &key &allow-other-keys) (coerce s '(array character (*))))
 (defmethod convert ((to-type (eql 'match)) (ast ast) &key &allow-other-keys)
   "Convert an AST into a trivia MATCH clause.
 NOTE: This is the location at which customizations in the string

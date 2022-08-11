@@ -9759,6 +9759,9 @@ for ASTs which need to appear in the surrounding text slots.")
    reused that previous object.")
 
 (defun canon-string (s)
+  (when (and (not (typep s 'base-string))
+             (every (of-type 'base-char) s))
+    (setf s (coerce s 'base-string)))
   (ensure-gethash s *string-canon-table*
                   (etypecase s
                     (simple-string s)
