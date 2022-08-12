@@ -7524,11 +7524,11 @@ Every element in the list has the following form:
 
 This function should only be called when there are two or more
 overloads to resolve.")
-  (:method :before (type ast &optional overloads)
+  (:method :before ((type t) (ast t) &optional overloads)
     (assert (and (listp overloads) (rest overloads))))
   (:method (type (ast call-ast) &optional overloads)
     (resolve-overloads type (call-function ast) overloads))
-  (:method (type ast &optional overloads)
+  (:method ((type t) ast &optional overloads)
     (unresolved-overloads ast overloads)))
 
 (defun get-declaration-ast (type ast)

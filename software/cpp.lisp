@@ -805,7 +805,7 @@ templated definition's field table."
            (canonicalize-type ast :software software))
           :test #'source-text=))
 
-(defmethod resolve-overloads (type (ast cpp-field-expression) &optional overloads)
+(defmethod resolve-overloads ((type t) (ast cpp-field-expression) &optional overloads)
   "Resolve const overloads on field expressions."
   (or (when (every (of-type 'cpp-field-declaration) overloads)
         (match ast
