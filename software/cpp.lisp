@@ -828,8 +828,9 @@ templated definition's field table."
                              overloads))
                      ((single relevant-overloads)
                       (only-elt relevant-overloads))
-                     (t
-                      (call-next-method ast relevant-overloads))))))))
+                     (t (if (length= relevant-overloads overloads)
+                            (call-next-method)
+                            (resolve-overloads type ast relevant-overloads)))))))))
       (call-next-method)))
 
 (defmethod resolve-overloads (type (ast cpp-qualified-identifier)
