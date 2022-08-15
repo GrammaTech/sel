@@ -5,7 +5,8 @@
         :metabang-bind
         :software-evolution-library
         :software-evolution-library/software/simple
-        :software-evolution-library/components/formatting)
+        :software-evolution-library/components/formatting
+        :software-evolution-library/components/configuration)
   (:export :project
            :*build-dir*
            :build-command
@@ -472,6 +473,7 @@ making a directory."
 (defmethod convert ((to-type (eql 'list)) (project project) &key &allow-other-keys)
   (mappend [{convert 'list} #'cdr] (evolve-files project)))
 
+
 ;;; Include file processing
 ;;;
 ;;; In order to associate identifiers with definitions in C and C++,
@@ -609,3 +611,29 @@ sorted into shortlex order by namestring.")
                          (string< s1 s2)))))))))
 
 ;;; Also needed: compute closure of includes
+
+
+;;; Configuration File
+
+(defmethod configuration-path ((project project) &key path)
+  "Return the configuration file path of PROJECT."
+  ;; TODO: project-dir doesn't appear to be populated for base project objects?
+  (make-pathname :directory (pathname-directory (or path (project-dir project)))
+                 :name ".sel" :type "conf"))
+
+;;; NOTE: this should probably be a :before, but 'project-dir isn't populated
+;;;       at that point.
+(defmethod from-file :before ((project project) path)
+  (handle-configuration project path))
+
+(defun add-ignore-paths (config paths)
+  "Add FILES to the configuration file of PROJECT such that they are ignored.
+Stores them as comma separated values."
+  (setf (option config "Ignore" "ignore-paths")
+        (reduce #'string+ (interleave (mapcar #'namestring paths) ","))))
+
+(defmethod handle-configuration ((project project) path &key)
+  (let ((config (get-configuration project :path path)))
+    (when-let ((ignore-paths (option config "Ignore" "ignore-paths")))
+      (with-slots ((previous-value ignore-paths)) project
+        (setf previous-value (append previous-value (split "," ignore-paths)))))))
