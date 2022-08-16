@@ -676,6 +676,12 @@ time."
   (:method (x y)
     (string= (source-text x) (source-text y))))
 
+;;; This avoids warnings from Trivia about not being able to infer the
+;;; type of source-text= tests.
+(type-i:define-inference-rule source-text= (test)
+  (declare (ignore test))
+  '((typep type-i:? '(or ast string))))
+
 (defpattern source-text= (arg)
   "Compare the source text against ARG (evaluated)."
   (with-unique-names (it)
