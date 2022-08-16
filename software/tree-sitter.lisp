@@ -7716,6 +7716,7 @@ pointers into account in languages that support them.")
       (collect-if (lambda (ast)
                     (and (not (eql ast identifier))
                          (typep ast 'identifier-ast)
+                         (source-text= ast identifier)
                          (eql identifier
                               (get-declaration-id :variable ast))))
                   root))))
