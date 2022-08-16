@@ -1017,6 +1017,25 @@ then the return type of the call is the return type of the field."
 (defmethod placeholder-type-p ((ast cpp-placeholder-type-specifier))
   t)
 
+(defmethod infer-type :context ((ast cpp-ast))
+  (match (call-next-method)
+    ((cpp* "$TYPE1<@ARGS>::$TYPE2"
+           :type1 type1
+           :args args
+           :type2 type2)
+     (when-let* ((type-def (get-declaration-ast :type type1))
+                 (template
+                  (find-enclosing 'cpp-template-declaration
+                                  (attrs-root*)
+                                  type-def))
+                 (template-param-names
+                  (mapcar #'parameter-name (cpp-parameters template)))
+                 (offset
+                  (position type2 template-param-names
+                            :test #'source-text=)))
+       (nth offset args)))
+    (result result)))
+
 (defmethod infer-type :context ((id cpp-identifier))
   "When computing the type of a C++ identifier, if the identifier is
 evaluated (in an expression AST) then implicitly dereference reference

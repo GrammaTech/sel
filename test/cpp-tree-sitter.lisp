@@ -874,11 +874,47 @@ struct Point {
 };"))
          (p1 (find-if (op (source-text= _ "p1"))
                       cpp)))
-    ;; NB This fails because it is looking for Point::Point rather
-    ;; than Point.
     (with-attr-table cpp
       (is (typep (get-declaration-ast :type (infer-type p1))
                  'cpp-struct-specifier)))))
+
+(deftest test-infer-type-for-templated-struct-getter ()
+  (let* ((cpp (from-string 'cpp "
+template<typename T>
+struct Point {
+  T x, y;
+  const T& get_x() {
+    return x;
+  }
+};
+
+int main () {
+  const Point<float> p = {1.0, 2.0};
+  p.get_x();
+  return 0;
+}"))
+         (getter (find-if (op (source-text= _ "p.get_x()")) cpp)))
+    (with-attr-table cpp
+      (is (source-text= (infer-type getter) "float")))))
+
+(deftest test-infer-type-for-templated-struct-member ()
+  (let* ((cpp (from-string 'cpp "
+template<typename T>
+struct Point {
+  T x, y;
+  const T& get_x() {
+    return x;
+  }
+};
+
+int main () {
+  const Point<float> p = {1.0, 2.0};
+  p.x;
+  return 0;
+}"))
+         (getter (find-if (op (source-text= _ "p.x")) cpp)))
+    (with-attr-table cpp
+      (is (source-text= (infer-type getter) "float")))))
 
 (deftest test-enumerator-inner-declaration ()
   "Test that we find the enclosing enumerator as a declaration
