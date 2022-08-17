@@ -46,7 +46,8 @@
 
 (defun option (config section-name option-name)
   "Get OPTION-NAME that is in SECTION-NAME in CONFIG."
-  (handler-bind ((py-configparser:no-section-error
+  (handler-bind (((or py-configparser:no-section-error
+                      py-configparser:no-option-error)
                    (lambda (condition)
                      (declare (ignore condition))
                      (return-from option nil))))
