@@ -7122,6 +7122,7 @@ should be rebound.")
 
 (defgeneric scope-ast-p (ast)
   (:method ((ast t)) nil)
+  (:method ((ast root-ast)) t)
   (:method ((ast function-ast)) t)
   (:method ((ast loop-ast)) t)
   (:method ((ast compound-ast)) t))
