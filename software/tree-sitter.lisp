@@ -1114,6 +1114,8 @@ for the language.")
        (rust-call-expression
         (rust-function :reader call-function :initarg :function)
         (rust-arguments :reader call-arguments :initarg :arguments))
+       (rust-parameter
+        (rust-type :reader parameter-type))
        (rust-range-expression
         (rust-operator :reader operator :initarg :operator))
        (rust-for-expression
