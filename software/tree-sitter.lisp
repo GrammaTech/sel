@@ -1211,7 +1211,10 @@ for the language.")
         c-union-specifier c-enum-specifier
         c-type-forward-declaration)
        (:composite-type-ast c-struct-specifier c-union-specifier)
-       (:macro-declaration-ast c-macro-forward-declaration)
+       (:macro-declaration-ast
+        c-macro-forward-declaration
+        c-preproc-function-def
+        c-preproc-def)
        (:statement-ast c--statement c-function-definition c-declaration)
        (:expression-statement-ast c-expression-statement)
        (:expression-ast c--expression)
@@ -1266,7 +1269,9 @@ for the language.")
        (:composite-type-ast cpp-struct-specifier cpp-union-specifier
         cpp-class-specifier)
        (:macro-declaration-ast
-        cpp-macro-forward-declaration)
+        cpp-macro-forward-declaration
+        cpp-preproc-function-def
+        cpp-preproc-def)
        (:namespace-declaration-ast
         cpp-namespace-definition)
        (:parenthesized-expression-ast cpp-parenthesized-expression)
