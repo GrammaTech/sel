@@ -660,6 +660,9 @@
 (defmethod relevant-declaration-type ((ast cpp-operator-name))
   'function-declaration-ast)
 
+(defmethod relevant-declaration-type ((ast cpp-preproc-function-def))
+  'macro-declaration-ast)
+
 (defmethod call-name ((ast cpp-call-expression))
   "If the call function is a template function, extract just the name of the template function without its arguments."
   (source-text
@@ -674,6 +677,38 @@
      (if (typep function 'cpp-template-function)
          (cpp-name function)
          function))))
+
+(defmethod function-parameters ((field cpp-field-declaration))
+  (match field
+    ((cpp-field-declaration
+      (cpp-declarator
+       (list (and declarator (cpp-function-declarator)))))
+     (function-parameters declarator))
+    (otherwise (call-next-method))))
+
+(defmethod definition-name-ast ((field cpp-field-declaration))
+  (match field
+    ((cpp-field-declaration
+      (cpp-declarator
+       (list (and declarator (cpp-function-declarator)))))
+     (declarator-name-ast declarator))
+    (otherwise (call-next-method))))
+
+(defmethod relevant-declaration-type ((field cpp-field-declaration))
+  (match field
+    ((cpp-field-declaration
+      (cpp-declarator
+       (list (cpp-function-declarator))))
+     'function-declaration-ast)
+    (otherwise (call-next-method))))
+
+(defmethod outer-declarations ((field cpp-field-declaration))
+  (match field
+    ((cpp-field-declaration
+      (cpp-declarator
+       (list (and declarator (cpp-function-declarator)))))
+     (outer-declarations declarator))
+    (otherwise (call-next-method))))
 
 (defmethod scope-ast-p ((ast cpp-namespace-definition)) t)
 (defmethod scope-ast-p ((ast cpp-declaration-list)) t)

@@ -499,6 +499,9 @@ pointer declarations which are nested on themselves."
      type)
     (otherwise (call-next-method))))
 
+(defmethod infer-type ((field c/cpp-field-declaration))
+  (c/cpp-type field))
+
 (defmethod infer-type ((ast c/cpp-field-expression)
                        &aux (obj (attrs-root*)))
   (flet ((function-position? ()

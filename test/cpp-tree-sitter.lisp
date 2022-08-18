@@ -929,6 +929,13 @@ int main () {
                          cpp)))
            'cpp-enumerator)))))
 
+(deftest test-field-parameters ()
+  (let ((cpp (cpp* "struct s { s add(const s d) const; }")))
+    (finishes
+     (function-parameters
+      (find-if (of-type 'cpp-field-declaration)
+               cpp)))))
+
 
 ;;; Parsing tests
 
