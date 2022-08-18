@@ -573,16 +573,6 @@ void f(fp_t p) { p->x; p->y; }
     (is (equal "foo"
                (function-name (find-if (of-type 'function-ast) root))))))
 
-(deftest parameter-type-on-c-tree-sitter ()
-  (is (equalp (parameter-type
-               (first (function-parameters
-                       (@ (convert 'c-ast "void bar(const char ***it){}") 0))))
-              '("char" 3 "const")))
-  (is (equalp (parameter-type
-               (first (function-parameters
-                       (@ (convert 'c-ast "void foo(int baz){}") 0))))
-              '("int" 0))))
-
 (deftest parameter-name-on-c-tree-sitter ()
   (is (string= (parameter-name
                (first (function-parameters

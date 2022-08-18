@@ -207,6 +207,9 @@
 (defmethod function-parameters ((ast c/cpp-function-declarator))
   (direct-children (c/cpp-parameters ast)))
 
+(defmethod parameter-type ((ast c/cpp-parameter-declaration))
+  (c/cpp-type ast))
+
 (defmethod call-arguments ((node c/cpp-call-expression))
   (direct-children (c/cpp-arguments node)))
 

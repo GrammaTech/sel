@@ -577,6 +577,7 @@
            :call-arguments
            :function-parameters
            :parameter-type
+           :parameter-type*             ;Backward compat.
            :parameter-name
            :parameter-names
            :function-body

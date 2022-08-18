@@ -126,7 +126,7 @@ field."
   (:method ((ast c-pointer-declarator)) (1+ (pointers (c-declarator ast))))
   (:method ((ast c-identifier)) 0))
 
-(defmethod parameter-type ((ast c-parameter-declaration))
+(defmethod parameter-type* ((ast c-parameter-declaration))
   "Return format is (BASE-TYPE POINTER-DEPTH . QUALIFIERS)."
   (list* (source-text (c-type ast))
          (pointers ast)
