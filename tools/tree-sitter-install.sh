@@ -4,6 +4,12 @@ set -eu
 WORKDIR=${WORKDIR:-$(mktemp -d)}
 PREFIX=${PREFIX:-/usr}
 
+if [ $(uname) == "Darwin" ];then
+   EXT=dylib;
+else
+   EXT=so
+fi
+
 # Withheld languages: agda c-sharp julia ocaml/interface ocaml/ocaml php ql ruby scala
 declare -ar default_languages=(
     commonlisp bash c cpp css go html java javascript jsdoc json python regex rust
@@ -84,14 +90,14 @@ for language in "${languages[@]}";do
         if test -f "scanner.cc"; then
             clang++ -fPIC scanner.cc -c -lstdc++;
             clang -std=c99 -fPIC parser.c -c;
-            clang++ -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.so";
+            clang++ -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         elif test -f "scanner.c"; then
             clang -std=c99 -fPIC scanner.c -c;
             clang -std=c99 -fPIC parser.c -c;
-            clang -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.so";
+            clang -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         else
             clang -std=c99 -fPIC parser.c -c;
-            clang -shared parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.so";
+            clang -shared parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         fi;
         mkdir -p "${PREFIX}/share/tree-sitter/${language}/";
         cp grammar.json node-types.json "${PREFIX}/share/tree-sitter/${language}";
