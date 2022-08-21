@@ -1,7 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eu
 
 WORKDIR=${WORKDIR:-$(mktemp -d)}
+PREFIX=${PREFIX:-/usr}
 
 # Withheld languages: agda c-sharp julia ocaml/interface ocaml/ocaml php ql ruby scala
 declare -ar default_languages=(
@@ -62,7 +63,7 @@ fi
 (
     cd tree-sitter
     pin_repo ${pins[tree-sitter]}
-    PREFIX=/usr make all install
+    PREFIX=${PREFIX} make all install
 )
 
 # Install languages.
@@ -83,16 +84,16 @@ for language in "${languages[@]}";do
         if test -f "scanner.cc"; then
             clang++ -fPIC scanner.cc -c -lstdc++;
             clang -std=c99 -fPIC parser.c -c;
-            clang++ -shared scanner.o parser.o -o /usr/lib/tree-sitter-"${language//\//-}.so";
+            clang++ -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.so";
         elif test -f "scanner.c"; then
             clang -std=c99 -fPIC scanner.c -c;
             clang -std=c99 -fPIC parser.c -c;
-            clang -shared scanner.o parser.o -o /usr/lib/tree-sitter-"${language//\//-}.so";
+            clang -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.so";
         else
             clang -std=c99 -fPIC parser.c -c;
-            clang -shared parser.o -o /usr/lib/tree-sitter-"${language//\//-}.so";
+            clang -shared parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.so";
         fi;
-        mkdir -p "/usr/share/tree-sitter/${language}/";
-        cp grammar.json node-types.json "/usr/share/tree-sitter/${language}";
+        mkdir -p "${PREFIX}/share/tree-sitter/${language}/";
+        cp grammar.json node-types.json "${PREFIX}/share/tree-sitter/${language}";
     )
 done
