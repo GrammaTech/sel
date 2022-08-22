@@ -15,6 +15,7 @@ DOC_PACKAGES =								\
 	software-evolution-library					\
 	software-evolution-library/command-line-rest			\
 	software-evolution-library/components/clang-tokens		\
+	software-evolution-library/components/configuration		\
 	software-evolution-library/components/file			\
 	software-evolution-library/components/fix-compilation		\
 	software-evolution-library/components/fodder-database		\

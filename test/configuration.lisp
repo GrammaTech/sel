@@ -31,7 +31,6 @@
 
 ;;; Tests
 
-
 (deftest configuration-ignore-paths ()
   "Configuration files correctly set ignore-paths when read in."
   (let ((project (from-file 'c-project (ignore-paths-project-path))))

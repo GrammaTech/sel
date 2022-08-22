@@ -875,6 +875,7 @@ infrastructure.
 * Style Features::              Extracting source code features
 * Clang C Tokenizer::           Tokenize software objects
 * Super-Mutants::               Evaluate multiple variants in a single genome
+* Configuration::               Configure software representations with files
 * Utilities::                   Utilities
 @end menu
 
@@ -898,10 +899,15 @@ infrastructure.
 @cindex tokenizer
 @include tokenizer.texi
 
-@node Super-Mutants, Utilities, Clang C Tokenizer, Components
+@node Super-Mutants, Configuration, Clang C Tokenizer, Components
 @section Super-Mutants
 @cindex super-mutants
 @include include/super-mutant.texi
+
+@node Configuration, Utilities, Super-Mutants, Components
+@section Configuration
+@cindex configuration
+@include include/configuration.texi
 
 @node Utilities, Basic Utilities, Super-Mutants, Components
 @chapter Utilities

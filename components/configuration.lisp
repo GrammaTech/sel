@@ -1,6 +1,21 @@
 ;;; configuration.lisp --- primitives for specifying options, variable values,
 ;;;                        etc.
 ;;;
+;;; @menu
+;;; * Ignore:: Ignore Section Options
+;;; @end menu
+;;;
+;;; Options can be configured through the @file{.sel.conf} INI file. This is
+;;; placed in the base directory of the target project and allows for common
+;;; options across different runs to be specified only once.
+;;;
+;;; @node Ignore, , , Configuration
+;;; @subsection Ignore
+;;; @cindex ignore-section
+;;;
+;;;     [Ignore]
+;;;     # [optional] A comma delimited list of paths.
+;;;     ignore-paths = path/,path/**/*
 ;;;
 ;;; @texi{configuration}
 (defpackage :software-evolution-library/components/configuration
