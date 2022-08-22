@@ -594,6 +594,7 @@
            :declaration-type
            :find-enclosing
            :find-all-enclosing
+           :find-outermost
            :find-preceding
            :find-following
            :comments-for
@@ -7320,6 +7321,16 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
     (find-all-enclosing pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
     (filter pred (get-parent-asts* root ast))))
+
+(defgeneric find-outermost (test obj ast)
+  (:documentation "Return the outermost enclosing AST passing TEST in OBJ.
+If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
+  (:method ((type t) (obj t) (ast ast))
+    (find-outermost (of-type type) obj ast))
+  (:method ((pred function) (obj parseable) (ast ast))
+    (find-outermost pred (genome obj) ast))
+  (:method ((pred function) (root ast) (ast ast))
+    (find-if pred (get-parent-asts root ast) :from-end t)))
 
 (defgeneric find-preceding (test obj ast)
   (:documentation "Return any siblings passing TEST preceding AST in OBJ.
