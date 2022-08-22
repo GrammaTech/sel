@@ -974,8 +974,7 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
                      (find-var-uses (cdr assorted-by-scope)
                                     binding-class))))))
 
-(-> collect-fun-uses (python python-ast) list)
-(defun collect-fun-uses (obj ast)
+(defmethod collect-fun-uses ((obj python) (ast python-ast))
   (labels ((same-name-p (ast name)
              "Return T if AST represents an AST that contains the same
                 name as NAME."

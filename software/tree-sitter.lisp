@@ -7165,7 +7165,7 @@ should be rebound.")
 (defgeneric function-parameters (ast)
   (:documentation "Return the parameters of AST.")
   (:method-combination standard/context)
-  (:method :context ((ast t))
+  (:method :context ((ast ast))
     (ensure-children (call-next-method))))
 
 (defgeneric return-type (ast)
@@ -7731,6 +7731,19 @@ pointers into account in languages that support them.")
                          (eql identifier
                               (get-declaration-id :variable ast))))
                   root))))
+
+(defgeneric collect-fun-uses (root fun)
+  (:Documentation "Collect uses of FUNCTION in ROOT.")
+  (:method ((root software) (ast ast))
+    (collect-fun-uses (genome root) ast))
+  (:method ((root ast) (function function-declaration-ast))
+    (collect-fun-uses root (definition-name-ast function)))
+  (:method ((root ast) (function identifier-ast))
+    (collect-if (lambda (ast)
+                  (and (typep ast 'call-ast)
+                       (eql (get-declaration-id :function (call-function ast))
+                            function)))
+                root)))
 
 (defgeneric assignees (ast)
   (:documentation "Get the ASTs that AST assigns to.
