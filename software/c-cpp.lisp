@@ -575,6 +575,13 @@ pointer declarations which are nested on themselves."
 (defmethod infer-type ((ast c/cpp-assignment-expression))
   (infer-type (c/cpp-left ast)))
 
+(defmethod infer-type ((ast c/cpp-conditional-expression))
+  (let ((type1 (infer-type (c/cpp-consequence ast)))
+        (type2 (infer-type (c/cpp-alternative ast))))
+    ;; TODO Compute a least upper bound?
+    (when (source-text= type1 type2)
+      type1)))
+
 (defgeneric infer-type-binary-expression (op ast)
   (:documentation "Function used to compute (infer-type ast) where op
 is the operator of a binary ast.")

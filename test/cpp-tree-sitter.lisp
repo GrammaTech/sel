@@ -936,6 +936,15 @@ int main () {
       (find-if (of-type 'cpp-field-declaration)
                cpp)))))
 
+(deftest test-conditional-type ()
+  (let ((cpp (from-string 'cpp "int x = 1;
+int y = 2;
+int z = fn() ? x : y;")))
+    (with-attr-table cpp
+      (is (source-text= "int"
+                        (infer-type (find-if (of-type 'cpp-conditional-expression)
+                                             cpp)))))))
+
 
 ;;; Parsing tests
 
