@@ -16,7 +16,8 @@
     (and (python-tree-sitter-available-p)
          (javascript-tree-sitter-available-p)
          (c-tree-sitter-available-p)
-         (cpp-tree-sitter-available-p)))
+         (cpp-tree-sitter-available-p)
+         (rust-tree-sitter-available-p)))
 
 #+(and :TREE-SITTER-CPP :TREE-SITTER-C
        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON
