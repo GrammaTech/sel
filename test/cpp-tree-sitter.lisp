@@ -945,6 +945,14 @@ int z = fn() ? x : y;")))
                         (infer-type (find-if (of-type 'cpp-conditional-expression)
                                              cpp)))))))
 
+(deftest test-infer-string-type ()
+  (let ((cpp (from-string 'cpp "\"x\";")))
+    (with-attr-table cpp
+      (is (source-text= "const char[2]"
+                        (infer-type
+                         (find-if (of-type 'cpp-string-literal)
+                                  cpp)))))))
+
 
 ;;; Parsing tests
 

@@ -1143,6 +1143,22 @@ types."
   (when-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
     (definition-name-ast type-ast)))
 
+(defmethod infer-type ((ast cpp-string-literal))
+  (make 'cpp-type-descriptor
+        :cpp-declarator (make 'cpp-abstract-array-declarator
+                              :cpp-size
+                              (make 'cpp-number-literal
+                                    :text (princ-to-string
+                                           (assure (integer 0)
+                                             ;; -2 for the quotes, 1+
+                                             ;; -for the null.
+                                             (- (length (text ast)) 1)))))
+        :cpp-type (make 'cpp-primitive-type :text "char")
+        :cpp-pre-type-qualifiers
+        (list
+         (make 'cpp-type-qualifier :text "const"
+                                   :after-text " "))))
+
 (defun usual-arithmetic-conversions (type1 type2)
   ;; TODO Sized integer types. Complex and imaginary types? Note that
   ;; one thing we would want from type descriptors is to be able to
