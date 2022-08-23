@@ -1029,6 +1029,8 @@ for the language.")
         (cpp-body :reader body :initarg :body))
        (cpp-for-range-loop
         (cpp-body :reader body :initarg :body))
+       (cpp-function-definition
+        (cpp-body :reader function-body))
        (cpp-if-statement
         (cpp-condition :initarg :condition :reader condition)
         (cpp-consequence :initarg :consequence :reader consequence)
