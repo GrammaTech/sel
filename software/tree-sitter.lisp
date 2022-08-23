@@ -657,22 +657,35 @@
            :tree-sitter-nop
            :parameter-ast
            :return-type
-           :contextualize-ast
-           ;; When redefining the tree-sitter package during
-           ;; development, preserve exports that have been added by
-           ;; language-specific files.
-           . #.(when (find-package :sel/sw/ts)
-                 (let ((syms ()))
-                   (do-external-symbols (s :sel/sw/ts)
-                     ;; Need uninterned symbols, lest fasls look for
-                     ;; packages that don't exist yet.
-                     (push (make-symbol (string s)) syms))
-                   syms)))
+           :contextualize-ast)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
+
+(eval-always
+ (defvar *tree-sitter-packages*
+   '(:sel/sw/ts))
+ (defvar *tree-sitter-exports* ()
+   "Preserve exports from tree-sitter across package redefinitions."))
+
+(eval-always
+ (defun export-tree-sitter* (syms)
+   (synchronized ('*tree-sitter-exports*)
+     (unionf *tree-sitter-exports* (ensure-list syms)))
+   (dolist (package *tree-sitter-packages*)
+     (import syms package)
+     (export syms package))))
+
+(defmacro export/tree-sitter (syms)
+  `(eval-always
+    (export-tree-sitter* ,syms)))
+
+;;; Export all of the cached exports, hidden by package redefinition.
+(eval-always
+ (export-tree-sitter*
+  *tree-sitter-exports*))
 
 (define-software tree-sitter (software-indentation parseable) ()
   (:documentation "tree-sitter software representation."))
@@ -3494,20 +3507,6 @@ stored on the AST or external rules.")
 
 
 ;;; Defining tree-sitter classes
-
-(eval-always
- (defvar *tree-sitter-packages*
-   '(:sel/sw/ts)))
-
-(eval-always
- (defun export-tree-sitter* (syms)
-   (dolist (package *tree-sitter-packages*)
-     (import syms package)
-     (export syms package))))
-
-(defmacro export/tree-sitter (syms)
-  `(eval-always
-    (export-tree-sitter* ,syms)))
 
 (defmacro define-template-builder (class ast-class)
   (let ((class* (intern (string+ class '*)
