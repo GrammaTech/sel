@@ -694,6 +694,10 @@
      (declarator-name-ast declarator))
     (otherwise (call-next-method))))
 
+(defmethod function-name ((field cpp-field-declaration))
+  (when-let (ast (definition-name-ast field))
+    (source-text ast)))
+
 (defmethod relevant-declaration-type ((field cpp-field-declaration))
   (match field
     ((cpp-field-declaration
