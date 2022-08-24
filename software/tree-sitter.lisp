@@ -8691,6 +8691,12 @@ temporary software objects."
 
 ;;; AST Construction
 (defgeneric whitespace-between/parent (parent style ast1 ast2)
+  (:method-combination standard/context)
+  (:method :context (parent s ast1 ast)
+    (let ((result (call-next-method)))
+      (etypecase result
+        (string result)
+        (character (string result)))))
   (:method :around (parent style (ast1 alternative-ast) ast2
                     &aux (representative-ast
                           (get-representative-ast ast1 parent)))
