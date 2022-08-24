@@ -1297,7 +1297,7 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 (defmethod whitespace-between ((style null) (x python-ast) y)
   (whitespace-between +pep8+ x y))
 
-(define-empty-whitespace-methods (pep8)
+(define-empty-whitespace-methods (:style pep8)
   python-lambda-parameters :|:|
   python-** python-ast
   python-ast python-**

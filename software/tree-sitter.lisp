@@ -8904,7 +8904,7 @@ parent in the cases where the parent indentation changes.")
          :allow-other-keys t
          :recursive t :prettify t :software new-software :style style))))
 
-(defmacro define-empty-whitespace-methods ((&optional (style t))
+(defmacro define-empty-whitespace-methods ((&key (style t))
                                            &body pairs)
   `(progn
      ,@(iter (for (x y) in (batches pairs 2 :even t))
@@ -8915,7 +8915,7 @@ parent in the cases where the parent indentation changes.")
                                                         (y ,y))
                            ""))))))
 
-(define-empty-whitespace-methods (t)
+(define-empty-whitespace-methods (:style t)
   identifier-ast parameters-ast
   identifier-ast arguments-ast)
 
