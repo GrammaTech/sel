@@ -762,28 +762,6 @@
 (defmethod outer-declarations ((ast cpp-alias-declaration))
   (values (list (cpp-name ast)) '(:type)))
 
-(defmethod field-table ((class cpp-class-specifier))
-  (ematch class
-    ((cpp-class-specifier
-      (cpp-body nil))
-     (empty-map))
-    ((cpp-class-specifier
-      (cpp-body
-       (and (cpp-field-declaration-list)
-            (access #'direct-children fields))))
-     (assure fset:map
-       (reduce (flip #'field-adjoin)
-               ;; Just the public fields.
-               (mappend #'cdr
-                        (keep "public:"
-                              (runs fields
-                                    :test
-                                    (lambda (x y) (declare (ignore x))
-                                      (not (typep y 'cpp-access-specifier))))
-                              :key #'car
-                              :test #'source-text=))
-               :initial-value (empty-map))))))
-
 (defmethod field-table ((typedef cpp-type-definition))
   "Given a typedef for a template type, recursively resolve the
 templated definition's field table."

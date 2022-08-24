@@ -626,9 +626,9 @@ is the operator of a binary ast.")
 (def-attr-fun field-table ()
   "Build an FSet map from field names to identifiers."
   (:method ((ast t)) (empty-map))
-  (:method ((ast c/cpp-struct-specifier))
+  (:method ((ast c/cpp-classoid-specifier))
     (ematch ast
-      ((c/cpp-struct-specifier
+      ((c/cpp-classoid-specifier
         (c/cpp-body
          (and (type c/cpp-field-declaration-list)
               (access #'direct-children fields))))
@@ -636,7 +636,7 @@ is the operator of a binary ast.")
          (reduce (flip #'field-adjoin)
                  fields
                  :initial-value (empty-map))))
-      ((c/cpp-struct-specifier
+      ((c/cpp-classoid-specifier
         (c/cpp-body nil))
        (empty-map))))
   (:method ((ast c/cpp-union-specifier))
