@@ -213,7 +213,10 @@ slot in DIRECT-SLOTS may be one of the following:
                             (otherwise
                              `(setf (slot-value copy ',name)
                                     ,(if copier
-                                         `(,copier (,name obj))
+                                         `(funcall ,(if (symbolp copier)
+                                                        `',copier
+                                                        copier)
+                                                   (,name obj))
                                          `(,name obj)))))))
                   direct-slot-names
                   (mapcar {symbol-cat _ 'supplied-p} direct-slot-names)
