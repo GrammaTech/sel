@@ -1121,9 +1121,25 @@ types."
          right-type)
         ((null conversion) nil))))))
 
+;;; TODO Also use this to look up free variables (not just this) in a
+;;; function.
+(defun friend-function-class (fn)
+  (match fn
+    ((and (cpp-function-definition)
+          (access #'definition-name-ast
+                  (and id (cpp-qualified-identifier))))
+     (get-declaration-ast
+      :type
+      (list->qualified-name
+       (butlast
+        (qualified-name->list id)))))))
+
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
-  (when-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
-    (definition-name-ast type-ast)))
+  (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
+    (definition-name-ast type-ast)
+    ;; Infer type of this for a friend function.
+    (when-let (fn (find-enclosing 'cpp-function-definition obj ast))
+      (friend-function-class fn))))
 
 (defmethod infer-type ((ast cpp-string-literal))
   (make 'cpp-type-descriptor
