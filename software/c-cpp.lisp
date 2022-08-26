@@ -28,18 +28,18 @@
 
 
 ;;; Contextualization
-  (defun get-context-for (ast)
-    "Return a keyword giving the context for AST."
+(defun get-context-for (ast)
+  "Return a keyword giving the context for AST."
   (etypecase ast
     ((or c/cpp-identifier c/cpp-type-identifier cpp-qualified-identifier)
-     (cond ((get-declaration-id :tag ast)
-            :type)
-           ((get-declaration-id :type ast)
-            :type)
-           ((get-declaration-id :variable ast)
-            :variable)
-           ((get-declaration-id :function ast)
-            :function)))))
+   (cond ((get-declaration-id :tag ast)
+          :type)
+         ((get-declaration-id :type ast)
+          :type)
+         ((get-declaration-id :variable ast)
+          :variable)
+         ((get-declaration-id :function ast)
+          :function)))))
 
 (defun binary-expression->cast-expression (ast-type ast)
   "Converts BINARY-EXPRESSION into its corresponding cast expression."
