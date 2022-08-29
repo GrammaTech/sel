@@ -1001,6 +1001,12 @@ for the language.")
         (c-condition :initarg :condition :reader condition)
         (c-consequence :initarg :consequence :reader consequence)
         (c-alternative :initarg :alternative :reader alternative))
+       (c-conditional-expression
+        ;; TODO Is it worth shadowing `cl:condition'? `test' would
+        ;; also cause package conflicts with test frameworks.
+        (c-condition :initarg :condition :reader condition)
+        (c-consequence :initarg :consequence :reader consequence)
+        (c-alternative :initarg :alternative :reader alternative))
        (c-update-expression
         (c-argument :reader assignee))
        (c-binary-expression
@@ -1032,6 +1038,10 @@ for the language.")
        (cpp-function-definition
         (cpp-body :reader function-body))
        (cpp-if-statement
+        (cpp-condition :initarg :condition :reader condition)
+        (cpp-consequence :initarg :consequence :reader consequence)
+        (cpp-alternative :initarg :alternative :reader alternative))
+       (cpp-conditional-expression
         (cpp-condition :initarg :condition :reader condition)
         (cpp-consequence :initarg :consequence :reader consequence)
         (cpp-alternative :initarg :alternative :reader alternative))
