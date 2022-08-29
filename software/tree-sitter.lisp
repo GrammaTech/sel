@@ -3842,8 +3842,12 @@ cover every terminal symbol, only the ones that aren't named.")
      attached."
     (cond
       ((string= name :children)
-       (format-symbol 'sel/sw/ts "~a" name))
-      (t (format-symbol 'sel/sw/ts "~a-~a" prefix name))))
+       'children)
+      (t
+       ;; (format-symbol 'sel/sw/ts "~a-~a" prefix name)
+       (values
+        (intern (concatenate 'string (string prefix) "-" (string name))
+                'sel/sw/ts)))))
 
   ;; NOTE: while a :child-order annotation is currently being generated
   ;;       for every ast converted from a string, having the slot order
@@ -5543,6 +5547,9 @@ PREFIX.")
     (:method (prefix type-string)
       (format-symbol 'sel/sw/ts "~a-~a"
                      prefix (convert-name prefix type-string)))
+    (:method ((prefix symbol) (type-string symbol))
+      (values (intern (concatenate 'string (symbol-name prefix) "-" (symbol-name type-string))
+                      'sel/sw/ts)))
     (:method :around (prefix type-string)
       (if (keywordp prefix)
           (call-next-method)
@@ -9072,16 +9079,17 @@ the indentation slots."
 
 (defun find-terminal-symbol-class (prefix class-name)
   ;; Check for a '-terminal first in case there's a name overlap.
-   (let ((terminal-with
-           (format-symbol
-            'sel/sw/ts "~a-~a-TERMINAL" prefix class-name)))
-     (if (find-class terminal-with nil)
-         terminal-with
-         (let ((terminal-without
-                 (format-symbol
-                  'sel/sw/ts "~a-~a" prefix class-name)))
-           (when (find-class terminal-without nil)
-             terminal-without)))))
+  (when (symbolp class-name)
+    (let ((ps (symbol-name prefix))
+          (cns (symbol-name class-name)))
+      (let ((terminal-with (intern (concatenate 'string ps "-" cns "-TERMINAL")
+                                   'sel/sw/ts)))
+        (if (find-class terminal-with nil)
+            terminal-with
+            (let ((terminal-without (intern (concatenate 'string ps "-" cns)
+                                            'sel/sw/ts)))
+              (when (find-class terminal-without nil)
+                terminal-without)))))))
 
 (defun terminal-symbol-class-p (prefix class-name)
   "Return true if CLASS-NAME inherits from the terminal symbol mix-in."
