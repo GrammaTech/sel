@@ -21,7 +21,7 @@
         (or (component-class lisp-project) 'lisp)))
 
 (defmethod collect-evolve-files ((obj lisp-project))
-  (collect-evolve-files-with-extensions obj :extensions '("lisp" "asd")))
+  (collect-evolve-files* obj :extensions '("lisp" "asd")))
 
 (defmethod phenome ((obj lisp-project) &key (bin (temp-file-name)))
   "Create a phenotype of the LISP-PROJECT.

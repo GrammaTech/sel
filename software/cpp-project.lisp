@@ -33,7 +33,7 @@
     (setf (compiler project) "c++")))
 
 (defmethod collect-evolve-files ((project cpp-project))
-  (collect-evolve-files-with-extensions project :extensions *cpp-extensions*))
+  (collect-evolve-files* project :extensions *cpp-extensions*))
 
 #+:TREE-SITTER-CPP
 (progn

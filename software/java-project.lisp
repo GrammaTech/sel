@@ -21,4 +21,4 @@
         (or (component-class java-project) 'java)))
 
 (defmethod collect-evolve-files ((project java-project))
-  (collect-evolve-files-with-extensions project :extensions '("java")))
+  (collect-evolve-files* project :extensions '("java")))

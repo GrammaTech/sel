@@ -27,4 +27,4 @@
     (setf (compiler project) "golang")))
 
 (defmethod collect-evolve-files ((project go-project))
-  (collect-evolve-files-with-extensions project :extensions '("go")))
+  (collect-evolve-files* project :extensions '("go")))

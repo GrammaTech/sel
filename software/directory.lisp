@@ -26,7 +26,7 @@
            :only-other-paths
            :all-files
            :pick-file
-           :collect-evolve-files-with-extensions))
+           :collect-evolve-files*))
 (in-package :software-evolution-library/software/directory)
 (in-readtable :curry-compose-reader-macros)
 
@@ -222,8 +222,9 @@ evolve-files."
                                        (pathname-relativize (project-dir obj) _1))))))
   result)
 
-(defun collect-evolve-files-with-extensions (project &key (extensions nil extensions-p)
-                                             &aux result (project-dir (project-dir project)))
+(defun collect-evolve-files* (project &key (extensions nil extensions-p)
+                              &aux result (project-dir (project-dir project))
+                              (compilable (subtypep (component-class project) 'compilable)))
   (assert project-dir (project-dir) "project-dir must be set on ~S" project)
   (with-current-directory (project-dir)
     (walk-directory
@@ -233,7 +234,7 @@ evolve-files."
            (push (cons (pathname-relativize project-dir file)
                        (from-file (multiple-value-call #'make-instance
                                     (component-class project)
-                                    (if (subtypep (component-class project) 'compilable)
+                                    (if compilable
                                         (values :compiler (compiler project)
                                                 :flags (flags project))
                                         (values)))

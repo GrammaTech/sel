@@ -21,4 +21,4 @@
         (or (component-class rust-project) 'rust)))
 
 (defmethod collect-evolve-files ((project rust-project))
-  (collect-evolve-files-with-extensions project :extensions '("rs")))
+  (collect-evolve-files* project :extensions '("rs")))

@@ -32,7 +32,7 @@
     (setf (compiler project) "cc")))
 
 (defmethod collect-evolve-files ((project c-project))
-  (collect-evolve-files-with-extensions project :extensions *c-extensions*))
+  (collect-evolve-files* project :extensions *c-extensions*))
 
 (defmethod find-include-files ((proj project) (file t) (include c/cpp-preproc-include))
   (let ((path (c-path include)))
