@@ -9,7 +9,7 @@
         :software-evolution-library/software/parseable)
   (:local-nicknames (:attrs :functional-trees/attrs))
   (:shadowing-import-from :software-evolution-library/software/compilable
-                          :flags :compiler)
+                          :flags :compiler :compilable)
   (:export :file-ast
            :directory-ast
            :directory-project
@@ -231,9 +231,12 @@ evolve-files."
      (lambda (file)
        (handler-case
            (push (cons (pathname-relativize project-dir file)
-                       (from-file (make-instance (component-class project)
-                                                 :compiler (compiler project)
-                                                 :flags (flags project))
+                       (from-file (multiple-value-call #'make-instance
+                                    (component-class project)
+                                    (if (subtypep (component-class project) 'compilable)
+                                        (values :compiler (compiler project)
+                                                :flags (flags project))
+                                        (values)))
                                   file))
                  result)
          ;; A file error can occur if the file is unreadable, or if
