@@ -8,6 +8,8 @@
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable)
   (:local-nicknames (:attrs :functional-trees/attrs))
+  (:shadowing-import-from :software-evolution-library/software/compilable
+                          :flags :compiler)
   (:export :file-ast
            :directory-ast
            :directory-project
@@ -220,9 +222,9 @@ evolve-files."
                                        (pathname-relativize (project-dir obj) _1))))))
   result)
 
-(defun collect-evolve-files-with-extensions (obj &key (extensions nil extensions-p)
+(defun collect-evolve-files-with-extensions (project &key (extensions nil extensions-p)
                                              &aux result (project-dir (project-dir project)))
-  (assert project-dir (project-dir) "project-dir must be set on ~S" obj)
+  (assert project-dir (project-dir) "project-dir must be set on ~S" project)
   (with-current-directory (project-dir)
     (walk-directory
      (project-dir project)
