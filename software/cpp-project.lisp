@@ -32,26 +32,8 @@
   (unless (compiler project)
     (setf (compiler project) "c++")))
 
-(defmethod collect-evolve-files ((project cpp-project) &aux result)
-  (with-current-directory ((project-dir project))
-    (walk-directory
-     (project-dir project)
-     (lambda (file)
-       (push (cons (pathname-relativize (project-dir project) file)
-                   (from-file (make-instance (component-class project)
-                                             :compiler (compiler project)
-                                             :flags (flags project))
-                              file))
-             result))
-     :test (lambda (file)
-             ;; Heuristics for identifying files in the project:
-             ;; 1) The file is not in an ignored directory.
-             ;; 2) The file has an extension from the list *cpp-extensions*.
-             (let ((rel-path (pathname-relativize (project-dir project) file)))
-               (and (not (ignored-evolve-path-p project rel-path))
-                    (member (pathname-type file) *cpp-extensions*
-                            :test 'equal))))))
-  result)
+(defmethod collect-evolve-files ((project cpp-project))
+  (collect-evolve-files-with-extensions project :extensions *cpp-extensions*))
 
 #+:TREE-SITTER-CPP
 (progn

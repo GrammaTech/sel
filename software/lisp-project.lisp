@@ -6,7 +6,8 @@
         :software-evolution-library
         :software-evolution-library/software/lisp
         :software-evolution-library/software/parseable-project
-        :software-evolution-library/software/project)
+        :software-evolution-library/software/project
+        :software-evolution-library/software/directory)
   (:export :lisp-project))
 (in-package :software-evolution-library/software/lisp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -19,18 +20,8 @@
   (setf (component-class lisp-project)
         (or (component-class lisp-project) 'lisp)))
 
-(defmethod collect-evolve-files ((obj lisp-project)
-                                 &aux result (project-dir (project-dir obj)))
-  (assert project-dir (project-dir) "project-dir must be set on ~S" obj)
-  (with-current-directory (project-dir)
-    (walk-directory project-dir
-      (lambda (file)
-        (push (cons (namestring (pathname-relativize project-dir file))
-                    (from-file (make-instance (component-class obj)) file))
-              result))
-      :test «and [{member _ '("lisp" "asd") :test #'equal} #'pathname-type]
-                 [#'not {ignored-evolve-path-p obj}]»))
-  result)
+(defmethod collect-evolve-files ((obj lisp-project))
+  (collect-evolve-files-with-extensions obj :extensions '("lisp" "asd")))
 
 (defmethod phenome ((obj lisp-project) &key (bin (temp-file-name)))
   "Create a phenotype of the LISP-PROJECT.

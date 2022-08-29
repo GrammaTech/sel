@@ -23,7 +23,8 @@
            :ignore-other-paths
            :only-other-paths
            :all-files
-           :pick-file))
+           :pick-file
+           :collect-evolve-files-with-extensions))
 (in-package :software-evolution-library/software/directory)
 (in-readtable :curry-compose-reader-macros)
 
@@ -205,17 +206,48 @@ evolve-files."
                   (op (let ((language (language-alias->language-symbol
                                        (pathname-type _1)
                                        :pathname _1)))
-                        (push (cons (pathname-relativize (project-dir obj) _1)
-                                    (from-file (make-instance (if (find-class-safe language)
-                                                                  language
-                                                                  'simple))
-                                               _1))
-                              result)))
+                        (handler-case 
+                            (push (cons (pathname-relativize (project-dir obj) _1)
+                                        (from-file (make-instance (if (find-class-safe language)
+                                                                      language
+                                                                      'simple))
+                                                   _1))
+                                  result)
+                          (file-error () nil))))
                   :test (op (and (text-file-p _1)
                                  (not (nest
                                        (ignored-evolve-path-p obj)
                                        (pathname-relativize (project-dir obj) _1))))))
   result)
+
+(defun collect-evolve-files-with-extensions (obj &key (extensions nil extensions-p)
+                                             &aux result (project-dir (project-dir project)))
+  (assert project-dir (project-dir) "project-dir must be set on ~S" obj)
+  (with-current-directory (project-dir)
+    (walk-directory
+     (project-dir project)
+     (lambda (file)
+       (handler-case
+           (push (cons (pathname-relativize project-dir file)
+                       (from-file (make-instance (component-class project)
+                                                 :compiler (compiler project)
+                                                 :flags (flags project))
+                                  file))
+                 result)
+         ;; A file error can occur if the file is unreadable, or if
+         ;; it's a symlink to a nonexistent target.  Do not include the
+         ;; file in that case.
+         (file-error () nil)))
+     :test (lambda (file)
+             ;; Heuristics for identifying files in the project:
+             ;; 1) The file is not in an ignored directory.
+             ;; 2) The file has an extension specified in extensions (if that arg is present).
+             (let ((rel-path (pathname-relativize project-dir file)))
+               (and (not (ignored-evolve-path-p project rel-path))
+                    (or (null extensions-p)
+                        (member (pathname-type file) extensions
+                                :test 'equal))))))
+    result))
 
 ;;; Override project-specific defmethods that leverage evolve-files
 ;;; and instead implement these directly against the genome.

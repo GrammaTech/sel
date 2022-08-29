@@ -31,31 +31,8 @@
   (unless (compiler project)
     (setf (compiler project) "cc")))
 
-(defmethod collect-evolve-files ((project c-project) &aux result)
-  (with-current-directory ((project-dir project))
-    (walk-directory
-     (project-dir project)
-     (lambda (file)
-       (handler-case
-           (push (cons (pathname-relativize (project-dir project) file)
-                       (from-file (make-instance (component-class project)
-                                                 :compiler (compiler project)
-                                                 :flags (flags project))
-                                  file))
-                 result)
-         ;; A file error can occur if the file is unreadable, or if
-         ;; it's a symlink to a nonexistent target.  Do not include the
-         ;; file in that case.
-         (file-error () nil)))
-     :test (lambda (file)
-             ;; Heuristics for identifying files in the project:
-             ;; 1) The file is not in an ignored directory.
-             ;; 2) The file has an extension specified in *c-extensions*.
-             (let ((rel-path (pathname-relativize (project-dir project) file)))
-               (and (not (ignored-evolve-path-p project rel-path))
-                    (member (pathname-type file) *c-extensions*
-                            :test 'equal)))))
-    result))
+(defmethod collect-evolve-files ((project c-project))
+  (collect-evolve-files-with-extensions project :extensions *c-extensions*))
 
 (defmethod find-include-files ((proj project) (file t) (include c/cpp-preproc-include))
   (let ((path (c-path include)))

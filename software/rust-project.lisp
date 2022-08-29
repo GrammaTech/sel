@@ -20,21 +20,5 @@
   (setf (component-class rust-project)
         (or (component-class rust-project) 'rust)))
 
-(defmethod collect-evolve-files ((project rust-project) &aux result)
-  (with-current-directory ((project-dir project))
-    (walk-directory
-     (project-dir project)
-     (lambda (file)
-       (push (cons (pathname-relativize (project-dir project) file)
-                   (from-file (make-instance (component-class project))
-                              file))
-             result))
-     :test (lambda (file)
-             ;; Heuristics for identifying files in the project:
-             ;; 1) The file is not in an ignored directory.
-             ;;    and the file has a "rust" extension.
-             (let ((rel-path (pathname-relativize (project-dir project)
-                                                  file)))
-               (and (not (ignored-evolve-path-p project rel-path))
-                    (equal "rs" (pathname-type rel-path)))))))
-  result)
+(defmethod collect-evolve-files ((project rust-project))
+  (collect-evolve-files-with-extensions project :extensions '("rs")))
