@@ -9070,6 +9070,24 @@ the indentation slots."
     (process-indentation* root)
     root))
 
+(defun find-terminal-symbol-class (prefix class-name)
+  ;; Check for a '-terminal first in case there's a name overlap.
+   (let ((terminal-with
+           (format-symbol
+            'sel/sw/ts "~a-~a-TERMINAL" prefix class-name)))
+     (if (find-class terminal-with nil)
+         terminal-with
+         (let ((terminal-without
+                 (format-symbol
+                  'sel/sw/ts "~a-~a" prefix class-name)))
+           (when (find-class terminal-without nil)
+             terminal-without)))))
+
+(defun terminal-symbol-class-p (prefix class-name)
+  "Return true if CLASS-NAME inherits from the terminal symbol mix-in."
+  (when-let ((class (find-terminal-symbol-class prefix class-name)))
+    (subtypep class 'terminal-symbol)))
+
 (defun convert-parse-tree
     (spec prefix superclass string
      &key computed-text-parent-p line-octets-cache variation-point-tree-parent-p
@@ -9155,22 +9173,6 @@ the indentation slots."
                     (setf (slot-value child 'annotations)
                           (adrop '(:range-start :range-end)
                                  (slot-value child 'annotations))))))))
-           (find-terminal-symbol-class (class-name)
-             ;; Check for a '-terminal first in case there's a name overlap.
-             (let ((terminal-with
-                     (format-symbol
-                      'sel/sw/ts "~a-~a-TERMINAL" prefix class-name))
-                   (terminal-without
-                     (format-symbol
-                      'sel/sw/ts "~a-~a" prefix class-name)))
-               (cond
-                 ((find-class terminal-with nil) terminal-with)
-                 ((find-class terminal-without nil) terminal-without))))
-           (terminal-symbol-class-p (class-name)
-             "Return true if CLASS inherits from the terminal symbol
-              mix-in."
-             (when-let ((class (find-terminal-symbol-class class-name)))
-               (subtypep class 'terminal-symbol)))
            ;; TODO: refactor as this function is used under a different
            ;;       name below.
            (skip-terminal-field-p (field-spec slot-info
@@ -9187,7 +9189,7 @@ the indentation slots."
                   t))
                ;; Has an associated slot or has children
                ((or (listp slot-info) (caddr field-spec)) nil)
-               (t (terminal-symbol-class-p slot-info))))
+               (t (terminal-symbol-class-p prefix slot-info))))
            (get-converted-fields ()
              "Get the value of each field after it's been converted
               into an AST."
@@ -9293,7 +9295,7 @@ the indentation slots."
               (lambda (child &aux (type (car child)))
                 (the child-category
                      (cond
-                       ((terminal-symbol-class-p type) :terminal)
+                       ((terminal-symbol-class-p prefix type) :terminal)
                        ((member type (extra-asts prefix))
                         :extra-ast)
                        (t :ast))))
@@ -9580,21 +9582,6 @@ list specifications."
        (get-end (ast)
          "Return the end offset into STRING from the AST representation."
          (cadr (cadr ast)))
-       (find-terminal-symbol-class (class-name)
-         ;; Check for a '-terminal first in case there's a name overlap.
-         ;; TODO: copied from above function
-         (let ((terminal-with
-                 (format-symbol 'sel/sw/ts "~a-~a-TERMINAL" prefix class-name)))
-           (if (find-class terminal-with nil)
-               terminal-with
-               (let ((terminal-without
-                       (format-symbol 'sel/sw/ts "~a-~a" prefix class-name)))
-                 (when (find-class terminal-without nil) terminal-without)))))
-       (terminal-symbol-class-p (class-name)
-         "Return true if CLASS inherits from the terminal symbol mix-in."
-         ;; TODO: copied from above function
-         (when-let ((class (find-terminal-symbol-class class-name)))
-           (subtypep class 'terminal-symbol)))
        (terminal-symbol-p (field-spec &aux (slot-info (car field-spec)))
          "Return T if FIELD-SPEC represents a terminal symbol that shouldn't
           appear in the resulting AST."
@@ -9602,7 +9589,7 @@ list specifications."
          (cond
            ;; Has an associated slot or has children
            ((or (listp slot-info) (caddr field-spec)) nil)
-           (t (terminal-symbol-class-p slot-info))))
+           (t (terminal-symbol-class-p prefix slot-info))))
        ;; NOTE: any consecutive terminals in a loop are going to be a problem
        ;;       if a parse tree transformation + json substitution isn't used.
        (annotate-surrounding-text (subtree-spec &key parent-from parent-to)
