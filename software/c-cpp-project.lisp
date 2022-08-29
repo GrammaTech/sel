@@ -260,7 +260,7 @@ include files in all directories of the project."
                    (%d relative-include-path)
                    (%d include-path-string))
                  (unless (equal (pathname-directory include-path) tweaked-include-path-dir)
-                   (warn "~A in ~A may be interpreted incorrecly in the presence of symlinks"
+                   (warn "~A in ~A may be interpreted incorrectly in the presence of symlinks"
                          (remove #\Newline (source-text include-ast))
                          (namestring file-path)))
                  (let ((software
