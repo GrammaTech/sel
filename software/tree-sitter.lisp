@@ -9584,17 +9584,14 @@ list specifications."
          ;; Check for a '-terminal first in case there's a name overlap.
          ;; TODO: copied from above function
          (let ((terminal-with
-                 (format-symbol
-                  'sel/sw/ts "~a-~a-TERMINAL" prefix class-name))
-               (terminal-without
-                 (format-symbol
-                  'sel/sw/ts "~a-~a" prefix class-name)))
-           (cond
-             ((find-class terminal-with nil) terminal-with)
-             ((find-class terminal-without nil) terminal-without))))
+                 (format-symbol 'sel/sw/ts "~a-~a-TERMINAL" prefix class-name)))
+           (if (find-class terminal-with nil)
+               terminal-with
+               (let ((terminal-without
+                       (format-symbol 'sel/sw/ts "~a-~a" prefix class-name)))
+                 (when (find-class terminal-without nil) terminal-without)))))
        (terminal-symbol-class-p (class-name)
-         "Return true if CLASS inherits from the terminal symbol
-              mix-in."
+         "Return true if CLASS inherits from the terminal symbol mix-in."
          ;; TODO: copied from above function
          (when-let ((class (find-terminal-symbol-class class-name)))
            (subtypep class 'terminal-symbol)))
