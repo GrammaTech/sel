@@ -240,6 +240,10 @@ non-symlink text files that don't end in \"~\" and are not ignored by
         do (to-file obj (ensure-directories-exist
                          (path-join path file))))
 
+  ;; Exit early if the project path is identical to path.
+  (when (pathname-equal (project-dir project) path)
+    (return-from to-file))
+
   ;; Copy the remainder of the project directory to the output path.
   (when (and (project-dir project)
              (probe-file (project-dir project))
