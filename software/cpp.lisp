@@ -1406,6 +1406,12 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   cpp-type-descriptor :>
   cpp-template-type :|::|)
 
+(defmethod whitespace-between/parent ((parent cpp-namespace-definition)
+                                      (style t)
+                                      (x ast)
+                                      (y ast))
+  #\Newline)
+
 
 ;;; Namespace Attr
 
