@@ -4146,10 +4146,11 @@ then whole substitutions (from
                  ((lambda-list &key wrap with)
                   (cons wrap (subst wrap '_ with)))
                  ((lambda-list &key label as)
+                  (unless (stringp as) (fail))
                   (patch->cons
                    `(:wrap ,label
                      :with ((:type . "FIELD")
-                            (:name . ,(assure string as))
+                            (:name . ,as)
                             (:content . _)))))))
              (patch-rule (rule patches)
                (let ((alist (mapcar #'patch->cons patches)))
