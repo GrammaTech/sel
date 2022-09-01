@@ -174,11 +174,16 @@ Nested lists are not allowed as template arguments:~%~a"
             (if tolerant
                 (parse-tolerant class template)
                 (convert class template :deepest t))))
-    ;; Check that there are no source text fragments. Note that we
-    ;; don't check that there are no parse errors, because the overall
-    ;; template can still be valid if the metavariables are the parse
-    ;; errors.
-    (when-let (fragments (collect-if (of-type 'source-text-fragment) ast))
+    ;; Check that there are no source text fragments (besides the
+    ;; metavariables themselves). Note that we don't check that there
+    ;; are no parse errors, because the overall template can still be
+    ;; valid if the metavariables are the parse errors.
+    (when-let (fragments
+               (remove-if (op (string^= "_" (source-text _)))
+                          (collect-if (of-type
+                                       '(or source-text-fragment
+                                         parse-error))
+                                      ast)))
       (error "Template could not be parsed:~%~a" template))
     ;; Check that the AST is printable.
     (handler-case (source-text ast)
