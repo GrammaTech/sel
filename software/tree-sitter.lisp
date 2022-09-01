@@ -10168,6 +10168,16 @@ the rebinding"
                                (ast2 parameters-ast))
   " ")
 
+(defmethod whitespace-between ((style c-style-indentation)
+                               (ast1 t)
+                               (ast2 definition-ast))
+  #\Newline)
+
+(defmethod whitespace-between ((style c-style-indentation)
+                               (ast1 definition-ast)
+                               (ast2 t))
+  #\Newline)
+
 
 ;;;; Parse Tree Util
 (defun add-operator-to-binary-operation (parse-tree)
