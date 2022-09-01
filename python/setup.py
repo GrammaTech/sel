@@ -9,6 +9,12 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
+with open(path.join(this_directory, "requirements.txt")) as fd:
+    requirements = fd.readlines()
+
+with open(path.join(this_directory, "requirements-dev.txt")) as fd:
+    development_requirements = fd.readlines()
+
 setup(
     name="asts",
     version="0.6.8",
@@ -34,7 +40,8 @@ setup(
     packages=find_packages(exclude=["test"]),
     package_data={"asts": ["lib*", "tree-sitter*"]},
     setup_requires=["wheel"],
-    install_requires=["backports.cached_property", "pygments", "typing-extensions"],
+    install_requires=requirements,
+    extras_require={"dev": development_requirements},
     python_requires=">=3.6",
     project_urls={
         "Bug Reports": "https://github.com/grammatech/sel/issues",

@@ -3,6 +3,7 @@ import collections
 import enum
 import json
 import multiprocessing
+import psutil
 import pkg_resources
 import shutil
 import socket
@@ -496,7 +497,7 @@ class _interface:
     @staticmethod
     def is_process_running() -> bool:
         """Return TRUE if the Lisp subprocess is running."""
-        return _interface._proc is not None and _interface._proc.poll() is None
+        return _interface._proc is not None and psutil.pid_exists(_interface._proc.pid)
 
     @staticmethod
     def _check_for_process_crash() -> None:
