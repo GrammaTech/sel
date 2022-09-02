@@ -10174,9 +10174,19 @@ the rebinding"
   #\Newline)
 
 (defmethod whitespace-between ((style c-style-indentation)
+                               (ast1 null)
+                               (ast2 definition-ast))
+  "")
+
+(defmethod whitespace-between ((style c-style-indentation)
                                (ast1 definition-ast)
                                (ast2 t))
   #\Newline)
+
+(defmethod whitespace-between ((style c-style-indentation)
+                               (ast1 definition-ast)
+                               (ast2 null))
+  "")
 
 
 ;;;; Parse Tree Util
