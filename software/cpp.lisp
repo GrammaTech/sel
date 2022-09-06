@@ -1039,10 +1039,15 @@ then the return type of the call is the return type of the field."
 
 (defmethod infer-type :context ((ast cpp-ast))
   (match (call-next-method)
-    ((cpp* "$TYPE1<@ARGS>::$TYPE2"
-           :type1 type1
-           :args args
-           :type2 type2)
+    ;; Should be "$TYPE1<@ARGS>::$TYPE2", but phasing.
+    ((cpp-qualified-identifier
+      :cpp-name type2
+      :cpp-scope
+      (cpp-template-type
+       :cpp-name type1
+       :cpp-arguments
+       (cpp-template-argument-list
+        :children args)))
      (when-let* ((type-def (get-declaration-ast :type type1))
                  (template
                   (find-enclosing 'cpp-template-declaration
