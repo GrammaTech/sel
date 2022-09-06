@@ -120,22 +120,6 @@ field."
     ((language (eql ':c)) (class (eql 'c-declaration-list)) parse-tree &key)
   (transform-empty-statements parse-tree))
 
-(defgeneric pointers (c-declarator)
-  (:documentation "Return the number of pointers around C-DECLARATOR.")
-  (:method ((ast c-parameter-declaration)) (pointers (c-declarator ast)))
-  (:method ((ast c-pointer-declarator)) (1+ (pointers (c-declarator ast))))
-  (:method ((ast c-identifier)) 0))
-
-(defmethod parameter-type* ((ast c-parameter-declaration))
-  "Return format is (BASE-TYPE POINTER-DEPTH . QUALIFIERS)."
-  (list* (source-text (c-type ast))
-         (pointers ast)
-         ;; This assumes that ordering doesn't matter for
-         ;; _declaration_specifiers.
-         (mapcar
-          #'source-text
-          (append (c-pre-specifiers ast) (c-post-specifiers ast)))))
-
 (defmethod variable-name ((ast c-identifier)) (source-text ast))
 
 (defmethod maybe-side-effect-p ((ast c-conditional-expression))
