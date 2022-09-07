@@ -904,7 +904,9 @@ int main () {
 }"))
          (getter (find-if (op (source-text= _ "p.get_x()")) cpp)))
     (with-attr-table cpp
-      (is (source-text= (infer-type getter) "float")))))
+      (let ((type (infer-type getter)))
+        (is (source-text= type "float"))
+        (is (not (typep type 'cpp-type-descriptor)))))))
 
 (deftest test-infer-type-for-templated-struct-member ()
   (let* ((cpp (from-string 'cpp "

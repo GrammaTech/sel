@@ -1039,6 +1039,11 @@ then the return type of the call is the return type of the field."
 
 (defmethod infer-type :context ((ast cpp-ast))
   (match (call-next-method)
+    ;; Unwrap trivial type descriptors.
+    ((cpp-type-descriptor
+      (cpp-type (and type (cpp-primitive-type)))
+      (cpp-declarator nil))
+     type)
     ;; Should be "$TYPE1<@ARGS>::$TYPE2", but phasing.
     ((cpp-qualified-identifier
       :cpp-name type2
