@@ -98,6 +98,12 @@ Examples of the old versus new API are shown below:
 1
 ```
 
+## v0.6.x -> v0.7.0
+
+The child slot property was changed to a method instead.
+Clients using `ast.child_slot` should be rewritten
+as `ast.child_slots()`.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
