@@ -1009,7 +1009,14 @@ Should return `:failure' in the base case.")
   (unless (typep target 'identifier-ast)
     (return-from collect-arg-uses
       (call-next-method)))
-  (labels ((get-decl (var)
+  (labels ((identifier-use? (arg)
+             "Is ARG an identifier use (identifier, or dereference of an identifier)?"
+             (typecase arg
+               (identifier-ast arg)
+               (c/cpp-pointer-expression
+                (when (source-text= "*" (c/cpp-operator arg))
+                  (identifier-use? (c/cpp-argument arg))))))
+           (get-decl (var)
              (get-declaration-id :variable
                                  (or (and alias (aliasee var))
                                      var)))
@@ -1024,7 +1031,7 @@ Should return `:failure' in the base case.")
              (match ast
                ((call-ast (call-arguments (and args (type list))))
                 (member target
-                        (filter (of-type 'identifier-ast) args)
+                        (filter-map #'identifier-use? args)
                         :key (op (get-decl _)))))))
     (let ((target (get-decl target)))
       (iter (for ast in-tree (genome sw))

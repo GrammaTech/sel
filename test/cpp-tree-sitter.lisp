@@ -590,12 +590,21 @@ iterator from a call on a dereferenced element."
 (deftest test-collect-arg-uses ()
   (with-fixture/attrs trim-front
     (is (length= 2 (collect-arg-uses *soft* (find-soft-var "next_point"))))
-    (is (length= 0 (collect-arg-uses *soft* (find-soft-var "p2"))))
-    (is (length= 2 (collect-arg-uses *soft*
+    (is (length= 1 (collect-arg-uses *soft* (find-soft-var "p2"))))
+    (is (length= 3 (collect-arg-uses *soft*
                                      (find-soft-var "p2")
                                      t)))
-    (is (length= 0 (collect-arg-uses *soft*
+    ;; Regression for a caching issue.
+    (is (length= 1 (collect-arg-uses *soft*
                                      (find-soft-var "p2"))))))
+
+(deftest test-collect-arg-uses/pointer ()
+  "Test that if a variable is dereferenced in the arg list, it is
+  still considered a use."
+  (let* ((cpp (from-string 'cpp "int * x = &y; fn1(x); fn2(*x);"))
+         (x (find-if (op (source-text= "x" _)) cpp)))
+    (with-attr-table cpp
+      (is (length= 2 (collect-arg-uses cpp x))))))
 
 (deftest test-infer-type-loop-terminates ()
   (with-fixture/attrs trim-front
