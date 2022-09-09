@@ -1956,3 +1956,17 @@ represented by ALIAS-STRING.")
   ;; Ensure an attribute table is available.
   (with-attr-table (genome obj)
     (call-next-method)))
+
+
+;;; Logging
+
+(defmethod log-message ((ast ast) &key root &allow-other-keys)
+  (assert root)
+  (format nil "AST-PATH: '~a'
+POSITION RANGE: ~a~%"
+          (ast-path root ast)
+          (source-range root ast)))
+
+(defmethod log-message ((software parseable) &key &allow-other-keys)
+  (format nil "FILE-PATH: '~a'~%"
+          (original-path software)))

@@ -319,3 +319,9 @@ for forms inside RETURN-BODY and holds the current AST."
 ;;; Namespace
 (define-attr-methods namespace (in)
   "")
+
+
+;;; Logging
+
+(defmethod log-message ((ast directory-or-file-ast) &key &allow-other-keys)
+  (format nil "FILE PATH: ~a~%" (full-pathname ast)))

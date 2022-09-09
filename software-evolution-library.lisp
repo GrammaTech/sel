@@ -121,7 +121,8 @@
    :ignore-failed-mutation
    :try-another-mutation
    ;; logging functions
-   :log-new-individuals))
+   :log-new-individuals
+   :log-message))
 (in-package :software-evolution-library/software-evolution-library)
 (in-readtable :curry-compose-reader-macros)
 
@@ -1284,6 +1285,10 @@ list of the mutations applied to produce those children."
 
 
 ;;; Logging
+
+(defgeneric log-message (object &key)
+  (:documentation "Generate a log message for OBJECT.")
+  (:method (object &key &allow-other-keys) ""))
 
 (defgeneric log-new-individuals (variant mutation-info &key)
   (:documentation "")
