@@ -361,11 +361,11 @@ directly using the `ast_path` method, as shown below:
 ...     language=asts.ASTLanguage.Python,
 ...     deepest=True
 ... )
->>> x = root.lookup(['PYTHON-ARGUMENTS', ['CHILDREN', 0]])
+>>> x = root.lookup(['ARGUMENTS', ['CHILDREN', 0]])
 >>> x.source_text
 'x'
 >>> root.ast_path(x)
-['PYTHON-ARGUMENTS', ['CHILDREN', 0]]
+['ARGUMENTS', ['CHILDREN', 0]]
 ```
 
 Finally, parent trees may be accessed using the `parent` and `parents`

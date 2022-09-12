@@ -176,6 +176,20 @@ class BinaryOperationTestDriver(unittest.TestCase):
         )
 
 
+class PrintFunctionCallTestDriver(unittest.TestCase):
+    def setUp(self):
+        self.root = AST.from_string("print(x)", ASTLanguage.Python, deepest=True)
+
+    def test_lookup(self):
+        x = self.root.lookup(["ARGUMENTS", ["CHILDREN", 0]])
+        self.assertEqual(x.source_text, "x")
+        self.assertIsInstance(x, PythonIdentifier)
+
+    def test_ast_path(self):
+        x = self.root.children[1].children[0]
+        self.assertEqual(self.root.ast_path(x), ["ARGUMENTS", ["CHILDREN", 0]])
+
+
 class ASTTemplatesTestDriver(unittest.TestCase):
     def test_ast_template(self):
         a = AST.ast_template("$ID = 1", ASTLanguage.Python, id="x")
@@ -534,7 +548,7 @@ class CommentTestDriver(unittest.TestCase):
         self.root = AST.from_string("{ /* comment */ }", ASTLanguage.C)
 
     def test_lookup(self):
-        path = [["CHILDREN", 0], ["C-INTERNAL-ASTS-0", 0]]
+        path = [["CHILDREN", 0], ["INTERNAL-ASTS-0", 0]]
         self.assertIsInstance(self.root.lookup(path), CComment)
 
     def test_transform_does_not_crash(self):

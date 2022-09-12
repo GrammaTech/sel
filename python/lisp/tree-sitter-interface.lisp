@@ -229,11 +229,11 @@ function name from the API followed by the arguments."
 
 (-> int/ast-path (ast ast) (values list &optional))
 (defun int/ast-path (root ast)
-  (cl-to-python-ast-path (ast-path root ast)))
+  (cl-to-python-ast-path root (ast-path root ast)))
 
 (-> int/lookup (ast list) (values (or ast null) &optional))
 (defun int/lookup (root path)
-  (lookup root (python-to-cl-ast-path path)))
+  (lookup root (python-to-cl-ast-path root path)))
 
 (-> int/source-text (ast) (values string &optional))
 (defun int/source-text (ast) (source-text ast))
@@ -357,24 +357,24 @@ function name from the API followed by the arguments."
   (cons (make-keyword (string-upcase (replace-all (car arg) "_" "-")))
         (cdr arg)))
 
-(-> cl-to-python-ast-path (list) (values list &optional))
-(defun cl-to-python-ast-path (path)
-  "Translate the Lisp AST PATH to a python representation."
+(-> cl-to-python-ast-path (ast list) (values list &optional))
+(defun cl-to-python-ast-path (root path)
+  "Translate the Lisp AST PATH from ROOT to a python representation."
   (labels ((helper (part)
              (etypecase part
                (number part)
-               (symbol (symbol-name part))
+               (symbol (cl-to-python-slot-name root part))
                (cons (list (helper (car part)) (helper (cdr part)))))))
     (mapcar #'helper path)))
 
-(-> python-to-cl-ast-path (list) (values list &optional))
-(defun python-to-cl-ast-path (path)
-  "Translate the python AST PATH to a Lisp representation."
+(-> python-to-cl-ast-path (ast list) (values list &optional))
+(defun python-to-cl-ast-path (root path)
+  "Translate the python AST PATH from ROOT to a Lisp representation."
   (labels ((helper (part)
              (etypecase part
                (number part)
-               (string part (or (find-symbol (string-upcase part))
-                                (find-symbol (string-upcase part)
+               (string part (or (find-symbol (python-to-cl-slot-name root part))
+                                (find-symbol (python-to-cl-slot-name root part)
                                              :sel/sw/tree-sitter)))
                (list (cons (helper (car part)) (helper (lastcar part)))))))
     (mapcar #'helper path)))
