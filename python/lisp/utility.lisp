@@ -265,5 +265,5 @@ with a LANGUAGE prefix prepended.")
 (defun passthrough-slot-name-p (slot-name)
   "Return non-NIL if SLOT-NAME is a slot which should be passed thru
 any cl-to-python or python-to-cl unchanged."
-  (member slot-name '("children" "async")
+  (member slot-name '("before-asts" "after-asts" "children" "async")
           :test (flip #'string-suffix-p)))

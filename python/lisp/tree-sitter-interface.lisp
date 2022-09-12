@@ -63,7 +63,8 @@ reported back to the client in JSON form over STREAM."
                                    (print-condition c s)))))))))
 
 (declaim (inline safe-intern))
-(defun safe-intern (string) (intern (string-upcase string) :sel/py/lisp/ts-int))
+(defun safe-intern (string)
+  (intern (string-upcase string) :sel/py/lisp/ts-int))
 
 (-> alist-pair-p (t) boolean)
 (defun alist-pair-p (pair)
@@ -238,14 +239,17 @@ function name from the API followed by the arguments."
 (-> int/source-text (ast) (values string &optional))
 (defun int/source-text (ast) (source-text ast))
 
-(-> int/child-slots (ast) (values list &optional))
-(defun int/child-slots (ast)
+(-> int/child-slots (ast boolean) (values list &optional))
+(defun int/child-slots (ast include-internal-p)
   (mapcar «list [{cl-to-python-slot-name ast} #'car] #'cdr»
-          (remove-if #'internal-child-slot-p (child-slots ast))))
+          (if include-internal-p
+              (child-slots ast)
+              (remove-if #'internal-child-slot-p (child-slots ast)))))
 
 (-> int/child-slot (ast string) (or list ast))
 (defun int/child-slot (ast slot-name)
-  (slot-value ast (safe-intern (python-to-cl-slot-name ast slot-name))))
+  (slot-value ast (find-symbol (python-to-cl-slot-name ast slot-name)
+                               :sel/sw/tree-sitter)))
 
 (-> int/ast-at-point (ast integer integer) (values (or ast null) &optional))
 (defun int/ast-at-point (ast line column)
@@ -342,9 +346,10 @@ function name from the API followed by the arguments."
 (-> language-to-ast-symbol (string) symbol)
 (defun language-to-ast-symbol (language)
   "Convert the given language string to the associated AST type symbol."
-  (safe-intern (concatenate 'string
+  (find-symbol (concatenate 'string
                             (string-upcase (python-to-cl-ast-language language))
-                            "-AST")))
+                            "-AST")
+               :sel/sw/tree-sitter))
 
 (-> keyword-arguments-p (list) (values boolean &optional))
 (defun keyword-arguments-p (args)

@@ -253,10 +253,12 @@ class AST:
         """Return a list of the AST's children."""
         return _interface.dispatch(AST.children.func.__name__, self) or []
 
-    @cached_property
-    def child_slots(self) -> List[Tuple[str, int]]:
-        """Return a list of the AST's child slots."""
-        return _interface.dispatch(AST.child_slots.func.__name__, self) or []
+    def child_slots(self, internal: bool = False) -> List[Tuple[str, int]]:
+        """
+        Return a list of the AST's child slots, optionally including internal slots
+        such as before/after ASTs.
+        """
+        return _interface.dispatch(AST.child_slots.__name__, self, internal) or []
 
     # AST methods for common, simple operations
     def refcount(self) -> int:
@@ -283,7 +285,9 @@ class AST:
 
     def child_slot_arity(self, slot: str) -> Optional[int]:
         """Return the arity of the AST's child slot."""
-        pairs = [pair for pair in self.child_slots if pair[0].lower() == slot.lower()]
+        pairs = [
+            pair for pair in self.child_slots(True) if pair[0].lower() == slot.lower()
+        ]
         if pairs:
             return pairs[0][1]
         else:
@@ -427,7 +431,7 @@ class AST:
             # Transform the children of the AST node at PATH.
             new_root = root
             ast = new_root.lookup(path)
-            for child_slot, arity in ast.child_slots:
+            for child_slot, arity in ast.child_slots():
                 slot_value = ast.child_slot(child_slot)
                 if slot_value:
                     children = slot_value if arity == 0 else [slot_value]

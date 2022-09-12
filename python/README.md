@@ -58,7 +58,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 '88'
 >>> root.children[0].children[0].source_text
 'x + 88'
->>> root.children[0].children[0].child_slots
+>>> root.children[0].children[0].child_slots()
 [['LEFT', 1], ['OPERATOR', 1], ['RIGHT', 1], ['CHILDREN', 0]]
 >>> list(map(lambda x:x.source_text, root.children[0].children[0].children))
 ['x', '+', '88']
@@ -245,7 +245,7 @@ To view the names of an AST's child slots, you may use the
 
 ```python
 >>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
->>> root.child_slots
+>>> root.child_slots()
 [['LEFT', 1], ['OPERATOR', 1],['RIGHT', 1], ['CHILDREN', 0]]
 ```
 
@@ -257,6 +257,31 @@ and find its child slots as python properties, as shown below:
 >>> dir(root)
 ['__class__', ..., 'after_asts', ..., 'before_asts', ...,
  'left', ..., 'operator', ..., 'right', ..., 'traverse']
+```
+
+Beyond these named child slots storing ASTs which are parsed from the language
+grammar, internally, each AST has several additional slots which store ASTs
+outside of the grammar rules, such as comments or error nodes. These include
+`before-asts`, `after-asts`, and (optionally) `internal-asts-[0-9]+` storing
+nodes such as comments and errors before the AST, after the AST, and between
+implicit terminal tokens within the AST respectively. The names of these slots
+can be accessed using the `child_slots` method and passing `internal=True`, as
+shown below. These slot names may also be used `child_slot`/`lookup` to
+retrieve their current value and and with `copy` to modify the existing value.
+
+```python
+>>> text = """
+... # This is a comment
+... x = x + 1
+... """
+>>> root = asts.AST.from_string(text, asts.ASTLanguage.Python)
+>>> stmt = root.children[-1]
+>>> stmt.source_text
+'x = x + 1'
+>>> stmt.child_slots(internal=True)
+[['BEFORE-ASTS', 0], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
+>>> stmt.child_slot("BEFORE-ASTS")
+[<asts.types.PythonComment 0x3>]
 ```
 
 ## AST Methods
@@ -328,7 +353,7 @@ as shown below:
 
 An AST is composed of various child slots which are concatenated together
 when accessed via the `children` property.  To view the child slots for
-a particular AST you may use the `child_slots` property, which returns
+a particular AST you may use the `child_slots()` method, which returns
 a list of slot-name, arity pairs.  An arity of one indicates the slot
 is a single AST, while an arity of zero indicates the slot is composed
 of zero or more ASTs.  The AST(s) comprising a given slot may be
@@ -341,7 +366,7 @@ accessed using the slot name as a python property accessor or by using
 ...     language=asts.ASTLanguage.Python,
 ...     deepest=True
 ... )
->>> root.child_slots
+>>> root.child_slots()
 [['FUNCTION', 1], ['ARGUMENTS', 1], ['CHILDREN', 0]]
 >>> root.function.source_text
 'print'
@@ -904,11 +929,11 @@ be 0 (zero or more) or 1 (single AST).  For instance, in the AST
 for `print(a)`, there are two child slots, `[['FUNCTION', 1], ['ARGUMENTS', 1]]`,
 allowing for destructuring into component parts of the AST.
 
-In addition, internally, each AST has private before/after-AST slots
-for storing comments that appear in the source code.  For instance,
-in the AST for the function body below, the `return 0` AST has
-the comment `# This is a comment` stored in the internal before-AST
-slot.
+In addition, internally, each AST has private before/after/internal-AST
+slots for storing comments, errors, and internal whitespace that appears
+in the source code.  For instance, in the AST for the function body below,
+the block AST has the comment `# This is a comment` stored in the internal
+before-AST slot.
 
 ```python
 def foo():
@@ -924,7 +949,7 @@ match the order they appear in the source text.
 The `children` child slot on an AST will return all ASTs not
 assigned to an explicit slot (e.g. 'FUNCTION', 'ARGUMENTS' above)
 and will NOT include any comment ASTs stored internally in an
-AST's before/after-AST slots.
+AST's before/internal/after-AST slots.
 
 When using the AST `copy` method, care should be taken when
 using the `children` key (e.g. `AST.copy(ast, children=...)`).

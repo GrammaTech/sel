@@ -71,14 +71,23 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST children-slots
     def test_child_slots(self):
-        child_slots = self.binop.child_slots
-        # NOTE: Currently ((LEFT . 1)
-        #                  (OPERATOR . 1)
-        #                  (RIGHT . 1)
-        #                  (CHILDREN . 0))
-        #       Consider removing CHILDREN.
-        self.assertEqual(4, len(child_slots))
-        self.assertTrue("OPERATOR" in (list(map(lambda x: x[0], child_slots))))
+        child_slots = self.binop.child_slots(internal=False)
+        self.assertEqual(
+            [["LEFT", 1], ["OPERATOR", 1], ["RIGHT", 1], ["CHILDREN", 0]], child_slots
+        )
+
+        child_slots = self.binop.child_slots(internal=True)
+        self.assertEqual(
+            [
+                ["BEFORE-ASTS", 0],
+                ["LEFT", 1],
+                ["OPERATOR", 1],
+                ["RIGHT", 1],
+                ["CHILDREN", 0],
+                ["AFTER-ASTS", 0],
+            ],
+            child_slots,
+        )
 
     # AST child-slot-arity
     def test_child_slot_arity(self):
@@ -578,3 +587,19 @@ class VariationPointTestDriver(unittest.TestCase):
         root = AST.from_string("int i", ASTLanguage.C, error_tree=False)
         self.assertTrue(contains_type(root, CSourceTextFragment))
         self.assertFalse(contains_type(root, CSourceTextFragmentTree))
+
+    def test_variation_point_lookup(self):
+        text = "int"
+        root = AST.from_string(text, ASTLanguage.C)
+        child_slots = root.child_slots(internal=True)
+        self.assertEqual(
+            [
+                ["BEFORE-ASTS", 0],
+                ["CHILDREN", 0],
+                ["INTERNAL-ASTS-0", 0],
+                ["AFTER-ASTS", 0],
+            ],
+            child_slots,
+        )
+        pt = root.lookup([["INTERNAL-ASTS-0", 0]])
+        self.assertIsInstance(pt, VariationPoint)
