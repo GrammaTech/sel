@@ -26,7 +26,12 @@
 
 ;;; Utility
 
-(define-software c-git (ancestral-git c-project)
+;;; NOTE: Used to get around circular dependencies that would be caused
+;;;       when sel/sw/ancestral-git:ensure-ancestral-git is ran.
+(defclass ancestral-git-dummy (ancestral-git)
+  ())
+
+(define-software c-git (ancestral-git-dummy c-project)
   ())
 
 (defun initialize-repository (path)
@@ -44,7 +49,6 @@
 (defmacro with-c-git-cleanup ((project-name project-path) &body body) ;
   "Create a new c-git project and ensure that its temporary directories have been
 removed."
-  ;; TODO: add repo creation here. It likely won't be too bad
   (with-gensyms (path git-path)
     `(with-git-repository (,git-path ,project-path)
        (let (,path )
@@ -67,13 +71,13 @@ of WORDS in it."
       (for word in words)
       (always (scan word commit-message)))))
 
-;;; TODO: use a proper path for this.
-(defconst +project-path+ "/home/nberch/quicklisp/local-projects/sel/test/etc/c-symbol-table-project/")
+;;; TODO: use a project path created for this test suite?
+(defconst +project-path+
+  "/home/nberch/quicklisp/local-projects/sel/test/etc/c-symbol-table-project/")
 
 
 ;;; Tests
 
-;;; TODO: make all of this :long
 (deftest ancestral-git-clones-local-repo ()
   "The project repository is cloned to /tmp/ by default."
   ;; NOTE: this prevents all of the branches used for evolution from being stored
@@ -109,7 +113,6 @@ of WORDS in it."
     (let ((copy-project (copy original-project)))
       (is (has-commit-p copy-project "Create Worktree")))))
 
-;;; TODO: create an actual repo in test/etc to use.
 (deftest ancestral-git-worktree-evolve-mutation-commit ()
   (with-c-git-cleanup
       (original-project +project-path+)

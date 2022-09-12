@@ -41,6 +41,7 @@
         :software-evolution-library/software/javascript-project
         :software-evolution-library/software/python-project
         :software-evolution-library/software/lisp-project
+        :software-evolution-library/software/ancestral-git
         ;; Components.
         :software-evolution-library/components/test-suite)
   (:import-from :swank :create-server)
@@ -110,6 +111,7 @@
            :+project-command-line-options+
            :+clang-project-command-line-options+
            :+evolutionary-command-line-options+
+           :+ancestral-git-command-line-options+
            ;; Projects including git urls.
            :clang-git-project
            :javascript-git-project
@@ -699,4 +701,8 @@ in SCRIPT.")
        :documentation "maximum number of seconds to run evolution")))
   (defparameter +tree-sitter-command-line-options+
     '((("tree-sitter-language-dir") :type string
-       :documentation "the directory that contains tree-sitter json files"))))
+       :documentation "the directory that contains tree-sitter json files")))
+  (defparameter +ancestral-git-command-line-options+
+    '((("ancestral-git") :type boolean :optional t
+       :action #'ensure-ancestral-git
+       :documentation "log evolutionary loop in a git repository"))))

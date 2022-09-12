@@ -11,8 +11,6 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/project
         :software-evolution-library/software/directory
-        ;; TODO: remove this
-        :software-evolution-library/software/c-project
         :cmd)
   (:import-from :trivial-garbage
                 :finalize)
@@ -20,13 +18,20 @@
            :worktree-path
            :worktree-identifier
            :repository-path
-           :finalize/remove-local-repo))
+           :finalize/remove-local-repo
+           :ensure-ancestral-git))
 (in-package :software-evolution-library/software/ancestral-git)
 (in-readtable :curry-compose-reader-macros)
 
 
 
 ;;; Ancestral Git
+
+;;; TODO: it is important that the versions of the tree-sitter library and SEL
+;;;       are stored as a commit in the cloned repo. This is to allow for
+;;;       "replaying" the evolutionary loop if desired. Technically git patches
+;;;       could be applied for the same effect, but having all necessary
+;;;       information doesn't hurt.
 
 (define-software ancestral-git ()
   ((repository-path :initarg :repository-path
@@ -73,18 +78,6 @@ to T to allow for a commit that has no source changes associated with it.")
                   first-directory-ast
                   (copy first-directory-ast
                         :name (string (worktree-identifier project))))))))
-
-;; TODO: maybe remove or move to a util.
-(defun nuke-worktrees+branches (path)
-  "Nuke the worktrees and branches that start with *EVOLUTIONARY-WORKTREE-PREFIX*
-at the repo at PATH."
-  (shell
-   (string+
-    (format nil "cd ~a; " path)
-    "for worktree in $(git branch | grep evolutionary | awk '{print $1}'); do "
-    "git worktree remove $worktree; "
-    "git branch -D $worktree; "
-    "done")))
 
 (defun finalize/remove-local-repo (path)
   (delete-directory-tree path :validate t))
@@ -136,11 +129,9 @@ repository-path are identical."
   (setf (slot-value project 'worktree-path) nil
         (slot-value project 'worktree-identifier) nil))
 
-;;; TODO: NOTE: currently we are not checking if a branch already exists. This
-;;;             can be especially problematic if we overwrite previous work for
-;;;             any reason. To get around this, clone the repo to /tmp.
-;;;             Use worktrees off of that repo.
-;;;             Assume a unique prefix and nuke anything that already exists.
+;;; NOTE: currently we are not checking if a branch already exists. To get around
+;;;       this, clone the repo to /tmp. Use worktrees off of that repo.
+;;;       Assume a unique prefix and nuke anything that already exists.
 (defun add-worktree
     (project &aux (worktree-id (gensym *evolutionary-worktree-prefix*))
              ;; NOTE: git worktree doesn't like a trailing '/'.
@@ -203,12 +194,6 @@ repository-path are identical."
     copy))
 
 
-;;; TODO: consider not creating the git worktree immediately--do it lazily.
-;;;       This would save time.
-
-;;; TODO: we may also want to clone the local directory and put the branches on
-;;;       the clone. This would help with polluting the branch namespace of the
-;;;       project.
 (defmethod initialize-instance :after ((project ancestral-git) &key)
   ;; TODO: this assumes a git directory exists. This may not be the case.
   (when (and (original-path project)
@@ -243,6 +228,7 @@ TARGETS:
     (declare (ignorable crossed))
     ;; TODO: this is likely inefficient. Ideally, ASTs should be marked as
     ;;       dirty if they have changed since the previous iteration.
+
     ;; Write the project out so that the changed files can be committed.
     (to-file variant (project-dir variant))
     (let ((mutation
@@ -263,3 +249,17 @@ TARGETS:
                 (t
                  ;; Mutant logging.
                  (log-message mutation :root genome)))))))
+
+
+;;; Commandline
+
+(defun ensure-ancestral-git
+    (&aux (project-class (find-class 'project))
+       (ancestral-git-class (find-class 'ancestral-git))
+       (project-super-classes (class-direct-superclasses project-class)))
+  "Modifies the project class definition to include ancestral-git as a
+superclass."
+  (unless (member ancestral-git-class project-super-classes)
+    (ensure-class-using-class
+     project-class 'project
+     :direct-superclasses (cons ancestral-git-class project-super-classes))))
