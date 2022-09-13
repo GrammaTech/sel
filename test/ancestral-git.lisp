@@ -66,7 +66,7 @@ removed."
   "Return T if the latest commit in the repository for ANCESTRAL-GIT contains all
 of WORDS in it."
   (let ((commit-message ($cmd :in (worktree-path ancestral-git)
-                              "git log 'HEAD^..HEAD'")))
+                              "git log -p 'HEAD^..HEAD'")))
     (iter
       (for word in words)
       (always (scan word commit-message)))))
@@ -127,6 +127,6 @@ of WORDS in it."
             (for variant in *population*)
             (thereis (has-commit-p
                       variant
-                      "MUTATION" "FILE-PATH" "TARGETS")))))))
+                      "MUTATION" "FILE-PATH" "TARGETS" "diff")))))))
 
 ;;; TODO: need to test for crossover.
