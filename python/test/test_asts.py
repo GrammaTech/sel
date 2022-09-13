@@ -96,6 +96,8 @@ class BinaryOperationTestDriver(unittest.TestCase):
     # AST child-slot accessor
     def test_child_slot_accessor(self):
         self.assertEqual("88", self.binop.child_slot("RIGHT").source_text)
+        self.assertEqual("88", self.binop.child_slot("right").source_text)
+        self.assertEqual("88", self.binop.child_slot("Right").source_text)
 
     # AST child-slot property
     def test_child_slot_property(self):

@@ -248,8 +248,9 @@ function name from the API followed by the arguments."
 
 (-> int/child-slot (ast string) (or list ast))
 (defun int/child-slot (ast slot-name)
-  (slot-value ast (find-symbol (python-to-cl-slot-name ast slot-name)
-                               :sel/sw/tree-sitter)))
+  (when-let ((slot (find-symbol (python-to-cl-slot-name ast slot-name)
+                                :sel/sw/tree-sitter)))
+    (slot-value ast slot)))
 
 (-> int/ast-at-point (ast integer integer) (values (or ast null) &optional))
 (defun int/ast-at-point (ast line column)
