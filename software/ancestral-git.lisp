@@ -240,11 +240,15 @@ TARGETS:
               (cond
                 ((and a-point b-point)
                  ;; Crossover logging.
-                 (string+ (format nil "CROSSOVER A:'~a'~%B:'~a'~%AT~%A:~%~a~&B:~a"
-                                  (worktree-identifier a)
-                                  (worktree-identifier b)
-                                  (log-message a-point :root genome)
-                                  (log-message b-point :root genome))
+                 (string+ (format
+                           nil
+                           "CROSSOVER A:'~a'~%B:'~a'~%AT~%A:~%~a in ~a~&B:~a in ~a~%"
+                           (worktree-identifier a)
+                           (worktree-identifier b)
+                           (log-message (car a-point) :root genome)
+                           (cdr a-point)
+                           (log-message (car b-point) :root genome)
+                           (cdr b-point))
                           (log-message mutation :root genome)))
                 (t
                  ;; Mutant logging.

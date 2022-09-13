@@ -114,6 +114,7 @@ of WORDS in it."
       (is (has-commit-p copy-project "Create Worktree")))))
 
 (deftest ancestral-git-worktree-evolve-mutation-commit ()
+  "Mutation commits contain information on the mutation and a diff."
   (with-c-git-cleanup
       (original-project +project-path+)
     (let* (;; NOTE: ensure the population is large enough such that the mutated
@@ -130,3 +131,18 @@ of WORDS in it."
                       "MUTATION" "FILE-PATH" "TARGETS" "diff")))))))
 
 ;;; TODO: need to test for crossover.
+(deftest ancestral-git-worktree-evolve-crossover-commit ()
+  "Crossover commits contain information on the crossover and a diff."
+  (with-c-git-cleanup
+      (original-project +project-path+)
+    (let* (;; NOTE: ensure the population is large enough such that the mutated
+           ;;       member isn't evicted.
+           (*max-population-size* 10)
+           (*population* (list original-project))
+           (*fitness-evals* 0)
+           (*tree-sitter-mutation-types* '((tree-sitter-cut . 1)))
+           (*cross-chance* 1.0))
+      (evolve (constantly 1) :max-evals 1)
+      (is (iter
+            (for variant in *population*)
+            (thereis (has-commit-p variant "CROSSOVER" "diff")))))))
