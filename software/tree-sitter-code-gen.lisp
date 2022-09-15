@@ -5969,7 +5969,10 @@ Unlike the `children` methods which collects all children of an AST from any slo
        (overlord:depends-on ,cache-file-var)
        (format t "Compiling Language Definitions~%")
        (with-standard-io-syntax
-         (let ((*package* (find-package :sel/sw/ts)))
+         (let ((*package* (find-package :sel/sw/ts))
+               ;; Leaving `*print-readably' at its standard T value
+               ;; can cause problems with some SBCL versions.
+               (*print-readably* nil))
            (handler-bind (#+sbcl (style-warning #'muffle-warning))
              (format t "Compile File: ~a~%"
                      (compile-file ,cache-file-var :output-file out))))))
