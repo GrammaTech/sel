@@ -69,3 +69,6 @@ wiki/
 
 # Ignore libc++ includes
 utility/libcxx-src
+
+# Ignore generated tree-sitter code
+.cache
