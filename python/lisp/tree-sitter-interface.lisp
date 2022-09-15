@@ -306,21 +306,15 @@ function name from the API followed by the arguments."
 
 (-> int/cut (ast ast) (values ast &optional))
 (defun int/cut (root pt)
-  (if-let ((path (ast-path root pt)))
-    (less root path)
-    root))
+  (less root (ast-path root pt)))
 
 (-> int/insert (ast ast ast) (values ast &optional))
 (defun int/insert (root pt ast)
-  (if-let ((path (ast-path root pt)))
-    (insert root path (tree-copy ast))
-    root))
+  (insert root (ast-path root pt) (tree-copy ast)))
 
 (-> int/replace (ast ast ast) (values ast &optional))
 (defun int/replace (root pt ast)
-  (if-let ((path (ast-path root pt)))
-    (with root path (tree-copy ast))
-    root))
+  (with root (ast-path root pt) (tree-copy ast)))
 
 (-> int/ast-template (string string &rest list) (values ast &optional))
 (defun int/ast-template (template language &rest args)
