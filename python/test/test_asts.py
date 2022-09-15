@@ -313,6 +313,11 @@ class MutationTestDriver(unittest.TestCase):
         self.assertNotEqual(new_root.oid, self.root.oid)
         self.assertEqual("y = 88\n", new_root.source_text)
 
+    def test_cut_throws_exception_not_in_tree(self):
+        new_pt = AST.from_string("new = 0\n", ASTLanguage.Python, deepest=True)
+        with self.assertRaises(ASTException):
+            AST.cut(self.root, new_pt)
+
 
 class TransformTestDriver(unittest.TestCase):
     def setUp(self):
