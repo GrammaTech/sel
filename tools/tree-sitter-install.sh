@@ -14,6 +14,7 @@ fi
 declare -ar default_languages=(
     commonlisp bash c cpp css go html java javascript jsdoc json python regex rust
     typescript/tsx typescript/typescript
+    yaml
 )
 
 NOPIN=${NOPIN:-}
@@ -38,6 +39,7 @@ pins[python]=24b530c
 pins[regex]=e1cfca3
 pins[rust]=36ae187
 pins[typescript]=1b3ba31
+pins[yaml]=0e36bed
 
 pins[typescript/typescript]=${pins[typescript]}
 pins[typescript/tsx]=${pins[typescript]}
@@ -45,6 +47,7 @@ pins[typescript/tsx]=${pins[typescript]}
 # Declared repositories.
 declare -A repos
 repos[commonlisp]=https://github.com/theHamsta/tree-sitter-commonlisp.git
+repos[yaml]=https://github.com/ikatyang/tree-sitter-yaml.git
 
 cd "$WORKDIR"
 
@@ -69,7 +72,7 @@ fi
 (
     cd tree-sitter
     pin_repo ${pins[tree-sitter]}
-    PREFIX=${PREFIX} make all install
+    CFLAGS=-O3 PREFIX=${PREFIX} make all install
 )
 
 # Install languages.
