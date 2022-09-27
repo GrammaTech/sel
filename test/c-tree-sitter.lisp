@@ -573,6 +573,11 @@ void f(fp_t p) { p->x; p->y; }
     (is (equal "foo"
                (function-name (find-if (of-type 'function-ast) root))))))
 
+(deftest function-name-on-c-tree-sitter4 ()
+  (let ((root (convert 'c-ast "int foo { return 0; }")))
+    (is (equal "foo"
+               (function-name (find-if (of-type 'function-ast) root))))))
+
 (deftest parameter-name-on-c-tree-sitter ()
   (is (string= (parameter-name
                (first (function-parameters

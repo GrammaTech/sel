@@ -187,11 +187,8 @@
 
 ;;; Generics and Transformations
 (defmethod function-name ((ast c/cpp-function-definition))
-  (nest (source-text)
-        (find-if «or (of-type 'identifier-ast)
-                     (of-type 'cpp-qualified-identifier)»)
-        (c/cpp-declarator)
-        (c/cpp-declarator ast)))
+  (when-let ((name-ast (definition-name-ast ast)))
+    (source-text name-ast)))
 
 (defmethod function-parameters ((ast c/cpp-function-definition))
   ;; NOTE: the rule currently allows for any declarator. When
@@ -423,7 +420,7 @@ pointer declarations which are nested on themselves."
 (defmethod declarator-name-ast ((ast c/cpp-init-declarator))
   (declarator-name-ast (c/cpp-declarator ast)))
 (defmethod declarator-name-ast ((ast c/cpp-parenthesized-declarator))
-  (car (children ast)))
+  (declarator-name-ast (car (children ast))))
 (defmethod declarator-name-ast ((ast c/cpp-pointer-declarator))
   (declarator-name-ast (c/cpp-declarator ast)))
 (defmethod declarator-name-ast ((ast c/cpp-array-declarator))
