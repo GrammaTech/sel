@@ -187,8 +187,7 @@
 
 ;;; Generics and Transformations
 (defmethod function-name ((ast c/cpp-function-definition))
-  (when-let ((name-ast (definition-name-ast ast)))
-    (source-text name-ast)))
+  (source-text (definition-name-ast ast)))
 
 (defmethod function-parameters ((ast c/cpp-function-definition))
   ;; NOTE: the rule currently allows for any declarator. When
