@@ -84,8 +84,9 @@ deploy-python-package:
     - cd python/
     - python3.8 -m pip install -r requirements-dev.txt
     - ../bin/tree-sitter-py-generator > asts/types.py
-    - python3.8 setup.py bdist_wheel --dist-dir=$CI_PROJECT_DIR/python/dist --plat-name=manylinux1_x86_64
-    - python3.8 -m twine upload --verbose $CI_PROJECT_DIR/python/dist/*.whl -u __token__ -p $PYPI_API_KEY
+    - python3.8 setup.py bdist_wheel --dist-dir=dist/
+    - find dist -name \*.whl -print0 | xargs -0 -n1 auditwheel repair -w dist/wheelhouse
+    - python3.8 -m twine upload --verbose dist/wheelhouse/*.whl -u __token__ -p $PYPI_API_KEY
   rules:
     - if: '$CI_COMMIT_REF_NAME =~ /^r\d\d\d\d\.\d\d\.\d\d/'
 
