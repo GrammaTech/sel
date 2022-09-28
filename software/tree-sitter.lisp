@@ -487,6 +487,7 @@
            :typescript-ast
            :c/cpp-ast
            :c-like-syntax-ast
+           :root-ast
            :parse-error-ast
            :comment-ast
            :definition-ast
