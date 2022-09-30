@@ -742,7 +742,9 @@ time."
 
 (defgeneric get-parent-asts (obj ast)
   (:documentation "Return the parent nodes of AST in OBJ including AST.
-If OBJ is an AST, it is also included.")
+Parents are returned deepest-first.
+
+If OBJ is an AST, it is also included. ")
   (:method (obj (ast ast))
     (nest (remove-if-not {typep _ 'ast})  ; Remove non-ASTs.
           (mapcar {lookup obj})           ; Lookup each prefix.
@@ -752,7 +754,8 @@ If OBJ is an AST, it is also included.")
     (append1 (call-next-method) obj)))
 
 (defgeneric get-parent-asts* (obj ast)
-  (:documentation "Return the parent nodes of AST in OBJ not including AST.")
+  (:documentation "Return the parent nodes of AST in OBJ not including AST.
+Parents are returned deepest-first.")
   (:method (obj (ast ast))
     (cdr (get-parent-asts obj ast))))
 
