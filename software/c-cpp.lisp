@@ -273,6 +273,11 @@
       (finally (return (values declarations-accumulator
                                namespaces-accumulator))))))
 
+(defmethod outer-declarations ((ast cpp-field-declaration))
+  (if-let (nested-class (extract-nested-class ast))
+    (outer-declarations nested-class)
+    (call-next-method)))
+
 (-> outer-declarations-merge (list) (values list list))
 (defun outer-declarations-merge (asts)
   "Merge the outer declarations of ASTs."

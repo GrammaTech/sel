@@ -759,6 +759,35 @@
       (call-next-method)
     (values decls (substitute :type :tag types))))
 
+(defgeneric extract-nested-class (ast)
+  (:method ((ast t)) nil)
+  (:method ((decl cpp-field-declaration))
+    (when (typep decl 'cpp-field-declaration)
+      (let ((type (cpp-type decl)))
+        (when (typep type 'type-declaration-ast)
+          type)))))
+
+(defun nested-classes (ast)
+  "Extract nested class definitions in AST."
+  (when-let (body (cpp-body ast))
+    (filter #'extract-nested-class
+            (children body))))
+
+(defun add-nested-class-declarations (ast decls types)
+  "Add nested class definitions in AST to DECLS and TYPES."
+  (multiple-value-bind (nested-decls nested-types)
+      (outer-declarations-merge (nested-classes ast))
+    (values (append nested-decls decls)
+            (append nested-types types))))
+
+(defmethod inner-declarations :around ((ast cpp-class-specifier))
+  (multiple-value-bind (decls types) (call-next-method)
+    (add-nested-class-declarations ast decls types)))
+
+(defmethod inner-declarations :around ((ast cpp-struct-specifier))
+  (multiple-value-bind (decls types) (call-next-method)
+    (add-nested-class-declarations ast decls types)))
+
 (defmethod outer-declarations ((ast cpp-alias-declaration))
   (values (list (cpp-name ast)) '(:type)))
 
