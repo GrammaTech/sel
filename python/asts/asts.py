@@ -3,6 +3,7 @@ import collections
 import enum
 import json
 import multiprocessing
+import os
 import psutil
 import pkg_resources
 import shutil
@@ -545,6 +546,9 @@ class _interface:
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
+                    # Put the subprocess in its own process group so that it
+                    # does not get SIGINT when our process does.
+                    preexec_fn=lambda: os.setpgid(0, 0),
                 )
 
                 # If the interface was built using the deploy package for use
