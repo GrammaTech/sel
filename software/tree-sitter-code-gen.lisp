@@ -706,6 +706,14 @@ for the language.")
        (:c/cpp--> c--> cpp-->)
        (:c/cpp-++ c-++ cpp-++)
        (:c/cpp--- c--- cpp---)
+       (:c/cpp-#define c-#define cpp-#define)
+       (:c/cpp-#else c-#else cpp-#else)
+       (:c/cpp-#elif c-#elif cpp-#elif)
+       (:c/cpp-#endif c-#endif cpp-#endif)
+       (:c/cpp-#if c-#if cpp-#if)
+       (:c/cpp-#ifdef c-#ifdef cpp-#ifdef)
+       (:c/cpp-#ifndef c-#ifndef cpp-#ifndef)
+       (:c/cpp-#include c-#include cpp-#include)
        (:c/cpp-abstract-array-declarator c-abstract-array-declarator
         cpp-abstract-array-declarator)
        (:c/cpp-abstract-function-declarator c-abstract-function-declarator
@@ -2548,6 +2556,14 @@ All tests are done with `EQUAL'.")
        ((:type . "empty_statement") (:named . T))
        ((:type . "type_forward_declaration") (:named . T))
        ((:type . "macro_forward_declaration") (:named . T))
+       ((:TYPE . "#define") (:NAMED . T))
+       ((:TYPE . "#else") (:NAMED . T))
+       ((:TYPE . "#elif") (:NAMED . T))
+       ((:TYPE . "#endif") (:NAMED . T))
+       ((:TYPE . "#if") (:NAMED . T))
+       ((:TYPE . "#ifdef") (:NAMED . T))
+       ((:TYPE . "#ifndef") (:NAMED . T))
+       ((:TYPE . "#include") (:NAMED . T))
        ((:TYPE . "_statement") (:NAMED . T)
         (:SUBTYPES ((:TYPE . "break_statement") (:NAMED . T))
          ((:TYPE . "case_statement") (:NAMED . T))
@@ -2571,6 +2587,14 @@ All tests are done with `EQUAL'.")
        ((:type . "empty_statement") (:named . T))
        ((:type . "type_forward_declaration") (:named . T))
        ((:type . "macro_forward_declaration") (:named . T))
+       ((:TYPE . "#define") (:NAMED . T))
+       ((:TYPE . "#else") (:NAMED . T))
+       ((:TYPE . "#elif") (:NAMED . T))
+       ((:TYPE . "#endif") (:NAMED . T))
+       ((:TYPE . "#if") (:NAMED . T))
+       ((:TYPE . "#ifdef") (:NAMED . T))
+       ((:TYPE . "#ifndef") (:NAMED . T))
+       ((:TYPE . "#include") (:NAMED . T))
        ((:TYPE . "_statement") (:NAMED . T)
         (:SUBTYPES
          ((:TYPE . "break_statement") (:NAMED . T))
@@ -2658,37 +2682,90 @@ chosen when gathering a string representation of a JSON subtree.")
   (defparameter *tree-sitter-json-field-transformations*
     `((:c
        (:symbol-names
-        ("#ifdef" "#ifndef")
-        :slot-name "operator"      ; Find a better name for this slot.
+        ("#if" "#ifdef" "#ifndef")
+        :slot-name "if-terminal"
+        :arity 1
         :predicate ,(constantly t)
-        :transform
-        (lambda (parse-tree)
-          (copy-parse-tree
-           parse-tree
-           :children
-           (mapcar
-            (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
-              (cond
-                ((member child-type '(:|#IFDEF| :|#IFNDEF|))
-                 (cons (list :operator child-type) (cdr child-tree)))
-                (t child-tree)))
-            (parse-tree-children parse-tree))))))
+        :transform {terminal->field-transform _
+                    :if-terminal '(:#|IF| :|#IFDEF| :|#IFNDEF|)})
+       (:symbol-names
+        ("#else")
+        :slot-name "else-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :else-terminal '(:#|ELSE|)})
+       (:symbol-names
+        ("#elif")
+        :slot-name "elif-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :elif-terminal '(:#|ELIF|)})
+       (:symbol-names
+        ("#endif")
+        :slot-name "endif-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :endif-terminal '(:#|ENDIF|)})
+       (:symbol-names
+        ("#define")
+        :slot-name "define-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :define-terminal '(:#|DEFINE|)})
+       (:symbol-names
+        ("#include")
+        :slot-name "include-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :include-terminal '(:#|INCLUDE|)}))
       (:cpp
-       (:symbol-names ("#ifdef" "#ifndef")
-        :slot-name "operator"      ; Find a better name for this slot.
+       (:symbol-names ("#if" "#ifdef" "#ifndef")
+        :slot-name "if-terminal"
+        :arity 1
         :predicate ,(constantly t)
-        :transform
-        (lambda (parse-tree)
-          (copy-parse-tree
-           parse-tree
-           :children
-           (mapcar
-            (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
-              (cond
-                ((member child-type '(:|#IFDEF| :|#IFNDEF|))
-                 (cons (list :operator child-type) (cdr child-tree)))
-                (t child-tree)))
-            (parse-tree-children parse-tree))))))
+        :transform {terminal->field-transform _
+                    :if-terminal
+                    '(:#|IF| :|#IFDEF| :|#IFNDEF|)})
+       (:symbol-names
+        ("#else")
+        :slot-name "else-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :else-terminal '(:#|ELSE|)})
+       (:symbol-names
+        ("#elif")
+        :slot-name "elif-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :elif-terminal '(:#|ELIF|)})
+       (:symbol-names
+        ("#endif")
+        :slot-name "endif-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :endif-terminal '(:#|ENDIF|)})
+       (:symbol-names
+        ("#define")
+        :slot-name "define-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :define-terminal '(:#|DEFINE|)})
+       (:symbol-names
+        ("#include")
+        :slot-name "include-terminal"
+        :arity 1
+        :predicate ,(constantly t)
+        :transform {terminal->field-transform _
+                    :include-terminal '(:#|INCLUDE|)}))
       ((:javascript :typescript-ts :typescript-tsx)
        (:symbol-names ("_semicolon")
         :slot-name "semicolon"
@@ -2813,6 +2890,15 @@ stored on the AST or external rules.")
   (let ((table *tree-sitter-ast-superclass-table*))
     (when-let (language-table (gethash language table))
       (gethash class language-table))))
+
+(defun terminal->field-transform (parse-tree field-name terminal-types)
+  (nest (copy-parse-tree parse-tree :children)
+        (mapcar (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
+                  (cond
+                    ((member child-type terminal-types)
+                     (cons (list field-name child-type) (cdr child-tree)))
+                    (t child-tree))))
+        (parse-tree-children parse-tree)))
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
@@ -4204,6 +4290,7 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                 `(,slot-name :accessor ,slot-name
                              :initarg ,(make-keyword slot-name)
                              :initform nil)
+                :arity (or (getf symbol-substitution :arity) 0)
                 :add-to-child-slots t))
              (update-class-transforms (symbol-substitution)
                "Update class-name->parse-tree-transforms with a cons of
@@ -4708,7 +4795,8 @@ The definition of CLASS-NAME is updated to include the computed-text mixin."
 
 
   (defun add-slot-to-class-definition
-      (class-name class-name->class-definition slot-spec &key add-to-child-slots)
+      (class-name class-name->class-definition slot-spec
+       &key add-to-child-slots (arity 0))
     "Destructively add SLOT-SPEC to CLASS-NAME's definition in
 CLASS-NAME->CLASS-DEFINITION. Return NIL on failure and non-NIL on success."
     (labels ((update-child-slots (slots)
@@ -4720,8 +4808,7 @@ CLASS-NAME->CLASS-DEFINITION. Return NIL on failure and non-NIL on success."
                   'child-slots
                   `(:initform
                     ',(append (butlast slot-list)
-                              ;; Assume arity of 0.
-                              `((,(car slot-spec) . 0))
+                              `((,(car slot-spec) . ,arity))
                               (last slot-list))
                     :allocation :class)
                   (remove child-slots slots)))))
@@ -5184,7 +5271,6 @@ subclass based on the order of the children were read in."
                 `(text
                   :accessor text
                   :initarg :text
-                  :allocation :class
                   :initform ',type-string)))
              (generate-parse-tree-transform (class-name transforms)
                "Generate a method for generated-transform-parse-tree based on

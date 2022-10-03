@@ -876,7 +876,10 @@ void f(fp_t p) { p->x; p->y; }
           ;; The following two test that inner-asts are assigned to the correct
           ;; internal-asts slot.
           (#P"enum-if-preproc.c")
-          (#P"inner-asts-for-statement.c"))))
+          (#P"inner-asts-for-statement.c")
+          ;; The following two tests that spaces in macro terminals are preserved
+          (#P"preproc-with-spaces-1.c")
+          (#P"preproc-with-spaces-2.c"))))
 
 (defixture factorial.c
   (:setup (setf *soft* (from-file (make-instance 'c)
@@ -1453,6 +1456,15 @@ when its surrounding text is removed."
          (root (convert 'c-ast source))
          (case-statement (stmt-with-text root "case" :at-start t)))
     (is (= 2 (length (c-statements case-statement))))))
+
+(deftest c-preproc-rule-substitution ()
+  (let* ((source (fmt "#if UNDEFINED(FOO)~%#define FOO~%#else~%#include <foo.h>~%#endif~%"))
+         (root (convert 'c-ast source)))
+    (is (find-if (of-type 'c-#if) root))
+    (is (find-if (of-type 'c-#define) root))
+    (is (find-if (of-type 'c-#else) root))
+    (is (find-if (of-type 'c-#include) root))
+    (is (find-if (of-type 'c-#endif) root))))
 
 
 ;;; outer-decls tests

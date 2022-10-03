@@ -1194,6 +1194,15 @@ class MyF
          (case-statement (stmt-with-text root "case" :at-start t)))
     (is (= 2 (length (cpp-statements case-statement))))))
 
+(deftest cpp-preproc-rule-substitution ()
+  (let* ((source (fmt "#if UNDEFINED(FOO)~%#define FOO~%#else~%#include <foo.h>~%#endif~%"))
+         (root (convert 'cpp-ast source)))
+    (is (find-if (of-type 'cpp-#if) root))
+    (is (find-if (of-type 'cpp-#define) root))
+    (is (find-if (of-type 'cpp-#else) root))
+    (is (find-if (of-type 'cpp-#include) root))
+    (is (find-if (of-type 'cpp-#endif) root))))
+
 (defun can-parse (lang string)
   (declare (optimize debug))
   (let* ((genome

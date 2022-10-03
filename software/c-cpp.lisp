@@ -1055,7 +1055,7 @@ Should return `:failure' in the base case.")
 (defmethod whitespace-between/parent (parent
                                       (style c-style-indentation)
                                       ast1
-                                      (ast2 (eql ':|#endif|)))
+                                      (ast2 c/cpp-#endif))
   #.(fmt "~%"))
 
 (defmethod whitespace-between/parent (parent
@@ -1072,7 +1072,7 @@ Should return `:failure' in the base case.")
 
 (defmethod whitespace-between/parent (parent
                                       (style c-style-indentation)
-                                      (ast1 (eql ':|#else|))
+                                      (ast1 c/cpp-#else)
                                       ast2)
   #.(fmt "~%"))
 
@@ -1095,6 +1095,22 @@ Should return `:failure' in the base case.")
                                       ast1
                                       (ast2 c/cpp-preproc-include))
   "")
+
+(defmethod computed-text-node-p ((ast c/cpp-#define)) t)
+
+(defmethod computed-text-node-p ((ast c/cpp-#else)) t)
+
+(defmethod computed-text-node-p ((ast c/cpp-#elif)) t)
+
+(defmethod computed-text-node-p ((ast c/cpp-#endif)) t)
+
+(defmethod computed-text-node-p ((ast c/cpp-#if)) t)
+
+(defmethod computed-text-node-p ((ast c/cpp-#ifdef)) t)
+
+(defmethod computed-text-node-p ((ast c/cpp-#ifndef)) t)
+
+(defmethod computed-text-node-p ((ast c/cpp-#include)) t)
 
 
 ;;; System headers
