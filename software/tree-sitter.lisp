@@ -270,7 +270,7 @@
 ;;; A further 'text' slot is also used for a subset of ASTs that are known
 ;;; computed-text ASTs. These ASTs hold information that is variable and must
 ;;; be computed and stored when the AST is created. The ASTs that are computed
-;;; text can be identified by @code{computed-text-node-p}.
+;;; text can be identified by being of type @code{computed-text}.
 ;;;
 ;;; When creating ASTs, @code{patch-whitespace} can be used to insert whitespace in
 ;;; relevant places. This utilizes @code{whitespace-between} to determine how much

@@ -173,7 +173,7 @@ are ordered for reproduction as source text.")
          ;; A subclass with a matching rule is assigned here.
          (change-to-subclass ast subclasses)
          (output-transformation ast :finalized-type t))
-        ((computed-text-node-p ast)
+        ((typep ast 'computed-text)
          (append-before-and-after-asts
           (computed-text-output-transformation ast)))
         (t
@@ -214,14 +214,6 @@ are ordered for reproduction as source text.")
       (if (stringp successor)
           (make-keyword successor)
           successor))))
-
-;;; TODO: deprecate this generic.
-(defgeneric computed-text-node-p (ast)
-  (:documentation "Return T if AST is a computed-text node. This is a
-node where part of the input will need to be computed and stored to reproduce
-the source-text.")
-  (:method (ast) nil)
-  (:method ((ast computed-text)) t))
 
 (defgeneric root-rule-ast-p (ast)
   (:documentation "Return T if AST represents the root rule or entry point
@@ -2267,7 +2259,7 @@ setting it if it isn't already set."
                  (when (and recursive
                             (typep item '(and tree-sitter-ast
                                           (not terminal-symbol)))
-                            (not (computed-text-node-p ast)))
+                            (not (typep ast 'computed-text)))
                    (patch-whitespace item (cons ast parents)))
                  (cond
                    ((and (not prettify) (emptyp white-space)))
@@ -2574,7 +2566,7 @@ the indentation slots."
              'vector
              #'string-to-octets
              (lines string :keep-eols t))))
-       (computed-text-p (computed-text-node-p instance)))
+       (computed-text-p (typep instance 'computed-text)))
   "Convert SPEC from a parse tree into an instance of SUPERCLASS."
   (labels ((safe-subseq
                (start end
@@ -2848,7 +2840,7 @@ the indentation slots."
            (set-slot-values (slot-values inner-asts)
              "Set the slots in instance to correspond to SLOT-VALUES."
              (when (and (slot-exists-p instance 'json-rule)
-                        (not (computed-text-node-p instance)))
+                        (not (typep instance 'computed-text)))
                (set-inner-ast-slots
                 inner-asts
                 (nth-value
@@ -3279,7 +3271,7 @@ for ASTs which need to appear in the surrounding text slots.")
                       (unbox indentation-ast) nil)
                 text)
                ((and (length< 1 split-text)
-                     (not (computed-text-node-p ast)))
+                     (not (typep ast 'computed-text)))
                 (with-output-to-string (s nil :element-type (array-element-type text))
                   (write-string (car split-text) s)
                   (dolist (subseq (cdr split-text))

@@ -3066,7 +3066,7 @@ of an AST."))
     ()
     (:documentation "Node for errors represented as a tree."))
 
-  (defclass inner-whitespace (text-fragment)
+  (defclass inner-whitespace (computed-text text-fragment)
     ()
     (:documentation "An AST that represents whitespace between two
 terminal tokens."))
@@ -5848,6 +5848,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
              (define-node-class ,(make-class-name "error")
                  ,(remove-duplicates
                    `(,ast-superclass
+                     computed-text
                      ,@(get-supertypes-for-type "error")
                      parse-error-ast)
                    :from-end t)
@@ -5918,13 +5919,6 @@ Unlike the `children` methods which collects all children of an AST from any slo
            (defmethod parse-asts ((obj ,(make-class-name))
                                   &optional (source (genome-string obj)))
              (convert ',(make-class-name "ast") source))
-
-           (defmethod computed-text-node-p ((ast ,(make-class-name "error")))
-             t)
-
-           (defmethod computed-text-node-p
-               ((ast ,(make-class-name "inner-whitespace")))
-             t)
 
            (defmethod root-rule-ast-p ((ast ,(make-class-name root-rule-name)))
              t)
