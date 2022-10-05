@@ -1096,22 +1096,6 @@ Should return `:failure' in the base case.")
                                       (ast2 c/cpp-preproc-include))
   "")
 
-(defmethod computed-text-node-p ((ast c/cpp-#define)) t)
-
-(defmethod computed-text-node-p ((ast c/cpp-#else)) t)
-
-(defmethod computed-text-node-p ((ast c/cpp-#elif)) t)
-
-(defmethod computed-text-node-p ((ast c/cpp-#endif)) t)
-
-(defmethod computed-text-node-p ((ast c/cpp-#if)) t)
-
-(defmethod computed-text-node-p ((ast c/cpp-#ifdef)) t)
-
-(defmethod computed-text-node-p ((ast c/cpp-#ifndef)) t)
-
-(defmethod computed-text-node-p ((ast c/cpp-#include)) t)
-
 
 ;;; System headers
 (-> system-header-names (c/cpp) (values list &optional))
