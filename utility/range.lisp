@@ -243,18 +243,17 @@ If NEWLINES is provided it should be the value returned for STRING by
              ((= start-line end-line)
               (subseq (aref line-octets (clamp start-line 0 max-line)) start-column end-column))
              ((< start-line end-line)
-              (concatenate
-               'vector
-               (subseq (aref line-octets (clamp start-line 0 max-line)) start-column)
-               (iter
+              (let ((vectors (queue)))
+                (enq (subseq (aref line-octets (clamp start-line 0 max-line)) start-column)
+                     vectors)
+                (iter
                  (for i from (clamp (1+ start-line) 0 max-line) to (clamp (1- end-line) 0 max-line))
-                 (reducing (aref line-octets i)
-                           by (lambda (total octets)
-                                (concatenate 'vector total octets))
-                           initial-value #()))
-               ;; NOTE: tree-sitter will add +1 past the number of lines in a
-               ;;       file when a newline is considered a token for a rule.
-               (unless (= end-column 0)
-                 (subseq (aref line-octets (clamp end-line 0 max-line)) 0 end-column))))
+                 (enq (aref line-octets i) vectors))
+                ;; NOTE: tree-sitter will add +1 past the number of lines in a
+                ;;       file when a newline is considered a token for a rule.
+                (unless (= end-column 0)
+                  (enq (subseq (aref line-octets (clamp end-line 0 max-line)) 0 end-column)
+                       vectors))
+                (apply #'concatenate 'vector (qlist vectors))))
              (t #()))
            '(vector (unsigned-byte 8))))))))
