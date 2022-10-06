@@ -273,24 +273,20 @@
       (finally (return (values declarations-accumulator
                                namespaces-accumulator))))))
 
-(defun outer-declarations-merge (merged ast)
-  (mvlet ((declarations namespaces (outer-declarations ast)))
-    (list (append declarations (car merged))
-          (append namespaces (cadr merged)))))
+(-> outer-declarations-merge (list) (values list list))
+(defun outer-declarations-merge (asts)
+  "Merge the outer declarations of ASTs."
+  (with-collectors (merged-declarations merged-namespaces)
+    (dolist (ast asts)
+      (mvlet ((declarations namespaces (outer-declarations ast)))
+        (apply #'merged-declarations declarations)
+        (apply #'merged-namespaces namespaces)))))
 
 (defmethod inner-declarations ((ast c/cpp-compound-statement))
-  (let ((declarations-values-list
-          (reduce #'outer-declarations-merge (children ast)
-                  :initial-value nil)))
-    (values (car declarations-values-list)
-            (cadr declarations-values-list))))
+  (outer-declarations-merge (children ast)))
 
 (defmethod inner-declarations ((ast cpp-declaration-list))
-  (let ((declarations-values-list
-          (reduce #'outer-declarations-merge (children ast)
-                  :initial-value nil)))
-    (values (car declarations-values-list)
-            (cadr declarations-values-list))))
+  (outer-declarations-merge (children ast)))
 
 (defun get-nested-declaration (ast)
   "Get the declaration nested in AST. This is useful for array and

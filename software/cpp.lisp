@@ -783,11 +783,7 @@ templated definition's field table."
     ((cpp-namespace-definition
       (cpp-body
        (cpp-declaration-list (direct-children children))))
-     (let ((declarations-values-list
-             (reduce #'outer-declarations-merge children
-                     :initial-value nil)))
-       (values (car declarations-values-list)
-               (cadr declarations-values-list))))))
+     (outer-declarations-merge children))))
 
 (defun const-field-declaration? (field-decl fn)
   "Is FN declared const in FIELD-DECL?"
