@@ -2079,6 +2079,135 @@ temporary software objects."
 
 
 ;;; AST Construction
+(defgeneric blot-out-ranges (superclass source &key)
+  (:documentation "Return a list of ranges to blot out sections of SOURCE which
+cause problems when parsing it as SUPERCLASS.")
+  (:method (superclass source &key &allow-other-keys)
+    nil))
+
+(defgeneric blot-out (superclass ranges source &key)
+  (:documentation "Return a version of SOURCE with RANGES blotted out.")
+  (:method (superclass ranges source &key &allow-other-keys)
+    (iter
+      (iter:with source-array = (make-array (length source)
+                                            :initial-contents source))
+      (for (start . end) in ranges)
+      (iter
+        (for i from start to end)
+        (symbol-macrolet ((array-i (aref source-array i)))
+          ;; NOTE: keep newlines for tree-sitter parse tree ranges.
+          (unless (eql array-i #\newline)
+            (setf array-i #\space))))
+      (finally (return (coerce source-array 'string))))))
+
+(defun blot-ranges->parse-tree-ranges (ranges source
+                                       &aux (row 0) (column 0)
+                                         (blot-ranges (flatten ranges))
+                                         (blot-ranges-i 0) source-ranges)
+  "Convert RANGES from blot ranges to parse tree ranges using SOURCE to
+determine the translation."
+  ;; NOTE: assumes no overlap of ranges. Overlaps should be merged if this
+  ;;       becomes a problem.
+  (labels ((incf-row ()
+             (incf row)
+             (setf column 0))
+           (increment (char)
+             "Increment row and column based on CHAR."
+             (if (eql char #\newline)
+                 (incf-row)
+                 (incf column)))
+           (handle-conversion (i column row)
+             "Convert COLUMN, ROW to a parse tree range if I
+              is a blot index."
+             (when (eql i (car blot-ranges))
+               (incf blot-ranges-i)
+               (pop blot-ranges)
+               (push (list column row) source-ranges)))
+           (group-by-two (ranges)
+             "Create pairs of two ranges from a flat list of ranges."
+             (iter
+               (for (start end) on ranges by #'cddr)
+               (collect (list start end)))))
+    (iter
+      (for char in-string source)
+      (for i upfrom 0)
+      (cond
+        ((evenp blot-ranges-i)
+         ;; NOTE: inclusive start
+         (handle-conversion i column row)
+         (increment char))
+        (t
+         ;; NOTE: exclusive end
+         (increment char)
+         (handle-conversion i column row)))
+      (finally
+       (return (group-by-two (reverse source-ranges)))))))
+
+(defun reinsert-blotted-ranges (parse-tree-ranges parse-tree)
+  "Reinsert the PARSE-TREE-RANGES from STRING back into PARSE-TREE."
+  (labels ((point<= (point1 point2)
+             "Return T if POINT1 occurs before or at POINT2."
+             (let ((line1 (cadr point1))
+                   (line2 (cadr point2))
+                   (column1 (car point1))
+                   (column2 (car point2)))
+               (cond
+                 ((< line1 line2))
+                 ((= line1 line2)
+                  (<= column1 column2)))))
+           (range-includes (parent-range includes-range)
+             "Return T if PARENT-RANGE includes INCLUDES-RANGE."
+             (let ((parent-start (car parent-range))
+                   (parent-end (cadr parent-range))
+                   (includes-start (car includes-range))
+                   (includes-end (cadr includes-range)))
+               (and (point<= parent-start includes-start)
+                    (point<= includes-end parent-end))))
+           (range-before-subtree-p (subtree range)
+             "Return T if RANGE occurs before SUBTREE."
+             (let ((subtree-start (car (parse-tree-range subtree)))
+                   (range-end (cadr range)))
+               (point<= range-end subtree-start)))
+           (subtree-contains-range-p (subtree range)
+             "Return T if SUBTREE contains RANGE."
+             (range-includes (parse-tree-range subtree) range))
+           (get-ranges (predicate)
+             "Collect ranges that occur before CHILD. These ranges are dropped
+              from the stack."
+             (lret ((before-ranges (take-while predicate parse-tree-ranges)))
+               (mapc (lambda (range)
+                       (declare (ignore range))
+                       (pop parse-tree-ranges))
+                     before-ranges)))
+           (create-blot-nodes (predicate)
+             "Create blot nodes for each blot range that satisfies PREDICATE.
+              These ranges are removed from the parse-tree-ranges stack."
+             (mapcar
+              (op `(:blot ,_ nil))
+              (get-ranges predicate)))
+           (insert-parse-tree-ranges (parse-tree)
+             "Recursively insert the blotted ranges back into PARSE-TREE."
+             (if (not (and parse-tree-ranges
+                           (subtree-contains-range-p parse-tree
+                                                     (car parse-tree-ranges))))
+                 parse-tree
+                 (iter
+                   (for child in (parse-tree-children parse-tree))
+                   ;; NOTE: if there are performance issues, we can push them
+                   ;;       and reverse at the end.
+                   (appending (create-blot-nodes {range-before-subtree-p child})
+                              into new-children)
+                   (collect (insert-parse-tree-ranges child) into new-children)
+                   (finally
+                    (return
+                      (list (car parse-tree)
+                            (cadr parse-tree)
+                            (append new-children
+                                    (create-blot-nodes
+                                     {subtree-contains-range-p
+                                      parse-tree})))))))))
+    (insert-parse-tree-ranges parse-tree)))
+
 (defgeneric whitespace-between/parent (parent style ast1 ast2)
   (:method-combination standard/context)
   (:method :context (parent s ast1 ast)
@@ -2573,7 +2702,7 @@ the indentation slots."
              #'string-to-octets
              (lines string :keep-eols t))))
        (computed-text-p (typep instance 'computed-text))
-       (extra-ast-type (cons 'or (extra-asts-symbols prefix))))
+       (extra-asts-type (cons 'or (extra-asts-symbols prefix))))
   "Convert SPEC from a parse tree into an instance of SUPERCLASS."
   (labels ((safe-subseq
                (start end
@@ -2711,7 +2840,7 @@ the indentation slots."
                  ((and computed-text-p
                        (typep converted-field 'inner-whitespace)))
                  ((and (not computed-text-p)
-                       (typep converted-field extra-ast-type))
+                       (typep converted-field extra-asts-type))
                   ;; NOTE: this won't put the comment in the children slot
                   ;;       when it's allowed. There may need to be a function
                   ;;       that signals their ability to be stored there if
@@ -3122,10 +3251,14 @@ list specifications."
                  annotated-children))
                ;; If either is nil, it means that there isn't text for that slot.
                (list parent-from parent-to)))))))
-    (annotate-surrounding-text
-     (transform-tree
-      (ensure-beginning-bound
-       (parse-language superclass string))))))
+    (let ((blotted-ranges (blot-out-ranges superclass string)))
+      (annotate-surrounding-text
+       (reinsert-blotted-ranges
+        (blot-ranges->parse-tree-ranges blotted-ranges string)
+        (transform-tree
+         (ensure-beginning-bound
+          (parse-language superclass
+                          (blot-out superclass blotted-ranges string)))))))))
 
 (defgeneric parse-language (superclass string &key)
   (:documentation "Get a parse tree for STRING using the language associated

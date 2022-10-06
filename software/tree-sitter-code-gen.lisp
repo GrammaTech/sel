@@ -3075,6 +3075,12 @@ of an AST."))
     (:documentation "An AST that represents whitespace between two
 terminal tokens."))
 
+  (defclass blot (text-fragment)
+    ()
+    (:documentation "A node that represents blotted sections of code.
+These sections are generally considered problematic and have been hidden
+from the parser."))
+
   (define-node-class inner-parent (tree-sitter-ast)
     ((children
       :initform nil
@@ -5882,6 +5888,15 @@ Unlike the `children` methods which collects all children of an AST from any slo
                ()
                (:documentation "Generated for source text fragments."))
 
+             (define-node-class ,(make-class-name "blot")
+                 ,(remove-duplicates
+                   `(,ast-superclass
+                     ,@(get-supertypes-for-type "blot")
+                     blot)
+                   :from-end t)
+               ()
+               (:documentation "Generated for source text fragments."))
+
              ,(generate-variation-point-code)
 
              ,@(create-external-classes grammar)
@@ -5959,6 +5974,7 @@ Unlike the `children` methods which collects all children of an AST from any slo
              '(:error-variation-point
                :error-variation-point-tree
                :inner-whitespace
+               :blot
                ,@(iter
                   (for extra in (aget :extras grammar))
                   (when (equal (aget :type extra) "SYMBOL")

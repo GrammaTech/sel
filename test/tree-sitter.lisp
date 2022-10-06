@@ -22,7 +22,9 @@
                 :evolution-candidate-ast-p
                 :check-ast-swappable
                 :operation-matches-rule-p
-                :ordered-children))
+                :ordered-children
+                :blot-ranges->parse-tree-ranges
+                :reinsert-blotted-ranges))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -555,3 +557,47 @@ accessed. #'children uses the populated value when it exists."
     ;; Children populates ordered-children when it is unbound.
     (is (eq (children declaration)
             (slot-value declaration 'ordered-children)))))
+
+
+;;; Blotting
+(deftest tree-sitter-blot-out ()
+  "Blot-out removes the ranges from a string, replacing them with spaces by
+default."
+  (let ((source "LEFT_CURLY int a = 0; RIGHT_CURLY")
+        (ranges '((0 . 9) (22 . 32)))
+        (result-string "           int a = 0;            "))
+    (is (equal (blot-out nil ranges source)
+               result-string))))
+
+(deftest tree-sitter-blot-ranges->parse-tree-ranges ()
+  "Converting blot-ranges to parse-tree-ranges works as expected."
+  ;; NOTE: blot-ranges are end-inclusive while  parse-tree-ranges are
+  ;;       end-exclusive.
+  (let ((source "LEFT_CURLY int a = 0; RIGHT_CURLY")
+        (blot-ranges '((0 . 9) (22 . 32)))
+        (expected-parse-tree-ranges '(((0 0) (10 0))
+                                      ((22 0) (33 0)))))
+    (is (equal (blot-ranges->parse-tree-ranges blot-ranges source)
+               expected-parse-tree-ranges))))
+
+(deftest tree-sitter-reinsert-blotted-ranges ()
+  "Blotted ranges are correctly reinserted into the parse tree."
+  (let ((blotted-ranges '(((0 0) (3 0)) ((8 0) (9 0))))
+        (parse-tree
+          '(:TRANSLATION-UNIT ((0 0) (10 0))
+            ((:DECLARATION ((0 0) (10 0))
+              (((:DECLARATOR :INIT-DECLARATOR) ((4 0) (9 0))
+                (((:DECLARATOR :IDENTIFIER) ((4 0) (5 0)) NIL)
+                 (:= ((6 0) (7 0)) NIL)))
+               (:|;| ((9 0) (10 0)) NIL))))))
+        (blotted-parse-tree
+          '(:TRANSLATION-UNIT ((0 0) (10 0))
+            ((:DECLARATION ((0 0) (10 0))
+              ((:BLOT ((0 0) (3 0)) nil)
+               ((:DECLARATOR :INIT-DECLARATOR) ((4 0) (9 0))
+                (((:DECLARATOR :IDENTIFIER) ((4 0) (5 0)) NIL)
+                 (:= ((6 0) (7 0)) NIL)
+                 (:BLOT ((8 0) (9 0)) nil)))
+               (:|;| ((9 0) (10 0)) NIL)))))))
+    (is (equal (reinsert-blotted-ranges blotted-ranges parse-tree)
+               blotted-parse-tree))))

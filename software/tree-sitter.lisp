@@ -657,7 +657,10 @@
            :tree-sitter-nop
            :parameter-ast
            :return-type
-           :contextualize-ast)
+           :contextualize-ast
+           ;; Blotting
+           :blot-out-ranges
+           :blot-out)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)))
