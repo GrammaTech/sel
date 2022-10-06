@@ -560,12 +560,22 @@ accessed. #'children uses the populated value when it exists."
 
 
 ;;; Blotting
-(deftest tree-sitter-blot-out ()
+(deftest tree-sitter-blot-out-1 ()
   "Blot-out removes the ranges from a string, replacing them with spaces by
 default."
   (let ((source "LEFT_CURLY int a = 0; RIGHT_CURLY")
         (ranges '((0 . 9) (22 . 32)))
         (result-string "           int a = 0;            "))
+    (is (equal (blot-out nil ranges source)
+               result-string))))
+
+(deftest tree-sitter-blot-out-2 ()
+  "Blot-out does not replace newlines by default."
+  (let ((source "LEFT_CURLY int a = 0;
+RIGHT_CURLY")
+        (ranges '((0 . 9) (22 . 32)))
+        (result-string "           int a = 0;
+           "))
     (is (equal (blot-out nil ranges source)
                result-string))))
 
