@@ -28,6 +28,10 @@
 which can occur anywhere in a tree and are put in the surrounding text or
 internal slots."))
 
+(defun extra-asts-symbols (language)
+  (mapcar (op (find-symbol (fmt "~a-~a" language (symbol-name _)) :sel/sw/ts))
+          (extra-asts language)))
+
 (defgeneric parse-order (ast &key &allow-other-keys)
   (:documentation "Return a list of children intermixed with keywords
 that specify which CHOICE branches are taken and how many times a REPEAT rule
@@ -2568,7 +2572,8 @@ the indentation slots."
              'vector
              #'string-to-octets
              (lines string :keep-eols t))))
-       (computed-text-p (typep instance 'computed-text)))
+       (computed-text-p (typep instance 'computed-text))
+       (extra-ast-type (cons 'or (extra-asts-symbols prefix))))
   "Convert SPEC from a parse tree into an instance of SUPERCLASS."
   (labels ((safe-subseq
                (start end
@@ -2706,9 +2711,7 @@ the indentation slots."
                  ((and computed-text-p
                        (typep converted-field 'inner-whitespace)))
                  ((and (not computed-text-p)
-                       (typep converted-field '(or comment-ast
-                                                error-variation-point
-                                                inner-whitespace)))
+                       (typep converted-field extra-ast-type))
                   ;; NOTE: this won't put the comment in the children slot
                   ;;       when it's allowed. There may need to be a function
                   ;;       that signals their ability to be stored there if
