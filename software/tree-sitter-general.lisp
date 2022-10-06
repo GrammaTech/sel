@@ -3666,7 +3666,7 @@ Otherwise, return PARSE-TREE."
   ;; The nil "namespace" is for languages that don't use namespaces.
   ;; The :tag namespace is for C (which has separate tag and type
   ;; namespaces).
-  '(member nil :variable :function :type :tag :macro))
+  '(member nil :variable :function :type :tag :macro :namespace))
 
 (def +namespace-decl-type-table+
   '((:variable . variable-declaration-ast)
