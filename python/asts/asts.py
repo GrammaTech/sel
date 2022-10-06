@@ -126,7 +126,7 @@ class AST:
         template: str,
         language: ASTLanguage,
         *args: Tuple[LiteralOrAST],
-        **kwargs: Dict[str, LiteralOrAST],
+        **kwargs: LiteralOrAST,
     ) -> "AST":
         """
         Build a single AST using an AST template syntax.
@@ -173,7 +173,7 @@ class AST:
     @staticmethod
     def copy(
         ast: "AST",
-        **kwargs: Dict[str, Union[LiteralOrAST, List[LiteralOrAST]]],
+        **kwargs: Union[LiteralOrAST, List[LiteralOrAST]],
     ) -> "AST":
         """
         Create a copy of AST, optionally passing keyword arguments mapping
@@ -586,7 +586,7 @@ class _interface:
             _interface._communicate(_interface._DEFAULT_QUIT_SENTINEL)
 
     @staticmethod
-    def dispatch(*args: Tuple[Any], **kwargs: Dict[str, Any]) -> Any:
+    def dispatch(*args: Tuple[Any], **kwargs: Any) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
         def handle_errors(data: Any) -> Any:
