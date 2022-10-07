@@ -2079,6 +2079,20 @@ temporary software objects."
 
 
 ;;; AST Construction
+
+;;; BLOTTING:
+;;; TODO:
+;;;  The current implementation only supports 1:1 blots. This means that the
+;;;  blotted subsequence of the source must be of the same length as the original
+;;;  subsequence. It will likely be desirable to change this in the future.
+;;;  To do this the following should be done:
+;;;    - Have blot-out-ranges return as values the ranges to blot out and the
+;;;      sequence to replace it with. A value of NIL will default to replacing
+;;;      with spaces.
+;;;    - insert-blots-into-parse-tree should keep track of the offset of adding
+;;;      the blot in both the row and column indices. The row offset should be
+;;;      reset on newlines. All ranges in the tree will need to be updated if
+;;;      either offset exists.
 (defgeneric blot-out-ranges (superclass source &key)
   (:documentation "Return a list of ranges to blot out sections of SOURCE which
 cause problems when parsing it as SUPERCLASS.")
@@ -2087,10 +2101,12 @@ cause problems when parsing it as SUPERCLASS.")
 
 (defgeneric blot-out (superclass ranges source &key)
   (:documentation "Return a version of SOURCE with RANGES blotted out.")
-  (:method (superclass ranges source &key &allow-other-keys)
+  (:method (superclass ranges (source string) &key &allow-other-keys)
     (iter
-      (iter:with source-array = (make-array (length source)
-                                            :initial-contents source))
+      (iter:with source-array =
+                 (make-array (length source)
+                             :initial-contents source
+                             :element-type (array-element-type source)))
       (for (start . end) in ranges)
       (iter
         (for i from start to end)
@@ -2098,7 +2114,11 @@ cause problems when parsing it as SUPERCLASS.")
           ;; NOTE: keep newlines for tree-sitter parse tree ranges.
           (unless (eql array-i #\newline)
             (setf array-i #\space))))
-      (finally (return (coerce source-array 'string))))))
+      (finally
+       (return
+         (coerce source-array (typecase source
+                                (base-string 'base-string)
+                                (t 'string))))))))
 
 (defun blot-ranges->parse-tree-ranges (ranges source
                                        &aux (row 0) (column 0)
@@ -2143,8 +2163,8 @@ determine the translation."
       (finally
        (return (group-by-two (reverse source-ranges)))))))
 
-(defun reinsert-blotted-ranges (parse-tree-ranges parse-tree)
-  "Reinsert the PARSE-TREE-RANGES from STRING back into PARSE-TREE."
+(defun insert-blots-into-parse-tree (parse-tree-ranges parse-tree)
+  "Insert blot nodes into PARSE-TREE at all the ranges in PARSE-TREE-RANGES."
   (labels ((point<= (point1 point2)
              "Return T if POINT1 occurs before or at POINT2."
              (let ((line1 (cadr point1))
@@ -2175,10 +2195,8 @@ determine the translation."
              "Collect ranges that occur before CHILD. These ranges are dropped
               from the stack."
              (lret ((before-ranges (take-while predicate parse-tree-ranges)))
-               (mapc (lambda (range)
-                       (declare (ignore range))
-                       (pop parse-tree-ranges))
-                     before-ranges)))
+               (setf parse-tree-ranges (drop (length before-ranges)
+                                             parse-tree-ranges))))
            (create-blot-nodes (predicate)
              "Create blot nodes for each blot range that satisfies PREDICATE.
               These ranges are removed from the parse-tree-ranges stack."
@@ -3253,7 +3271,7 @@ list specifications."
                (list parent-from parent-to)))))))
     (let ((blotted-ranges (blot-out-ranges superclass string)))
       (annotate-surrounding-text
-       (reinsert-blotted-ranges
+       (insert-blots-into-parse-tree
         (blot-ranges->parse-tree-ranges blotted-ranges string)
         (transform-tree
          (ensure-beginning-bound

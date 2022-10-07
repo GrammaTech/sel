@@ -24,7 +24,7 @@
                 :operation-matches-rule-p
                 :ordered-children
                 :blot-ranges->parse-tree-ranges
-                :reinsert-blotted-ranges))
+                :insert-blots-into-parse-tree))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -590,8 +590,8 @@ RIGHT_CURLY")
     (is (equal (blot-ranges->parse-tree-ranges blot-ranges source)
                expected-parse-tree-ranges))))
 
-(deftest tree-sitter-reinsert-blotted-ranges ()
-  "Blotted ranges are correctly reinserted into the parse tree."
+(deftest tree-sitter-insert-blots-into-parse-tree ()
+  "Blot nodes are correctly inserted into the parse tree."
   (let ((blotted-ranges '(((0 0) (3 0)) ((8 0) (9 0))))
         (parse-tree
           '(:TRANSLATION-UNIT ((0 0) (10 0))
@@ -609,5 +609,5 @@ RIGHT_CURLY")
                  (:= ((6 0) (7 0)) NIL)
                  (:BLOT ((8 0) (9 0)) nil)))
                (:|;| ((9 0) (10 0)) NIL)))))))
-    (is (equal (reinsert-blotted-ranges blotted-ranges parse-tree)
+    (is (equal (insert-blots-into-parse-tree blotted-ranges parse-tree)
                blotted-parse-tree))))
