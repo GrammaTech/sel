@@ -73,7 +73,7 @@ of WORDS in it."
 
 ;;; TODO: use a project path created for this test suite?
 (defconst +project-path+
-  "/home/nberch/quicklisp/local-projects/sel/test/etc/c-symbol-table-project/")
+  (make-pathname :directory (append1 +etc-dir+ "c-symbol-table-project")))
 
 
 ;;; Tests
@@ -92,8 +92,7 @@ of WORDS in it."
 (deftest ancestral-git-creates-work-tree ()
   "A new worktree is created on project creation."
   (with-c-git-cleanup (project +project-path+)
-    (let* ((path (worktree-path project))
-           (directory-path (pathname-directory path)))
+    (let ((path (worktree-path project)))
       (is (probe-file path)))))
 
 (deftest ancestral-git-cloned-creates-new-work-tree ()
@@ -130,7 +129,6 @@ of WORDS in it."
                       variant
                       "MUTATION" "FILE-PATH" "TARGETS" "diff")))))))
 
-;;; TODO: need to test for crossover.
 (deftest ancestral-git-worktree-evolve-crossover-commit ()
   "Crossover commits contain information on the crossover and a diff."
   (with-c-git-cleanup
