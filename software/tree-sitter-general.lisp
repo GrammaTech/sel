@@ -986,6 +986,8 @@ a declaration AST, return AST unchanged."
      (list ast))
     ((:macro (macro-declaration-ast))
      (list ast))
+    ((:namespace (namespace-declaration-ast))
+     (list ast))
     ((nil _)
      (error "Not a namespace: ~a" type))
     (((type symbol) _)

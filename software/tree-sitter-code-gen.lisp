@@ -1002,6 +1002,7 @@ for the language.")
         rust-loop-expression
         rust-while-expression
         rust-while-let-expression)
+       (:namespace-declaration-ast rust-mod-item)
        (:parameter-ast rust-parameter rust-self-parameter)
        (:parameters-ast rust-parameters)
        (:parenthesized-expression-ast rust-parenthesized-expression)
