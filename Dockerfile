@@ -79,5 +79,9 @@ RUN make -C /root/quicklisp/local-projects/sel dependencies libcxx-src
 RUN rm -rf /root/quicklisp/local-projects/sel
 RUN rm /root/quicklisp/local-projects/system-index.txt
 
+# Setup Ancestral Git
+RUN git config --system user.name "Software Evolution Library"
+RUN git config --system user.email "sel@grammatech.com"
+
 WORKDIR /root/quicklisp/local-projects
 

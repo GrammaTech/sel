@@ -56,17 +56,30 @@
 (defparameter *evolutionary-worktree-prefix* "EVOLUTIONARY-WORKTREE"
   "A prefix used to generate branch names for a worktree.")
 
+(defparameter *evolutionary-git-user* "Software Evolution Library"
+  "A user name for git commits produced by SEL.")
+
+(defparameter *evolutionary-git-email* "sel@grammatech.com"
+  "An e-mail for git commits produced by SEL.")
+
 (defgeneric commit (project message &key)
   (:documentation "Add MESSAGE as a commit to PROJECT. EMPTY-COMMIT can be set
 to T to allow for a commit that has no source changes associated with it.")
   (:method ((project ancestral-git) (message string) &key)
     (with-slots (worktree-path) project
-      (cmd :in worktree-path
-           "git add -A"
-           #-dbg :&> #-dbg nil)
-      (cmd :in worktree-path
-           "git commit -m" (list message) "--allow-empty" "--allow-empty-message"
-           #-dbg :&> #-dbg nil))))
+      (let ((*cmd-env* '(("GIT_AUTHOR_NAME" . *evolutionary-git-user*)
+                         ("GIT_AUTHOR_EMAIL" . *evolutionary-git-email*))))
+        (cmd :in worktree-path
+             "git add -A"
+             #-dbg :&> #-dbg nil)
+        (cmd :in worktree-path
+             "git"
+             "-c" (fmt "user.name='~a'" *evolutionary-git-user*)
+             "-c" (fmt "user.email='~a'" *evolutionary-git-email*)
+             "commit" "-m"
+             (list message)
+             "--allow-empty" "--allow-empty-message"
+             #-dbg :&> #-dbg nil)))))
 
 (defun update-tree-paths (project)
   "Update any paths in PROJECT that don't match PROJECT's worktree."
