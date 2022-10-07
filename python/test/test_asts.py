@@ -515,12 +515,18 @@ class ImportsTestDriver(unittest.TestCase):
         self.assertEqual([["os"], ["sys", "s"], ["json", None, "dump"]], imports)
 
 
-class UTF8TestDriver(unittest.TestCase):
-    def test_utf8_multibyte_characters(self):
-        root = AST.from_string('"反复请求多次"', ASTLanguage.Python)
-        rnge = root.ast_source_ranges()[0][1]
-        self.assertEqual('"反复请求多次"', root.source_text)
-        self.assertEqual([[1, 1], [1, 9]], rnge)
+class EncodingTestDriver(unittest.TestCase):
+    def test_encoding(self):
+        def run_test_encoding(text, encoding):
+            root = AST.from_string(
+                text.encode(encoding).decode(encoding),
+                ASTLanguage.Python,
+            )
+            self.assertEqual(text, root.source_text)
+
+        run_test_encoding('"反复请求多次"', "utf_8")
+        run_test_encoding("This file is in UTF-8! 👍!", "utf_8")
+        run_test_encoding("This file is in Latin-1! Wöw!", "latin_1")
 
 
 class InnerParentTestDriver(unittest.TestCase):

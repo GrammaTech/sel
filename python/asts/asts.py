@@ -1,4 +1,5 @@
 import atexit
+import base64
 import collections
 import enum
 import json
@@ -600,7 +601,12 @@ class _interface:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
                 return {"type": "ast", "oid": v.oid}
-            if isinstance(v, ASTLanguage):
+            elif isinstance(v, str):
+                return {
+                    "type": "b64string",
+                    "value": base64.b64encode(v.encode()).decode(),
+                }
+            elif isinstance(v, ASTLanguage):
                 return v.name
             elif isinstance(v, dict):
                 return {serialize(key): serialize(val) for key, val in v.items()}
@@ -615,6 +621,8 @@ class _interface:
             """Deserialize V from the form used with the JSON text interface."""
             if isinstance(v, dict) and v.get("oid", None):
                 return globals()[v["type"]](oid=v["oid"])
+            elif isinstance(v, dict) and v.get("type", None) == "b64string":
+                return base64.b64decode(v.get("value")).decode()
             elif isinstance(v, dict):
                 return {deserialize(key): deserialize(val) for key, val in v.items()}
             elif isinstance(v, list):

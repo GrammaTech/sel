@@ -1,6 +1,8 @@
 (defpackage :software-evolution-library/python/lisp/tree-sitter-interface
   (:nicknames :sel/py/lisp/ts-int)
   (:use :gt/full
+        :babel
+        :cl-base64
         :cl-json
         :trivial-backtrace
         :usocket
@@ -119,6 +121,9 @@ was performed.")
   (:method ((it ast))
     `((:type . ,(cl-to-python-type (type-of it)))
       (:oid . ,(oid it))))
+  (:method ((it string))
+    `((:type . "b64string")
+      (:value . ,(usb8-array-to-base64-string (string-to-octets it)))))
   (:method ((it list)) (mapcar-improper-list #'serialize it))
   (:method ((it t)) it))
 
@@ -127,8 +132,10 @@ was performed.")
   (:documentation "Deserialize IT from a form used with the JSON text interface.")
   (:method ((it list))
     (match it
-      ((alist (:oid . oid) (:type . "ast"))
+      ((alist (:type . "ast") (:oid . oid))
        (car (gethash oid *external-asts*)))
+      ((alist (:type . "b64string") (:value . b64string))
+       (octets-to-string (base64-string-to-usb8-array b64string)))
       ((guard it (every #'alist-pair-p it))
        (mapcar (lambda (pair)
                  (cons (deserialize (car pair)) (deserialize (cdr pair))))
