@@ -708,11 +708,25 @@
 
 (defmethod outer-declarations ((field cpp-field-declaration))
   (match field
+    ;; Functions.
     ((cpp-field-declaration
       (cpp-declarator
        (list (and declarator (cpp-function-declarator)))))
      (outer-declarations declarator))
+    ((access #'extract-nested-class
+             (and type (type ast)))
+     (outer-declarations type))
     (otherwise (call-next-method))))
+
+(defmethod outer-declarations ((spec cpp-enum-specifier))
+  (match spec
+    ((cpp-enum-specifier
+      (cpp-scope (or (cpp-struct) (cpp-class)))
+      (cpp-name name)
+      (cpp-body nil))
+     (values (list name) '(:type)))
+    (otherwise
+     (call-next-method))))
 
 (defmethod scope-ast-p ((ast cpp-namespace-definition)) t)
 (defmethod scope-ast-p ((ast cpp-declaration-list)) t)
@@ -784,7 +798,15 @@
   (multiple-value-bind (decls types) (call-next-method)
     (add-nested-class-declarations ast decls types)))
 
+(defmethod outer-declarations :around ((ast cpp-class-specifier))
+  (multiple-value-bind (decls types) (call-next-method)
+    (add-nested-class-declarations ast decls types)))
+
 (defmethod inner-declarations :around ((ast cpp-struct-specifier))
+  (multiple-value-bind (decls types) (call-next-method)
+    (add-nested-class-declarations ast decls types)))
+
+(defmethod outer-declarations :around ((ast cpp-struct-specifier))
   (multiple-value-bind (decls types) (call-next-method)
     (add-nested-class-declarations ast decls types)))
 

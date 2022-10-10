@@ -940,7 +940,7 @@ overloads to resolve.")
 (defun get-declaration-ast (type ast)
   "Like `get-declaration-asts', but selects the
 correct overload for AST if there is more than one."
-  (let ((decls (get-declaration-asts type ast)))
+  (let ((decls (remove-duplicates (get-declaration-asts type ast))))
     (match decls
       (() decls)
       ((list decl) decl)
