@@ -964,6 +964,14 @@ int z = fn() ? x : y;")))
                          (find-if (of-type 'cpp-string-literal)
                                   cpp)))))))
 
+(deftest test-enumerator-outer-declaration ()
+  (let* ((cpp (from-string 'cpp "enum class Unit { IN, CM };
+auto x = Unit::IN;"))
+         (in (find-if (op (source-text= _ "Unit::IN")) cpp)))
+    (with-attr-table cpp
+      (is (typep (get-declaration-ast :variable in)
+                 'cpp-enumerator)))))
+
 
 ;;; Parsing tests
 
