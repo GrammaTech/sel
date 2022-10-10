@@ -972,6 +972,30 @@ auto x = Unit::IN;"))
       (is (typep (get-declaration-ast :variable in)
                  'cpp-enumerator)))))
 
+(deftest test-nested-class-symbol-table ()
+  (let ((cpp (from-string 'cpp "struct Distance {
+  enum class Unit { IN, CM };
+  float x;
+  Unit unit;
+};")))
+    (with-attr-table cpp
+      (let ((units (collect-if (op (source-text= _ "Unit")) cpp)))
+        (is (length= 2 units))
+        (is (typep (get-declaration-ast :type (second units))
+                   'cpp-enum-specifier))))))
+
+(deftest test-nested-class-outer-symbol-table ()
+  (let ((cpp (from-string 'cpp "struct Distance {
+  enum class Unit { IN, CM };
+  float x;
+  Unit unit;
+};
+Distance::Unit y;")))
+    (with-attr-table cpp
+      (let ((unit (find-if (op (source-text= _ "Distance::Unit")) cpp)))
+        (is (typep (get-declaration-ast :type unit)
+                   'cpp-enum-specifier))))))
+
 
 ;;; Parsing tests
 
