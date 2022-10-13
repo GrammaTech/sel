@@ -11,6 +11,9 @@ spec = spec_from_file_location(
     "pkginfo.version",
     path.join(this_directory, "asts/version.py"),
 )
+assert spec
+assert spec.loader
+
 pkginfo = module_from_spec(spec)
 spec.loader.exec_module(pkginfo)
 

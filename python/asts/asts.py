@@ -434,6 +434,8 @@ class AST:
             # Transform the children of the AST node at PATH.
             new_root = root
             ast = new_root.lookup(path)
+            assert ast
+
             for child_slot, arity in ast.child_slots():
                 slot_value = ast.child_slot(child_slot)
                 if slot_value:
@@ -448,6 +450,8 @@ class AST:
 
             # Get the result of calling the TRANSFORMER on the AST at PATH.
             ast = new_root.lookup(path)
+            assert ast
+
             transformed = transformer(ast) or ast
             transformed = AST._ensure_ast(transformed, language=root.language)
 
@@ -510,6 +514,10 @@ class _interface:
     def _check_for_process_crash() -> None:
         """Check if the Lisp subprocess has crashed and, if so, throw an error."""
         if not _interface.is_process_running():
+            assert _interface._proc
+            assert _interface._proc.stdout
+            assert _interface._proc.stderr
+
             stdout = _interface._proc.stdout.read().decode().strip()
             stderr = _interface._proc.stderr.read().decode().strip()
 
@@ -552,6 +560,10 @@ class _interface:
                     # does not get SIGINT when our process does.
                     preexec_fn=lambda: os.setpgid(0, 0),
                 )
+                assert _interface._proc
+                assert _interface._proc.stdin
+                assert _interface._proc.stdout
+                assert _interface._proc.stderr
 
                 # If the interface was built using the deploy package for use
                 # in a python wheel file, read standard error waiting for the
@@ -623,7 +635,9 @@ class _interface:
             if isinstance(v, dict) and v.get("oid", None):
                 return globals()[v["type"]](oid=v["oid"])
             elif isinstance(v, dict) and v.get("type", None) == "b64string":
-                return base64.b64decode(v.get("value")).decode()
+                b64string = v.get("value")
+                assert isinstance(b64string, str)
+                return base64.b64decode(b64string).decode()
             elif isinstance(v, dict):
                 return {deserialize(key): deserialize(val) for key, val in v.items()}
             elif isinstance(v, list):
@@ -708,6 +722,10 @@ class _interface:
                     s.sendall(request)
                     response = recvline(s).strip()
             else:
+                assert _interface._proc
+                assert _interface._proc.stdin
+                assert _interface._proc.stdout
+
                 _interface._proc.stdin.write(request)
                 _interface._proc.stdin.flush()
                 response = _interface._proc.stdout.readline().strip()
