@@ -151,7 +151,7 @@ in top-down order.")
                      (list "@_property"
                            (fmt "def ~a(self) -> ~a:"
                                 (python-property-name class symbol)
-                                (if (zerop arity) "List[AST]" "AST"))
+                                (if (zerop arity) "List[AST]" "Optional[AST]"))
                            (fmt "    return self.child_slot(\"~a\")  # type: ignore"
                                 (cl-to-python-slot-name class symbol))))))
            (python-properties (class)
@@ -174,7 +174,7 @@ in top-down order.")
          (lisp-implementation-type) (lisp-implementation-version))
   (when help (show-help-for-tree-sitter-py-generator) (quit 0))
 
-  (format *standard-output* "from typing import List~%")
+  (format *standard-output* "from typing import List, Optional~%")
   (format *standard-output* "from .asts import AST~%~%")
   (format *standard-output* "_property = property~%~%~%")
   (nest (mapcar [{format *standard-output* "~a"} #'python-class-str])
