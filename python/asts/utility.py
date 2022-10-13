@@ -20,7 +20,7 @@ def generate_types_file() -> None:
         stdout, stderr = proc.communicate()
 
         if stderr:
-            raise RuntimeError(f"{cmd} crashed with:\n {stderr}")
+            raise RuntimeError(f"{cmd} crashed with:\n {stderr.decode()}")
         else:
             with open(types_file, "wb") as f:
                 f.write(stdout)
