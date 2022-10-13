@@ -20,6 +20,7 @@ from typing import (
     Callable,
     ClassVar,
     ByteString,
+    Deque,
     Dict,
     Generator,
     List,
@@ -362,7 +363,7 @@ class AST:
 
     def level_traverse(self) -> Generator["AST", None, None]:
         """Perform an AST traversal in level order, yielding subtrees."""
-        queue = collections.deque([])
+        queue: Deque = collections.deque([])
         queue.append(self)
         while queue:
             node = queue.popleft()
