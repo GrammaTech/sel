@@ -1,6 +1,9 @@
 black
 flake8
 md_toc
+mypy
 pre-commit
+pyright
 pytest
 twine
+types-setuptools

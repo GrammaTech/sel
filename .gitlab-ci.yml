@@ -58,6 +58,8 @@ test-ccl:
     - pre-commit install
     - pre-commit run --all-files
     - LISP=$LISP GT=yes make python-check
+    - pyright
+    - mypy python/
 
 test-python-sbcl:
   variables:
