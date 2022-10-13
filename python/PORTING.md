@@ -104,6 +104,11 @@ The child slot property was changed to a method instead.
 Clients using `ast.child_slot` should be rewritten
 as `ast.child_slots()`.
 
+## v0.7.x -> v0.8.0
+
+A child slot storing terminal ASTs was added to several macro
+AST types.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
