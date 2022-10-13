@@ -19,7 +19,6 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    ByteString,
     Deque,
     Dict,
     Generator,
@@ -502,7 +501,7 @@ class _interface:
     _DEFAULT_STARTUP_WAIT: Final[int] = 3
     _DEFAULT_SOCKET_TIMEOUT: Final[int] = 300
     _DEFAULT_GC_THRESHOLD: Final[int] = 128
-    _DEFAULT_QUIT_SENTINEL: Final[ByteString] = b"QUIT\n"
+    _DEFAULT_QUIT_SENTINEL: Final[bytes] = b"QUIT\n"
 
     _proc: ClassVar[Optional[subprocess.Popen]] = None
     _gc_oids: ClassVar[List[int]] = []
@@ -574,8 +573,8 @@ class _interface:
                 # application notification to be given.
                 if cmd != _interface._DEFAULT_CMD_NAME:
                     lines = []
-                    for line in _interface._proc.stderr:
-                        line = line.decode().strip()
+                    for item in _interface._proc.stderr:
+                        line = item.decode().strip()
                         if line == "==> Launching application.":
                             break
                         lines.append(line)
@@ -666,10 +665,10 @@ class _interface:
 
         # Build the request JSON to send to the subprocess.
         request = [fn] + serialize(list(args)) + serialize(list(kwargs.items()))
-        request = f"{json.dumps(request)}\n".encode()
+        encoded_request = f"{json.dumps(request)}\n".encode()
 
         # Send the request to the tree-sitter-interface and receive the response.
-        response = _interface._communicate(request)
+        response = _interface._communicate(encoded_request)
 
         # Load the response from the Lisp subprocess.
         return deserialize(handle_errors(json.loads(response.decode())))
@@ -687,14 +686,14 @@ class _interface:
                 "gc",
                 [_interface._gc_oids.pop() for _ in range(len(_interface._gc_oids))],
             ]
-            request = f"{json.dumps(request)}\n".encode()
-            _interface._communicate(request)
+            encoded_request = f"{json.dumps(request)}\n".encode()
+            _interface._communicate(encoded_request)
 
     @staticmethod
-    def _communicate(request: ByteString) -> ByteString:
+    def _communicate(request: bytes) -> bytes:
         """Communicate request to the Lisp subprocess and receive response."""
 
-        def recvline(socket: socket.socket) -> ByteString:
+        def recvline(socket: socket.socket) -> bytes:
             """Read a single line from the socket."""
             chunks = []
             while True:
@@ -703,7 +702,7 @@ class _interface:
                 if chunk.endswith(b"\n"):
                     break
 
-            response = "".join(chunks)
+            response = b"".join(chunks)
             return response
 
         # Send the request to the Lisp subprocess, either over a socket or
