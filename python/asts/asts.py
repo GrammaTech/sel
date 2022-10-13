@@ -295,13 +295,14 @@ class AST:
         else:
             return None
 
-    def child_slot(self, slot: str) -> Optional[Union["AST", List["AST"]]]:
+    def child_slot(self, slot: str) -> Union[Optional["AST"], List["AST"]]:
         """Return the contents of the AST's child slot value."""
         arity = self.child_slot_arity(slot)
         if arity is None:
             return None
         else:
-            return _interface.dispatch(AST.child_slot.__name__, self, slot)
+            slot_value = _interface.dispatch(AST.child_slot.__name__, self, slot)
+            return slot_value if arity or slot_value else []
 
     def parent(self, root: "AST") -> Optional["AST"]:
         """Return AST's parent under ROOT."""
