@@ -162,7 +162,7 @@ in top-down order.")
                            (format nil "def ~a(self) -> ~a:"
                                    (python-property-name class symbol)
                                    (if (zerop arity) "List[AST]" "AST"))
-                           (format nil "    return self.child_slot(\"~a\")"
+                           (format nil "    return self.child_slot(\"~a\")  # type: ignore"
                                    (cl-to-python-slot-name class symbol))))))
            (python-properties (class)
              "Return a list defining python properties for the given CLASS."
