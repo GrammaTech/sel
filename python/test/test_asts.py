@@ -388,7 +388,7 @@ class TransformTestDriver(unittest.TestCase):
         def is_print_statement(ast: AST) -> bool:
             """Return TRUE if AST is an statement calling the print function."""
             if isinstance(ast, ExpressionStatementAST):
-                fn_calls = [c.call_function().source_text for c in ast.call_asts()]
+                fn_calls = [c.call_function().source_text for c in ast.call_asts()]  # type: ignore
                 return "print" in fn_calls
             return False
 
