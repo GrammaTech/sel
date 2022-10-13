@@ -2,7 +2,32 @@ import unittest
 import copy
 
 from asts.asts import AST, ASTException, ASTLanguage, LiteralOrAST
-from asts.types import *  # noqa: F403
+from asts.types import (
+    CCastExpression,
+    CComment,
+    CompoundAST,
+    CSourceTextFragment,
+    CSourceTextFragmentTree,
+    CStringLiteral,
+    ErrorVariationPoint,
+    ExpressionStatementAST,
+    IdentifierAST,
+    InnerParent,
+    PythonAdd,
+    PythonAssignment,
+    PythonBinaryOperator,
+    PythonCall,
+    PythonComparisonOperator,
+    PythonExpressionStatement0,
+    PythonFunctionDefinition,
+    PythonGreaterThan,
+    PythonIdentifier,
+    PythonInteger,
+    PythonModule,
+    RootAST,
+    SourceTextFragmentVariationPoint,
+    VariationPoint,
+)
 from pathlib import Path
 from typing import Optional, Text
 
@@ -211,7 +236,7 @@ class ASTTemplatesTestDriver(unittest.TestCase):
     def test_ast_template(self):
         a = AST.ast_template("$ID = 1", ASTLanguage.Python, id="x")
         self.assertEqual(a.source_text, "x = 1")
-        self.assertIsInstance(a, PythonAssignment0)
+        self.assertIsInstance(a, PythonAssignment)
 
         a = AST.ast_template("fn(@ARGS)", ASTLanguage.Python, args=[1, 2, 3])
         self.assertEqual(a.source_text, "fn(1, 2, 3)")
@@ -219,7 +244,7 @@ class ASTTemplatesTestDriver(unittest.TestCase):
 
         a = AST.ast_template("$1 = $2", ASTLanguage.Python, "x", 1)
         self.assertEqual(a.source_text, "x = 1")
-        self.assertIsInstance(a, PythonAssignment0)
+        self.assertIsInstance(a, PythonAssignment)
 
         a = AST.ast_template("fn(@1)", ASTLanguage.Python, [1, 2, 3])
         self.assertEqual(a.source_text, "fn(1, 2, 3)")
@@ -228,14 +253,14 @@ class ASTTemplatesTestDriver(unittest.TestCase):
         lhs = AST.from_string("x", ASTLanguage.Python, deepest=True)
         a = AST.ast_template("$1 = value", ASTLanguage.Python, lhs)
         self.assertEqual(a.source_text, "x = value")
-        self.assertIsInstance(a, PythonAssignment0)
+        self.assertIsInstance(a, PythonAssignment)
 
         template = "$LEFT_HAND_SIDE = $RIGHT_HAND_SIDE"
         a = AST.ast_template(
             template, ASTLanguage.Python, left_hand_side="x", right_hand_side=1
         )
         self.assertEqual(a.source_text, "x = 1")
-        self.assertIsInstance(a, PythonAssignment0)
+        self.assertIsInstance(a, PythonAssignment)
 
     def test_asts_from_template(self):
         asts = AST.asts_from_template("$1;", ASTLanguage.C, '"Foo: %d"')
@@ -490,14 +515,14 @@ class VarsInScopeTestDriver(unittest.TestCase):
         self.assertEqual(names[2], "bar")
 
         scopes = [var["scope"] for var in vars_in_scope]
-        self.assertIsInstance(scopes[0], PythonFunctionDefinition2)
-        self.assertIsInstance(scopes[1], PythonFunctionDefinition2)
+        self.assertIsInstance(scopes[0], PythonFunctionDefinition)
+        self.assertIsInstance(scopes[1], PythonFunctionDefinition)
         self.assertIsInstance(scopes[2], PythonModule)
 
         decls = [var["decl"] for var in vars_in_scope]
         self.assertIsInstance(decls[0], PythonIdentifier)
         self.assertIsInstance(decls[1], PythonIdentifier)
-        self.assertIsInstance(decls[2], PythonFunctionDefinition2)
+        self.assertIsInstance(decls[2], PythonFunctionDefinition)
 
     def test_vars_in_scope_no_globals(self):
         root = AST.from_string("def bar(a, b): return a*b", ASTLanguage.Python)
@@ -509,8 +534,8 @@ class VarsInScopeTestDriver(unittest.TestCase):
         self.assertEqual(names[1], "b")
 
         scopes = [var["scope"] for var in vars_in_scope]
-        self.assertIsInstance(scopes[0], PythonFunctionDefinition2)
-        self.assertIsInstance(scopes[1], PythonFunctionDefinition2)
+        self.assertIsInstance(scopes[0], PythonFunctionDefinition)
+        self.assertIsInstance(scopes[1], PythonFunctionDefinition)
 
         decls = [var["decl"] for var in vars_in_scope]
         self.assertIsInstance(decls[0], PythonIdentifier)
