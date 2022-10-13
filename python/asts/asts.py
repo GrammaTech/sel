@@ -126,7 +126,7 @@ class AST:
     def ast_template(
         template: str,
         language: ASTLanguage,
-        *args: Tuple[LiteralOrAST],
+        *args: LiteralOrAST,
         **kwargs: LiteralOrAST,
     ) -> "AST":
         """
@@ -150,7 +150,7 @@ class AST:
     def asts_from_template(
         template: str,
         language: ASTLanguage,
-        *args: Tuple[LiteralOrAST],
+        *args: LiteralOrAST,
     ) -> List["AST"]:
         """
         Build and destructure component ASTs using template syntax.
@@ -588,7 +588,7 @@ class _interface:
             _interface._communicate(_interface._DEFAULT_QUIT_SENTINEL)
 
     @staticmethod
-    def dispatch(*args: Tuple[Any], **kwargs: Any) -> Any:
+    def dispatch(*args: Any, **kwargs: Any) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
         def handle_errors(data: Any) -> Any:
