@@ -333,8 +333,10 @@ class TransformTestDriver(unittest.TestCase):
     def test_transform_x_to_y(self):
         def x_to_y(ast: AST) -> Optional[LiteralOrAST]:
             """Convert 'x' identifier ASTs to 'y'."""
+            result = None
             if isinstance(ast, IdentifierAST) and "x" == ast.source_text:
-                return "y"
+                result = "y"
+            return result
 
         transformed = AST.transform(self.root, x_to_y)
         expected = slurp(DATA_DIR / "transform" / "transform_x_to_y.py")
@@ -343,11 +345,15 @@ class TransformTestDriver(unittest.TestCase):
     def test_transform_x_to_z_gt(self):
         def x_to_z_gt(ast: AST) -> Optional[LiteralOrAST]:
             """Convert 'x' identifiers in greater than operations to 'z'."""
+            result = None
             if isinstance(ast, PythonComparisonOperator):
-                lhs, *rest = ast.child_slot("CHILDREN")
-                operator, *_ = ast.child_slot("OPERATORS")
+                children = ast.child_slot("CHILDREN") or []
+                operators = ast.child_slot("OPERATORS") or []
+                lhs, *rest = children
+                operator, *_ = operators
                 if isinstance(operator, PythonGreaterThan) and lhs.source_text == "x":
-                    return AST.copy(ast, children=["z", *rest])
+                    result = AST.copy(ast, children=["z", *rest])
+            return result
 
         transformed = AST.transform(self.root, x_to_z_gt)
         expected = slurp(DATA_DIR / "transform" / "transform_x_to_z_gt.py")
@@ -363,14 +369,17 @@ class TransformTestDriver(unittest.TestCase):
 
         def delete_print_statements(ast: AST) -> Optional[LiteralOrAST]:
             """Delete all print statements from the children of AST."""
+            result = None
             if isinstance(ast, RootAST) or isinstance(ast, CompoundAST):
                 # Build a list of new children under the AST, eliding print statements.
                 new_children = [c for c in ast.children if not is_print_statement(c)]
 
                 # Special case; if no children remain, add a "pass" statement nop to
                 # avoid syntax errors.
-                new_children = new_children if new_children else ["pass\n"]
-                return AST.copy(ast, children=new_children)
+                pass_stmt = AST.from_string("pass\n", ASTLanguage.Python, deepest=True)
+                new_children = new_children if new_children else [pass_stmt]
+                result = AST.copy(ast, children=new_children)
+            return result
 
         transformed = AST.transform(self.root, delete_print_statements)
         expected = slurp(DATA_DIR / "transform" / "delete_print_statements.py")

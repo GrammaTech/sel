@@ -25,6 +25,7 @@ from typing import (
     Generator,
     List,
     Optional,
+    Sequence,
     Tuple,
     Union,
 )
@@ -175,7 +176,7 @@ class AST:
     @staticmethod
     def copy(
         ast: "AST",
-        **kwargs: Union[LiteralOrAST, List[LiteralOrAST]],
+        **kwargs: Union[LiteralOrAST, Sequence[LiteralOrAST]],
     ) -> "AST":
         """
         Create a copy of AST, optionally passing keyword arguments mapping
@@ -195,7 +196,7 @@ class AST:
         for key, value in kwargs.items():
             if isinstance(value, list):
                 kwargs[key] = [AST._ensure_ast(a, language=language) for a in value]
-            else:
+            elif isinstance(value, (str, float, int, AST)):
                 kwargs[key] = AST._ensure_ast(value, language=language)
 
         return _interface.dispatch(AST.copy.__name__, ast, **kwargs)
@@ -210,7 +211,7 @@ class AST:
 
     def __del__(self) -> None:
         _interface.dispatch(AST.__del__.__name__, self.oid)
-        self._oid = None
+        self._oid = -1
 
     def __copy__(self) -> "AST":
         """Return a shallow copy of AST conforming to copy.copy."""
@@ -439,10 +440,11 @@ class AST:
 
             for child_slot, arity in ast.child_slots():
                 slot_value = ast.child_slot(child_slot)
-                if slot_value:
-                    children = slot_value if arity == 0 else [slot_value]
-                else:
-                    children = []
+                children = []
+                if isinstance(slot_value, list):
+                    children = slot_value
+                elif isinstance(slot_value, AST):
+                    children = [slot_value]
 
                 for child in children:
                     new_root = transform_helper(
