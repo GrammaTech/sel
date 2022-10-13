@@ -303,7 +303,7 @@ class AST:
         else:
             return _interface.dispatch(AST.child_slot.__name__, self, slot)
 
-    def parent(self, root: "AST") -> "AST":
+    def parent(self, root: "AST") -> Optional["AST"]:
         """Return AST's parent under ROOT."""
         return _interface.dispatch(AST.parent.__name__, root, self)
 
