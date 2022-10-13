@@ -497,8 +497,8 @@ class _interface:
     _DEFAULT_QUIT_SENTINEL: Final[ByteString] = b"QUIT\n"
 
     _proc: ClassVar[Optional[subprocess.Popen]] = None
-    _lock: ClassVar[multiprocessing.RLock] = multiprocessing.RLock()
     _gc_oids: ClassVar[List[int]] = []
+    _lock: ClassVar = multiprocessing.RLock()
 
     @staticmethod
     def is_process_running() -> bool:
