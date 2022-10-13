@@ -329,7 +329,7 @@ class AST:
         """Return any call ASTs under AST."""
         return [c for c in self if isinstance(c, CallAST)]
 
-    def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> Dict:
+    def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> List[Dict]:
         """Return all variables in enclosing scopes, optionally including globals."""
         vars_in_scope = _interface.dispatch(
             AST.get_vars_in_scope.__name__,
