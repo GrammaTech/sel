@@ -113,7 +113,7 @@ the trailing characters of the symbol string SYMNAME."
                           ("?" . "question")
                           (":" . "colon")
                           (";" . "semicolon")
-                          ("->" . "arrow")
+                          ("->" . "dash-arrow")
                           ("..." . "ellipsis")
                           ("\\n" . "newline")
                           ;; Quote terminals
@@ -135,7 +135,7 @@ the trailing characters of the symbol string SYMNAME."
                           ("{{" . "double-open-brace")
                           ("}}" . "double-close-brace")
                           ;; Javascript terminals
-                          ("=>" . "arrow")
+                          ("=>" . "equal-arrow")
                           ("?." . "chaining")
                           ("${" . "open-template-literal")
                           ("??" . "nullish-coalescing")
