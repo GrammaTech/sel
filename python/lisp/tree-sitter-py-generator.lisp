@@ -37,6 +37,10 @@
   :documentation "List of language-agnostic AST classes which should always
 be part of the python API.")
 
+(define-constant +ast-terminals-skip-output+ '(rust-type rust-literal)
+  :test #'equalp
+  :documentation "List of special case AST terminals to not output to python.")
+
 (-> handle-languages-argument (string) (values list &optional))
 (defun handle-languages-argument (languages)
   "Transform the input comma-delimited source languages into a list of
@@ -56,6 +60,11 @@ language-specific AST types."
 (defun remove-duplicates-from-end (l)
   "Remove duplicates from l, from right to left."
   (remove-duplicates l :from-end t))
+
+(-> remove-special-case-classes (list) list)
+(defun remove-special-case-classes (l)
+  "Remove special case classes from l."
+  (remove-if {member _ +ast-terminals-skip-output+} l :key #'class-name))
 
 (-> tree-sitter-symbols () (values list &optional))
 (defun tree-sitter-symbols ()
@@ -180,6 +189,7 @@ in top-down order.")
   (format *standard-output* "from backports.cached_property import cached_property~%")
   (format *standard-output* "from .asts import AST~%~%")
   (nest (mapcar [{format *standard-output* "~a"} #'python-class-str])
+        (remove-special-case-classes)
         (remove-duplicates-from-end)
         (mappend #'class-and-python-dependencies)
         (remove-if-not {ast-symbol-p _ languages})
