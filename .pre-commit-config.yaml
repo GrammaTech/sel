@@ -32,3 +32,4 @@ repos:
         args: [-p, "github"]
 
 files: ^python/
+exclude: ^python/lisp

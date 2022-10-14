@@ -25,20 +25,45 @@
     `((("help" #\h #\?) :type boolean :optional t
        :documentation "display help output"))))
 
-(define-constant +ast-languages+
-    '(c-ast cpp-ast java-ast javascript-ast python-ast
-      rust-ast typescript-ast typescript-txs-ast)
-  :test #'equalp
-  :documentation "List of AST language superclasses to generate python for.")
+(defparameter +ast-languages+
+  '(c-ast cpp-ast java-ast javascript-ast python-ast
+    rust-ast typescript-ast typescript-txs-ast)
+  "List of AST language superclasses to generate python for.")
 
-(define-constant +ast-classes-language-agnostic+ '(inner-parent)
-  :test #'equalp
-  :documentation "List of language-agnostic AST classes which should always
+(defparameter +ast-classes-language-agnostic+ '(inner-parent)
+  "List of language-agnostic AST classes which should always
 be part of the python API.")
 
-(define-constant +ast-terminals-skip-output+ '(rust-type rust-literal)
-  :test #'equalp
-  :documentation "List of special case AST terminals to not output to python.")
+(defparameter +ast-terminals-skip-output+ '(rust-type rust-literal)
+  "List of special case AST terminals to not output to python.")
+
+(defparameter +ast-classes-extra-methods-path+
+    (asdf:system-relative-pathname :software-evolution-library
+                                   "python/lisp/data/methods.py")
+  "Path to file containing extra Python methods to define
+on certain generated classes.")
+
+(-> load-extra-methods () hash-table)
+(defun load-extra-methods ()
+  "Return a hash-table mapping AST classes to user-defined extra Python
+methods which should be defined on their generated classes."
+  (labels ((python-to-cl-class (class-ast)
+             (string-case (source-text (python-name class-ast))
+               ("FunctionAST" (find-class 'function-ast))
+               ("CallAST" (find-class 'call-ast))))
+           (methods (class-ast)
+             (children (python-body class-ast))))
+    (nest (alist-hash-table)
+          (mapcar «cons #'python-to-cl-class #'methods»)
+          (remove-if-not #'python-to-cl-class)
+          (remove-if-not (of-type 'class-ast))
+          (children)
+          (convert 'python-ast)
+          (read-file-into-string +ast-classes-extra-methods-path+))))
+
+(defparameter +ast-classes-extra-methods+ (load-extra-methods)
+  "Hash-table mapping AST classes to extra Python methods which
+should be defined on their generated classes.")
 
 (-> ast-symbol-p (symbol &optional list) list)
 (defun ast-symbol-p (sym &optional (languages +ast-languages+))
@@ -156,16 +181,24 @@ in top-down order.")
                                 (cl-to-python-slot-name class symbol))))))
            (python-properties (class)
              "Return a list defining python properties for the given CLASS."
-             (or (nest (mapcar #'indent)
-                       (mapcar {python-property class})
-                       (python-child-slots class))
+             (nest (mapcar #'indent)
+                   (mapcar {python-property class})
+                   (python-child-slots class)))
+           (python-methods (class)
+             "Return a list of user-defined extra methods for the given CLASS."
+             (nest (mapcar [#'indent #'source-text])
+                   (gethash class +ast-classes-extra-methods+)))
+           (python-properties-and-methods (class)
+             "Return a list of python properties and methods for the given CLASS."
+             (or (append (python-properties class)
+                         (python-methods class))
                  (list (indent "pass")))))
 
     (ensure-finalized class)
     (fmt "class ~a(~{~a~^, ~}):~%~{~a~^~%~%~}~%~%~%"
          (cl-to-python-type class)
          (python-superclasses class)
-         (python-properties class))))
+         (python-properties-and-methods class))))
 
 (define-command tree-sitter-py-generator (&spec +command-line-options+)
   "Command line interface for tree-sitter python class generator."
@@ -175,7 +208,7 @@ in top-down order.")
   (when help (show-help-for-tree-sitter-py-generator) (quit 0))
 
   (format *standard-output* "from typing import List, Optional~%")
-  (format *standard-output* "from .asts import AST~%~%")
+  (format *standard-output* "from .asts import AST, _interface~%~%")
   (format *standard-output* "_property = property~%~%~%")
   (nest (mapcar [{format *standard-output* "~a"} #'python-class-str])
         (remove-special-case-classes)
