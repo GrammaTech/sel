@@ -1,0 +1,5 @@
+{
+    "include": ["python"],
+    "reportGeneralTypeIssues": false,
+    "useLibraryCodeForTypes": true
+}
