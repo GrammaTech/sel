@@ -25,9 +25,9 @@
     `((("help" #\h #\?) :type boolean :optional t
        :documentation "display help output")
       (("languages" #\L) :type string :optional t
-       :initial-value ,(format nil "~{~a~^,~}"
-                               (list "c" "cpp" "java" "javascript" "python"
-                                     "rust" "typescript-ts" "typescript-tsx"))
+       :initial-value ,(fmt "~{~a~^,~}"
+                            (list "c" "cpp" "java" "javascript" "python"
+                                  "rust" "typescript-ts" "typescript-tsx"))
        :action #'handle-languages-argument
        :documentation
        "comma-delimited source languages of the ASTs to dump"))))
@@ -46,7 +46,7 @@ be part of the python API.")
   "Transform the input comma-delimited source languages into a list of
 language-specific AST types."
   (nest (mapcar (lambda (language)
-                  (intern (format nil "~a-AST" (string-upcase language))
+                  (intern (fmt "~a-AST" (string-upcase language))
                           :sel/sw/tree-sitter)))
         (split-sequence #\, languages)))
 
@@ -159,11 +159,11 @@ in top-down order.")
              (destructuring-bind (symbol . arity) slot
                (nest (join-with-newlines)
                      (list "@cached_property"
-                           (format nil "def ~a(self) -> ~a:"
-                                   (python-property-name class symbol)
-                                   (if (zerop arity) "List[AST]" "AST"))
-                           (format nil "    return self.child_slot(\"~a\")  # type: ignore"
-                                   (cl-to-python-slot-name class symbol))))))
+                           (fmt "def ~a(self) -> ~a:"
+                                (python-property-name class symbol)
+                                (if (zerop arity) "List[AST]" "AST"))
+                           (fmt "    return self.child_slot(\"~a\")  # type: ignore"
+                                (cl-to-python-slot-name class symbol))))))
            (python-properties (class)
              "Return a list defining python properties for the given CLASS."
              (or (nest (mapcar #'indent)
@@ -172,17 +172,16 @@ in top-down order.")
                  (list (indent "pass")))))
 
     (ensure-finalized class)
-    (format nil "class ~a(~{~a~^, ~}):~%~{~a~^~%~%~}~%~%~%"
-            (cl-to-python-type class)
-            (python-superclasses class)
-            (python-properties class))))
+    (fmt "class ~a(~{~a~^, ~}):~%~{~a~^~%~%~}~%~%~%"
+         (cl-to-python-type class)
+         (python-superclasses class)
+         (python-properties class))))
 
 (define-command tree-sitter-py-generator (&spec +command-line-options+)
   "Command line interface for tree-sitter python class generator."
-  #.(format nil
-            "~%Built from SEL ~a, and ~a ~a.~%"
-            +software-evolution-library-version+
-            (lisp-implementation-type) (lisp-implementation-version))
+  #.(fmt "~%Built from SEL ~a, and ~a ~a.~%"
+         +software-evolution-library-version+
+         (lisp-implementation-type) (lisp-implementation-version))
   (when help (show-help-for-tree-sitter-py-generator) (quit 0))
 
   (format *standard-output* "from typing import List~%")

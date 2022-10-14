@@ -178,10 +178,9 @@ function name from the API followed by the arguments."
                                                      +interactive-command-line-options+
                                                      +interface-command-line-options+))
   "Tree-sitter command-line interface."
-  #.(format nil
-            "~%Built from SEL ~a, and ~a ~a.~%"
-            +software-evolution-library-version+
-            (lisp-implementation-type) (lisp-implementation-version))
+  #.(fmt "~%Built from SEL ~a, and ~a ~a.~%"
+         +software-evolution-library-version+
+         (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose load eval language manual))
   (when help (show-help-for-tree-sitter-interface) (exit-command tree-sitter-interface 0))
   (if port

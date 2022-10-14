@@ -47,11 +47,11 @@ python type identifier.")
 the trailing characters of the symbol string SYMNAME."
   `(cond ,@(mapcar
              (lambda (pair)
-               (let ((regex (format nil "(.*[A-Za-z0-9]-)(?i)(~a)$"
-                                        (if (equal (car pair) "\\n")
-                                            (car pair)
-                                            (quote-meta-chars (car pair)))))
-                     (replacement (format nil "\\1~a" (cdr pair))))
+               (let ((regex (fmt "(.*[A-Za-z0-9]-)(?i)(~a)$"
+                                 (if (equal (car pair) "\\n")
+                                     (car pair)
+                                     (quote-meta-chars (car pair)))))
+                     (replacement (fmt "\\1~a" (cdr pair))))
                  `((scan ,regex ,symname)
                    (regex-replace ,regex ,symname ,replacement
                                   :preserve-case t))))
