@@ -330,14 +330,6 @@ class AST:
         """Return library providing AST's identifier."""
         return _interface.dispatch(AST.provided_by.__name__, root, self)
 
-    def function_asts(self) -> List["AST"]:
-        """Return any function ASTs under AST."""
-        return [c for c in self if isinstance(c, FunctionAST)]
-
-    def call_asts(self) -> List["AST"]:
-        """Return any call ASTs under AST."""
-        return [c for c in self if isinstance(c, CallAST)]
-
     def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> List[Dict]:
         """Return all variables in enclosing scopes, optionally including globals."""
         vars_in_scope = _interface.dispatch(
@@ -391,7 +383,6 @@ class AST:
         value = AST._ensure_ast(value, language=root.language)
 
         AST._root_mutation_check(root, pt)
-        AST._mutation_value_check(value)
         return _interface.dispatch(AST.replace.__name__, root, pt, value)
 
     @staticmethod
@@ -400,7 +391,6 @@ class AST:
         value = AST._ensure_ast(value, language=root.language)
 
         AST._root_mutation_check(root, pt)
-        AST._mutation_value_check(value)
         return _interface.dispatch(AST.insert.__name__, root, pt, value)
 
     @staticmethod
@@ -488,13 +478,6 @@ class AST:
     def _root_mutation_check(root: "AST", pt: "AST") -> None:
         """Sanity check to ensure we are not mutating the root node directly."""
         assert root != pt, "Cannot mutate the root node of an AST."
-
-    @staticmethod
-    def _mutation_value_check(ast: "AST") -> None:
-        """Sanity check to ensure we are not inserting a root node into another AST."""
-        assert not isinstance(
-            ast, RootAST
-        ), "Cannot use a root node as a mutation value."
 
 
 # Tree-sitter interface process management

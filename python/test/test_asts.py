@@ -28,6 +28,7 @@ from asts.types import (
     SourceTextFragmentVariationPoint,
     VariationPoint,
 )
+from asts.utility import call_asts, function_asts
 from pathlib import Path
 from typing import Optional, Text
 
@@ -388,7 +389,7 @@ class TransformTestDriver(unittest.TestCase):
         def is_print_statement(ast: AST) -> bool:
             """Return TRUE if AST is an statement calling the print function."""
             if isinstance(ast, ExpressionStatementAST):
-                fn_calls = [c.call_function().source_text for c in ast.call_asts()]  # type: ignore
+                fn_calls = [c.call_function().source_text for c in call_asts(ast)]  # type: ignore
                 return "print" in fn_calls
             return False
 
@@ -434,22 +435,22 @@ class FunctionTestDriver(unittest.TestCase):
 
     def test_no_functions(self):
         ast = AST.from_string("", ASTLanguage.Python)
-        self.assertEqual([], ast.function_asts())
+        self.assertEqual([], function_asts(ast))
 
     def test_no_params(self):
         ast = AST.from_string("def foo(): return None", ASTLanguage.Python)
-        self.assertEqual(1, len(ast.function_asts()))
+        self.assertEqual(1, len(function_asts(ast)))
 
-        function = ast.function_asts()[0]
+        function = function_asts(ast)[0]
         self.assertEqual("foo", function.function_name())
         self.assertEqual([], function.function_parameters())
         self.assertEqual("return None", function.function_body().source_text)
 
     def test_multiple_parameters(self):
         ast = AST.from_string("def bar(a, b): return a*b", ASTLanguage.Python)
-        self.assertEqual(1, len(ast.function_asts()))
+        self.assertEqual(1, len(function_asts(ast)))
 
-        function = ast.function_asts()[0]
+        function = function_asts(ast)[0]
         params = [p.source_text for p in function.function_parameters()]
         self.assertEqual("bar", function.function_name())
         self.assertEqual(["a", "b"], params)
@@ -464,22 +465,22 @@ class CallsiteTestDriver(unittest.TestCase):
 
     def test_no_calls(self):
         root = AST.from_string("", ASTLanguage.Python)
-        self.assertEqual([], root.call_asts())
+        self.assertEqual([], call_asts(root))
 
     def test_no_arguments(self):
         root = AST.from_string("foo()", ASTLanguage.Python)
-        self.assertEqual(1, len(root.call_asts()))
+        self.assertEqual(1, len(call_asts(root)))
 
-        call = root.call_asts()[0]
+        call = call_asts(root)[0]
         self.assertEqual(None, call.provided_by(root))
         self.assertEqual("foo", call.call_function().source_text)
         self.assertEqual([], call.call_arguments())
 
     def test_multiple_arguments(self):
         root = AST.from_string("bar(a, b)", ASTLanguage.Python)
-        self.assertEqual(1, len(root.call_asts()))
+        self.assertEqual(1, len(call_asts(root)))
 
-        call = root.call_asts()[0]
+        call = call_asts(root)[0]
         args = [a.source_text for a in call.call_arguments()]
         self.assertEqual(None, call.provided_by(root))
         self.assertEqual("bar", call.call_function().source_text)
@@ -487,9 +488,9 @@ class CallsiteTestDriver(unittest.TestCase):
 
     def test_provided_by(self):
         root = AST.from_string("import os\nos.path.join(a, b)", ASTLanguage.Python)
-        self.assertEqual(1, len(root.call_asts()))
+        self.assertEqual(1, len(call_asts(root)))
 
-        call = root.call_asts()[0]
+        call = call_asts(root)[0]
         self.assertEqual("os.path", call.provided_by(root))
 
 
