@@ -30,7 +30,7 @@ from typing import (
 )
 from backports.cached_property import cached_property
 from typing_extensions import Final
-from .utility import add_method, generate_types_file
+from .utility import add_method
 
 LiteralOrAST = Union[int, float, str, "AST"]
 
@@ -752,7 +752,29 @@ _interface.start()
 atexit.register(_interface.stop)
 
 # Generated tree-sitter AST types and user-defined method specializations
-generate_types_file()
+def _generate_types_file() -> None:
+    """
+    Generate a python file with tree-sitter AST types using the
+    tree-sitter-py-generator if such file does not yet exist.
+    """
+    types_file = Path(__file__).parent / "types.py"
+    cmd = "tree-sitter-py-generator"
+
+    if not types_file.exists():
+        if not shutil.which(cmd):
+            raise RuntimeError(f"{cmd} binary must be on your $PATH.")
+
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = proc.communicate()
+
+        if stderr:
+            raise RuntimeError(f"{cmd} crashed with:\n {stderr.decode()}")
+        else:
+            with open(types_file, "wb") as f:
+                f.write(stdout)
+
+
+_generate_types_file()
 from .types import *  # noqa: E402, F401, F403
 
 
