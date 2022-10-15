@@ -308,13 +308,13 @@ subclass of a given type, as shown below:
 ...     language=asts.ASTLanguage.Python,
 ...     deepest=True
 ... )
->>> isinstance(root, asts.PythonCall)
+>>> isinstance(root, asts.types.PythonCall)
 True
->>> isinstance(root, asts.CallAST)
+>>> isinstance(root, asts.types.CallAST)
 True
->>> isinstance(root, asts.PythonAST)
+>>> isinstance(root, asts.types.PythonAST)
 True
->>> isinstance(root, asts.CStringLiteral)
+>>> isinstance(root, asts.types.CStringLiteral)
 False
 ```
 
@@ -431,7 +431,7 @@ is the variable "x", the following match clause may be used:
 ...     deepest=True
 ... )
 >>> match root:
-...     case asts.PythonAssignment(left=asts.IdentifierAST(source_text="x")):
+...     case asts.types.PythonAssignment(left=asts.types.IdentifierAST(source_text="x")):
 ...         print("Match found")
 ...
 Match found
@@ -448,7 +448,7 @@ clause may be used:
 ...     deepest=True
 ... )
 >>> match root:
-...     case asts.PythonAssignment(left=lhs, right=rhs):
+...     case asts.types.PythonAssignment(left=lhs, right=rhs):
 ...         [lhs, rhs]
 ...
 [<asts.types.PythonIdentifier 0x4>, <asts.types.PythonInteger 0x5>]
@@ -558,7 +558,7 @@ As expected, ASTs may be also be used in list comprehensions as shown:
 
 ```python
 >>> root = asts.AST.from_string("x + 88", language=asts.ASTLanguage.Python)
->>> ids = [a for a in root if isinstance(a, asts.PythonIdentifier)]
+>>> ids = [a for a in root if isinstance(a, asts.types.PythonIdentifier)]
 >>> len(ids)
 1
 ```
@@ -648,7 +648,7 @@ an `x_to_y` transformer function, as shown below:
 ```python
 >>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Convert 'x' identifier ASTs to 'y'."""
-...     if isinstance(ast, asts.IdentifierAST) and "x" == ast.source_text:
+...     if isinstance(ast, asts.types.IdentifierAST) and "x" == ast.source_text:
 ...         return asts.AST.from_string("y", ast.language, deepest=True)
 ...
 ```
@@ -680,7 +680,7 @@ functionally equivalent to the example above:
 ```python
 >>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Convert 'x' identifier ASTs to 'y'."""
-...     if isinstance(ast, asts.IdentifierAST) and "x" == ast.source_text:
+...     if isinstance(ast, asts.types.IdentifierAST) and "x" == ast.source_text:
 ...         return "y"
 ...
 ```
@@ -693,7 +693,7 @@ as shown below:
 >>> def x_to_y(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Convert 'x' identifier ASTs to 'y'."""
 ...     match ast:
-...         case asts.IdentifierAST(source_text="x"):
+...         case asts.types.IdentifierAST(source_text="x"):
 ...             return "y"
 ...
 ```
@@ -707,7 +707,7 @@ statements, as shown below:
 >>> def x_to_y_assignment_lhs(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Convert 'x' identifier ASTs to 'y' on the lhs of assignments."""
 ...     if (
-...         isinstance(ast, asts.PythonAssignment)
+...         isinstance(ast, asts.types.PythonAssignment)
 ...         and "x" == ast.left.source_text
 ...     ):
 ...         return asts.AST.copy(ast, left="y")
@@ -730,7 +730,7 @@ using [pattern matching][] in Python 3.10+, as shown below:
 >>> def x_to_y_assignment_lhs(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Convert 'x' identifier ASTs to 'y' on the lhs of assignments."""
 ...     match ast:
-...         case asts.PythonAssignment(left=asts.IdentifierAST(source_text="x")):
+...         case asts.types.PythonAssignment(left=asts.types.IdentifierAST(source_text="x")):
 ...             return asts.AST.copy(ast, left="y")
 ...
 ```
@@ -747,7 +747,7 @@ first defining a predicate for print statements, as shown below:
 ```python
 >>> def is_print_statement(ast: asts.AST) -> bool:
 ...     """Return TRUE if AST is an statement calling the print function."""
-...     if isinstance(ast, asts.ExpressionStatementAST):
+...     if isinstance(ast, asts.types.ExpressionStatementAST):
 ...         fn_calls = [c.call_function().source_text for c in asts.utility.call_asts(ast)]
 ...         return "print" in fn_calls
 ...     return False
@@ -760,7 +760,7 @@ returns a node with the `print` statements immediately below it elided:
 ```python
 >>> def delete_print_statements(ast: asts.AST) -> Optional[asts.LiteralOrAST]:
 ...     """Delete all print statements from the children of AST."""
-...     if isinstance(ast, (asts.RootAST, asts.CompoundAST)):
+...     if isinstance(ast, (asts.types.RootAST, asts.types.CompoundAST)):
 ...         # Build a list of new, non-comment children directly under the AST,
 ...         # eliding print statements.
 ...         new_children = [
