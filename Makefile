@@ -119,7 +119,10 @@ test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
 bin/limit: limit.c
 	$(CC) $< -o $@
 
-python-check: bin/tree-sitter-interface bin/tree-sitter-py-generator
+python/asts/types.py: bin/tree-sitter-py-generator
+	$< > $@
+
+python-check: bin/tree-sitter-interface python/asts/types.py
 	PATH=$(ROOT_DIR)/bin:$$PATH pytest python
 
 libcxx-src: | utility/libcxx-src/LICENSE.TXT

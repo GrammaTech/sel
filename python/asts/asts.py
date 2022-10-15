@@ -752,28 +752,6 @@ _interface.start()
 atexit.register(_interface.stop)
 
 # Generated tree-sitter AST types and user-defined method specializations
-def _generate_types_file() -> None:
-    """
-    Generate a python file with tree-sitter AST types using the
-    tree-sitter-py-generator if such file does not yet exist.
-    """
-    types_file = Path(__file__).parent / "types.py"
-    cmd = "tree-sitter-py-generator"
-
-    if not types_file.exists():
-        if not shutil.which(cmd):
-            raise RuntimeError(f"{cmd} binary must be on your $PATH.")
-
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = proc.communicate()
-
-        if stderr:
-            raise RuntimeError(f"{cmd} crashed with:\n {stderr.decode()}")
-        else:
-            with open(types_file, "wb") as f:
-                f.write(stdout)
-
-
 def _add_method(clazz: Type[Any]):
     """
     Decorator to add a method to a given python class.
@@ -786,7 +764,6 @@ def _add_method(clazz: Type[Any]):
     return decorator
 
 
-_generate_types_file()
 from .types import *  # noqa: E402, F401, F403
 
 
