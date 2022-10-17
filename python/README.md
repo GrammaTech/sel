@@ -59,7 +59,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> root.children[0].children[0].source_text
 'x + 88'
 >>> root.children[0].children[0].child_slots()
-[['LEFT', 1], ['OPERATOR', 1], ['RIGHT', 1], ['CHILDREN', 0]]
+[('LEFT', 1), ('OPERATOR', 1), ('RIGHT', 1), ('CHILDREN', 0)]
 >>> list(map(lambda x:x.source_text, root.children[0].children[0].children))
 ['x', '+', '88']
 ```
@@ -246,7 +246,7 @@ To view the names of an AST's child slots, you may use the
 ```python
 >>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
 >>> root.child_slots()
-[['LEFT', 1], ['OPERATOR', 1],['RIGHT', 1], ['CHILDREN', 0]]
+[('LEFT', 1), ('OPERATOR', 1), ('RIGHT', 1), ('CHILDREN', 0)]
 ```
 
 Alternatively, you may use the `dir` built-in to inspect an AST object
@@ -279,7 +279,7 @@ retrieve their current value and and with `copy` to modify the existing value.
 >>> stmt.source_text
 'x = x + 1'
 >>> stmt.child_slots(internal=True)
-[['BEFORE-ASTS', 0], ['CHILDREN', 0], ['AFTER-ASTS', 0]]
+[('BEFORE-ASTS', 0), ('CHILDREN', 0), ('AFTER-ASTS', 0)]
 >>> stmt.child_slot("BEFORE-ASTS")
 [<asts.types.PythonComment 0x3>]
 ```
@@ -367,7 +367,7 @@ accessed using the slot name as a python property accessor or by using
 ...     deepest=True
 ... )
 >>> root.child_slots()
-[['FUNCTION', 1], ['ARGUMENTS', 1], ['CHILDREN', 0]]
+[('FUNCTION', 1), ('ARGUMENTS', 1), ('CHILDREN', 0)]
 >>> root.function.source_text
 'print'
 >>> root.child_slot("FUNCTION").source_text
@@ -386,11 +386,11 @@ directly using the `ast_path` method, as shown below:
 ...     language=asts.ASTLanguage.Python,
 ...     deepest=True
 ... )
->>> x = root.lookup(['ARGUMENTS', ['CHILDREN', 0]])
+>>> x = root.lookup(['ARGUMENTS', ('CHILDREN', 0)])
 >>> x.source_text
 'x'
 >>> root.ast_path(x)
-['ARGUMENTS', ['CHILDREN', 0]]
+['ARGUMENTS', ('CHILDREN', 0)]
 ```
 
 Finally, parent trees may be accessed using the `parent` and `parents`
@@ -469,10 +469,10 @@ lines and columns are 1-indexed.
 ...     deepest=True
 ... )
 >>> root.ast_source_ranges()
-[[<asts.types.PythonCall 0x3>, [[1, 1], [1, 9]]],
- [<asts.types.PythonIdentifier 0x4>, [[1, 1], [1, 6]]],
- [<asts.types.PythonArgumentList1 0x5>, [[1, 6], [1, 9]]],
- [<asts.types.PythonIdentifier 0x6>, [[1, 7], [1, 8]]]]
+[(<asts.types.PythonCall 0x3>, ((1, 1), (1, 9))),
+ (<asts.types.PythonIdentifier 0x4>, ((1, 1), (1, 6))),
+ (<asts.types.PythonArgumentList1 0x5>, ((1, 6), (1, 9))),
+ (<asts.types.PythonIdentifier 0x6>, ((1, 7), (1, 8)))]
 >>> root.ast_at_point(1, 7).source_text
 'x'
 ```

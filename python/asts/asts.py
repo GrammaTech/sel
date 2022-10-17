@@ -76,6 +76,11 @@ def _guess_language(text: str) -> Optional[ASTLanguage]:
         )
 
 
+def _to_tuple(lst: List[Any]):
+    """Convert LST and its recursive list elements to tuples."""
+    return tuple(_to_tuple(i) if isinstance(i, list) else i for i in lst)
+
+
 # Base AST class
 class AST:
     def __init__(self, oid: int) -> None:
@@ -261,7 +266,8 @@ class AST:
         Return a list of the AST's child slots, optionally including internal slots
         such as before/after ASTs.
         """
-        return _interface.dispatch(AST.child_slots.__name__, self, internal) or []
+        lst = _interface.dispatch(AST.child_slots.__name__, self, internal) or []
+        return [_to_tuple(i) for i in lst]
 
     # AST methods for common, simple operations
     def refcount(self) -> int:
@@ -276,11 +282,13 @@ class AST:
         self,
     ) -> List[Tuple["AST", Tuple[Tuple[int, int], Tuple[int, int]]]]:
         """Return the source ranges (line, col) for AST its recursive children"""
-        return _interface.dispatch(AST.ast_source_ranges.__name__, self)
+        lst = _interface.dispatch(AST.ast_source_ranges.__name__, self) or []
+        return [_to_tuple(i) for i in lst]
 
     def ast_path(self, child: "AST") -> List:
         """Return the path to CHILD in SELF."""
-        return _interface.dispatch(AST.ast_path.__name__, self, child) or []
+        lst = _interface.dispatch(AST.ast_path.__name__, self, child) or []
+        return [_to_tuple(i) if isinstance(i, list) else i for i in lst]
 
     def lookup(self, path: List) -> Optional["AST"]:
         """Return the AST at PATH in SELF, if possible."""

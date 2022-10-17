@@ -33,23 +33,23 @@ class BinaryOperationTestDriver(unittest.TestCase):
     # AST source ranges
     def test_ast_source_ranges(self):
         ranges = [rnge for ast, rnge in self.root.ast_source_ranges()]
-        self.assertEqual([[1, 1], [1, 7]], ranges[0])
-        self.assertEqual([[1, 1], [1, 7]], ranges[1])
-        self.assertEqual([[1, 1], [1, 7]], ranges[2])
-        self.assertEqual([[1, 1], [1, 2]], ranges[3])
-        self.assertEqual([[1, 2], [1, 4]], ranges[4])
-        self.assertEqual([[1, 4], [1, 7]], ranges[5])
+        self.assertEqual(((1, 1), (1, 7)), ranges[0])
+        self.assertEqual(((1, 1), (1, 7)), ranges[1])
+        self.assertEqual(((1, 1), (1, 7)), ranges[2])
+        self.assertEqual(((1, 1), (1, 2)), ranges[3])
+        self.assertEqual(((1, 2), (1, 4)), ranges[4])
+        self.assertEqual(((1, 4), (1, 7)), ranges[5])
 
     # AST path
     def test_ast_path(self):
         self.assertEqual(
-            self.root.ast_path(self.binop), [["CHILDREN", 0], ["CHILDREN", 0]]
+            self.root.ast_path(self.binop), [("CHILDREN", 0), ("CHILDREN", 0)]
         )
 
     # AST lookup
     def test_ast_lookup(self):
         self.assertEqual(
-            self.root.lookup([["CHILDREN", 0], ["CHILDREN", 0]]), self.binop
+            self.root.lookup([("CHILDREN", 0), ("CHILDREN", 0)]), self.binop
         )
 
     # AST children
@@ -73,18 +73,18 @@ class BinaryOperationTestDriver(unittest.TestCase):
     def test_child_slots(self):
         child_slots = self.binop.child_slots(internal=False)
         self.assertEqual(
-            [["LEFT", 1], ["OPERATOR", 1], ["RIGHT", 1], ["CHILDREN", 0]], child_slots
+            [("LEFT", 1), ("OPERATOR", 1), ("RIGHT", 1), ("CHILDREN", 0)], child_slots
         )
 
         child_slots = self.binop.child_slots(internal=True)
         self.assertEqual(
             [
-                ["BEFORE-ASTS", 0],
-                ["LEFT", 1],
-                ["OPERATOR", 1],
-                ["RIGHT", 1],
-                ["CHILDREN", 0],
-                ["AFTER-ASTS", 0],
+                ("BEFORE-ASTS", 0),
+                ("LEFT", 1),
+                ("OPERATOR", 1),
+                ("RIGHT", 1),
+                ("CHILDREN", 0),
+                ("AFTER-ASTS", 0),
             ],
             child_slots,
         )
@@ -197,14 +197,14 @@ class PrintFunctionCallTestDriver(unittest.TestCase):
         self.root = AST.from_string("print(x)", ASTLanguage.Python, deepest=True)
 
     def test_lookup(self):
-        x = self.root.lookup(["ARGUMENTS", ["CHILDREN", 0]])
+        x = self.root.lookup(["ARGUMENTS", ("CHILDREN", 0)])
         assert x
         self.assertEqual(x.source_text, "x")
         self.assertIsInstance(x, PythonIdentifier)
 
     def test_ast_path(self):
         x = self.root.children[1].children[0]
-        self.assertEqual(self.root.ast_path(x), ["ARGUMENTS", ["CHILDREN", 0]])
+        self.assertEqual(self.root.ast_path(x), ["ARGUMENTS", ("CHILDREN", 0)])
 
 
 class ASTTemplatesTestDriver(unittest.TestCase):
@@ -617,12 +617,12 @@ class VariationPointTestDriver(unittest.TestCase):
         child_slots = root.child_slots(internal=True)
         self.assertEqual(
             [
-                ["BEFORE-ASTS", 0],
-                ["CHILDREN", 0],
-                ["INTERNAL-ASTS-0", 0],
-                ["AFTER-ASTS", 0],
+                ("BEFORE-ASTS", 0),
+                ("CHILDREN", 0),
+                ("INTERNAL-ASTS-0", 0),
+                ("AFTER-ASTS", 0),
             ],
             child_slots,
         )
-        pt = root.lookup([["INTERNAL-ASTS-0", 0]])
+        pt = root.lookup([("INTERNAL-ASTS-0", 0)])
         self.assertIsInstance(pt, VariationPoint)
