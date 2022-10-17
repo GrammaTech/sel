@@ -121,6 +121,60 @@ in top-down order.")
   (:method ((symbol symbol))
     (class-and-python-dependencies (find-class symbol))))
 
+(let ((cache (alist-hash-table '((ast)))))
+  (defun python-child-slots (class)
+    "Return the child slots of CLASS for use in creating
+     python property definitions. Aggregate slots common
+     to all subclasses the highest possible superclass."
+    (if (nth-value 1 (gethash class cache))
+        (gethash class cache)
+        (setf (gethash class cache)
+              (let ((direct-subclasses (class-direct-subclasses class)))
+                (ensure-finalized class)
+                (if (null direct-subclasses)
+                    (direct-child-slots class)
+                    (iter (iter:with common-slots =
+                                     (reduce (lambda (slots result)
+                                               (intersection slots
+                                                             (or result slots)
+                                                             :test #'equal))
+                                             (mapcar #'python-child-slots
+                                                     direct-subclasses)))
+                          (for subclass in direct-subclasses)
+                          (setf (gethash subclass cache)
+                                (set-difference (gethash subclass cache)
+                                                common-slots
+                                                :test #'equal))
+                          (finally (return common-slots)))))))))
+
+(defun direct-child-slots (class)
+  "Return the direct child slots of CLASS as specified in the `child-slots` slot
+   on CLASS relevant for creating python property definitions."
+  (labels ((child-slots-definition (class)
+             "Return the slot definition for the \"child-slots\" slot on CLASS."
+             (find-if [{eq 'child-slots} #'slot-definition-name]
+                      (compute-slots class)))
+           (child-slot-ignorable-p (slot)
+             "Return non-NIL if the given child slot should not be included
+              in the python class definition's properties."
+             (or (eq (car slot) 'children) (internal-child-slot-p slot)))
+           (python-slotname (slot)
+             "Convert the given child SLOT name of CLASS to a python
+              property name."
+             (destructuring-bind (symbol . arity) slot
+               (cons (string-replace-all "-"
+                                         (nest (string-downcase)
+                                               (cl-to-python-slot-name class symbol))
+                                         "_")
+                     arity))))
+    (when-let ((slot-definition (child-slots-definition class))
+               (_ (null (class-direct-subclasses class))))
+      (and (eq (slot-definition-allocation slot-definition) :class)
+           (slot-definition-initform slot-definition)
+           (nest (mapcar #'python-slotname)
+                 (apply #'remove-if #'child-slot-ignorable-p
+                 (cdr (slot-definition-initform slot-definition))))))))
+
 (-> python-class-str (class) string)
 (defun python-class-str (class)
   "Return a python class declaration string for the given common lisp CLASS."
@@ -144,45 +198,20 @@ in top-down order.")
                                           (repeat-sequence " " indentation)
                                           line))
                            (split-sequence #\Newline str))))
-           (child-slots-definition (class)
-             "Return the slot definition for the \"child-slots\" slot on CLASS."
-             (find-if [{eq 'child-slots} #'slot-definition-name]
-                      (compute-slots class)))
-           (child-slot-ignorable-p (slot)
-             "Return non-NIL if the given child slot should not be included
-              in the python class definition's properties."
-             (or (eq (car slot) 'children) (internal-child-slot-p slot)))
-           (python-property-name (class slot)
-             "Convert the given child SLOT name of CLASS to a python
-              property name."
-             (string-replace-all "-"
-                                 (nest (string-downcase)
-                                       (cl-to-python-slot-name class slot))
-                                 "_"))
-           (python-child-slots (class)
-             "Return the child slots of CLASS relevant for creating python
-              property definitions."
-             (when-let ((slot-definition (child-slots-definition class))
-                        (_ (null (class-direct-subclasses class))))
-               (and (eq (slot-definition-allocation slot-definition) :class)
-                    (slot-definition-initform slot-definition)
-                    (apply #'remove-if #'child-slot-ignorable-p
-                           (cdr (slot-definition-initform slot-definition))))))
-           (python-property (class slot)
-             "Return a string defining a python property for the given
-              SLOT in CLASS."
-             (destructuring-bind (symbol . arity) slot
+           (python-property (slot)
+             "Return a string defining a python property for the given SLOT."
+             (destructuring-bind (slotname . arity) slot
                (nest (join-with-newlines)
                      (list "@_property"
                            (fmt "def ~a(self) -> ~a:"
-                                (python-property-name class symbol)
+                                slotname
                                 (if (zerop arity) "List[AST]" "Optional[AST]"))
                            (fmt "    return self.child_slot(\"~a\")  # type: ignore"
-                                (cl-to-python-slot-name class symbol))))))
+                                slotname)))))
            (python-properties (class)
              "Return a list defining python properties for the given CLASS."
              (nest (mapcar #'indent)
-                   (mapcar {python-property class})
+                   (mapcar #'python-property)
                    (python-child-slots class)))
            (python-methods (class)
              "Return a list of user-defined extra methods for the given CLASS."
@@ -194,7 +223,6 @@ in top-down order.")
                          (python-methods class))
                  (list (indent "pass")))))
 
-    (ensure-finalized class)
     (fmt "class ~a(~{~a~^, ~}):~%~{~a~^~%~%~}~%~%~%"
          (cl-to-python-type class)
          (python-superclasses class)
