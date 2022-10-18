@@ -26,11 +26,11 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Type,
     Union,
 )
 from backports.cached_property import cached_property
 from typing_extensions import Final
-from .utility import add_method
 
 LiteralOrAST = Union[int, float, str, "AST"]
 
@@ -774,35 +774,47 @@ def _generate_types_file() -> None:
                 f.write(stdout)
 
 
+def _add_method(clazz: Type[Any]):
+    """
+    Decorator to add a method to a given python class.
+    """
+
+    def decorator(func: Callable):
+        setattr(clazz, func.__name__, func)
+        return func
+
+    return decorator
+
+
 _generate_types_file()
 from .types import *  # noqa: E402, F401, F403
 
 
-@add_method(FunctionAST)
+@_add_method(FunctionAST)
 def function_name(self: FunctionAST) -> str:
     """Return AST's name.  AST must be of type function."""
     return _interface.dispatch(FunctionAST.function_name.__name__, self)  # type: ignore
 
 
-@add_method(FunctionAST)
+@_add_method(FunctionAST)
 def function_parameters(self: FunctionAST) -> List[AST]:
     """Return AST's parameters.  AST must be of type function."""
     return _interface.dispatch(FunctionAST.function_parameters.__name__, self) or []  # type: ignore
 
 
-@add_method(FunctionAST)
+@_add_method(FunctionAST)
 def function_body(self: FunctionAST) -> AST:
     """Return AST's body.  AST must be of type function."""
     return _interface.dispatch(FunctionAST.function_body.__name__, self)  # type: ignore
 
 
-@add_method(CallAST)
+@_add_method(CallAST)
 def call_function(self: CallAST) -> AST:
     """Return AST's function.  AST must be of type call."""
     return _interface.dispatch(CallAST.call_function.__name__, self)  # type: ignore
 
 
-@add_method(CallAST)
+@_add_method(CallAST)
 def call_arguments(self: CallAST) -> List[AST]:
     """Return AST's arguments.  AST must be of type call."""
     return _interface.dispatch(CallAST.call_arguments.__name__, self) or []  # type: ignore
