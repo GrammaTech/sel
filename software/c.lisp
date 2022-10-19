@@ -297,6 +297,77 @@ field."
      (enclosing-find-c-function obj callexpr text))))
 
 
+;;; Blotting
+
+(defparameter +blot-leaders+ '("#if 0" "#ifdef __cplusplus"))
+
+(defparameter +comment-leaders+ '("/*" "//"))
+
+(defparameter +endif-leaders+ '("#if" "#ifdef" "#ifndef"))
+
+(defparameter +chained-if+ '("#else" "#elif"))
+
+(defparameter +endif-terminator+ '("#endif"))
+
+(defun alternation-regex (alternates)
+  (labels ((escape-regex-chars (string)
+             (regex-replace-all "\\*" string "\\*")))
+    (fmt "~{(~a)~^|~}" (mapcar #'escape-regex-chars alternates))))
+
+(defun c/blot-out-ranges (source)
+  ;; NOTE: TODO: if an #if contains an #elif, punt on it for now.
+  (labels ((find-end-of-comment (source comment-leader find-start)
+             (string-ecase comment-leader
+               ("//" (nth-value 1 (scan "\\n" source :start find-start)))
+               ("/*" (nth-value 1 (scan "\\*/" source :start find-start)))))
+           (find-corresponding-endif (regex source find-start)
+             (mvlet ((start end (scan regex source :start find-start)))
+               (when-let ((subsequence (and start (subseq source start end))))
+                 (econd
+                   ((member subsequence +endif-terminator+ :test #'equal)
+                    end)
+                   ((member subsequence +chained-if+ :test #'equal)
+                    nil)
+                   ((member subsequence +endif-leaders+ :test #'equal)
+                    ;; NOTE: match the nested preproc if.
+                    (when-let ((endif-end
+                                (find-corresponding-endif regex source end)))
+                      ;; NOTE: continue where it left off.
+                      (find-corresponding-endif regex source endif-end)))
+                   ((member subsequence +comment-leaders+ :test #'equal)
+                    ;; NOTE: match the comment.
+                    (when-let ((comment-end
+                                (find-end-of-comment source subsequence end)))
+                      ;; NOTE: continue where it left off.
+                      (find-corresponding-endif regex source comment-end))))))))
+    (iter
+      (iter:with leader-regex = (alternation-regex (append +blot-leaders+
+                                                           +comment-leaders+)))
+      (iter:with preproc-if-regex = (alternation-regex
+                                     (append +endif-leaders+
+                                             +chained-if+
+                                             +endif-terminator+
+                                             +comment-leaders+)))
+      (for i first 0 then (or blot-end comment-end end))
+      (for (values start end) = (scan leader-regex source :start i))
+      (while start)
+      (for leader = (subseq source start end))
+      (econd
+        ((member leader +blot-leaders+ :test #'equal)
+         (for blot-end = (find-corresponding-endif preproc-if-regex source end))
+         (setf comment-end nil)
+         (when blot-end
+           (collect (cons start (1- blot-end)))))
+        ((member leader +comment-leaders+ :test #'equal)
+         (for comment-end = (find-end-of-comment source leader end))
+         (setf blot-end nil)
+         (unless comment-end
+           (finish)))))))
+
+(defmethod blot-out-ranges ((superclass (eql 'c-ast)) (source string) &key)
+  (c/blot-out-ranges source))
+
+
 ;;;; Methods for tree-sitter generics
 
 ;;; TODO: add this for C++.

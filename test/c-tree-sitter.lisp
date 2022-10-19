@@ -1525,3 +1525,64 @@ the root AST."
                                 ("a" (list (stmt-with-text root "a")))
                                 ("b" (list (stmt-with-text root "b")))
                                 ("c" (list (stmt-with-text root "c"))))))))))))
+
+
+;;; Blotting
+(deftest c-blot-ranges-1 ()
+  "A range for '#if 0' is returned by blot-out-ranges."
+  (let ((source "#if 0
+int x = 0;
+#endif"))
+    (is (member '(0 . 22) (blot-out-ranges 'c-ast source) :test #'equal))))
+
+(deftest c-blot-ranges-2 ()
+  "A range for '#ifdef __cplusplus' is returned by blot-out-ranges."
+  (let ((source "#ifdef __cplusplus
+int x = 0;
+#endif"))
+    (is (member '(0 . 35) (blot-out-ranges 'c-ast source) :test #'equal))))
+
+(deftest c-blot-ranges-3 ()
+  "blot-out-ranges ignores #if's that have #elif or #else attached to them."
+  ;; NOTE: this test may only be temporary until the functionality is changed to
+  ;;       account for these.
+  (let ((source "#ifdef __cplusplus
+int y = 0;
+#else
+int x = 0;
+#endif"))
+    (is (not (blot-out-ranges 'c-ast source)))))
+
+(deftest c-blot-ranges-4 ()
+  "blot-out-ranges ignores preprocs in comments."
+  ;; NOTE: this test may only be temporary until the functionality is changed to
+  ;;       account for these.
+  (let ((source "#ifdef __cplusplus
+int y = 0;
+// #else
+int x = 0;
+#endif
+
+/*
+#if 0
+int z = 0;
+#endif
+*/"))
+    (is (member '(0 . 55) (blot-out-ranges 'c-ast source) :test #'equal))))
+
+(deftest c-blot-ranges-5 ()
+  "blot-out-ranges returns when an open comment is in the source."
+  (let ((source "/*    "))
+    (is (not (blot-out-ranges 'c-ast source)))))
+
+(deftest c-blot-ranges-6 ()
+  "blot-out-ranges returns when an open preproc-if is in the source."
+  (let ((source "#if 0    "))
+    (is (not (blot-out-ranges 'c-ast source)))))
+
+(deftest c-blot-round-trip-1 ()
+  "Blotted '#if 0' ASTs can round trip."
+  (let ((source "#if 0
+int x = 0;
+#endif"))
+    (is (source-text= source (convert 'c-ast source)))))
