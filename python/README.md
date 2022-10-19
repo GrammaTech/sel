@@ -255,8 +255,7 @@ and find its child slots as python properties, as shown below:
 ```python
 >>> root = asts.AST.from_string("x + 1", asts.ASTLanguage.Python, deepest=True)
 >>> dir(root)
-['__class__', ..., 'after_asts', ..., 'before_asts', ...,
- 'left', ..., 'operator', ..., 'right', ..., 'traverse']
+['__class__', ..., 'left', ..., 'operator', ..., 'right', ..., 'traverse']
 ```
 
 Beyond these named child slots storing ASTs which are parsed from the language
