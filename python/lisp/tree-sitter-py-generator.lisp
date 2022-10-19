@@ -23,14 +23,13 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter +command-line-options+
     `((("help" #\h #\?) :type boolean :optional t
-       :documentation "display help output")
-      (("languages" #\L) :type string :optional t
-       :initial-value ,(fmt "~{~a~^,~}"
-                            (list "c" "cpp" "java" "javascript" "python"
-                                  "rust" "typescript-ts" "typescript-tsx"))
-       :action #'handle-languages-argument
-       :documentation
-       "comma-delimited source languages of the ASTs to dump"))))
+       :documentation "display help output"))))
+
+(define-constant +ast-languages+
+    '(c-ast cpp-ast java-ast javascript-ast python-ast
+      rust-ast typescript-ast typescript-txs-ast)
+  :test #'equalp
+  :documentation "List of AST language superclasses to generate python for.")
 
 (define-constant +ast-classes-language-agnostic+ '(inner-parent)
   :test #'equalp
@@ -41,17 +40,8 @@ be part of the python API.")
   :test #'equalp
   :documentation "List of special case AST terminals to not output to python.")
 
-(-> handle-languages-argument (string) (values list &optional))
-(defun handle-languages-argument (languages)
-  "Transform the input comma-delimited source languages into a list of
-language-specific AST types."
-  (nest (mapcar (lambda (language)
-                  (intern (fmt "~a-AST" (string-upcase language))
-                          :sel/sw/tree-sitter)))
-        (split-sequence #\, languages)))
-
 (-> ast-symbol-p (symbol &optional list) list)
-(defun ast-symbol-p (sym &optional (languages (list 'ast)))
+(defun ast-symbol-p (sym &optional (languages +ast-languages+))
   "Return non-NIL if SYM is an AST, optionally, of one of the given LANGUAGES."
   (or (member sym languages :test #'subtypep)
       (member sym +ast-classes-language-agnostic+ :test #'subtypep)))
@@ -191,5 +181,5 @@ in top-down order.")
         (remove-special-case-classes)
         (remove-duplicates-from-end)
         (mappend #'class-and-python-dependencies)
-        (remove-if-not {ast-symbol-p _ languages})
+        (remove-if-not #'ast-symbol-p)
         (tree-sitter-symbols)))
