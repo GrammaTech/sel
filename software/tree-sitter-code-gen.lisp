@@ -3030,7 +3030,7 @@ of an AST."))
     (:documentation "An AST that represents whitespace between two
 terminal tokens."))
 
-  (defclass blot (text-fragment)
+  (defclass blot (computed-text text-fragment)
     ()
     (:documentation "A node that represents blotted sections of code.
 These sections are generally considered problematic and have been hidden
