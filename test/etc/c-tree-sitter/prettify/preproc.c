@@ -11,7 +11,7 @@ void h () {}
 #endif
 #if 1
 int main () {
-    printf ("");
+    printf("");
     return 0;
 }
 #endif

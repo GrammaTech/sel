@@ -544,9 +544,6 @@ for the language.")
 
   (defparameter *tree-sitter-ast-superclasses*
     '((:c
-       (:root-ast c-translation-unit)
-       (:comment-ast c-comment)
-       (:declaration-ast c-field-declaration)
        ;; A subclass of a declaration AST that isn't really a
        ;; declaration.
        (:degenerate-declaration-ast
@@ -556,132 +553,33 @@ for the language.")
        (:c-tag-specifier
         c-struct-tag-specifier
         c-enum-tag-specifier
-        c-union-tag-specifier)
-       (:definition-ast c-type-definition c-struct-specifier c-union-specifier
-        c-field-declaration c-enum-specifier c-preproc-def
-        c-preproc-function-def
-        c-function-definition)
-       (:type-declaration-ast c-type-definition c-struct-specifier
-        c-union-specifier c-enum-specifier
-        c-type-forward-declaration)
-       (:composite-type-ast c-struct-specifier c-union-specifier)
-       (:macro-declaration-ast
-        c-macro-forward-declaration
-        c-preproc-function-def
-        c-preproc-def)
-       (:statement-ast c--statement c-function-definition c-declaration)
-       (:expression-statement-ast c-expression-statement)
-       (:expression-ast c--expression)
-       (:parenthesized-expression-ast c-parenthesized-expression)
-       (:compound-ast c-compound-statement)
-       (:control-flow-ast c-switch-statement c-case-statement)
-       (:if-ast c-if-statement c-conditional-expression)
-       (:while-ast c-while-statement)
-       (:loop-ast c-while-statement c-for-statement c-do-statement)
-       (:parse-error-ast c-error)
-       (:variable-declaration-ast
-        c-declaration
-        c-enumerator
-        c-parameter-declaration )
-       (:variable-initialization-ast c-init-declarator)
-       (:assignment-ast c-assignment-expression c-update-expression)
-       (:function-declaration-ast c-function-definition)
-       (:identifier-ast c-identifier c-field-identifier)
-       (:field-ast c-field-expression)
-       (:subscript-ast c-subscript-expression)
-       (:string-ast c-string-literal)
-       (:number-ast c-number-literal)
-       (:call-ast c-call-expression)
-       (:boolean-true-ast c-true)
-       (:boolean-false-ast c-false)
-       (:unary-ast c-unary-expression)
-       (:binary-ast c-binary-expression)
-       (:return-ast c-return-statement)
-       (:goto-ast c-goto-statement)
-       (:parameter-ast c-parameter-declaration)
-       (:parameters-ast c-parameter-list)
-       (:type-identifier-ast c-type-identifier)
-       (:type-ast c-primitive-type c-sized-type-specifier c-type-descriptor)
-       (:char-ast c-char-literal))
+        c-union-tag-specifier))
       (:cpp
-       (:root-ast cpp-translation-unit)
-       (:comment-ast cpp-comment)
-       (:declaration-ast cpp-field-declaration)
-       (:definition-ast cpp-type-definition cpp-struct-specifier cpp-class-specifier
-        cpp-union-specifier
-        cpp-field-declaration
-        cpp-enum-specifier cpp-preproc-def
-        cpp-preproc-function-def
-        cpp-namespace-definition
-        cpp-function-definition)
-       (:type-declaration-ast cpp-type-definition cpp-struct-specifier
-        cpp-union-specifier
-        cpp-enum-specifier
-        cpp-class-specifier
-        cpp-type-forward-declaration
-        cpp-alias-declaration)
-       (:composite-type-ast cpp-struct-specifier cpp-union-specifier
-        cpp-class-specifier)
-       (:macro-declaration-ast
-        cpp-macro-forward-declaration
-        cpp-preproc-function-def
-        cpp-preproc-def)
-       (:namespace-declaration-ast
-        cpp-namespace-definition)
-       (:parenthesized-expression-ast cpp-parenthesized-expression)
-       (:expression-ast cpp--expression)
-       (:statement-ast cpp--statement cpp-function-definition cpp-declaration)
-       (:expression-statement-ast cpp-expression-statement)
-       (:compound-ast cpp-compound-statement)
-       (:string-ast cpp-string-literal cpp-raw-string-literal)
-       (:char-ast cpp-char-literal)
-       (:call-ast cpp-call-expression)
-       (:boolean-true-ast cpp-true)
-       (:boolean-false-ast cpp-false)
+       (:definition-ast cpp-class-specifier cpp-namespace-definition)
+       (:type-declaration-ast cpp-alias-declaration)
+       (:composite-type-ast cpp-class-specifier)
+       (:namespace-declaration-ast cpp-namespace-definition)
+       (:string-ast cpp-raw-string-literal)
        (:variable-declaration-ast
-        cpp-enumerator
-        cpp-declaration
-        cpp-parameter-declaration
         cpp-optional-parameter-declaration
         cpp-variadic-parameter-declaration)
-       (:variable-initialization-ast
-        cpp-init-declarator
-        cpp-optional-parameter-declaration)
-       (:assignment-ast cpp-assignment-expression cpp-update-expression)
-       (:function-declaration-ast cpp-function-definition)
-       (:unary-ast cpp-unary-expression)
-       (:binary-ast cpp-binary-expression)
-       (:number-ast cpp-number-literal)
-       (:return-ast cpp-return-statement)
-       (:goto-ast cpp-goto-statement)
-       (:identifier-ast cpp-identifier cpp-namespace-identifier
+       (:variable-initialization-ast cpp-optional-parameter-declaration)
+       (:identifier-ast cpp-namespace-identifier
         cpp-qualified-identifier
         cpp-type-identifier
         cpp-primitive-type
-        cpp-field-identifier
         cpp-operator-name)
-       (:if-ast cpp-if-statement cpp-conditional-expression)
-       (:field-ast cpp-field-expression)
-       (:subscript-ast cpp-subscript-expression)
        (:catch-ast cpp-catch-clause)
-       (:loop-ast
-        cpp-while-statement
-        cpp-for-statement
-        cpp-for-range-loop
-        cpp-do-statement)
+       (:loop-ast cpp-for-range-loop)
        (:parameter-ast
-        cpp-parameter-declaration
         cpp-optional-parameter-declaration
         cpp-optional-type-parameter-declaration
         cpp-template-template-parameter-declaration
         cpp-type-parameter-declaration
         cpp-variadic-parameter-declaration
         cpp-variadic-type-parameter-declaration)
-       (:parameters-ast cpp-parameter-list cpp-template-parameter-list)
-       (:arguments-ast cpp-argument-list)
-       (:type-identifier-ast cpp-type-identifier)
-       (:type-ast cpp-primitive-type cpp-sized-type-specifier cpp-template-type
-        cpp-type-descriptor))
+       (:parameters-ast cpp-template-parameter-list)
+       (:type-ast cpp-template-type))
       ((:c :cpp)
        (:c/cpp-+ c-+ cpp-+)
        (:c/cpp-- c-- cpp--)
@@ -753,6 +651,7 @@ for the language.")
        (:c/cpp-enumerator c-enumerator cpp-enumerator)
        (:c/cpp-enumerator-list c-enumerator-list cpp-enumerator-list)
        (:c/cpp-error c-error cpp-error)
+       (:c/cpp--expression c--expression cpp--expression)
        (:c/cpp-expression-statement
         c-expression-statement cpp-expression-statement)
        (:c/cpp-field-declaration c-field-declaration cpp-field-declaration)
@@ -795,6 +694,7 @@ for the language.")
        (:c/cpp-sized-type-specifier
         c-sized-type-specifier cpp-sized-type-specifier)
        (:c/cpp-sizeof-expression c-sizeof-expression cpp-sizeof-expression)
+       (c/cpp--statement c--statement cpp--statement)
        (:c/cpp-storage-class-specifier c-storage-class-specifier
         cpp-storage-class-specifier)
        (:c/cpp-string-literal c-string-literal cpp-string-literal)
@@ -813,8 +713,7 @@ for the language.")
        (:c/cpp-unary-expression c-unary-expression cpp-unary-expression)
        (:c/cpp-union-specifier c-union-specifier cpp-union-specifier)
        (:c/cpp-update-expression c-update-expression cpp-update-expression)
-       (:c/cpp-while-statement c-while-statement cpp-while-statement)
-       (:expression-ast c/cpp-comma-expression))
+       (:c/cpp-while-statement c-while-statement cpp-while-statement))
       (:cl
        (:literal-ast cl-char-lit cl-kwd-lit cl-list-lit cl-map-lit
         cl-package-lit cl-path-lit cl-quoting-lit cl-read-cond-lit
@@ -1160,6 +1059,63 @@ A language may appear multiple times; in this case all the mixins for that langu
 Note that mixins used here will be automatically exported later, and
 those that do not have separate class definitions will be given stub
 definitions.")
+
+  (defparameter *tree-sitter-mixin-ast-superclasses*
+    '((:c/cpp
+       (c/cpp-argument-list arguments-ast)
+       (c/cpp-assignment-expression assignment-ast)
+       (c/cpp-binary-expression binary-ast)
+       (c/cpp-call-expression call-ast)
+       (c/cpp-case-statement control-flow-ast)
+       (c/cpp-char-literal char-ast)
+       (c/cpp-conditional-expression if-ast)
+       (c/cpp-comma-expression expression-ast)
+       (c/cpp-comment comment-ast)
+       (c/cpp-compound-statement compound-ast)
+       (c/cpp-compound-statement compound-ast)
+       (c/cpp-declaration statement-ast variable-declaration-ast)
+       (c/cpp-do-statement loop-ast)
+       (c/cpp--expression expression-ast)
+       (c/cpp-expression-statement expression-statement-ast)
+       (c/cpp-enum-specifier definition-ast type-declaration-ast)
+       (c/cpp-enumerator variable-declaration-ast)
+       (c/cpp-error parse-error-ast)
+       (c/cpp-false boolean-false-ast)
+       (c/cpp-field-expression field-ast)
+       (c/cpp-field-declaration definition-ast)
+       (c/cpp-field-identifier identifier-ast)
+       (c/cpp-function-definition definition-ast function-declaration-ast statement-ast)
+       (c/cpp-for-statement loop-ast)
+       (c/cpp-goto-statement goto-ast)
+       (c/cpp-identifier identifier-ast)
+       (c/cpp-if-statement if-ast)
+       (c/cpp-init-declarator variable-initialization-ast)
+       (c/cpp-macro-forward-declaration macro-declaration-ast)
+       (c/cpp-number-literal number-ast)
+       (c/cpp-parameter-declaration parameter-ast variable-declaration-ast)
+       (c/cpp-parameter-list parameters-ast)
+       (c/cpp-parenthesized-expression parenthesized-expression-ast)
+       (c/cpp-preproc-def definition-ast macro-declaration-ast)
+       (c/cpp-preproc-function-def definition-ast macro-declaration-ast)
+       (c/cpp-primitive-type type-ast)
+       (c/cpp-return-statement return-ast)
+       (c/cpp--statement statement-ast)
+       (c/cpp-sized-type-specifier type-ast)
+       (c/cpp-string-literal string-ast)
+       (c/cpp-struct-specifier composite-type-ast definition-ast type-declaration-ast)
+       (c/cpp-subscript-expression subscript-ast)
+       (c/cpp-switch-statement control-flow-ast)
+       (c/cpp-translation-unit root-ast)
+       (c/cpp-true boolean-true-ast)
+       (c/cpp-type-forward-declaration type-declaration-ast)
+       (c/cpp-type-definition definition-ast type-declaration-ast)
+       (c/cpp-type-descriptor type-ast)
+       (c/cpp-type-identifier type-identifier-ast)
+       (c/cpp-update-expression assignment-ast)
+       (c/cpp-unary-expression unary-ast)
+       (c/cpp-union-specifier composite-type-ast definition-ast type-declaration-ast)
+       (c/cpp-while-statement loop-ast while-ast)))
+    "Specifies superclasses for mixin ASTs.")
 
   ;; TODO: it may make sense to have a way to 'rebind' a subclass when
   ;;       the subclass no longer applies after a mutation.
@@ -5990,7 +5946,10 @@ Unlike the `children` methods which collects all children of an AST from any slo
          (nest (remove-duplicates)
                (mapcar #'car)
                (mappend #'cdr)
-               *tree-sitter-ast-superclasses*)))
+               *tree-sitter-ast-superclasses*))
+        (class->superclasses
+          (nest (alist-hash-table)
+                (mappend #'cdr *tree-sitter-mixin-ast-superclasses*))))
     `(progn
        ,@(iter (for class in classes)
                (let ((class (intern (string class) :sel/sw/ts))
@@ -6004,7 +5963,9 @@ Unlike the `children` methods which collects all children of an AST from any slo
                  (collect `(progn
                              (export/tree-sitter ',class)
                              (unless (find-class ',class nil)
-                               (defclass ,class (ast)
+                               (defclass ,class
+                                   (,@(or (gethash class class->superclasses)
+                                          '(ast)))
                                  ()
                                  (:documentation
                                   ,(fmt "Mix-in for ~a AST classes."
