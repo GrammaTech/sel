@@ -348,19 +348,19 @@ field."
                                              +chained-if+
                                              +endif-terminator+
                                              +comment-leaders+)))
-      (for i first 0 then (or blot-end comment-end end))
+      (for i first 0 then end)
       (for (values start end) = (scan leader-regex source :start i))
       (while start)
       (for leader = (subseq source start end))
       (econd
         ((member leader +blot-leaders+ :test #'equal)
          (for blot-end = (find-corresponding-endif preproc-if-regex source end))
-         (setf comment-end nil)
          (when blot-end
+           (setf end blot-end)
            (collect (cons start (1- blot-end)))))
         ((member leader +comment-leaders+ :test #'equal)
          (for comment-end = (find-end-of-comment source leader end))
-         (setf blot-end nil)
+         (setf end comment-end)
          (unless comment-end
            (finish)))))))
 
