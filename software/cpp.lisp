@@ -1253,6 +1253,39 @@ types."
                        asts
                        error)))))
 
+(defun copy/structure (ast property-ast &rest args &key &allow-other-keys)
+  "Copy AST, giving it the structured text and indentation properties of
+PROPERTY-AST."
+  (multiple-value-call #'copy ast
+    (values-list args)
+    :before-text (before-text property-ast)
+    :after-text (after-text property-ast)
+    :before-asts (before-asts property-ast)
+    :after-asts (after-asts property-ast)
+    :indent-adjustment (indent-adjustment property-ast)
+    :indent-children (indent-children property-ast)))
+
+(defsubst convert-terminal (to term)
+  "Convert the text of a terminal AST to class TO."
+  (if (typep term to) term
+      (copy/structure (make to :text (source-text term))
+                      term)))
+
+(defmethod convert ((to (eql 'cpp-identifier))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
+(defmethod convert ((to (eql 'cpp-type-identifier))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
+(defmethod convert ((to (eql 'cpp-namespace-identifier))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
 (-> list->qualified-name ((soft-list-of cpp-ast))
     (values cpp-ast &optional))
 (defun list->qualified-name (list)
@@ -1265,15 +1298,11 @@ this involves handling some translations between types."
     (error "Empty lists cannot become qualified names!"))
   (labels ((type-id->ns-id (type-id)
              "Create a namespace identifier from a text identifier."
-             (lret ((ns-id
-                     (make 'cpp-namespace-identifier
-                           :text (source-text type-id))))
+             (lret ((ns-id (convert 'cpp-namespace-identifier type-id)))
                (setf (attr-proxy ns-id) type-id)))
            (ns-id->type-id (ns-id)
              "Create a type identifier from a namespace identifier."
-             (lret ((type-id
-                     (make 'cpp-type-identifier
-                           :text (source-text ns-id))))
+             (lret ((type-id (convert 'cpp-type-identifier ns-id)))
                (setf (attr-proxy type-id) ns-id)))
            (dependent-type->dependent-name (dtype)
              "Create a cpp-dependent-name from a cpp-dependent-type."

@@ -1750,3 +1750,13 @@ different orders."
                       ,(fset:map
                         ("x" (collect-if (op (equal (source-text _) "x"))
                                          root)))))))))))
+
+
+;;; Conversion tests
+
+(deftest id-conversions ()
+  (let ((types '(cpp-identifier cpp-namespace-identifier cpp-type-identifier)))
+    (dolist (type1 types)
+      (dolist (type2 types)
+        (is (typep (convert type1 (make type2 :text "foo"))
+                   type1))))))
