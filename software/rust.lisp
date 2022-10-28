@@ -123,6 +123,29 @@ around generic-type-with-turbofish being aliased to generic-type."
     ((:|..| :|...| :|..=|) (label-as :operator))))
 
 
+;;; Methods for tree-sitter generics
+
+(defmethod convert ((to (eql 'rust-identifier))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
+(defmethod convert ((to (eql 'rust-field-identifier))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
+(defmethod convert ((to (eql 'rust-primitive-type))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
+(defmethod convert ((to (eql 'rust-type-identifier))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
+
 ;;; Whitespace.
 
 (define-empty-whitespace-methods ()

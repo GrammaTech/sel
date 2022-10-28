@@ -1268,6 +1268,11 @@ types."
                     &key)
   (convert-terminal to id))
 
+(defmethod convert ((to (eql 'cpp-primitive-type))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
 (-> list->qualified-name ((soft-list-of cpp-ast))
     (values cpp-ast &optional))
 (defun list->qualified-name (list)
