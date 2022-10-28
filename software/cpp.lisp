@@ -1253,24 +1253,6 @@ types."
                        asts
                        error)))))
 
-(defun copy/structure (ast property-ast &rest args &key &allow-other-keys)
-  "Copy AST, giving it the structured text and indentation properties of
-PROPERTY-AST."
-  (multiple-value-call #'copy ast
-    (values-list args)
-    :before-text (before-text property-ast)
-    :after-text (after-text property-ast)
-    :before-asts (before-asts property-ast)
-    :after-asts (after-asts property-ast)
-    :indent-adjustment (indent-adjustment property-ast)
-    :indent-children (indent-children property-ast)))
-
-(defsubst convert-terminal (to term)
-  "Convert the text of a terminal AST to class TO."
-  (if (typep term to) term
-      (copy/structure (make to :text (source-text term))
-                      term)))
-
 (defmethod convert ((to (eql 'cpp-identifier))
                     (id identifier-ast)
                     &key)

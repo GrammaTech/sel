@@ -4149,6 +4149,21 @@ and AFTER-LIST."
                 ((typep after-value 'number) after-value)
                 (t (append before-value after-value)))))))
 
+(defun copy/structure (ast property-ast &rest args &key &allow-other-keys)
+  "Copy AST, giving it the structured text and indentation properties of
+PROPERTY-AST."
+  (multiple-value-call #'copy ast
+    (values-list args)
+    (values-list
+     (mapcan (juxt #'car #'cdr)
+             (preserve-properties property-ast)))))
+
+(defsubst convert-terminal (to term)
+  "Convert the text of a terminal AST to class TO."
+  (if (typep term to) term
+      (copy/structure (make to :text (source-text term))
+                      term)))
+
 (defun tree-sitter-class-name (class &key ignore-named)
   "If CLASS is a choice subclass, or the name of a choice subclass,
 then get the tree-sitter class that that is its supertype, unless the
