@@ -23,10 +23,12 @@ from typing import (
     Dict,
     Generator,
     List,
+    Literal,
     Optional,
     Sequence,
     Tuple,
     Union,
+    overload,
 )
 from backports.cached_property import cached_property
 from typing_extensions import Final
@@ -302,6 +304,17 @@ class AST:
             return pairs[0][1]
         else:
             return None
+
+    @overload
+    def child_slot(
+        self,
+        slot: Literal["children", "CHILDREN", "Children"],
+    ) -> List["AST"]:
+        ...
+
+    @overload
+    def child_slot(self, slot: str) -> Union[Optional["AST"], List["AST"]]:
+        ...
 
     def child_slot(self, slot: str) -> Union[Optional["AST"], List["AST"]]:
         """Return the contents of the AST's child slot value."""
