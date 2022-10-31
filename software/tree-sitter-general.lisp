@@ -5,7 +5,8 @@
   (:use :gt/full
         :cl-json
         :software-evolution-library
-        :software-evolution-library/software/tree-sitter))
+        :software-evolution-library/software/tree-sitter)
+  (:import-from :software-evolution-library/software/tree-sitter-code-gen))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
