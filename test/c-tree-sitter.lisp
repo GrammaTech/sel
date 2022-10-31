@@ -1550,6 +1550,12 @@ int x = 0;
 int y = 0;
 #else
 int x = 0;
+#endif
+
+#if 0
+int y = 0;
+#elif
+int x = 0;
 #endif"))
     (is (not (blot-out-ranges 'c-ast source)))))
 
@@ -1579,6 +1585,46 @@ int z = 0;
   "blot-out-ranges returns when an open preproc-if is in the source."
   (let ((source "#if 0    "))
     (is (not (blot-out-ranges 'c-ast source)))))
+
+(deftest c-blot-ranges-7 ()
+  "A range for nested #if's can be returned by blot-out-ranges."
+  (let ((source "#if 1
+#if 0
+int x = 0;
+#endif
+#endif"))
+    (is (member '(6 . 28) (blot-out-ranges 'c-ast source) :test #'equal))))
+
+#+nil
+(deftest c-blot-ranges-8 ()
+  "Nested #elif's are ignored inside #if's."
+  (let ((source "#if 0
+#if 1
+int x = 0;
+#elif  0
+int y = 0;
+#endif
+#endif"))
+    (is (member '(0 . 55) (blot-out-ranges 'c-ast source) :test #'equal))))
+
+(deftest c-blot-ranges-9 ()
+  "Nested #if, #ifdef, and #ifndef can be ignored in an enclosing blot-able
+section."
+  (let ((source "#if 0
+# if 1
+int x = 0;
+# endif
+
+# ifdef X
+int y = 0;
+# endif
+
+# ifndef Y
+int z = 0;
+# endif
+
+#endif"))
+    (is (member '(0 . 99) (blot-out-ranges 'c-ast source) :test #'equal))))
 
 (deftest c-blot-round-trip-1 ()
   "Blotted '#if 0' ASTs can round trip."
