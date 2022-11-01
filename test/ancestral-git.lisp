@@ -78,6 +78,7 @@ of WORDS in it."
 
 ;;; Tests
 
+#+sbcl
 (deftest ancestral-git-clones-local-repo ()
   "The project repository is cloned to /tmp/ by default."
   ;; NOTE: this prevents all of the branches used for evolution from being stored
@@ -89,12 +90,14 @@ of WORDS in it."
       (is (equal (second directory-path) "tmp"))
       (is (probe-file path)))))
 
+#+sbcl
 (deftest ancestral-git-creates-work-tree ()
   "A new worktree is created on project creation."
   (with-c-git-cleanup (project +project-path+)
     (let ((path (worktree-path project)))
       (is (probe-file path)))))
 
+#+sbcl
 (deftest ancestral-git-cloned-creates-new-work-tree ()
   "A new worktree is created when a project is copied."
   (with-c-git-cleanup
@@ -105,6 +108,7 @@ of WORDS in it."
       (is (not (equal original-path copy-path)))
       (is (probe-file copy-path)))))
 
+#+sbcl
 (deftest ancestral-git-worktree-creation-commit ()
   "A commit is created when a worktree is created."
   (with-c-git-cleanup
@@ -112,6 +116,7 @@ of WORDS in it."
     (let ((copy-project (copy original-project)))
       (is (has-commit-p copy-project "Create Worktree")))))
 
+#+sbcl
 (deftest ancestral-git-worktree-evolve-mutation-commit ()
   "Mutation commits contain information on the mutation and a diff."
   (with-c-git-cleanup
@@ -129,6 +134,7 @@ of WORDS in it."
                       variant
                       "MUTATION" "FILE-PATH" "TARGETS" "diff")))))))
 
+#+sbcl
 (deftest ancestral-git-worktree-evolve-crossover-commit ()
   "Crossover commits contain information on the crossover and a diff."
   (with-c-git-cleanup
