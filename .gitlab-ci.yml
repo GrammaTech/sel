@@ -48,6 +48,15 @@ test-ccl:
     LISP: 'ccl'
   <<: *test
 
+build-python-no-tree-sitter:
+  stage: test
+  script:
+    - mv /usr/share/tree-sitter /usr/share/hidden-tree-sitter
+    - sbcl --non-interactive --eval "(ql:quickload 'software-evolution-library/run-tree-sitter-py-generator)"
+    - sbcl --non-interactive --eval "(ql:quickload 'software-evolution-library/run-tree-sitter-interface)"
+  except:
+    - schedules
+
 .test-python-template: &test-python
   stage: test
   except:
