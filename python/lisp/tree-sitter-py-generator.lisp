@@ -44,6 +44,7 @@ be part of the python API.")
 on certain generated classes.")
 
 (-> load-extra-methods () hash-table)
+#+:TREE-SITTER-PYTHON
 (defun load-extra-methods ()
   "Return a hash-table mapping AST classes to user-defined extra Python
 methods which should be defined on their generated classes."
@@ -60,6 +61,8 @@ methods which should be defined on their generated classes."
           (children)
           (convert 'python-ast)
           (read-file-into-string +ast-classes-extra-methods-path+))))
+#-:TREE-SITTER-PYTHON
+(defun load-extra-methods () (make-hash-table))
 
 (defparameter +ast-classes-extra-methods+ (load-extra-methods)
   "Hash-table mapping AST classes to extra Python methods which
