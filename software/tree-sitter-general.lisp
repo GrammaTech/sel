@@ -3448,11 +3448,16 @@ for ASTs which need to appear in the surrounding text slots.")
              (when (scan "^\\r?\\n" text)
                (setf (unbox indent-p) nil
                      (unbox indentation-ast) nil)))
-           (handle-trailing-newline (text ast indentablep)
+           (handle-trailing-newline (text ast indentablep parents)
              "If the last character in TEXT is a newline, set the
             indentation variables."
-             (when (and (ends-with-newline-p text)
-                        indentablep)
+             (when (and
+                    ;; NOTE: don't keep track of indentation in computed-text.
+                    ;;       This is only an issue when text-fragments are
+                    ;;       present.
+                    (not (find-if (of-type 'computed-text) parents))
+                    (ends-with-newline-p text)
+                    indentablep)
                (setf (unbox indent-p) t
                      (unbox indentation-ast) ast)))
            (handle-indentation (text ast indentablep parents
@@ -3513,7 +3518,7 @@ for ASTs which need to appear in the surrounding text slots.")
                                    :ancestor-check ancestor-check
                                    :first-child first-child)
                ;; Set indentation flag  when TEXT ends with a newline.
-               (handle-trailing-newline text ast indentablep)
+               (handle-trailing-newline text ast indentablep parents)
                (unless trim
                  (write-string
                   (patch-inner-indentation text ast parents)

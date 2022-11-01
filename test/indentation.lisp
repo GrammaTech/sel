@@ -163,6 +163,28 @@ int main() {
     (is (equal python-source
                (source-text (convert 'python-ast python-source))))))
 
+(deftest indentation-ignored-in-computed-text-subtrees ()
+  "Any subtree rooted at a computed-text node ignores processing indentation."
+  (let ((c-source "int main () {
+  printf (\"test string \\
+  multi line
+  \\n\");
+} ")
+        (python-source "
+import textwrap
+
+def foo():
+    print(\"hello\")
+    print(\"world\")
+    x = textwrap.dedent(\"\"\"\\
+        hi
+    !\"\"\")
+    print(x)
+
+foo()
+"))
+    (is (source-text= c-source (convert 'c-ast c-source)))
+    (is (source-text= python-source (convert 'python-ast python-source)))))
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()
