@@ -109,6 +109,44 @@ as `ast.child_slots()`.
 A child slot storing terminal ASTs was added to several macro
 AST types.
 
+## v0.8.0 -> v0.9.0
+
+- (Breaking) `function_asts` and `call_asts` are now free functions defined in
+`asts.utility` instead of methods on an AST.
+
+- (Breaking) AST types are no longer re-exported from the top-level `asts`
+package; types are only exported from `asts.types`. For instance `asts.CallAST`
+now must be referenced as `asts.types.CallAST`.
+
+- (Potentially breaking) `child_slots` will return an empty list instead of
+`None` when the arity of the slot is "\*" and there are no items for the child
+slot. The type annotation of `child_slots` was updated accordingly and the
+behavior of \*-arity AST properties now matches the existing type-signature
+(`List[AST]`).
+
+- (Potentially breaking) The non-atom elements returned by `child_slots`,
+`ast_source_ranges`, and `ast_path` are now tuples, reflecting the type
+annotation.
+
+- The `language` property will now return None instead of throwing when
+the AST type does not have an associated language (e.g. `InnerParent`).
+
+- The type signature of 1-arity AST properties was corrected to `Optional["AST"]`.
+
+- Child slot properties are now "rolled up" to the highest possible superclass.
+For instance, `path` is now a property of `CXXPreprocInclude` instead of
+both `CPreprocInclude` and `CPPPreprocInclude`, allowing for type checking
+to work properly when operating at higher levels of AST type abstraction.
+
+- CXX classes now inherit from abstract type mixins. For instance,
+`CXXCommentAST` now inherits from `CommentAST` whereas previously
+`CCommentAST` and `CPPCommentAST` inherited from `CXXCommentAST` and
+`CommentAST`.
+
+- The type annotations of `parent`, `ast_template`, `asts_from_template`,
+`get_vars_in_scope`, and `copy` were corrected to reflect underlying behavior,
+which remains unchanged.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
