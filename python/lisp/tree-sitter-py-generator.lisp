@@ -43,7 +43,7 @@ be part of the python API.")
   "Path to file containing extra Python methods to define
 on certain generated classes.")
 
-(-> load-extra-methods () hash-table)
+(-> load-extra-methods () (values hash-table &optional))
 #+:TREE-SITTER-PYTHON
 (defun load-extra-methods ()
   "Return a hash-table mapping AST classes to user-defined extra Python
@@ -79,7 +79,7 @@ should be defined on their generated classes.")
   "Remove duplicates from l, from right to left."
   (remove-duplicates l :from-end t))
 
-(-> remove-special-case-classes (list) list)
+(-> remove-special-case-classes (list) (values list &optional))
 (defun remove-special-case-classes (l)
   "Remove special case classes from l."
   (remove-if {member _ +ast-terminals-skip-output+} l :key #'class-name))
