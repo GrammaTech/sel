@@ -264,9 +264,10 @@ function name from the API followed by the arguments."
                                             (make-instance 'source-location
                                               :line line :column column))))
 
-(-> int/language (ast) string)
+(-> int/language (ast) (or string null))
 (defun int/language (ast)
-  (cl-to-python-ast-language (ast-language ast)))
+  (when-let ((lang (ast-language ast)))
+    (cl-to-python-ast-language lang)))
 
 (-> int/imports (ast ast) (values list &optional))
 (defun int/imports (root ast)

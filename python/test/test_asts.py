@@ -579,6 +579,7 @@ class InnerParentTestDriver(unittest.TestCase):
         root = AST.from_string(text, ASTLanguage.Python)
         inner_parent = root.children[0].children[0].children[1].children[1]
         self.assertIsInstance(inner_parent, InnerParent)
+        self.assertIsNone(inner_parent.language)
         self.assertTrue(inner_parent.source_text.startswith(" # first comment"))
 
 

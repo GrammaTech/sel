@@ -248,9 +248,10 @@ class AST:
         return self._oid
 
     @cached_property
-    def language(self) -> ASTLanguage:
+    def language(self) -> Optional[ASTLanguage]:
         """Return the AST's language."""
-        return ASTLanguage[_interface.dispatch(AST.language.func.__name__, self)]
+        name = _interface.dispatch(AST.language.func.__name__, self)
+        return ASTLanguage[name] if name else None
 
     @cached_property
     def source_text(self) -> str:
@@ -479,12 +480,17 @@ class AST:
 
     # AST mutation helpers/sanity checks
     @staticmethod
-    def _ensure_ast(value: LiteralOrAST, language: ASTLanguage) -> "AST":
+    def _ensure_ast(
+        value: LiteralOrAST,
+        language: Optional[ASTLanguage] = None,
+    ) -> "AST":
         """Return the given value as an AST."""
         if isinstance(value, AST):
             return value
-        else:
+        elif language:
             return AST.from_string(str(value), language=language, deepest=True)
+        else:
+            return AST.from_string(str(value), deepest=True)
 
     @staticmethod
     def _root_mutation_check(root: "AST", pt: "AST") -> None:
