@@ -198,7 +198,8 @@ function name from the API followed by the arguments."
 ;;;; API:
 (-> int/from-string (string string boolean boolean) (values ast &optional))
 (defun int/from-string (source-text language deepest use-variation-point-tree)
-  (let ((*use-variation-point-tree* use-variation-point-tree))
+  (let ((*use-variation-point-tree* use-variation-point-tree)
+        (*use-blotting* nil))
     (convert (language-to-ast-symbol language)
              source-text
              :deepest deepest)))
