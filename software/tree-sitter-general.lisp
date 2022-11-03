@@ -2093,6 +2093,11 @@ temporary software objects."
 ;;;      the blot in both the row and column indices. The row offset should be
 ;;;      reset on newlines. All ranges in the tree will need to be updated if
 ;;;      either offset exists.
+
+(defvar *use-blotting* t
+  "Controls whether blotting is used to hide problematic sections of source
+from the tree-sitter parser.")
+
 (defgeneric blot-out-ranges (superclass source &key)
   (:documentation "Return a list of ranges to blot out sections of SOURCE which
 cause problems when parsing it as SUPERCLASS.")
@@ -3269,14 +3274,18 @@ list specifications."
                  annotated-children))
                ;; If either is nil, it means that there isn't text for that slot.
                (list parent-from parent-to)))))))
-    (let ((blotted-ranges (blot-out-ranges superclass string)))
+    (let ((blotted-ranges (when *use-blotting*
+                            (blot-out-ranges superclass string))))
       (annotate-surrounding-text
        (insert-blots-into-parse-tree
         (blot-ranges->parse-tree-ranges blotted-ranges string)
         (transform-tree
          (ensure-beginning-bound
-          (parse-language superclass
-                          (blot-out superclass blotted-ranges string)))))))))
+          (parse-language
+           superclass
+           (if *use-blotting*
+               (blot-out superclass blotted-ranges string)
+               string)))))))))
 
 (defgeneric parse-language (superclass string &key)
   (:documentation "Get a parse tree for STRING using the language associated

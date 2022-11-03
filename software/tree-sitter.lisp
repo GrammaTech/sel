@@ -659,6 +659,7 @@
            :return-type
            :contextualize-ast
            ;; Blotting
+           :*use-blotting*
            :blot-out-ranges
            :blot-out)
   (:local-nicknames

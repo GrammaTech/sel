@@ -17,7 +17,8 @@
    :functional-trees/attrs)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
   (:import-from :software-evolution-library/software/tree-sitter
-                :outer-defs)
+                :outer-defs
+                :blot)
   (:export :test-c-tree-sitter))
 (in-package :software-evolution-library/test/c-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -1632,3 +1633,11 @@ int z = 0;
 int x = 0;
 #endif"))
     (is (source-text= source (convert 'c-ast source)))))
+
+(deftest c-blotting-can-be-disabled ()
+  "Blotting can be disabled by setting *USE-BLOTTING* to nil."
+  (let ((source "#if 0
+int x = 0;
+#endif")
+        (*use-blotting* nil))
+    (is (not (find-if (of-type 'blot) (convert 'c-ast source))))))
