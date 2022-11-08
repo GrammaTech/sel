@@ -254,6 +254,19 @@ If NEWLINES is provided it should be the value returned for STRING by
                 (unless (= end-column 0)
                   (enq (subseq (aref line-octets (clamp end-line 0 max-line)) 0 end-column)
                        vectors))
-                (apply #'concatenate 'vector (qlist vectors))))
+                ;; (apply #'concatenate 'vector (qlist vectors))
+                (concatenate-vectors-to-vector (qlist vectors))
+                ))
              (t #()))
            '(vector (unsigned-byte 8))))))))
+
+(defun concatenate-vectors-to-vector (vectors &key (element-type t))
+  "Given a list VECTORS of vectors, concatenate into a vector with element-type ELEMENT-TYPE"
+  (let* ((total-size (reduce #'+ vectors :key #'length :initial-value 0))
+         (result (make-array (list total-size) :element-type element-type))
+         (i 0))
+    (iter (for v in vectors)
+          (let ((next (+ i (length v))))
+            (setf (cl:subseq result i next) v
+                  i next)))
+    result))
