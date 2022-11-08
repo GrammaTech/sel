@@ -247,6 +247,16 @@ class AST:
         """Return the oid for this AST."""
         return self._oid
 
+    @property
+    def size(self) -> int:
+        """
+        Return the size of self as a count of this node and
+        its recursive `children`.
+        """
+        # Note: The result is cached for self and its recursive
+        # children on the Lisp side of the interface.
+        return _interface.dispatch(AST.size.fget.__name__, self)  # type: ignore
+
     @cached_property
     def language(self) -> Optional[ASTLanguage]:
         """Return the AST's language."""

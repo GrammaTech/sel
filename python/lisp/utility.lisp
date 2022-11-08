@@ -217,6 +217,10 @@ AST (instance, type symbol, or class).")
       (drop-suffix "-AST" (symbol-name superclass)))))
 
 ;;;; AST slots
+(defparameter +disambiguation-suffix+ "-CHILD-SLOT"
+  "Suffix to disambiguate python AST methods and child slot properties where
+there is a naming collision.")
+
 (-> internal-child-slot-p (list) list)
 (defun internal-child-slot-p (slot)
   "Return non-NIL if the given child slot contains internal ASTs that should
@@ -239,7 +243,11 @@ any LANGUAGE prefix stripped.")
   (:method ((language string) (slot-name symbol))
     (cl-to-python-slot-name language (symbol-name slot-name)))
   (:method ((language string) (slot-name string))
-    (cond ((passthrough-slot-name-p slot-name) (string-upcase slot-name))
+    (cond ((passthrough-slot-name-p slot-name)
+           (string-upcase slot-name))
+          ((existing-method-collision-p slot-name)
+           (nest (cl-to-python-slot-name language)
+                 (ensure-suffix slot-name +disambiguation-suffix+)))
           (t (drop-prefix (concatenate 'string (string-upcase language) "-")
                           (string-upcase slot-name))))))
 
@@ -258,7 +266,11 @@ with a LANGUAGE prefix prepended.")
   (:method ((language string) (slot-name symbol))
     (python-to-cl-slot-name language (symbol-name slot-name)))
   (:method ((language string) (slot-name string))
-    (cond ((passthrough-slot-name-p slot-name) (string-upcase slot-name))
+    (cond ((passthrough-slot-name-p slot-name)
+           (string-upcase slot-name))
+          ((existing-method-collision-p slot-name)
+           (nest (python-to-cl-slot-name language)
+                 (drop-suffix +disambiguation-suffix+ slot-name)))
           (t (concatenate 'string
                           (string-upcase language)
                           "-"
@@ -269,4 +281,10 @@ with a LANGUAGE prefix prepended.")
   "Return non-NIL if SLOT-NAME is a slot which should be passed thru
 any cl-to-python or python-to-cl unchanged."
   (member slot-name '("before-asts" "after-asts" "children" "async")
+          :test (flip #'string-suffix-p)))
+
+(-> existing-method-collision-p (string) list)
+(defun existing-method-collision-p (slot-name)
+  "Return T if slot-name collides with an existing method on python ASTs."
+  (member slot-name '("size" "language" "source_text")
           :test (flip #'string-suffix-p)))

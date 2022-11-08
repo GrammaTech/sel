@@ -134,6 +134,11 @@ class BinaryOperationTestDriver(unittest.TestCase):
     def test_child_slot_property(self):
         self.assertEqual("88", self.binop.right.source_text)
 
+    # AST size
+    def test_size_property(self):
+        self.assertEqual(6, self.root.size)
+        self.assertEqual(len(list(self.root)), self.root.size)
+
     # AST type
     def test_ast_type(self):
         integer = self.binop.right

@@ -259,6 +259,10 @@ function name from the API followed by the arguments."
                                 :sel/sw/tree-sitter)))
     (slot-value ast slot)))
 
+(-> int/size (ast) (values number &optional))
+(defun int/size (ast)
+  (size ast))
+
 (-> int/ast-at-point (ast integer integer) (values (or ast null) &optional))
 (defun int/ast-at-point (ast line column)
   (lastcar (asts-containing-source-location ast
