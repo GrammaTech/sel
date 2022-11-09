@@ -147,6 +147,10 @@ to work properly when operating at higher levels of AST type abstraction.
 `get_vars_in_scope`, and `copy` were corrected to reflect underlying behavior,
 which remains unchanged.
 
+## v0.9.0 -> v0.9.1
+
+Added `__len__` method to ASTs.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
