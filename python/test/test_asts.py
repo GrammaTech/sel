@@ -217,6 +217,11 @@ class BinaryOperationTestDriver(unittest.TestCase):
             [type(ast) for ast in asts],
         )
 
+    # AST __len__
+    def test_ast_len(self):
+        self.assertEqual(6, len(self.root))
+        self.assertEqual(len(list(self.root)), len(self.root))
+
 
 class PrintFunctionCallTestDriver(unittest.TestCase):
     def setUp(self):

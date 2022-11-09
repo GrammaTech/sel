@@ -2,6 +2,7 @@ import atexit
 import base64
 import collections
 import enum
+import functools
 import json
 import multiprocessing
 import os
@@ -27,6 +28,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    TypeVar,
     Union,
     overload,
 )
@@ -34,6 +36,7 @@ from backports.cached_property import cached_property
 from typing_extensions import Final
 
 LiteralOrAST = Union[int, float, str, "AST"]
+_RetT = TypeVar("_RetT")
 
 
 # Auxillary classes
@@ -80,6 +83,29 @@ def _guess_language(text: str) -> Optional[ASTLanguage]:
 def _to_tuple(lst: List[Any]):
     """Convert LST and its recursive list elements to tuples."""
     return tuple(_to_tuple(i) if isinstance(i, list) else i for i in lst)
+
+
+def _cached_ast_noarg_method(
+    method: Callable[["AST"], _RetT]
+) -> Callable[["AST"], _RetT]:
+    """
+    Decorator implementing caching for no-argument methods on AST objects.
+    As AST objects are immutable, a method which takes no arguments
+    is guaranteed to return the same value each time it is called.
+    """
+
+    _NOT_FOUND = object()
+
+    @functools.wraps(method)
+    def wrapper(self: "AST") -> _RetT:
+        key = method.__name__
+        cache = self.__dict__.setdefault("_cache", {})
+        result = cache.get(key, _NOT_FOUND)
+        if result is _NOT_FOUND:
+            result = cache[key] = method(self)
+        return result
+
+    return wrapper
 
 
 # Base AST class
@@ -229,6 +255,16 @@ class AST:
     def __iter__(self) -> Generator["AST", None, None]:
         """Traverse self in pre-order, yielding subtrees"""
         yield from self.traverse()
+
+    @_cached_ast_noarg_method
+    def __len__(self) -> int:
+        """
+        Return the len of this node as a count of this node and its
+        recursive children (matching `__iter__` above).
+        """
+        # Note: This method is cached so calling __len__ will
+        # cache the lengths of the recursive children of self.
+        return 1 + sum(len(c) for c in self.children)
 
     def __hash__(self) -> int:
         """Return the hashcode for the AST."""
