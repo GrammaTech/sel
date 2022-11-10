@@ -993,6 +993,8 @@ a declaration AST, return AST unchanged."
      (list ast))
     ((:namespace (namespace-declaration-ast))
      (list ast))
+    ((:method (function-declaration-ast))
+     (list ast))
     ((nil _)
      (error "Not a namespace: ~a" type))
     (((type symbol) _)
@@ -1012,6 +1014,8 @@ a declaration AST, return AST unchanged."
   (:method ((type (eql :tag)) ast)
     (find-in-symbol-table ast type ast))
   (:method ((type (eql :macro)) ast)
+    (find-in-symbol-table ast type ast))
+  (:method ((type (eql :method)) ast)
     (find-in-symbol-table ast type ast))
   (:method :around ((type t) (ast call-ast))
     (get-declaration-ids type (call-function ast)))
@@ -3837,11 +3841,14 @@ Otherwise, return PARSE-TREE."
   ;; The nil "namespace" is for languages that don't use namespaces.
   ;; The :tag namespace is for C (which has separate tag and type
   ;; namespaces).
-  '(member nil :variable :function :type :tag :macro :namespace))
+  ;; The :method namespace is for Go which treats methods differently
+  ;; than functions.
+  '(member nil :variable :function :type :tag :macro :namespace :method))
 
 (def +namespace-decl-type-table+
   '((:variable . variable-declaration-ast)
     (:function . function-declaration-ast)
+    (:method . function-declaration-ast)
     (:type . type-declaration-ast)
     (:tag . type-declaration-ast)
     (:macro . macro-declaration-ast)

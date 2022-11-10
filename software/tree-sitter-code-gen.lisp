@@ -153,7 +153,7 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
   (defparameter *tree-sitter-software-superclasses*
     '((:c compilable normal-scope c/cpp c-like-syntax)
       (:cpp compilable normal-scope c/cpp c-like-syntax)
-      (:go normal-scope c-like-syntax)
+      (:golang normal-scope c-like-syntax)
       (:java c-like-syntax)
       (:javascript normal-scope ecma c-like-syntax)
       (:rust c-like-syntax normal-scope)
@@ -167,7 +167,7 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
   (defparameter *tree-sitter-base-ast-superclasses*
     '((:c c/cpp-ast c-like-syntax-ast normal-scope-ast)
       (:cpp c/cpp-ast c-like-syntax-ast normal-scope-ast)
-      (:go c-like-syntax-ast normal-scope-ast)
+      (:golang c-like-syntax-ast normal-scope-ast)
       (:java c-like-syntax-ast)
       (:javascript ecma-ast c-like-syntax-ast normal-scope-ast)
       (:rust c-like-syntax-ast normal-scope-ast)
@@ -723,7 +723,25 @@ for the language.")
        (:loop-ast cl-loop-macro)
        (:number-ast cl-num-lit cl-complex-num-lit cl-imaginary))
       (:golang
-       (:comment-ast golang-comment))
+       (:root-ast golang-source-file)
+       (:comment-ast golang-comment)
+       (:compound-ast golang-block)
+       (:declaration-ast golang-field-declaration golang-type-declaration)
+       (:definition-ast
+        ;; TODO: Everything here also declaration?
+        golang-type-declaration
+        )
+       (:function-declaration-ast
+        golang-function-declaration golang-method-declaration)
+       (:identifier-ast golang-identifier golang-field-identifier)
+       (:loop-ast golang-for-statement)
+       (:string-ast )
+       (:type-ast golang-qualified-type golang-pointer-type golang-struct-type
+        golang-interface-type golang-array-type golang-slice-type
+        golang-map-type golang-channel-type golang-function-type)
+       (:type-identifier-ast golang-type-identifier)
+       (:variable-declaration-ast
+        golang-var-declaration golang-const-declaration))
       (:java
        (:arguments-ast java-argument-list)
        (:assignment-ast java-assignment-expression java-update-expression)
@@ -3047,10 +3065,6 @@ from the parser."))
       :allocation :class))
     (:documentation "A container class that holds multiple children which occur
 between the same two terminal tokens."))
-
-  (defclass definition-ast (ast) ()
-    (:documentation "AST for something that associates a name with a thing.
-The name string is obtained by by DEFINITION-NAME"))
 
   (defclass comment-ast (ast) ()
     (:documentation "Mix-in for AST classes that are comments.
