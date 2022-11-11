@@ -151,6 +151,10 @@ which remains unchanged.
 
 Added `__len__` method to ASTs.
 
+## v0.9.1 -> v0.9.2
+
+Deleted `__len__` method and instead exposed `size` property on ASTs.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
