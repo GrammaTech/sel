@@ -96,11 +96,6 @@
 
 ;;; Symbol Table
 
-(defmethod symbol-table-union ((root c/cpp-ast) table-1 table-2 &key)
-  (multi-map-symbol-table-union
-   table-1 table-2
-   :allow-multiple (multi-declaration-keys root)))
-
 (defmethod symbol-table-union ((root c/cpp) table-1 table-2 &key)
   (symbol-table-union (genome root) table-1 table-2))
 
@@ -115,74 +110,6 @@
 
 (defmethod symbol-table ((node c/cpp-preproc-else) &optional in)
   (propagate-declarations-down node in))
-
-;;; TODO: move this into tree-sitter.lisp. Probably need something constructed
-;;;       at compile-time to have a full list of extra-ast-types.
-;;; TODO: actually, just use a mixin instead if this isn't a work around a bug.
-(defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
-  (labels ((extra-ast-types (language)
-             (mapcar (op (format-symbol 'sel/sw/ts "~a-~a" language _))
-                     (extra-asts language))))
-    (if (member node (append (extra-ast-types :c) (extra-ast-types :cpp))
-                :test #'typep)
-        (symbol-table node (empty-map))
-        (symbol-table (attrs-root *attrs*) (empty-map)))))
-
-(-> group-by-namespace
-    ((soft-list-of ast)
-     (soft-list-of symbol-table-namespace))
-    (values (soft-alist-of symbol-table-namespace
-                           (soft-list-of ast))
-            &optional))
-(defun group-by-namespace (declarations namespaces)
-  (let ((table (make-hash-table)))
-    (mapc (op (push _ (gethash _ table))) declarations namespaces)
-    (hash-table-alist table)))
-
-(-> convert-grouped-namespaces
-    ((soft-alist-of symbol-table-namespace
-                    (soft-list-of ast))
-     &key (:source-text-fun function))
-    (values (soft-alist-of symbol-table-namespace fset:map)
-            &optional))
-(defun convert-grouped-namespaces (grouped-namespaces
-                                   &key (source-text-fun
-                                         (lambda (ast)
-                                           (or (declarator-name ast)
-                                               (source-text ast)))))
-  "Convert grouped-namespaces into a grouping of
-(namespace . source-text/declaration-map)."
-  (fbindrec (source-text-fun
-             (create-source-text-map
-              (lambda (type declarations)
-                (reduce (lambda (map ast)
-                          (let ((key (source-text-fun ast)))
-                            (with map
-                                  key
-                                  ;; Preserve overloads within a
-                                  ;; single AST.
-                                  (if (member type (multi-declaration-keys ast))
-                                      (cons ast (@ map key))
-                                      (list ast)))))
-                        declarations
-                        :initial-value (empty-map)))))
-    (mapcar
-     (lambda (grouping &aux (type (car grouping)))
-       (cons type
-             (create-source-text-map type (cdr grouping))))
-     grouped-namespaces)))
-
-(defmethod outer-defs ((node c/cpp-ast))
-  (mvlet ((declarations namespaces (outer-declarations node)))
-    (convert 'fset:map
-             (convert-grouped-namespaces
-              (group-by-namespace declarations namespaces)))))
-
-(defmethod inner-defs ((node c/cpp-ast))
-  (mvlet ((declarations namespaces (inner-declarations node)))
-    (convert 'fset:map
-             (convert-grouped-namespaces
-              (group-by-namespace declarations namespaces)))))
 
 
 ;;; Generics and Transformations

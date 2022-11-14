@@ -3912,11 +3912,15 @@ by MULTI-DECLARATION-KEYS."
 (defgeneric symbol-table-union (root symbol-table-1 symbol-table-2 &key)
   (:documentation "Return the union of SYMBOL-TABLE-1 and SYMBOL-TABLE-2.")
   (:method (root symbol-table-1 symbol-table-2 &key &allow-other-keys)
-    (map-union symbol-table-1 symbol-table-2)))
+    (map-union symbol-table-1 symbol-table-2))
+  (:method ((root c-like-syntax-ast) table-1 table-2 &key &allow-other-keys)
+    (multi-map-symbol-table-union
+     table-1 table-2
+     :allow-multiple (multi-declaration-keys root))))
 
 (defun propagate-declarations-down
     (ast in &aux (root (attrs-root *attrs*)))
-  "Propagate the symbol table declarations own through AST's children."
+  "Propagate the symbol table declarations down through AST's children."
   (reduce (lambda (in2 child)
             (symbol-table-union
              root
@@ -3942,19 +3946,82 @@ by MULTI-DECLARATION-KEYS."
                (children node))
          in))))
 
+(defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
+  (labels ((extra-ast-types (language)
+             (mapcar (op (format-symbol 'sel/sw/ts "~a-~a" language _))
+                     (extra-asts language))))
+    (if (member node (extra-ast-types (make-keyword (ast-language-class node)))
+                :test #'typep)
+        (symbol-table node (empty-map))
+        (symbol-table (attrs-root *attrs*) (empty-map)))))
+
+(-> group-by-namespace
+    ((soft-list-of ast)
+     (soft-list-of symbol-table-namespace))
+    (values (soft-alist-of symbol-table-namespace
+                           (soft-list-of ast))
+            &optional))
+(defun group-by-namespace (declarations namespaces)
+  (let ((table (make-hash-table)))
+    (mapc (op (push _ (gethash _ table))) declarations namespaces)
+    (hash-table-alist table)))
+
+(-> convert-grouped-namespaces
+    ((soft-alist-of symbol-table-namespace
+                    (soft-list-of ast))
+     &key (:source-text-fun function))
+    (values (soft-alist-of symbol-table-namespace fset:map)
+            &optional))
+(defun convert-grouped-namespaces (grouped-namespaces
+                                   &key (source-text-fun
+                                         (lambda (ast)
+                                           (or (declarator-name ast)
+                                               (source-text ast)))))
+  "Convert grouped-namespaces into a grouping of
+(namespace . source-text/declaration-map)."
+  (fbindrec (source-text-fun
+             (create-source-text-map
+              (lambda (type declarations)
+                (reduce (lambda (map ast)
+                          (let ((key (source-text-fun ast)))
+                            (with map
+                                  key
+                                  ;; Preserve overloads within a
+                                  ;; single AST.
+                                  (if (member type (multi-declaration-keys ast))
+                                      (cons ast (@ map key))
+                                      (list ast)))))
+                        declarations
+                        :initial-value (empty-map)))))
+    (mapcar
+     (lambda (grouping &aux (type (car grouping)))
+       (cons type
+             (create-source-text-map type (cdr grouping))))
+     grouped-namespaces)))
+
 (def-attr-fun outer-defs ()
   "Map of outer definitions from a node"
   (:method ((node node))
     (convert 'fset:map
              (mapcar (op (list (source-text _1) _1))
-                     (outer-declarations node)))))
+                     (outer-declarations node))))
+  (:method ((node c-like-syntax-ast))
+    (mvlet ((declarations namespaces (outer-declarations node)))
+      (convert 'fset:map
+               (convert-grouped-namespaces
+                (group-by-namespace declarations namespaces))))))
 
 (def-attr-fun inner-defs ()
   "Map of inner definitions from a node"
   (:method ((node node))
     (convert 'fset:map
              (mapcar (op (list (source-text _1) _1))
-                     (inner-declarations node)))))
+                     (inner-declarations node))))
+  (:method ((node c-like-syntax-ast))
+    (mvlet ((declarations namespaces (inner-declarations node)))
+      (convert 'fset:map
+               (convert-grouped-namespaces
+                (group-by-namespace declarations namespaces))))))
 
 (defgeneric qualify-declared-ast-name (ast)
   (:documentation "Qualify the name of AST.

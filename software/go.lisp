@@ -83,23 +83,6 @@
 
 ;;; Symbol Table
 
-;;; TODO: consider making this the default? Or at least default for c-like?
-(defmethod symbol-table-union ((root golang-ast) table-1 table-2 &key)
-  (multi-map-symbol-table-union
-   table-1 table-2
-   :allow-multiple (multi-declaration-keys root)))
-
-(defmethod outer-defs ((node golang-ast))
-  (mvlet ((declarations namespaces (outer-declarations node)))
-    (convert 'fset:map
-             (convert-grouped-namespaces
-              (group-by-namespace declarations namespaces)))))
-
-(defmethod inner-defs ((node golang-ast))
-  (mvlet ((declarations namespaces (inner-declarations node)))
-    (convert 'fset:map
-             (convert-grouped-namespaces
-              (group-by-namespace declarations namespaces)))))
 
 (defmethod outer-declarations ((ast golang-var-declaration))
   (labels ((collect-declarations (var-spec)
