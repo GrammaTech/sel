@@ -155,6 +155,13 @@ Added `__len__` method to ASTs.
 
 Deleted `__len__` method and instead exposed `size` property on ASTs.
 
+## v0.9.2 -> v0.9.3
+
+- `children` will return a list of only ASTs, matching the type annotation.
+- `replace`/`insert` explictly only accept literals and ASTs as values to
+use in replacement/insertion respectively, enforcing the existing type
+annotation.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
