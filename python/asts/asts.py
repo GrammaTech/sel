@@ -495,7 +495,9 @@ class AST:
         language: Optional[ASTLanguage] = None,
     ) -> "AST":
         """Return the given value as an AST."""
-        if isinstance(value, AST):
+        if not isinstance(value, (str, float, int, AST)):
+            raise ASTException(f"{value} is not a literal or AST.")
+        elif isinstance(value, AST):
             return value
         elif language:
             return AST.from_string(str(value), language=language, deepest=True)

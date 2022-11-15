@@ -355,6 +355,14 @@ class MutationTestDriver(unittest.TestCase):
         with self.assertRaises(ASTException):
             AST.cut(self.root, new_pt)
 
+    def test_replace_throws_exception_no_replacement(self):
+        with self.assertRaises(ASTException):
+            AST.replace(self.root, self.statement, None)
+
+    def test_insert_throws_exception_no_replacement(self):
+        with self.assertRaises(ASTException):
+            AST.insert(self.root, self.statement, None)
+
 
 class TransformTestDriver(unittest.TestCase):
     def setUp(self):
