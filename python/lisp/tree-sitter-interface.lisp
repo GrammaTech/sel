@@ -233,7 +233,8 @@ function name from the API followed by the arguments."
 (defun int/parent (root ast) (get-parent-ast root ast))
 
 (-> int/children (ast) (values list &optional))
-(defun int/children (ast) (children ast))
+(defun int/children (ast)
+  (remove-if-not (of-type 'ast) (children ast)))
 
 (-> int/ast-path (ast ast) (values list &optional))
 (defun int/ast-path (root ast)

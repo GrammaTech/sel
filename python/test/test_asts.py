@@ -658,3 +658,14 @@ class VariationPointTestDriver(unittest.TestCase):
         )
         pt = root.lookup([("INTERNAL-ASTS-0", 0)])
         self.assertIsInstance(pt, VariationPoint)
+
+
+class NoneChildrenTestDriver(unittest.TestCase):
+    def test_children_nil_slot(self):
+        root = AST.from_string("int i", ASTLanguage.C)
+        to_cut = root.children[0].children[0]
+        new_root = AST.cut(root, to_cut)
+
+        self.assertEqual(new_root.children[0].children, [])
+        self.assertEqual(new_root.size, 2)
+        self.assertEqual(len(list(new_root)), 2)
