@@ -31,6 +31,7 @@ from asts.types import (
 from asts.utility import call_asts, function_asts
 from pathlib import Path
 from typing import Optional, Text
+from unittest.mock import patch
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -677,3 +678,23 @@ class NoneChildrenTestDriver(unittest.TestCase):
         self.assertEqual(new_root.children[0].children, [])
         self.assertEqual(new_root.size, 2)
         self.assertEqual(len(list(new_root)), 2)
+
+
+class LispInterfaceTestDriver(unittest.TestCase):
+    def test_keyboard_interruption(self):
+        # Keyboard Interrupt signals can unroll the stack before the response
+        # is received from the lisp interface. The python interface should be
+        # able to recover from the disjunct packages when this happens.
+        ast = AST.from_string("x = 4", ASTLanguage.Python)
+
+        with patch(
+                "asts.asts._interface._proc.stdout.readline",
+                side_effect=KeyboardInterrupt
+        ):
+            try:
+                children = ast.children
+            except KeyboardInterrupt:
+                pass
+
+        source_text = ast.source_text
+        assert isinstance(source_text, str)

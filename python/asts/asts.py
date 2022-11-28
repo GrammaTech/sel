@@ -527,6 +527,7 @@ class _interface:
     _proc: ClassVar[Optional[subprocess.Popen]] = None
     _gc_oids: ClassVar[List[int]] = []
     _lock: ClassVar = multiprocessing.RLock()
+    _message_id: int = 0
 
     @staticmethod
     def is_process_running() -> bool:
@@ -548,6 +549,14 @@ class _interface:
             if stdout or stderr:
                 msg = msg + f"\n\nstdout: {stdout}\n\nstderr: {stderr}"
             raise RuntimeError(msg)
+
+    @staticmethod
+    def _get_message_id() -> int:
+        """Safely return a new connection ID for the current request."""
+        with _interface._lock:
+            message_id = _interface._message_id
+            _interface._message_id += 1
+            return message_id
 
     @staticmethod
     def start() -> None:
@@ -670,6 +679,9 @@ class _interface:
             else:
                 return v
 
+        # Get an ID for the request.
+        message_id = _interface._get_message_id()
+
         # Pop the function name from *args.
         fn = args[0]
         args = args[1:]
@@ -685,14 +697,32 @@ class _interface:
             return
 
         # Build the request JSON to send to the subprocess.
-        request = [fn] + serialize(list(args)) + serialize(list(kwargs.items()))
+        request = (
+            [message_id]
+            + [fn]
+            + serialize(list(args))
+            + serialize(list(kwargs.items()))
+        )
         encoded_request = f"{json.dumps(request)}\n".encode()
 
-        # Send the request to the tree-sitter-interface and receive the response.
-        response = _interface._communicate(encoded_request)
+        # Acquire lock to ensure that different threads don't receive a
+        # response meant for another thread that still exists.
+        # NOTE: it may be worth keeping a pool of responses to allow for more
+        #       granular concurrency.
+        with _interface._lock:
 
-        # Load the response from the Lisp subprocess.
-        return deserialize(handle_errors(json.loads(response.decode())))
+            # Send the request to the tree-sitter-interface and receive
+            # the response.
+            response = _interface._communicate(encoded_request)
+
+            while True:
+                message_id_dict, response_json = handle_errors(
+                    json.loads(response.decode())
+                )
+
+                if message_id == message_id_dict["messageid"]:
+                    # Load the response from the Lisp subprocess.
+                    return deserialize(response_json)
 
     @staticmethod
     def _gc() -> None:
@@ -704,6 +734,7 @@ class _interface:
             _interface._gc_oids = []
         elif len(_interface._gc_oids) > _interface._DEFAULT_GC_THRESHOLD:
             request = [
+                _interface._get_message_id(),
                 "gc",
                 [_interface._gc_oids.pop() for _ in range(len(_interface._gc_oids))],
             ]

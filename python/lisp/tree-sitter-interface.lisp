@@ -147,11 +147,13 @@ was performed.")
 (defun handle-interface (json)
   "Handle a JSON input from the INTERFACE.  The JSON list should start with a
 function name from the API followed by the arguments."
-  (destructuring-bind (function-str . arguments) json
-    (serialize
-     (with-suppressed-output
-      (apply (function-string-to-symbol function-str)
-             (mapcar #'deserialize arguments))))))
+  (destructuring-bind (message-id function-str . arguments) json
+    (let ((result
+            (serialize
+             (with-suppressed-output
+               (apply (function-string-to-symbol function-str)
+                      (mapcar #'deserialize arguments))))))
+      (list (list (cons :messageid message-id)) result))))
 
 (defgeneric read-request (input)
   (:documentation "Read a request from the given INPUT.")
@@ -164,11 +166,11 @@ function name from the API followed by the arguments."
   (:documentation "Process the given REQUEST and write the response to OUTPUT.")
   (:method ((request string) (stream stream))
     (unwind-protect
-        (with-error-logging stream
-          (format stream "~a~%"
-                  (nest (encode-json-to-string)
-                        (handle-interface)
-                        (decode-json-from-string request))))
+         (with-error-logging stream
+           (format stream "~a~%"
+                   (nest (encode-json-to-string)
+                         (handle-interface)
+                         (decode-json-from-string request))))
       (finish-output stream)
       (unless (eq stream *standard-output*) (close stream))))
   (:method ((request string) (socket usocket))
