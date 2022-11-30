@@ -688,8 +688,7 @@ class LispInterfaceTestDriver(unittest.TestCase):
         ast = AST.from_string("x = 4", ASTLanguage.Python)
 
         with patch(
-                "asts.asts._interface._proc.stdout.readline",
-                side_effect=KeyboardInterrupt
+            "asts.asts._interface._proc.stdout.readline", side_effect=KeyboardInterrupt
         ):
             try:
                 children = ast.children
