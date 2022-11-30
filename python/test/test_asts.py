@@ -697,3 +697,21 @@ class LispInterfaceTestDriver(unittest.TestCase):
 
         source_text = ast.source_text
         assert isinstance(source_text, str)
+
+    def test_keyboard_interruption_exception(self):
+        # The Python interface doesn't raise an exception unless the erroneous
+        # message matches the ID of the current request.
+        root = AST.from_string("x = 88\n", ASTLanguage.Python)
+        statement = root.children[0]
+        new_pt = AST.from_string("new = 0\n", ASTLanguage.Python, deepest=True)
+
+        with patch(
+            "asts.asts._interface._proc.stdout.readline", side_effect=KeyboardInterrupt
+        ):
+            try:
+                AST.cut(root, new_pt)
+            except KeyboardInterrupt:
+                pass
+
+        source_text = root.source_text
+        assert isinstance(source_text, str)

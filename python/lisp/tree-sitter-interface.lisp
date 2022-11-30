@@ -52,7 +52,7 @@
            (*error-output* (make-string-output-stream)))
        ,@body)))
 
-(defmacro with-error-logging (stream &body body)
+(defmacro with-error-logging ((stream message-id) &body body)
   "Execute BODY in an environment where errors are caught and
 reported back to the client in JSON form over STREAM."
   `(handler-case
@@ -60,9 +60,10 @@ reported back to the client in JSON form over STREAM."
      (condition (c)
        (format ,stream "~a~%"
                (nest (encode-json-to-string)
-                     (list (cons :error
-                                 (with-output-to-string (s)
-                                   (print-condition c s)))))))))
+                     (list (list (cons :messageid ,message-id))
+                           (list (cons :error
+                                       (with-output-to-string (s)
+                                         (print-condition c s))))))))))
 
 (declaim (inline safe-intern))
 (defun safe-intern (string)
@@ -148,6 +149,7 @@ was performed.")
   "Handle a JSON input from the INTERFACE.  The JSON list should start with a
 function name from the API followed by the arguments."
   (destructuring-bind (message-id function-str . arguments) json
+    (setf *message-id* message-id)
     (let ((result
             (serialize
              (with-suppressed-output
@@ -164,13 +166,14 @@ function name from the API followed by the arguments."
 
 (defgeneric handle-request (request output)
   (:documentation "Process the given REQUEST and write the response to OUTPUT.")
-  (:method ((request string) (stream stream))
+  (:method ((request string) (stream stream) &aux message-id)
     (unwind-protect
-         (with-error-logging stream
-           (format stream "~a~%"
-                   (nest (encode-json-to-string)
-                         (handle-interface)
-                         (decode-json-from-string request))))
+         (with-error-logging (stream message-id)
+           (let ((json (decode-json-from-string request)))
+             (setf message-id (car json))
+             (format stream "~a~%"
+                     (encode-json-to-string
+                      (handle-interface json)))))
       (finish-output stream)
       (unless (eq stream *standard-output*) (close stream))))
   (:method ((request string) (socket usocket))
