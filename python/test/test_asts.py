@@ -691,7 +691,7 @@ class LispInterfaceTestDriver(unittest.TestCase):
             "asts.asts._interface._proc.stdout.readline", side_effect=KeyboardInterrupt
         ):
             try:
-                children = ast.children
+                ast.children
             except KeyboardInterrupt:
                 pass
 
