@@ -642,6 +642,25 @@ class _interface:
 
             return data
 
+        def handle_out_of_sync(response_message_id: int, message_id: int) -> Any:
+            """
+            Read from the interface if RESPONSE_MESSAGE_ID is not in sync
+            with the request MESSAGE_ID.
+            """
+            assert response_message_id < message_id
+
+            for i in range(0, message_id - response_message_id):
+                if _interface._DEFAULT_PORT:
+                    raise ASTException("Socket communication was interrupted!")
+                else:
+                    response = _interface._proc.stdout.readline().strip()
+
+                message_id_dict, response_json = handle_errors(
+                    json.loads(response.decode())
+                )
+                if message_id_dict["messageid"] == message_id:
+                    return response_json
+
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
@@ -679,9 +698,6 @@ class _interface:
             else:
                 return v
 
-        # Get an ID for the request.
-        message_id = _interface._get_message_id()
-
         # Pop the function name from *args.
         fn = args[0]
         args = args[1:]
@@ -696,33 +712,40 @@ class _interface:
             _interface._gc_oids.append(args[0])
             return
 
-        # Build the request JSON to send to the subprocess.
-        request = (
-            [message_id]
-            + [fn]
-            + serialize(list(args))
-            + serialize(list(kwargs.items()))
-        )
-        encoded_request = f"{json.dumps(request)}\n".encode()
-
         # Acquire lock to ensure that different threads don't receive a
         # response meant for another thread that still exists.
         # NOTE: it may be worth keeping a pool of responses to allow for more
         #       granular concurrency.
         with _interface._lock:
 
+            # Get an ID for the request.
+            message_id = _interface._get_message_id()
+
+            # Build the request JSON to send to the subprocess.
+            request = (
+                [message_id]
+                + [fn]
+                + serialize(list(args))
+                + serialize(list(kwargs.items()))
+            )
+            encoded_request = f"{json.dumps(request)}\n".encode()
+
             # Send the request to the tree-sitter-interface and receive
             # the response.
             response = _interface._communicate(encoded_request)
+            message_id_dict, response_json = handle_errors(
+                json.loads(response.decode())
+            )
+            response_message_id = message_id_dict["messageid"]
 
-            while True:
-                message_id_dict, response_json = handle_errors(
-                    json.loads(response.decode())
-                )
-
-                if message_id == message_id_dict["messageid"]:
-                    # Load the response from the Lisp subprocess.
-                    return deserialize(response_json)
+            if response_message_id == message_id:
+                # Load the response from the Lisp subprocess.
+                return deserialize(response_json)
+            elif response_message_id < message_id:
+                # Read from the Lisp subprocess until we are back in sync.
+                return deserialize(handle_out_of_sync(response_message_id, message_id))
+            else:
+                raise RuntimeError("AST interface is in an inconsistent state.")
 
     @staticmethod
     def _gc() -> None:
