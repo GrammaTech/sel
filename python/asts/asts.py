@@ -663,6 +663,8 @@ class _interface:
                 if _interface._DEFAULT_PORT:
                     raise ASTException("Socket communication was interrupted!")
                 else:
+                    assert _interface._proc
+                    assert _interface._proc.stdout
                     response = _interface._proc.stdout.readline().strip()
 
                 message_id_dict, response_json = handle_errors(

@@ -702,7 +702,6 @@ class LispInterfaceTestDriver(unittest.TestCase):
         # The Python interface doesn't raise an exception unless the erroneous
         # message matches the ID of the current request.
         root = AST.from_string("x = 88\n", ASTLanguage.Python)
-        statement = root.children[0]
         new_pt = AST.from_string("new = 0\n", ASTLanguage.Python, deepest=True)
 
         with patch(
