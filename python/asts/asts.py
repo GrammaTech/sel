@@ -667,11 +667,11 @@ class _interface:
                     assert _interface._proc.stdout
                     response = _interface._proc.stdout.readline().strip()
 
-                response_message_id, response_json = handle_errors(
+                response_message_id, response_data = handle_errors(
                     json.loads(response.decode()), message_id
                 )
                 if response_message_id == message_id:
-                    return response_json
+                    return response_data
 
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
@@ -741,13 +741,13 @@ class _interface:
             # Send the request to the tree-sitter-interface and receive
             # the response.
             response = _interface._communicate(encoded_request)
-            response_message_id, response_json = handle_errors(
+            response_message_id, response_data = handle_errors(
                 json.loads(response.decode()), message_id
             )
 
             if response_message_id == message_id:
                 # Load the response from the Lisp subprocess.
-                return deserialize(response_json)
+                return deserialize(response_data)
             elif response_message_id < message_id:
                 # Read from the Lisp subprocess until we are back in sync.
                 return deserialize(handle_out_of_sync(response_message_id, message_id))
