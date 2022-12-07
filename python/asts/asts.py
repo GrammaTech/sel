@@ -710,9 +710,10 @@ class _interface:
             else:
                 return v
 
-        # Pop the function name from *args.
+        # Pop the function name from *args and build the arguments
+        # to pass to the Lisp process.
         fn = args[0]
-        args = args[1:]
+        args = serialize(list(args[1:])) + serialize(list(kwargs.items()))
 
         # Special case: When garbage collection is occuring, place the
         # AST object id (oid) to be garbage collected on a queue to later
@@ -734,12 +735,7 @@ class _interface:
             message_id = _interface._get_message_id()
 
             # Build the request JSON to send to the subprocess.
-            request = (
-                [message_id]
-                + [fn]
-                + serialize(list(args))
-                + serialize(list(kwargs.items()))
-            )
+            request = [message_id, fn, *args]
             encoded_request = f"{json.dumps(request)}\n".encode()
 
             # Send the request to the tree-sitter-interface and receive
