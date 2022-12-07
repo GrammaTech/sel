@@ -60,7 +60,7 @@ reported back to the client in JSON form over STREAM."
      (condition (c)
        (format ,stream "~a~%"
                (nest (encode-json-to-string)
-                     (list (list (cons :messageid ,message-id))
+                     (list ,message-id
                            (list (cons :error
                                        (with-output-to-string (s)
                                          (print-condition c s))))))))))
@@ -147,15 +147,14 @@ was performed.")
 (-> handle-interface (list) t)
 (defun handle-interface (json)
   "Handle a JSON input from the INTERFACE.  The JSON list should start with a
-function name from the API followed by the arguments."
+message ID followed by a function name from the API and arguments."
   (destructuring-bind (message-id function-str . arguments) json
-    (setf *message-id* message-id)
     (let ((result
             (serialize
              (with-suppressed-output
                (apply (function-string-to-symbol function-str)
                       (mapcar #'deserialize arguments))))))
-      (list (list (cons :messageid message-id)) result))))
+      (list message-id result))))
 
 (defgeneric read-request (input)
   (:documentation "Read a request from the given INPUT.")
@@ -172,8 +171,7 @@ function name from the API followed by the arguments."
            (let ((json (decode-json-from-string request)))
              (setf message-id (car json))
              (format stream "~a~%"
-                     (encode-json-to-string
-                      (handle-interface json)))))
+                     (encode-json-to-string (handle-interface json)))))
       (finish-output stream)
       (unless (eq stream *standard-output*) (close stream))))
   (:method ((request string) (socket usocket))

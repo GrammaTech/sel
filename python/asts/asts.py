@@ -641,10 +641,10 @@ class _interface:
             Raises an ASTException if the message_id matches the current
             message and there is an error.
             """
-            message_id_dict, response_data = data
+            response_message_id, response_data = data
 
             if (
-                message_id_dict["messageid"] == message_id
+                response_message_id == message_id
                 and isinstance(response_data, dict)
                 and response_data.get("error", None)
             ):
@@ -667,10 +667,10 @@ class _interface:
                     assert _interface._proc.stdout
                     response = _interface._proc.stdout.readline().strip()
 
-                message_id_dict, response_json = handle_errors(
+                response_message_id, response_json = handle_errors(
                     json.loads(response.decode()), message_id
                 )
-                if message_id_dict["messageid"] == message_id:
+                if response_message_id == message_id:
                     return response_json
 
         def serialize(v: Any) -> Any:
@@ -745,10 +745,9 @@ class _interface:
             # Send the request to the tree-sitter-interface and receive
             # the response.
             response = _interface._communicate(encoded_request)
-            message_id_dict, response_json = handle_errors(
+            response_message_id, response_json = handle_errors(
                 json.loads(response.decode()), message_id
             )
-            response_message_id = message_id_dict["messageid"]
 
             if response_message_id == message_id:
                 # Load the response from the Lisp subprocess.
