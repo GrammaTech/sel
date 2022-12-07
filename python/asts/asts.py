@@ -725,8 +725,10 @@ class _interface:
             _interface._gc_oids.append(args[0])
             return
 
-        # Acquire lock to ensure that different threads don't receive a
-        # response meant for another thread that still exists.
+        # Send the request to the Lisp subprocess, either over a socket or
+        # on standard input, and wait for a response.  This section is locked
+        # to prevent issues with multiple threads writing at the same time.
+        #
         # NOTE: it may be worth keeping a pool of responses to allow for more
         #       granular concurrency.
         with _interface._lock:
@@ -787,37 +789,34 @@ class _interface:
             response = b"".join(chunks)
             return response
 
-        # Send the request to the Lisp subprocess, either over a socket or
-        # on standard input, and wait for a response.  This section is locked
-        # to prevent issues with multiple threads writing at the same time.
-        with _interface._lock:
-            # Preliminaries:
-            #  (1) Send list of object ids (oids) to garbage collect to the Lisp
-            #      subprocess, if applicable.  See comment above re: deadlocks.
-            #  (2) Check the process hasn't crashed before communicating with it.
-            _interface._gc()
+        # Preliminaries:
+        #  (1) Send list of object ids (oids) to garbage collect to the Lisp
+        #      subprocess, if applicable.  See comment above re: deadlocks.
+        #  (2) Check the process hasn't crashed before communicating with it.
+        _interface._gc()
+        _interface._check_for_process_crash()
+
+        # Send the request and receive the response. Note this section is
+        # single threaded and the lock is held outside of this function.
+        if _interface._DEFAULT_PORT:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
+                s.settimeout(_interface._DEFAULT_SOCKET_TIMEOUT)
+                s.sendall(request)
+                response = recvline(s).strip()
+        else:
+            assert _interface._proc
+            assert _interface._proc.stdin
+            assert _interface._proc.stdout
+
+            _interface._proc.stdin.write(request)
+            _interface._proc.stdin.flush()
+            response = _interface._proc.stdout.readline().strip()
+
+        # Post:
+        #  (1) Check the process hasn't crashed after communicating with it.
+        if request != _interface._DEFAULT_QUIT_SENTINEL:
             _interface._check_for_process_crash()
-
-            # Send the request and receive the response.
-            if _interface._DEFAULT_PORT:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.connect((_interface._DEFAULT_HOST, _interface._DEFAULT_PORT))
-                    s.settimeout(_interface._DEFAULT_SOCKET_TIMEOUT)
-                    s.sendall(request)
-                    response = recvline(s).strip()
-            else:
-                assert _interface._proc
-                assert _interface._proc.stdin
-                assert _interface._proc.stdout
-
-                _interface._proc.stdin.write(request)
-                _interface._proc.stdin.flush()
-                response = _interface._proc.stdout.readline().strip()
-
-            # Post:
-            #  (1) Check the process hasn't crashed after communicating with it.
-            if request != _interface._DEFAULT_QUIT_SENTINEL:
-                _interface._check_for_process_crash()
 
         return response
 
