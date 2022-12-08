@@ -27,12 +27,12 @@
 (defvar *clack-delay* 0.5 "Seconds to delay after starting server")
 (defvar *clack* nil)
 
-#-windows
+#-(or windows ccl)
 (defixture rest-server
   (:setup (unless *clack* (setf *clack* (initialize-clack))))
   (:teardown (clack:stop *clack*)(setf *clack* nil)(setf *rest-client* nil)))
 
-#-windows
+#-(or windows ccl)
 (let (old-standard-out old-error-out)
   (defixture fact-rest-server
     (:setup
@@ -60,7 +60,7 @@
            *standard-output* old-standard-out
            *error-output* old-error-out))))
 
-#-windows
+#-(or windows ccl)
 (defun initialize-clack ()
   (let ((tries 0))
     (handler-bind
@@ -104,7 +104,7 @@
           (setf result (symbol-name result)))
       (values result status))))
 
-#-windows
+#-(or windows ccl)
 (defun rest-test-create-software (type cid)
   "Given type of Software object and client-id, returns 2
  values: new software oid or nil, and status.
@@ -130,7 +130,8 @@
           (setf result (symbol-name result)))
 
       (values result status))))
-#-windows
+
+#-(or windows ccl)
 (defun rest-test-get-new-client ()
   "Always creates a new REST client and returns (1) new client id,
  (2) http status code. The new client id is stored in *rest-client*."
@@ -139,13 +140,13 @@
     (setf *rest-client* cid) ; store the new client for further tests
     (values cid status)))
 
-#-windows
+#-(or windows ccl)
 (defun rest-test-get-client ()
   "If REST client already has been created, return it.
  Else, create one and return the client id (cid)."
   (or *rest-client* (rest-test-get-new-client)))
 
-#-windows
+#-(or windows ccl)
 (deftest (rest-create-client :long-running) ()
   ;; test ensures the web service is running and it can create a new client,
   ;; tests Create Client (HTTP POST) method.
@@ -155,7 +156,7 @@
       (is (stringp cid))
       (is (string-equal (subseq cid 0 7) "client-")))))
 
-#-windows
+#-(or windows ccl)
 (deftest (rest-create-software :long-running) ()
   ;; test ensures the web service is running and it can create a new software
   ;; object. Tests Create Software (HTTP POST) method.
@@ -167,7 +168,7 @@
         (is (eql status 200))
         (is (integerp oid))))))
 
-#-windows
+#-(or windows ccl)
 (define-async-job four-types-1
     ((a integer) (b string) (c float) (d boolean))
   "Test that the four supported types can be passed via REST."
@@ -177,7 +178,7 @@
           (type-of c) c
           (type-of d) d))
 
-#-windows
+#-(or windows ccl)
 (deftest run-async-job-func ()
   (let ((result
          (sel/rest:apply-async-job-func 'four-types-1 10 "twenty" 30.1 t)))
@@ -186,7 +187,7 @@
     (is (search "30.1" result))
     (is (search " T" result))))
 
-#-windows
+#-(or windows ccl)
 (define-command-async-rest (four-types-2)
     ((a integer) (b string) (c float) (d boolean)
      &spec +common-command-line-options+)
@@ -199,7 +200,7 @@
           (type-of c) c
           (type-of d) d))
 
-#-windows
+#-(or windows ccl)
 (deftest run-rest-command-line-func ()
   (let ((result
          (four-types-2 10 "twenty" 30.1 t)))
@@ -208,7 +209,7 @@
     (is (search "30.1" result))
     (is (search " T" result))))
 
-#-windows
+#-(or windows ccl)
 (define-command-async-rest (fact-entry-cl)
     ((n integer) &spec +common-command-line-options+)
   "Test that canonical REST endpoints work. Computes factorial."
@@ -221,13 +222,13 @@
       (show-help-for-fact-entry-cl)
       (factorial n)))
 
-#-windows
+#-(or windows ccl)
 (deftest (run-rest-factorial-cl-func :long-running) ()
   (let ((*standard-output* (make-broadcast-stream)))
     (is (eql (fact-entry-cl 5 :verbose 3) 120))
     (is (eql (fact-entry-cl 52235215 :help T) nil))))
 
-#-windows
+#-(or windows ccl)
 (deftest (run-rest-factorial-cl-func-2 :long-running) ()
   (with-fixture fact-rest-server
     (let ((*standard-output* (make-broadcast-stream)))
@@ -236,7 +237,7 @@
       (is (eql (funcall (symbol-function 'fact-entry) 5 :verbose 3) 120))
       (is (eql (funcall (symbol-function 'fact-entry) 52235215 :help T) nil)))))
 
-#-windows
+#-(or windows ccl)
 (defun rest-endpoint-test-create-fact-job (client-id json-input)
   "Returns new job name or nil.
  Assumes service is running."
@@ -252,7 +253,7 @@
         (read stream)
         (format nil "Status code ~A" status))))
 
-#-windows
+#-(or windows ccl)
 (deftest (run-rest-factorial-remote-1 :long-running) ()
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
@@ -264,7 +265,7 @@
         (is (stringp result))
         (is (starts-with-subseq "REST-FACT-ENTRY" result))))))
 
-#-windows
+#-(or windows ccl)
 (deftest (run-rest-factorial-remote-2 :long-running) ()
   (with-fixture fact-rest-server
     (multiple-value-bind (cid status) (rest-test-get-new-client)
