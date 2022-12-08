@@ -165,13 +165,12 @@ message ID followed by a function name from the API and arguments."
 
 (defgeneric handle-request (request output)
   (:documentation "Process the given REQUEST and write the response to OUTPUT.")
-  (:method ((request string) (stream stream) &aux message-id)
+  (:method ((request string) (stream stream))
     (unwind-protect
-         (with-error-logging (stream message-id)
-           (let ((json (decode-json-from-string request)))
-             (setf message-id (car json))
-             (format stream "~a~%"
-                     (encode-json-to-string (handle-interface json)))))
+        (let* ((json (decode-json-from-string request))
+               (message-id (first json)))
+          (with-error-logging (stream message-id)
+            (format stream "~a~%" (encode-json-to-string (handle-interface json)))))
       (finish-output stream)
       (unless (eq stream *standard-output*) (close stream))))
   (:method ((request string) (socket usocket))
