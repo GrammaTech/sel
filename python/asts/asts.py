@@ -7,6 +7,7 @@ import multiprocessing
 import os
 import psutil
 import pkg_resources
+import re
 import shutil
 import socket
 import subprocess
@@ -523,6 +524,9 @@ class _interface:
     _DEFAULT_SOCKET_TIMEOUT: Final[int] = 300
     _DEFAULT_GC_THRESHOLD: Final[int] = 128
     _DEFAULT_QUIT_SENTINEL: Final[bytes] = b"QUIT\n"
+    _DEFAULT_RESPONSE_REGEX_CHECK: Final[re.Pattern] = re.compile(
+        b"^([)(?P<messageid>[0-9]+),.*(])$"
+    )
 
     _proc: ClassVar[Optional[subprocess.Popen]] = None
     _gc_oids: ClassVar[List[int]] = []
@@ -656,6 +660,13 @@ class _interface:
                     assert _interface._proc
                     assert _interface._proc.stdout
                     response = _interface._proc.stdout.readline().strip()
+
+                    if not re.match(_interface._DEFAULT_RESPONSE_REGEX_CHECK, response):
+                        msg = (
+                            f"'{response.decode()}'"
+                            + " is not a valid response from the AST interface subprocess."
+                        )
+                        raise RuntimeError(msg)
 
                 response_message_id, response_data = json.loads(response.decode())
                 if response_message_id == message_id:
@@ -802,8 +813,15 @@ class _interface:
 
         # Post:
         #  (1) Check the process hasn't crashed after communicating with it.
+        #  (2) Check we received a valid response.
         if request != _interface._DEFAULT_QUIT_SENTINEL:
             _interface._check_for_process_crash()
+            if not re.match(_interface._DEFAULT_RESPONSE_REGEX_CHECK, response):
+                msg = (
+                    f"'{response.decode()}'"
+                    + " is not a valid response from the AST interface subprocess."
+                )
+                raise RuntimeError(msg)
 
         return response
 
