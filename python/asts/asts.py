@@ -753,8 +753,8 @@ class _interface:
             elif response_message_id > message_id:
                 raise RuntimeError("AST interface is in an inconsistent state.")
 
-            # Load the response from the Lisp subprocess.
-            return deserialize(handle_errors(response_data))
+        # Load the response from the Lisp subprocess.
+        return deserialize(handle_errors(response_data))
 
     @staticmethod
     def _gc() -> None:
