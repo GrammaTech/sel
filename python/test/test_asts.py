@@ -680,7 +680,7 @@ class NoneChildrenTestDriver(unittest.TestCase):
         self.assertEqual(len(list(new_root)), 2)
 
 
-class LispInterfaceTestDriver(unittest.TestCase):
+class KeyboardInterruptionTestDriver(unittest.TestCase):
     def test_keyboard_interruption(self):
         # Keyboard Interrupt signals can unroll the stack before the response
         # is received from the lisp interface. The python interface should be
