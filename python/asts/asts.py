@@ -556,7 +556,7 @@ class _interface:
 
     @staticmethod
     def _get_message_id() -> int:
-        """Safely return a new connection ID for the current request."""
+        """Safely return a new message ID for the current request."""
         with _interface._lock:
             message_id = _interface._message_id
             _interface._message_id += 1
