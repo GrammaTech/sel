@@ -672,6 +672,8 @@ class _interface:
                 if response_message_id == message_id:
                     return response_data
 
+            raise RuntimeError(f"AST interface could not find message {message_id}.")
+
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
             if isinstance(v, AST):
