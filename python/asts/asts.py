@@ -635,20 +635,10 @@ class _interface:
     def dispatch(*args: Any, **kwargs: Any) -> Any:
         """Dispatch processing to the tree-sitter-interface."""
 
-        def handle_errors(data: Any, message_id: int) -> Any:
-            """
-            Check for errors in the subprocess reported in the JSON output.
-            Raises an ASTException if the message_id matches the current
-            message and there is an error.
-            """
-            response_message_id, response_data = data
-
-            if (
-                response_message_id == message_id
-                and isinstance(response_data, dict)
-                and response_data.get("error", None)
-            ):
-                raise ASTException(response_data["error"])
+        def handle_errors(data: Any) -> Any:
+            """Check for errors in the subprocess reported in the JSON output."""
+            if isinstance(data, dict) and data.get("error", None):
+                raise ASTException(data["error"])
 
             return data
 
@@ -667,9 +657,7 @@ class _interface:
                     assert _interface._proc.stdout
                     response = _interface._proc.stdout.readline().strip()
 
-                response_message_id, response_data = handle_errors(
-                    json.loads(response.decode()), message_id
-                )
+                response_message_id, response_data = json.loads(response.decode())
                 if response_message_id == message_id:
                     return response_data
 
@@ -743,18 +731,17 @@ class _interface:
             # Send the request to the tree-sitter-interface and receive
             # the response.
             response = _interface._communicate(encoded_request)
-            response_message_id, response_data = handle_errors(
-                json.loads(response.decode()), message_id
-            )
+            response_message_id, response_data = json.loads(response.decode())
 
-            if response_message_id == message_id:
-                # Load the response from the Lisp subprocess.
-                return deserialize(response_data)
-            elif response_message_id < message_id:
+            # Check for errors/mismatches in response message id
+            if response_message_id < message_id:
                 # Read from the Lisp subprocess until we are back in sync.
-                return deserialize(handle_out_of_sync(response_message_id, message_id))
-            else:
+                response_data = handle_out_of_sync(response_message_id, message_id)
+            elif response_message_id > message_id:
                 raise RuntimeError("AST interface is in an inconsistent state.")
+
+            # Load the response from the Lisp subprocess.
+            return deserialize(handle_errors(response_data))
 
     @staticmethod
     def _gc() -> None:
