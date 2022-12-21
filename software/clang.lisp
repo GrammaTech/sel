@@ -1769,7 +1769,9 @@ create a deep copy of NEW to ensure ASTs are not shared between
 software objects after modification."
   (labels ((deep-copy (ast)
              (copy ast :children (mapcar (lambda (c)
-                                           (if (typep c 'ast) (deep-copy c) c))
+                                           (if (typep c 'clang-ast)
+                                               (deep-copy c)
+                                               c))
                                          (children ast)))))
     (call-next-method (update-paths (deep-copy new)) obj)))
 
