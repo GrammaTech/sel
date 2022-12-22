@@ -2265,7 +2265,7 @@ REPLACEMENT.
 
 (defgeneric fixup-mutation (operation current before ast after)
   (:documentation "Adjust mutation result according to syntactic context.")
-  (:method (operation (current clang-ast) before ast after)
+  (:method (operation (current ast) before ast after)
   "Adjust mutation result according to syntactic context.
 
 Adds and removes semicolons, commas, and braces.
@@ -2277,7 +2277,7 @@ Adds and removes semicolons, commas, and braces.
 * AST replacement ast in the mutation operation
 * AFTER string or ast following the mutation point
 "
-  (when ast
+  (when (typep ast 'clang-ast)
     (setf ast (copy ast :syn-ctx (ast-syn-ctx current)
                     :full-stmt (ast-full-stmt current))))
   (labels
@@ -2325,49 +2325,52 @@ Adds and removes semicolons, commas, and braces.
          (list before
                (make-statement :NullStmt :unbracedbody '(";")))))
     (remove nil
-            (ecase (ast-syn-ctx current)
-              (:generic (no-change))
-              (:fullstmt (ecase operation
-                           (:before (add-semicolon-if-unbraced))
-                           (:instead (add-semicolon-if-unbraced))
-                           (:remove (add-semicolon-if-unbraced))
-                           (:after (add-semicolon-before-if-unbraced))))
-              (:listelt (ecase operation
-                          (:before (add-comma))
-                          (:after (add-comma))
-                          (:instead (no-change))
-                          (:remove (list before
-                                         (if (starts-with #\, after)
-                                             (subseq after 1)
-                                             after)))))
-              (:finallistelt (ecase operation
-                               (:before (add-comma))
-                               (:after (add-leading-comma))
-                               (:instead (no-change))
-                               (:remove (list after))))
-              (:braced
-               (ecase operation
-                         (:before (no-change))
-                         (:after (add-semicolon-if-unbraced))
-                         ;; When cutting a free-floating block, we don't need a
-                         ;; semicolon, but it's harmless. When cutting a braced
-                         ;; loop/function body, we do need the semicolon. Since
-                         ;; we can't easily distinguish these case, always add
-                         ;; the semicolon.
-                         (:remove (add-null-stmt-and-semicolon))
-                         (:instead (wrap-with-block-if-unbraced))))
-              (:unbracedbody
-               (ecase operation
-                 (:before (add-semicolon-if-unbraced))
-                 (:after (no-change))
-                 (:remove (add-null-stmt))
-                 (:instead (add-semicolon-if-unbraced))))
-              (:field (ecase operation
-                        (:before (add-semicolon))
-                        (:after (add-semicolon))
-                        (:instead (add-semicolon))
-                        (:remove (no-change))))
-              (:toplevel (add-semicolon-if-unbraced)))))))
+            (if (typep current 'clang-ast)
+                (ecase (ast-syn-ctx current)
+                  (:generic (no-change))
+                  (:fullstmt (ecase operation
+                               (:before (add-semicolon-if-unbraced))
+                               (:instead (add-semicolon-if-unbraced))
+                               (:remove (add-semicolon-if-unbraced))
+                               (:after (add-semicolon-before-if-unbraced))))
+                  (:listelt (ecase operation
+                              (:before (add-comma))
+                              (:after (add-comma))
+                              (:instead (no-change))
+                              (:remove (list before
+                                             (if (starts-with #\, after)
+                                                 (subseq after 1)
+                                                 after)))))
+                  (:finallistelt (ecase operation
+                                   (:before (add-comma))
+                                   (:after (add-leading-comma))
+                                   (:instead (no-change))
+                                   (:remove (list after))))
+                  (:braced
+                   (ecase operation
+                             (:before (no-change))
+                             (:after (add-semicolon-if-unbraced))
+                             ;; When cutting a free-floating block, we don't
+                             ;; need a semicolon, but it's harmless. When
+                             ;; cutting a braced loop/function body, we do
+                             ;; need the semicolon. Since we can't easily
+                             ;; distinguish these case, always add the
+                             ;; semicolon.
+                             (:remove (add-null-stmt-and-semicolon))
+                             (:instead (wrap-with-block-if-unbraced))))
+                  (:unbracedbody
+                   (ecase operation
+                     (:before (add-semicolon-if-unbraced))
+                     (:after (no-change))
+                     (:remove (add-null-stmt))
+                     (:instead (add-semicolon-if-unbraced))))
+                  (:field (ecase operation
+                            (:before (add-semicolon))
+                            (:after (add-semicolon))
+                            (:instead (add-semicolon))
+                            (:remove (no-change))))
+                  (:toplevel (add-semicolon-if-unbraced)))
+                (no-change))))))
 
 ;; FIXME: When clang is converted to utilize functional trees,
 ;; these method specializations will no longer be required.
