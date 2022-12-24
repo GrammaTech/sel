@@ -1844,8 +1844,10 @@ and `name-symbol-table`, returning OBJ.
                 (setf last-proto ast))
               ;; stmt-asts are only collected in function bodies and
               ;; non-stmt-asts are only collected outside of function bodies
-              (if (and last-proto (starts-with-subseq (ast-path obj last-proto)
-                                                      (ast-path obj ast)))
+              (if (and (typep ast 'clang-ast)
+                       (typep last-proto 'clang-ast)
+                       (starts-with-subseq (ast-path obj last-proto)
+                                           (ast-path obj ast)))
                   (unless (or (eq :ParmVar (ast-class ast))
                               (function-decl-p ast))
                     (collect ast into my-stmts))
