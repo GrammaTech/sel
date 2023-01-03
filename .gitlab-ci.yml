@@ -3,7 +3,7 @@ variables:
 
 default:
   image: $DOCKER_REGISTRY/$CI_PROJECT_PATH
-  tags: ["kubernetes", "cluster"]
+  tags: [shared]
   before_script:
     - cp -r $(pwd)/ /root/quicklisp/local-projects/
     - cd /root/quicklisp/local-projects/$CI_PROJECT_NAME
