@@ -21,7 +21,6 @@ DOC_PACKAGES =								\
 	software-evolution-library/components/fodder-database		\
 	software-evolution-library/components/formatting		\
 	software-evolution-library/components/in-memory-fodder-database	\
-	software-evolution-library/components/instrument		\
 	software-evolution-library/components/json-fodder-database	\
 	software-evolution-library/components/lexicase			\
 	software-evolution-library/components/multi-objective		\
