@@ -44,7 +44,7 @@
 
 (eval-always
  (defclass directory-or-file-ast (functional-tree-ast)
-   ((name :accessor name :initarg :name :type string
+   ((name :accessor name :initarg :name :type (or string null)
           :documentation "Name of the directory")
     (full-pathname
      :accessor full-pathname
