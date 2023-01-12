@@ -1245,7 +1245,8 @@ otherwise.
                                          (scopes obj ast)
                                          (butlast (scopes obj ast))))
                      :from-end t
-                     :key {aget :name}))
+                     :key {aget :name}
+                     :test #'equal))
 
 (defgeneric get-function-from-function-call (obj funcall-ast)
   (:documentation "Return the function ast associated with the
