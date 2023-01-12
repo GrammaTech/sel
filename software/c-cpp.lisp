@@ -1222,10 +1222,10 @@ of the four parts and `values' is the relevant information attached to the key."
              "Ensure that SPECIFIER-LIST has a type by adding an 'int' type
               specifier if one isn't present."
              (if implicit-int-p
-                 (cons (convert ast-type `((:class . :primitive-type)
-                                           (:text . "int")
-                                           (:before-text . " ")))
-                       specifier-list)
+                 (append specifier-list
+                         (list (convert ast-type `((:class . :primitive-type)
+                                                   (:text . "int")
+                                                   (:before-text . " ")))))
                  specifier-list))
            (qualifier= (qualifier1 qualifier2
                         &aux (target-types

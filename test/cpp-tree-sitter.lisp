@@ -1624,6 +1624,12 @@ operator."
                                 :target-ast-type cpp-parameter-declaration)
     (test-declarator-type :pointer 'cpp-const)))
 
+(deftest cpp-canonicalize-type-7 ()
+  "Canonicalize-type adds implicit int to the end of the specifier list."
+  (with-canonicalize-type-test ("short x;")
+    (is (equal (source-text (first specifier-list)) "short"))
+    (is (equal (source-text (second specifier-list)) "int"))))
+
 (deftest cpp-canonicalize-type-specifier-list-1 ()
   "Canonicalize-type returns the implicit 'int' in the specifier list."
   (with-canonicalize-type-test ("long long x;")
