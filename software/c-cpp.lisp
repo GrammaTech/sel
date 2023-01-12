@@ -214,10 +214,6 @@
         (apply #'merged-declarations declarations)
         (apply #'merged-namespaces namespaces)))))
 
-(defmethod inner-declarations ((ast c/cpp-compound-statement))
-  ;; NOTE: needed for members to be in scope in class definitions.
-  (outer-declarations-merge (children ast)))
-
 (defmethod inner-declarations ((ast cpp-declaration-list))
   (outer-declarations-merge (children ast)))
 

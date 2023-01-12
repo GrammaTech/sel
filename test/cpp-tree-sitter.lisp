@@ -65,6 +65,9 @@
                (outer-declarations
                 (cpp-declarator (cpp "std::list<Point> trim_front() {}"))))))))
 
+(deftest test-cpp-compount-stmt-outer-declaration ()
+  (is (null (outer-declarations (cpp "{ int a; int b; }")))))
+
 (deftest test-qualified-parameter-name ()
   (is (member "pts"
               (inner-declarations

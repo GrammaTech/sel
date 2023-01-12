@@ -1033,7 +1033,8 @@ a declaration AST, return AST unchanged."
                               (get-parent-asts* (attrs-root*) identifier)))
        (thereis (and (typep parent decl-type)
                      (not (typep parent 'degenerate-declaration-ast))
-                     (find-in-defs parent type (source-text identifier))))))
+                     (find-in-defs parent type
+                                   (qualify-declared-ast-name identifier))))))
      (call-next-method))))
 
 (def-attr-fun relevant-declaration-type ()
