@@ -1192,6 +1192,10 @@ of the four parts and `values' is the relevant information attached to the key."
   (append (canonicalize-declarator (c/cpp-declarator declarator))
           `((:function ,(c/cpp-parameters declarator)))))
 
+(defmethod canonicalize-declarator
+    ((declarator c/cpp-init-declarator))
+  (canonicalize-declarator (c/cpp-declarator declarator)))
+
 ;;; The canonical type representation for c/cpp is based on the following link:
 ;;; https://blog.robertelder.org/building-a-c-compiler-type-system-a-canonical-type-representation/
 ;;;
