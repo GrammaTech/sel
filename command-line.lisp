@@ -674,12 +674,12 @@ in SCRIPT.")
        :documentation "comma-separated list of compiler flags")))
   (defparameter +project-command-line-options+
     '((("build-command" #\b) :type string :initial-value "make"
-       :documentation "shell command to build project directory")))
-  (defparameter +clang-project-command-line-options+
-    '((("artifacts" #\a) :type string
+       :documentation "shell command to build project directory")
+      (("artifacts" #\a) :type string
        :action #'handle-comma-delimited-argument
-       :documentation "build products")
-      (("compilation-database" #\D) :type string
+       :documentation "build products")))
+  (defparameter +clang-project-command-line-options+
+    '((("compilation-database" #\D) :type string
        :action #'read-compilation-database
        :documentation "path to clang compilation database")))
   (defparameter +evolutionary-command-line-options+
