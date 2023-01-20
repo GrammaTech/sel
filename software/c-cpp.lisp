@@ -967,7 +967,7 @@ Should return `:failure' in the base case.")
               (collect ast))))))
 
 
-;;;; Whitespace
+;;;; Whitespace/formatting
 (defmethod whitespace-between/parent ((parent c/cpp-do-statement)
                                       (style c-style-indentation)
                                       (ast1 ast)
@@ -1020,6 +1020,9 @@ Should return `:failure' in the base case.")
                                       ast1
                                       (ast2 c/cpp-preproc-include))
   "")
+
+(defmethod format-genome ((obj c/cpp) &key)
+  (clang-format obj))
 
 
 ;;; System headers

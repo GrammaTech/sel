@@ -260,12 +260,6 @@ field."
   (find-enclosing '(or definition-ast c-primitive-type)
                   sw ast))
 
-;; TODO: Convert other methods implemented for JavaScript but not C.
-
-;; Implement the generic format-genome method for C objects.
-(defmethod format-genome ((obj c) &key)
-  (clang-format obj))
-
 (defmethod equal? ((a c-identifier) (b c-identifier))
   (equal (first (text a)) (first (text b))))
 
