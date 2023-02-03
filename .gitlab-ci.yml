@@ -141,7 +141,7 @@ dependent-trace-db:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  tags: ["kubernetes", "cluster"]
+  tags: [shared]
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$REGISTRY\":{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}}}" > /kaniko/.docker/config.json
