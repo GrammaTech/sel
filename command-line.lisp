@@ -48,6 +48,8 @@
   (:import-from :swank :create-server)
   (:import-from :software-evolution-library/software/clang :clang)
   (:import-from :cl-json :decode-json-from-source)
+  #+sbcl
+  (:import-from :fset :*sbcl-next-serial-number*)
   (:shadowing-import-from :asdf-encodings
                           :detect-file-encoding
                           :encoding-external-format)
@@ -493,7 +495,15 @@ Keyword arguments are as follows:
 Other keyword arguments are allowed and are passed through to `make-instance'."
   ;; Should any of the input parameters be set in the restored objects?
   (when (and store-path (probe-file store-path))
-    (return-from create-software (restore store-path)))
+    (let ((soft (restore store-path)))
+      ;; Reset the serial number counter if software restored from saved
+      ;; store file on disk.
+      #+sbcl
+      (maxf *sbcl-next-serial-number*
+            *sbcl-next-serial-number*
+            (extremum (mapcar #'serial-number (asts soft)) #'>))
+      (return-from create-software soft)))
+
   ;; If a SW named ends in ".store", the file will
   ;; be considered a store file.  Restore it instead
   ;; of creating a software object from source.
