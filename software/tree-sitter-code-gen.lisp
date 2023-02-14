@@ -665,6 +665,7 @@ for the language.")
        (:c/cpp-if-statement c-if-statement cpp-if-statement)
        (:c/cpp-init-declarator c-init-declarator cpp-init-declarator)
        (:c/cpp-initializer-pair c-initializer-pair cpp-initializer-pair)
+       (:c/cpp-labeled-statement c-labeled-statement cpp-labeled-statement)
        (:c/cpp-macro-forward-declaration
         c-macro-forward-declaration cpp-macro-forward-declaration)
        (:c/cpp-number-literal c-number-literal cpp-number-literal)
