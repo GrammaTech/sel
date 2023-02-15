@@ -5999,9 +5999,12 @@ Unlike the `children` methods which collects all children of an AST from any slo
              (format-symbol :sel/sw/ts "+~a-LOAD-CANARY+" upcase-name))
             (name-string (string-downcase name))
             (lisp-cache
-             (format nil ".cache/tree-sitter/~a.lisp" name-string))
+             (format nil ".cache/tree-sitter/~a/~a.lisp"
+                     (uiop:implementation-identifier)
+                     name-string))
             (compiled-cache
-             (format nil ".cache/tree-sitter/~a.~a"
+             (format nil ".cache/tree-sitter/~a/~a.~a"
+                     (uiop:implementation-identifier)
                      name-string
                      (pathname-type
                       (compile-file-pathname "none")))))
