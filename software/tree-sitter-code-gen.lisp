@@ -2752,7 +2752,7 @@ chosen when gathering a string representation of a JSON subtree.")
            (mapcar
             (lambda (child-tree &aux (child-type (parse-tree-type child-tree)))
               (cond
-                ((eql child-type :|;|)
+                ((eql child-type #.(make-keyword ";"))
                  (cons (list :semicolon child-type) (cdr child-tree)))
                 (t child-tree)))
             (parse-tree-children parse-tree))))))
