@@ -2661,42 +2661,42 @@ chosen when gathering a string representation of a JSON subtree.")
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :if-terminal '(:#|IF| :|#IFDEF| :|#IFNDEF|)})
+                    :if-terminal '(:|#IF| :|#IFDEF| :|#IFNDEF|)})
        (:symbol-names
         ("#else")
         :slot-name "else-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :else-terminal '(:#|ELSE|)})
+                    :else-terminal '(:|#ELSE|)})
        (:symbol-names
         ("#elif")
         :slot-name "elif-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :elif-terminal '(:#|ELIF|)})
+                    :elif-terminal '(:|#ELIF|)})
        (:symbol-names
         ("#endif")
         :slot-name "endif-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :endif-terminal '(:#|ENDIF|)})
+                    :endif-terminal '(:|#ENDIF|)})
        (:symbol-names
         ("#define")
         :slot-name "define-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :define-terminal '(:#|DEFINE|)})
+                    :define-terminal '(:|#DEFINE|)})
        (:symbol-names
         ("#include")
         :slot-name "include-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :include-terminal '(:#|INCLUDE|)}))
+                    :include-terminal '(:|#INCLUDE|)}))
       (:cpp
        (:symbol-names ("#if" "#ifdef" "#ifndef")
         :slot-name "if-terminal"
@@ -2704,42 +2704,42 @@ chosen when gathering a string representation of a JSON subtree.")
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
                     :if-terminal
-                    '(:#|IF| :|#IFDEF| :|#IFNDEF|)})
+                    '(:|#IF| :|#IFDEF| :|#IFNDEF|)})
        (:symbol-names
         ("#else")
         :slot-name "else-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :else-terminal '(:#|ELSE|)})
+                    :else-terminal '(:|#ELSE|)})
        (:symbol-names
         ("#elif")
         :slot-name "elif-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :elif-terminal '(:#|ELIF|)})
+                    :elif-terminal '(:|#ELIF|)})
        (:symbol-names
         ("#endif")
         :slot-name "endif-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :endif-terminal '(:#|ENDIF|)})
+                    :endif-terminal '(:|#ENDIF|)})
        (:symbol-names
         ("#define")
         :slot-name "define-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :define-terminal '(:#|DEFINE|)})
+                    :define-terminal '(:|#DEFINE|)})
        (:symbol-names
         ("#include")
         :slot-name "include-terminal"
         :arity 1
         :predicate ,(constantly t)
         :transform {terminal->field-transform _
-                    :include-terminal '(:#|INCLUDE|)}))
+                    :include-terminal '(:|#INCLUDE|)}))
       ((:javascript :typescript-ts :typescript-tsx)
        (:symbol-names ("_semicolon")
         :slot-name "semicolon"
