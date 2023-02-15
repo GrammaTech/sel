@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-set -eu
+set -eux
 
 WORKDIR=${WORKDIR:-$(mktemp -d)}
 PREFIX=${PREFIX:-/usr}
+CC=${CC:-clang}
+CXX=${CXX:-clang++}
 
 if [ $(uname) == "Darwin" ];then
    EXT=dylib;
@@ -91,16 +93,16 @@ for language in "${languages[@]}";do
         cd "tree-sitter-${language}/src";
         pin_repo ${pins[$language]};
         if test -f "scanner.cc"; then
-            clang++ -fPIC scanner.cc -c -lstdc++;
-            clang -std=c99 -fPIC parser.c -c;
-            clang++ -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
+            ${CXX} -fPIC scanner.cc -c -lstdc++;
+            ${CC} -std=c99 -fPIC parser.c -c;
+            ${CXX} -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         elif test -f "scanner.c"; then
-            clang -std=c99 -fPIC scanner.c -c;
-            clang -std=c99 -fPIC parser.c -c;
-            clang -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
+            ${CC} -std=c99 -fPIC scanner.c -c;
+            ${CC} -std=c99 -fPIC parser.c -c;
+            ${CC} -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         else
-            clang -std=c99 -fPIC parser.c -c;
-            clang -shared parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
+            ${CC} -std=c99 -fPIC parser.c -c;
+            ${CC} -shared parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         fi;
         mkdir -p "${PREFIX}/share/tree-sitter/${language}/";
         cp grammar.json node-types.json "${PREFIX}/share/tree-sitter/${language}";
