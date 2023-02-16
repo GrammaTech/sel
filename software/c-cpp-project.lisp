@@ -9,6 +9,7 @@
         :software-evolution-library/software/cpp
         :software-evolution-library/software/parseable
         :software-evolution-library/software/parseable-project
+        :software-evolution-library/software/compilation-database-project
         :software-evolution-library/software/project
         :software-evolution-library/software/compilable
         :software-evolution-library/software/directory
@@ -28,7 +29,8 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defclass c/cpp-project
-    (directory-project parseable-project compilable include-paths-mixin normal-scope)
+    (directory-project compilation-database-project parseable-project compilable
+     include-paths-mixin normal-scope)
   ()
   (:documentation "Mixin for common project functionality between C and C++."))
 
