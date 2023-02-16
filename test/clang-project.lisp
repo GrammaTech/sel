@@ -12,7 +12,8 @@
    :software-evolution-library/software/compilable
    :software-evolution-library/software/clang
    :software-evolution-library/software/project
-   :software-evolution-library/software/clang-project)
+   :software-evolution-library/software/clang-project
+   :software-evolution-library/software/compilation-database-project)
   #-windows (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
   (:export :test-clang-project))
 (in-package :software-evolution-library/test/clang-project)
@@ -201,14 +202,14 @@
 
 (deftest clang-project-compilation-database-flags-test ()
   (is (equal (list "-DDIR='\"/tmp\"'" "-DIN" "\"-D_U_=a\"")
-             (sel/sw/clang-project::compilation-db-entry-flags
+             (compilation-db-entry-flags
               `((:command .
                           "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\"")))))
   (is (equal (list "-DDIR1='\"/tmp1\"'" "-DDIR2='\"/tmp2\"'")
-             (sel/sw/clang-project::compilation-db-entry-flags
+             (compilation-db-entry-flags
               `((:command .
                           "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\"")))))
   (is (equal (list "-DDIR='\"\"'")
-             (sel/sw/clang-project::compilation-db-entry-flags
+             (compilation-db-entry-flags
               `((:command .
                           "cc -DDIR=\\\"\\\""))))))

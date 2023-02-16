@@ -15,7 +15,8 @@
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
-        :software-evolution-library/components/fodder-database)
+        :software-evolution-library/components/fodder-database
+        :software-evolution-library/software/compilation-database-project)
   (:import-from :uiop/run-program :escape-shell-token)
   (:import-from :babel :string-size-in-octets)
   (:import-from :arrow-macros :some->>) ; FIXME: Remove.
@@ -712,41 +713,6 @@ the `genome' of the software object."
 ;;; in flags field are represented in canonicalized,
 ;;; absolute form; (2) the default compiler is 'clang';
 ;;; and (3) the default file extension is '.c'.
-(defun normalize-flags (dir flags)
-  "Normalize the list of compiler FLAGS so all search paths are fully
-expanded relative to DIR.
-
-* DIR base directory for all relative paths
-* FLAGS list of compiler flags
-"
-  (labels ((split-flags (flags)
-             (nest (remove-if #'emptyp)
-                   (mapcar #'trim-whitespace)
-                   (mappend (lambda (flag) ; Split leading "L".
-                              (split-quoted
-                               (replace-all flag "-L" "-L "))))
-                   (mappend (lambda (flag) ; Split leading "-I".
-                              (split-quoted
-                               (replace-all flag "-I" "-I ")))
-                            flags))))
-    (iter (for f in (split-flags flags))
-          (for p previous f)
-          (collect (if (and dir (or (string= p "-I") (string= p "-L")))
-                       ;; Ensure include/library paths
-                       ;; point to the correct location
-                       ;; and not a temporary build directory.
-                       (if (absolute-pathname-p f)
-                           (nest (namestring)
-                                 (ensure-directory-pathname)
-                                 (canonical-pathname f))
-                           (nest (namestring)
-                                 (canonical-pathname)
-                                 (merge-pathnames-as-directory
-                                  (ensure-directory-pathname dir)
-                                  (make-pathname :directory
-                                                 (list :relative f)))))
-                       ;; Pass the flag thru.
-                       f)))))
 
 (defmethod initialize-instance :after ((obj clang) &key &allow-other-keys)
   "Wrapper after the constructor to ensure all AST paths are populated,
