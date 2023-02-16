@@ -30,7 +30,8 @@
            :include-paths-mixin
            :text-file-p
            :find-include-files
-           :directories-of-header-files))
+           :directories-of-header-files
+           :project-relative-pathname))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -141,6 +142,17 @@ object (e.g., the original program).")
     (ignored-path-p canonical-path
                     :ignore-paths (ignore-other-paths obj)
                     :only-paths (only-other-paths obj))))
+
+(defgeneric project-relative-pathname (project path)
+  (:documentation "Reinterpret PATH as relative to PROJECT.
+Like `asdf:system-relative-pathname' for projects.
+
+If PATH is a string, it is parsed using Unix syntax.")
+  (:method ((p project) (f string))
+    (project-relative-pathname p (parse-unix-namestring f)))
+  (:method ((project project) (pathname pathname))
+    (base-path-join (ensure-directory-pathname (project-dir project))
+                    pathname)))
 
 (defun copy-files (files)
   "Copier for `evolve-files' on `project' software objects."
