@@ -246,6 +246,12 @@ mytype myfun3 (mytype y) { return y; }"))
                   "Wrong type for ~a: wanted ~a, got ~a"
                   node wanted-type relevant-type))))))
 
+(deftest test-reference-headers-available ()
+  (is (directory-exists-p
+       (asdf:system-relative-pathname
+        :software-evolution-library
+        "utility/libcxx-src/include"))))
+
 (deftest test-trim-front-types (&key only)
   "Test that we retrieve the correct type for each identifier."
   (with-fixture/attrs trim-front
