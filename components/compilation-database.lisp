@@ -3,6 +3,7 @@
 (defpackage :software-evolution-library/components/compilation-database
   (:use :gt/full)
   (:local-nicknames (:json :cl-json))
+  (:import-from :shlex)
   (:export :parse-compilation-database
            :compilation-db-entry-compiler
            :compilation-db-entry-flags
@@ -38,15 +39,16 @@ expanded relative to DIR.
 * DIR base directory for all relative paths
 * FLAGS list of compiler flags
 "
-  (labels ((split-flags (flags)
+  (labels ((split-command (string)
+             (shlex:split string :posix nil))
+           (split-flags (flags)
              (nest (remove-if #'emptyp)
                    (mapcar #'trim-whitespace)
                    (mappend (lambda (flag) ; Split leading "L".
-                              (split-quoted
-                               (replace-all flag "-L" "-L "))))
+                              (split-command (replace-all flag "-L" "-L "))))
                    (mappend (lambda (flag) ; Split leading "-I".
                               (split-quoted
-                               (replace-all flag "-I" "-I ")))
+                               (split-command (replace-all flag "-I" "-I "))))
                             flags))))
     (iter (for f in (split-flags flags))
           (for p previous f)
