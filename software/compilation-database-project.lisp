@@ -36,14 +36,7 @@ information on the format of compilation databases.")))
                 (ensure-compilation-database obj))
               (when-let (comp-db-path (find-if #'file-exists-p comp-db-paths))
                 (with-open-file (in comp-db-path)
-                  (remove-duplicates (json:decode-json-from-source in)
-                                     :test #'equalp
-                                     :key (lambda (entry)
-                                            (merge-pathnames-as-file
-                                             (ensure-directory-pathname
-                                              (aget :directory entry))
-                                             (aget :file entry)))
-                                     :from-end t))))))
+                  (parse-compilation-database in))))))
       (when compilation-database
         (setf (compilation-database obj) compilation-database)))))
 

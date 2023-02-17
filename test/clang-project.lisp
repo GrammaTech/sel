@@ -8,13 +8,11 @@
    :software-evolution-library/test/util-clang
    :stefil+
    :software-evolution-library
-   :software-evolution-library/components/compilation-database
    :software-evolution-library/software/simple
    :software-evolution-library/software/compilable
    :software-evolution-library/software/clang
    :software-evolution-library/software/project
-   :software-evolution-library/software/clang-project
-   :software-evolution-library/software/compilation-database-project)
+   :software-evolution-library/software/clang-project)
   #-windows (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
   (:export :test-clang-project))
 (in-package :software-evolution-library/test/clang-project)
@@ -200,17 +198,3 @@
         (declare (ignorable objs))
         (is (< 1 (length (remove-duplicates (mapcar {targets} muts)
                                             :test #'equalp))))))))
-
-(deftest clang-project-compilation-database-flags-test ()
-  (is (equal (list "-DDIR='\"/tmp\"'" "-DIN" "\"-D_U_=a\"")
-             (compilation-db-entry-flags
-              `((:command .
-                          "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\"")))))
-  (is (equal (list "-DDIR1='\"/tmp1\"'" "-DDIR2='\"/tmp2\"'")
-             (compilation-db-entry-flags
-              `((:command .
-                          "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\"")))))
-  (is (equal (list "-DDIR='\"\"'")
-             (compilation-db-entry-flags
-              `((:command .
-                          "cc -DDIR=\\\"\\\""))))))

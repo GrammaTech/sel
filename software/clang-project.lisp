@@ -18,9 +18,15 @@
   ()
   (:documentation "Project specialization for clang software objects."))
 
-(defmethod initialize-instance :after ((clang-project clang-project) &key)
+(defmethod initialize-instance :after ((clang-project clang-project)
+                                       &key (compilation-database
+                                             nil compilation-database-supplied?))
   (setf (component-class clang-project)
-        (or (component-class clang-project) 'clang)))
+        (or (component-class clang-project) 'clang))
+  (when compilation-database-supplied?
+    (setf (compilation-database clang-project)
+          (parse-compilation-database compilation-database
+                                      :path (project-dir clang-project)))))
 
 (defmethod mutation-key ((obj project) op)
   "Return key used to organize mutations in *mutation-stats* hashtable.
@@ -50,17 +56,24 @@
 
 (defmethod collect-evolve-files ((clang-project clang-project))
   (labels ((get-file-path (entry)
-             (merge-pathnames-as-file (nest (ensure-directory-pathname)
-                                            (aget :directory entry))
-                                      (aget :file entry))))
+             (with-accessors ((directory command-object.directory)
+                              (file command-object.file))
+                 entry
+               (merge-pathnames-as-file (nest (ensure-directory-pathname)
+                                              directory)
+                                        file))))
     (mapcar (lambda (entry)
               (cons (pathname-relativize (project-dir clang-project)
                                          (get-file-path entry))
                     (from-file
                      (make-instance (component-class clang-project)
-                       :compiler (compilation-db-entry-compiler entry)
-                       :flags (compilation-db-entry-flags entry))
+                                    :compiler (command-object.compiler entry)
+                                    :flags (command-object.flags entry))
                      (get-file-path entry))))
-            (remove-if «or [{ignored-evolve-path-p clang-project} {aget :file}]
-                           [#'not #'file-exists-p #'get-file-path]»
-                       (compilation-database clang-project)))))
+            (remove-if
+             (lambda (obj)
+               (or (ignored-evolve-path-p clang-project
+                                          (command-object.file obj))
+                   (not (file-exists-p (get-file-path obj)))))
+             (compilation-database.command-objects
+              (compilation-database clang-project))))))

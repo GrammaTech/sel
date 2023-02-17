@@ -21,6 +21,7 @@
         :software-evolution-library/test/clang-expression
         :software-evolution-library/test/clang-mutations
         :software-evolution-library/test/clang-project
+        :software-evolution-library/test/compilation-database-project
         :software-evolution-library/test/clang-scopes-and-types
         :software-evolution-library/test/clang-super-mutants
         :software-evolution-library/test/clang-syntactic-contexts

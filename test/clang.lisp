@@ -86,29 +86,7 @@
     (is (zerop (count-if [#'type-i-file #'ct+-type]
                          (hash-table-values (types *hello-world*)))))))
 
-(deftest normalize-flags-test ()
-  (is (equal (normalize-flags "/foo/" (list "-Wall"))
-             (list "-Wall")))
-  (is (equal (normalize-flags "/foo/" (list "-I/bar/"))
-             (list "-I" "/bar/")))
-  (is (equal (normalize-flags "/foo/" (list "-I" "/bar/"))
-             (list "-I" "/bar/")))
-  (is (equal (normalize-flags "/foo/" (list "-L/bar/"))
-             (list "-L" "/bar/")))
-  (is (equal (normalize-flags "/foo/" (list "-L" "/bar/"))
-             (list "-L" "/bar/")))
-  (is (equal (normalize-flags "/foo/" (list "-D\"blah\\ blah\""))
-             (list "-D\"blah\\ blah\"")))
-  (is (equal (normalize-flags "/foo/" (list "-D\"blah blah\""))
-             (list "-D\"blah blah\"")))
-  (is (find "/foo/" (normalize-flags "/foo/" (list "-I."))
-            :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
-  (is (find "/foo/" (normalize-flags "/foo/" (list "-I" "."))
-            :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
-  (is (find "/foo/" (normalize-flags "/foo/" (list "-L."))
-            :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
-  (is (find "/foo/" (normalize-flags "/foo/" (list "-L" "."))
-            :test (lambda (s1 s2) (search s1 s2 :test #'equal)))))
+
 
 (deftest asts-are-parsed-lazily ()
   (with-fixture hello-world-clang
