@@ -3,6 +3,7 @@
   (:nicknames :sel/software/clang-project :sel/sw/clang-project)
   (:use :gt/full
         :software-evolution-library
+        :software-evolution-library/components/compilation-database
         :software-evolution-library/software/simple
         :software-evolution-library/software/parseable
         :software-evolution-library/software/clang

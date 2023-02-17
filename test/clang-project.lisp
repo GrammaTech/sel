@@ -8,6 +8,7 @@
    :software-evolution-library/test/util-clang
    :stefil+
    :software-evolution-library
+   :software-evolution-library/components/compilation-database
    :software-evolution-library/software/simple
    :software-evolution-library/software/compilable
    :software-evolution-library/software/clang

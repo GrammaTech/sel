@@ -3,6 +3,7 @@
   (:use :gt/full
         :functional-trees/attrs
         :software-evolution-library
+        :software-evolution-library/components/compilation-database
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/c-cpp
         :software-evolution-library/software/c

@@ -12,6 +12,7 @@
         :software-evolution-library/utility/json
         :software-evolution-library/software/compilable
         :software-evolution-library/software/parseable
+        :software-evolution-library/components/compilation-database
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting
         :software-evolution-library/components/searchable
