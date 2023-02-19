@@ -669,7 +669,7 @@ appears as a return statement is assumed to be the type of the function."
       (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
 (defmethod expression-type ((ast c/cpp-declaration))
-  (cpp-type ast))
+  (c/cpp-type ast))
 
 (defmethod resolve-declaration-type ((decl c/cpp-function-declarator)
                                      (ast t)
