@@ -100,11 +100,7 @@
            :force-include
            :add-type
            ;; :find-type
-           :find-or-add-type
            :type-decl-string
-           :type-trace-string
-           :type-from-trace-string
-           :trace-string-to-type-alist
            :add-macro
            :keep-partial-asts
            :retry-mutation
@@ -1094,20 +1090,6 @@ will not be generated automatically.
 
 (defmethod find-type ((obj clang) (tp null))
   nil)
-
-(defgeneric find-or-add-type (obj trace-name &rest args &key &allow-other-keys)
-  (:documentation "Find the type with the given TRACE-NAME representation in
-a execution trace in OBJ.")
-  (:method ((obj clang) (trace-name string)
-            &rest args &key &allow-other-keys
-            &aux (name (apply #'trace-string-to-clang-json-string
-                              trace-name args)))
-    ;; Trace names have different format, with * and [...] before the type
-    (or (first (remove-if-not {string= name}
-                              (hash-table-values (types obj))
-                              :key [#'type-qual #'ct+-type]))
-        (add-type obj (make-instance 'ct+
-                        :type (make-instance 'clang-type :qual name))))))
 
 (defgeneric find-var-type (software variable)
   (:documentation "Return the type of VARIABLE in SOFTWARE.")
@@ -4637,82 +4619,6 @@ This will have stars on the right, e.g. char**. ")
                                            (symbol-name)
                                            (type-storage-class obj))))
                  (type-decl-string (ct+-type obj)))))
-
-(defgeneric type-trace-string (type &key qualified)
-  (:documentation "The text used to describe TYPE in an execution trace.
-
-This will have stars on the left, e.g **char.")
-  (:method ((type ct+) &key (qualified t))
-    (concatenate 'string
-                 (when (type-pointer type) "*")
-                 (when (not (emptyp (type-array type))) (type-array type))
-                 (when (and qualified (type-const type)) "const ")
-                 (when (and qualified (type-volatile type)) "volatile ")
-                 (when (and qualified (type-restrict type)) "restrict ")
-                 (when (and qualified
-                            (not (eq :None (type-storage-class type))))
-                   (format nil "~a " (nest (string-downcase)
-                                           (symbol-name)
-                                           (type-storage-class type))))
-                 (type-name type))))
-
-(defgeneric type-from-trace-string (trace-string)
-  (:documentation
-   "Create a clang-type from a name used in an execution trace.
-The resulting type will not be added to any clang object and will not have a
-valid hash.
-* TRACE-STRING type name as expressed in an execution trace.")
-  (:method ((trace-string string))
-    (let ((alist (trace-string-to-type-alist trace-string)))
-      (nest (make-instance 'ct+ :storage-class (aget :storage-class alist) :type)
-            (make-instance 'clang-type
-              :qual (trace-string-to-clang-json-string trace-string)
-              :modifiers (pack-type-modifiers (aget :pointer alist)
-                                              (aget :const alist)
-                                              (aget :volatile alist)
-                                              (aget :restrict alist))
-              :array (aget :array alist)
-              :name (aget :name alist))))))
-
-(defun trace-string-to-type-alist (trace-string)
-  (list (cons :pointer (not (null (find #\* trace-string))))
-        (cons :array (if (find #\[ trace-string)
-                         (scan-to-strings "\\[[^\\[\\]]*\\]" trace-string)
-                         ""))
-        (cons :const (not (null (search "const" trace-string))))
-        (cons :volatile (not (null (search "volatile" trace-string))))
-        (cons :restrict (not (null (search "restrict" trace-string))))
-        (cons :storage-class
-              (or (register-groups-bind (storage-class)
-                      ("(extern|static|__private_extern__|auto|register)"
-                       trace-string)
-                    (make-keyword (string-upcase storage-class)))
-                  :None))
-        (cons :name
-              (regex-replace
-               (format nil
-                       "^(\\*|\\[[^\\[\\]]*\\]|const |volatile |restrict |~
-                           extern |static |__private_extern__ |auto |~
-                           register )*")
-               trace-string ""))))
-
-(defun trace-string-to-clang-json-string
-    (trace-string &key storage-class const pointer volatile restrict name array
-                    &allow-other-keys)
-  (let ((alist (trace-string-to-type-alist trace-string)))
-    (string-right-trim
-     " "
-     (format
-      nil
-      "~@[~(~a~) ~]~:[~;const ~]~:[~;volatile ~]~:[~;restrict ~]~a ~:[~;*~]~@[~a~]"
-      (let ((sc (or storage-class (aget :storage-class alist))))
-        (if (eql sc :none) nil sc))
-      (or const (aget :const alist))
-      (or volatile (aget :volatile alist))
-      (or restrict (aget :restrict alist))
-      (or name (aget :name alist))
-      (or pointer (aget :pointer alist))
-      (or array (aget :array alist))))))
 
 
 ;;; Invocation of clang to get json

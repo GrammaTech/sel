@@ -593,36 +593,6 @@ is not to be found"
       (is (member :MacroExpansion
                   (mapcar #'ast-class overlapping-children))))))
 
-(deftest find-or-add-type-finds-existing-type ()
-  (with-fixture gcd-clang
-    (is (find (find-or-add-type *gcd* "int")
-              (hash-table-values (types *gcd*))))))
-
-(deftest find-or-add-type-adds-new-type ()
-  (with-fixture gcd-clang
-    ;; The new clang front end loads a large number of types
-    ;; that are defined in headers, but not used in the program
-    (let ((new-type (find-or-add-type *gcd* "int")))
-      (is new-type "New type created.")
-      (is (gethash (type-hash new-type) (types *gcd*))
-          "New type is added to software.")
-      (let ((itp (find-or-add-type *gcd* "int")))
-        (is (not (type-pointer itp))
-            "int type should not a pointer type")
-        (is (not (type-const itp))
-            "int type should not a const type")
-        (is (not (type-volatile itp))
-            "int type should not a volatile type")
-        (is (eql (type-storage-class itp) :none)
-            "int type should have no storage class")
-        (is (eql new-type itp)
-            "Repeated call finds same type.")))))
-
-(deftest find-or-add-type-parses-pointers ()
-  (with-fixture gcd-clang
-    (is (eql (find-or-add-type *gcd* "*char")
-             (find-or-add-type *gcd* "char" :pointer t)))))
-
 (deftest var-decl-has-correct-types ()
   (let* ((obj (make-instance 'clang :genome "int x = sizeof(int);"))
          (*soft* obj))
@@ -661,3 +631,57 @@ int x = CHARSIZE;")))
       (is (stmt-with-text *soft* "int y = 1" :at-start t))
       (is (string= (genome-string *soft*)
                    (file-to-string (unicode-dir "unicode.c")))))))
+
+(deftest type-decl-string-test ()
+  (is (equalp "int"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type :qual "int"))))
+  (is (equalp "int *"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "int *"
+                      :modifiers +pointer+))))
+  (is (equalp "const int"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "const int"
+                      :modifiers +const+))))
+  (is (equalp "volatile int"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "volatile int"
+                      :modifiers +volatile+))))
+  (is (equalp "restrict int"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type
+                      :qual "restrict int"
+                      :modifiers +restrict+))))
+  (is (equalp "auto int"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :auto :type)
+                    (make-instance 'clang-type :qual "int"))))
+  (is (equalp "static int"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :static :type)
+                    (make-instance 'clang-type :qual "int"))))
+  (is (equalp "extern int"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :extern :type)
+                    (make-instance 'clang-type :qual "int"))))
+  (is (equalp "register int"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :register :type)
+                    (make-instance 'clang-type :qual "int"))))
+  (is (equalp "struct struct_type"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type :qual "struct struct_type"))))
+  (is (equalp "union union_type"
+              (nest (type-decl-string)
+                    (make-instance 'ct+ :storage-class :none :type)
+                    (make-instance 'clang-type :qual "union union_type")))))

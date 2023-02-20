@@ -214,8 +214,10 @@
                     `(clang-replace (:stmt1 . ,(stmt-with-text variant
                                                                "int b;"))
                                     (:value1 . ,(nest (make-var-decl "b")
-                                                      (find-or-add-type variant
-                                                                        "char")))))
+                                                      (add-type variant)
+                                                      (make 'ct+ :type)
+                                                      (make 'clang-type
+                                                            :qual "char")))))
     (signals mutate
              (genome (make-instance 'super-mutant
                        :mutants (list base variant))))))

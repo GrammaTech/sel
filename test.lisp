@@ -69,7 +69,6 @@
         :software-evolution-library/test/task-runner
         :software-evolution-library/test/template
         :software-evolution-library/test/tree-sitter
-        :software-evolution-library/test/type-traces
         :software-evolution-library/test/utility)
   #+gt (:shadowing-import-from :testbot :batch-test)
   (:import-from :software-evolution-library

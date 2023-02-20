@@ -68,8 +68,11 @@
     (let ((asts (convert
                  'clang-ast
                  "x + y"
-                 :unbound-vals `(("x" ,(type-from-trace-string "int"))
-                                 ("y" ,(type-from-trace-string "char"))))))
+                 :unbound-vals
+                 `(("x" ,(nest (make-instance 'ct+ :type)
+                               (make-instance 'clang-type :qual "int")))
+                   ("y" ,(nest (make-instance 'ct+ :type)
+                               (make-instance 'clang-type :qual "char")))))))
       (is (eq 1 (length asts)))
       (is (eq :BinaryOperator (ast-class (car asts))))
       (is (equal '("y" "x")
@@ -91,9 +94,11 @@
   (let ((asts (convert
                'clang-ast
                "x = 1; y = 1"
-               :unbound-vals `(("x" ,(type-from-trace-string "int"))
-                               ("y" ,(type-from-trace-string "char")))
-               :includes nil)))
+               :unbound-vals
+               `(("x" ,(nest (make-instance 'ct+ :type)
+                             (make-instance 'clang-type :qual "int")))
+                 ("y" ,(nest (make-instance 'ct+ :type)
+                             (make-instance 'clang-type :qual "char")))))))
     (is (eq 2 (length asts)))
     (is (eq :BinaryOperator (ast-class (first asts))))
     (is (eq :BinaryOperator (ast-class (second asts))))))
