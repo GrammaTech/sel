@@ -20,7 +20,7 @@
            :command-output
            :command-flags
            :command-compiler
-           :normalize-flag-string))
+           :normalize-flags-string))
 (in-package :software-evolution-library/components/compilation-database)
 
 ;;; Define classes for compile_commands.json and its command objects.
@@ -215,7 +215,7 @@ expanded relative to DIR.
                        ;; Pass the flag thru.
                        f)))))
 
-(defun normalize-flag-string (dir flag-string)
+(defun normalize-flags-string (dir flag-string)
   (normalize-flags dir (shlex:split flag-string)))
 
 (defun compilation-db-entry-flags (entry)
