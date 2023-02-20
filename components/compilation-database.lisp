@@ -20,7 +20,11 @@
            :command-output
            :command-flags
            :command-compiler
-           :normalize-flags-string))
+           :normalize-flags-string)
+  (:nicknames
+   :sel/components/compilation-database
+   :sel/components/compdb
+   :sel/cp/compdb))
 (in-package :software-evolution-library/components/compilation-database)
 
 ;;; Define classes for compile_commands.json and its command objects.
