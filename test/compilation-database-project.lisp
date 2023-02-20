@@ -62,14 +62,50 @@
   (is (find "/foo/" (normalize-flags "/foo/" (list "-L" "."))
             :test (lambda (s1 s2) (search s1 s2 :test #'equal)))))
 
-(deftest test-normalize-flag-string ()
+(deftest test-normalize-flags-string ()
   (is (equal '("-D" "name(args)=def")
-             (normalize-flag-string "" "-D'name(args)=def'")))
+             (normalize-flags-string "" "-D'name(args)=def'")))
   (is (equal '("-D" "name")
-             (normalize-flag-string "" "-Dname")))
+             (normalize-flags-string "" "-Dname")))
   (is (equal '("-D" "name")
-             (normalize-flag-string "" "-D'name'")))
+             (normalize-flags-string "" "-D'name'")))
   (is (equal '("-D" "name")
-             (normalize-flag-string "" "-D name")))
+             (normalize-flags-string "" "-D name")))
   (is (equal '("-D" "name")
-             (normalize-flag-string "" "-D 'name'"))))
+             (normalize-flags-string "" "-D 'name'"))))
+
+(deftest test-parse-macro-definition ()
+  (is (equal (multiple-value-list (parse-macro-definition "name"))
+             (list "name" "1")))
+  (is (equal (multiple-value-list (parse-macro-definition "name="))
+             (list "name" "")))
+  (is (equal (multiple-value-list (parse-macro-definition "name=myname"))
+             (list "name" "myname")))
+  (is (equal (multiple-value-list (parse-macro-definition
+                                   (fmt "name=before-newline~%after-newline")))
+             (list "name" "before-newline")))
+  (is (equal (multiple-value-list (parse-macro-definition "x=x=1"))
+             (list "x" "x=1"))))
+
+(deftest test-command-object-definitions ()
+  (is (equal `(("_U_" . "a")
+               ("IN" . "1")
+               ("DIR" . "\"/tmp\""))
+             (command-preproc-defs
+              (make 'command-object
+                    :directory ""
+                    :file ""
+                    :command "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\""))))
+  (is (equal `(("DIR2" . "\"/tmp2\"")
+               ("DIR1" . "\"/tmp1\""))
+             (command-preproc-defs
+              (make 'command-object
+                    :directory ""
+                    :file ""
+                    :command "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\""))))
+  (is (equal `(("DIR" . "\"\""))
+             (command-preproc-defs
+              (make 'command-object
+                    :directory ""
+                    :file ""
+                    :command `"cc -DDIR=\\\"\\\"")))))

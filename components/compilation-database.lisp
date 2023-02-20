@@ -6,8 +6,10 @@
    (:json :cl-json))
   (:shadow :path)
   (:import-from :shlex)
+  (:shadowing-import-from :serapeum :~>)
   (:export :parse-compilation-database
            :normalize-flags
+           :normalize-flags-string
            :compilation-database
            :command-objects
            :disk-path
@@ -20,12 +22,25 @@
            :command-output
            :command-flags
            :command-compiler
-           :normalize-flags-string)
-  (:nicknames
-   :sel/components/compilation-database
-   :sel/components/compdb
-   :sel/cp/compdb))
+           :command-preproc-defs
+           :parse-macro-definition))
 (in-package :software-evolution-library/components/compilation-database)
+
+(deftype macro-def ()
+  ;; Null for a canceled definition.
+  '(or null string))
+
+(defparameter *normalizable-flags*
+  '#.(stable-sort (list
+                   "-L" "-l"
+                   "-I" "-isystem" "iquote"
+                   "-D" "-U")
+                  #'length>)
+  "Flags to normalize, in descending order of length.")
+
+(defparameter *path-flags*
+  '("-L" "-I" "-isystem" "-iquote")
+  "Flags whose values are paths to be resolved.")
 
 ;;; Define classes for compile_commands.json and its command objects.
 ;;; This lets us pretend they are uniform by lazily computing any
@@ -112,7 +127,11 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
    (compiler
     :type string
     :reader command-compiler
-    :documentation "compiler"))
+    :documentation "compiler")
+   (preprocessor-definitions
+    :type (soft-alist-of string macro-def)
+    :reader command-preproc-defs
+    :documentation "Preprocessor definition alist."))
   (:documentation "Entry in a compiler database")
   (:default-initargs
    :directory (required-argument :directory)
@@ -149,6 +168,12 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
   (setf (slot-value self 'flags)
         (compilation-db-entry-flags self)))
 
+(defmethod slot-unbound ((class t)
+                         (self command-object)
+                         (slot-name (eql 'preprocessor-definitions)))
+  (setf (slot-value self 'preprocessor-definitions)
+        (preprocessor-definition-alist (command-flags self))))
+
 (defmethod initialize-instance :after ((self command-object) &key command arguments)
   (unless (or command arguments)
     (error "Either ~s or ~s is required for a command object."
@@ -181,6 +206,35 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                            (alist-plist args)))
                   source))))
 
+(-> parse-macro-definition (string)
+    (values string macro-def))
+(defun parse-macro-definition (string)
+  (if-let (pos (position #\= string))
+    (let ((name (take pos string))
+          (definition
+           (~> string
+               (drop (1+ pos) _)
+               ;; Drop everything after the first newline.
+               (split-sequence #\Newline _ :count 1)
+               car)))
+      ;; TODO
+      (when (find #\( name)
+        (warn "Function-like macro not parsed"))
+      (values name definition))
+    ;; A definition without a value has an implicit value of 1.
+    (values string "1")))
+
+(defun preprocessor-definition-alist (flags)
+  (nreverse                             ;Later should override.
+   (iter (for f in flags)
+         (for p previous f)
+         (cond ((equal p "-D")
+                (collecting
+                 (multiple-value-call #'cons
+                   (parse-macro-definition f))))
+               ((equal p "-U")
+                (collect (cons f nil)))))))
+
 (defun normalize-flags (dir flags)
   "Normalize the list of compiler FLAGS so all search paths are fully
 expanded relative to DIR.
@@ -191,7 +245,7 @@ expanded relative to DIR.
   (labels ((split-flags (flags &aux (normalizable-flags *normalizable-flags*))
              (nest (remove-if #'emptyp)
                    (mapcar #'trim-whitespace)
-                   (mappend (lambda (flag)   ; Split leading "L".
+                   (mappend (lambda (flag)   ; Split leading -I, -L, etc.
                               (or (some (lambda (nflag)
                                           (and (string^= nflag flag)
                                                (if (length= nflag flag)
@@ -203,7 +257,8 @@ expanded relative to DIR.
                             flags))))
     (iter (for f in (split-flags flags))
           (for p previous f)
-          (collect (if (and dir (or (string= p "-I") (string= p "-L")))
+          (collect (if (and dir
+                            (member p *path-flags* :test #'equal))
                        ;; Ensure include/library paths
                        ;; point to the correct location
                        ;; and not a temporary build directory.
