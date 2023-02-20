@@ -73,7 +73,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
         (lret ((dict (dict)))
           (do-each (entry (compilation-database.command-objects self))
             (with-slots (file) entry
-              (push (href dict file) entry))))))
+              (push entry (href dict file)))))))
 
 (defclass command-object ()
   ((directory
