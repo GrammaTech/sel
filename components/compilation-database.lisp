@@ -53,6 +53,10 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
    :command-objects nil
    :path nil))
 
+(defmethod print-object ((self compilation-database) stream)
+  (print-unreadable-object (self stream :type t)
+    (princ (compilation-database.path self) stream)))
+
 (defmethod slot-unbound ((class t)
                          (self compilation-database)
                          (slot-name (eql 'size)))
