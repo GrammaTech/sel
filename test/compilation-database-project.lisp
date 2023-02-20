@@ -19,19 +19,19 @@
 (defsuite test-compilation-database-project "Mixin for compilation databases.")
 
 (deftest compilation-database-flags-test ()
-  (is (equal (list "-DDIR=\"/tmp\"" "-DIN" "-D_U_=a")
+  (is (equal (list "-D" "DIR=\"/tmp\"" "-D" "IN" "-D" "_U_=a")
              (command-flags
               (make 'command-object
                     :directory ""
                     :file ""
                     :command "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\""))))
-  (is (equal (list "-DDIR1=\"/tmp1\"" "-DDIR2=\"/tmp2\"")
+  (is (equal (list "-D" "DIR1=\"/tmp1\"" "-D" "DIR2=\"/tmp2\"")
              (command-flags
               (make 'command-object
                     :directory ""
                     :file ""
                     :command "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\""))))
-  (is (equal (list "-DDIR=\"\"")
+  (is (equal (list "-D" "DIR=\"\"")
              (command-flags
               (make 'command-object
                     :directory ""
@@ -50,9 +50,9 @@
   (is (equal (normalize-flags "/foo/" (list "-L" "/bar/"))
              (list "-L" "/bar/")))
   (is (equal (normalize-flags "/foo/" (list "-D\"blah\\ blah\""))
-             (list "-D\"blah\\ blah\"")))
+             (list "-D" "\"blah\\ blah\"")))
   (is (equal (normalize-flags "/foo/" (list "-D\"blah blah\""))
-             (list "-D\"blah blah\"")))
+             (list "-D" "\"blah blah\"")))
   (is (find "/foo/" (normalize-flags "/foo/" (list "-I."))
             :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
   (is (find "/foo/" (normalize-flags "/foo/" (list "-I" "."))
@@ -61,3 +61,15 @@
             :test (lambda (s1 s2) (search s1 s2 :test #'equal))))
   (is (find "/foo/" (normalize-flags "/foo/" (list "-L" "."))
             :test (lambda (s1 s2) (search s1 s2 :test #'equal)))))
+
+(deftest test-normalize-flag-string ()
+  (is (equal '("-D" "name(args)=def")
+             (normalize-flag-string "" "-D'name(args)=def'")))
+  (is (equal '("-D" "name")
+             (normalize-flag-string "" "-Dname")))
+  (is (equal '("-D" "name")
+             (normalize-flag-string "" "-D'name'")))
+  (is (equal '("-D" "name")
+             (normalize-flag-string "" "-D name")))
+  (is (equal '("-D" "name")
+             (normalize-flag-string "" "-D 'name'"))))

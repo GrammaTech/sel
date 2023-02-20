@@ -188,17 +188,18 @@ expanded relative to DIR.
 * DIR base directory for all relative paths
 * FLAGS list of compiler flags
 "
-  (labels ((split-flags (flags)
+  (labels ((split-flags (flags &aux (normalizable-flags *normalizable-flags*))
              (nest (remove-if #'emptyp)
                    (mapcar #'trim-whitespace)
                    (mappend (lambda (flag)   ; Split leading "L".
-                              (cond ((member flag '("-L" "-I") :test #'equal)
-                                     (list flag))
-                                    ((string^= "-L" flag)
-                                     (list "-L" (drop-prefix "-L" flag)))
-                                    ((string^= "-I" flag)
-                                     (list "-I" (drop-prefix "-I" flag)))
-                                    (t (list flag))))
+                              (or (some (lambda (nflag)
+                                          (and (string^= nflag flag)
+                                               (if (length= nflag flag)
+                                                   (list flag)
+                                                   (list nflag
+                                                         (drop-prefix nflag flag)))))
+                                        normalizable-flags)
+                                  (list flag)))
                             flags))))
     (iter (for f in (split-flags flags))
           (for p previous f)
