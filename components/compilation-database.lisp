@@ -9,17 +9,17 @@
   (:export :parse-compilation-database
            :normalize-flags
            :compilation-database
-           :compilation-database.command-objects
-           :compilation-database.path
-           :compilation-database.file-command-objects
+           :command-objects
+           :disk-path
+           :file-command-objects
            :command-object
-           :command-object.directory
-           :command-object.file
-           :command-object.arguments
-           :command-object.command
-           :command-object.output
-           :command-object.flags
-           :command-object.compiler
+           :command-directory
+           :command-file
+           :command-arguments
+           :command-string
+           :command-output
+           :command-flags
+           :command-compiler
            :normalize-flag-string))
 (in-package :software-evolution-library/components/compilation-database)
 
@@ -31,12 +31,12 @@
   ((command-objects
     :type list
     :initarg :command-objects
-    :reader compilation-database.command-objects
+    :reader command-objects
     :documentation "List of command objects.")
    (path
     :type (or pathname null)
     :initarg :path
-    :reader compilation-database.path
+    :reader disk-path
     :documentation "On-disk path of compilation database (optional).")
    (size
     :type (integer 0 *)
@@ -46,7 +46,7 @@
    (file-command-objects
     :type hash-table
     :documentation "Map from each file to its command objects."
-    :reader compilation-database.file-command-objects))
+    :reader file-command-objects))
   (:documentation "A JSON compilation database.
 See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
   (:default-initargs
@@ -55,7 +55,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
 
 (defmethod print-object ((self compilation-database) stream)
   (print-unreadable-object (self stream :type t)
-    (princ (compilation-database.path self) stream)))
+    (princ (disk-path self) stream)))
 
 (defmethod slot-unbound ((class t)
                          (self compilation-database)
@@ -71,7 +71,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
   "Lazily compute the file->command-objects mapping."
   (setf (slot-value self 'file-command-objects)
         (lret ((dict (dict)))
-          (do-each (entry (compilation-database.command-objects self))
+          (do-each (entry (command-objects self))
             (with-slots (file) entry
               (push entry (href dict file)))))))
 
@@ -79,35 +79,35 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
   ((directory
     :type string
     :initarg :directory
-    :reader command-object.directory
+    :reader command-directory
     :documentation "The working directory.")
    (file
     :type string :initarg :file
     :reader file
-    :reader command-object.file
+    :reader command-file
     :documentation "The source file.")
    (arguments
     :type (soft-list-of string)
     :initarg :arguments
-    :reader command-object.arguments
+    :reader command-arguments
     :documentation "The compiler command, as an argv.")
    (command
     :type string
     :initarg :command
-    :reader command-object.command
+    :reader command-string
     :documentation "The compile command, as one string.")
    (output
     :type string
     :initarg output
-    :reader command-object.output
+    :reader command-output
     :documentation "The output file.")
    (flags
     :type (soft-list-of string)
-    :reader command-object.flags
+    :reader command-flags
     :documentation "Compiler flags.")
    (compiler
     :type string
-    :reader command-object.compiler
+    :reader command-compiler
     :documentation "compiler"))
   (:documentation "Entry in a compiler database")
   (:default-initargs
@@ -136,7 +136,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                          (slot-name (eql 'compiler)))
   ;; Lazily parse out the compiler.
   (setf (slot-value self 'compiler)
-        (first (command-object.arguments self))))
+        (first (command-arguments self))))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
@@ -222,8 +222,8 @@ expanded relative to DIR.
   "Return the compiler flags in the compilation database ENTRY."
   (nest
    ;; Normalize the list of compiler flags
-   (normalize-flags (command-object.directory entry))
+   (normalize-flags (command-directory entry))
    ;; Remove the file being built from the flags.
-   (remove-if (op (equalp (command-object.file entry) _)))
+   (remove-if (op (equalp (command-file entry) _)))
    ;; Get list of compiler flags from the ENTRY
-   (rest (command-object.arguments entry))))
+   (rest (command-arguments entry))))

@@ -20,19 +20,19 @@
 
 (deftest compilation-database-flags-test ()
   (is (equal (list "-DDIR=\"/tmp\"" "-DIN" "-D_U_=a")
-             (command-object.flags
+             (command-flags
               (make 'command-object
                     :directory ""
                     :file ""
                     :command "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\""))))
   (is (equal (list "-DDIR1=\"/tmp1\"" "-DDIR2=\"/tmp2\"")
-             (command-object.flags
+             (command-flags
               (make 'command-object
                     :directory ""
                     :file ""
                     :command "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\""))))
   (is (equal (list "-DDIR=\"\"")
-             (command-object.flags
+             (command-flags
               (make 'command-object
                     :directory ""
                     :file ""

@@ -56,8 +56,8 @@
 
 (defmethod collect-evolve-files ((clang-project clang-project))
   (labels ((get-file-path (entry)
-             (with-accessors ((directory command-object.directory)
-                              (file command-object.file))
+             (with-accessors ((directory command-directory)
+                              (file command-file))
                  entry
                (merge-pathnames-as-file (nest (ensure-directory-pathname)
                                               directory)
@@ -67,13 +67,13 @@
                                          (get-file-path entry))
                     (from-file
                      (make-instance (component-class clang-project)
-                                    :compiler (command-object.compiler entry)
-                                    :flags (command-object.flags entry))
+                                    :compiler (command-compiler entry)
+                                    :flags (command-flags entry))
                      (get-file-path entry))))
             (remove-if
              (lambda (obj)
                (or (ignored-evolve-path-p clang-project
-                                          (command-object.file obj))
+                                          (command-file obj))
                    (not (file-exists-p (get-file-path obj)))))
-             (compilation-database.command-objects
+             (command-objects
               (compilation-database clang-project))))))
