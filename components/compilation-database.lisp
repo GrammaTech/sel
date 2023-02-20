@@ -173,11 +173,6 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                            (alist-plist args)))
                   source))))
 
-(defun compilation-db-entry-compiler (entry)
-  "Return the compiler in the compilation database ENTRY."
-  (or (first (split-sequence #\Space (aget :command entry)))
-      (first (aget :arguments entry))))
-
 (defun normalize-flags (dir flags)
   "Normalize the list of compiler FLAGS so all search paths are fully
 expanded relative to DIR.
