@@ -23,24 +23,42 @@
            :command-flags
            :command-compiler
            :command-preproc-defs
-           :parse-macro-definition))
+           :parse-macro-definition
+           :command-header-dirs
+           :compute-header-dirs))
 (in-package :software-evolution-library/components/compilation-database)
 
 (deftype macro-def ()
   ;; Null for a canceled definition.
   '(or null string))
 
-(defparameter *normalizable-flags*
-  '#.(stable-sort (list
-                   "-L" "-l"
-                   "-I" "-isystem" "iquote"
-                   "-D" "-U")
-                  #'length>)
-  "Flags to normalize, in descending order of length.")
+(deftype header-dir ()
+  '(or (member :current :always :system :stdinc)
+    string))
+
+(deftype header-dirs ()
+  '(soft-list-of header-dir))
 
 (defparameter *path-flags*
-  '("-L" "-I" "-isystem" "-iquote")
+  '("-L"
+    "-I" "--include-directory"
+    "-isystem" "-cxx-isystem"
+    "-iquote"
+    "-idirafter" "--include-directory-after"
+    "-iwithprefix" "-iwithprefixbefore")
   "Flags whose values are paths to be resolved.")
+
+(defparameter *normalizable-flags*
+  (stable-sort (append *path-flags*
+                       '("-D" "-U"))
+               #'length>)
+  "Flags to normalize, in descending order of length.")
+
+(defparameter *path-flags-table*
+  (set-hash-table *path-flags* :test #'equal))
+
+(defparameter *normalizable-flags-table*
+  (set-hash-table *normalizable-flags* :test #'equal))
 
 ;;; Define classes for compile_commands.json and its command objects.
 ;;; This lets us pretend they are uniform by lazily computing any
@@ -94,6 +112,9 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
             (with-slots (file) entry
               (push entry (href dict file)))))))
 
+(defmethod lookup ((self compilation-database) (key string))
+  (gethash key (file-command-objects self)))
+
 (defclass command-object ()
   ((directory
     :type string
@@ -131,7 +152,10 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
    (preprocessor-definitions
     :type (soft-alist-of string macro-def)
     :reader command-preproc-defs
-    :documentation "Preprocessor definition alist."))
+    :documentation "Preprocessor definition alist.")
+   (header-dirs
+    :type (soft-list-of (or string keyword))
+    :reader command-header-dirs))
   (:documentation "Entry in a compiler database")
   (:default-initargs
    :directory (required-argument :directory)
@@ -173,6 +197,12 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                          (slot-name (eql 'preprocessor-definitions)))
   (setf (slot-value self 'preprocessor-definitions)
         (preprocessor-definition-alist (command-flags self))))
+
+(defmethod slot-unbound ((class t)
+                         (self command-object)
+                         (slot-name (eql 'header-dirs)))
+  (setf (slot-value self 'header-dirs)
+        (compute-header-dirs (command-flags self))))
 
 (defmethod initialize-instance :after ((self command-object) &key command arguments)
   (unless (or command arguments)
@@ -247,9 +277,9 @@ expanded relative to DIR.
                    (mapcar #'trim-whitespace)
                    (mappend (lambda (flag)   ; Split leading -I, -L, etc.
                               (or (some (lambda (nflag)
-                                          (and (string^= nflag flag)
-                                               (if (length= nflag flag)
-                                                   (list flag)
+                                          (or (and (gethash flag *normalizable-flags-table*)
+                                                   (list flag))
+                                              (and (string^= nflag flag)
                                                    (list nflag
                                                          (drop-prefix nflag flag)))))
                                         normalizable-flags)
@@ -257,8 +287,7 @@ expanded relative to DIR.
                             flags))))
     (iter (for f in (split-flags flags))
           (for p previous f)
-          (collect (if (and dir
-                            (member p *path-flags* :test #'equal))
+          (collect (if (and dir (gethash p *path-flags-table*))
                        ;; Ensure include/library paths
                        ;; point to the correct location
                        ;; and not a temporary build directory.
@@ -287,3 +316,67 @@ expanded relative to DIR.
    (remove-if (op (equalp (command-file entry) _)))
    ;; Get list of compiler flags from the ENTRY
    (rest (command-arguments entry))))
+
+(-> compute-header-dirs ((soft-list-of string))
+    (values header-dirs &optional))
+(defun compute-header-dirs (flags)
+  "Compute the header search path from FLAGS.
+This search path is a list of:
+- Ab absolute directory path.
+- `:current', to replace with the current directory.
+- `:always', which precedes directories to always search.
+- `:system', which precedes system include directories.
+- `:stdinc', which should be replaced by standard includes."
+  ;; TODO Handle -sysroot and -isysroot?
+  (let ((current? t)
+        (stdinc? t)
+        iquote-dirs
+        i-dirs
+        isystem-dirs
+        idirafter-dirs
+        (iprefix ""))
+    (nlet rec ((flags flags))
+      (match flags
+        ((list))
+        ((list* (or "-nostdinc" "-nostdinc++") rest)
+         (setf stdinc? nil)
+         (rec rest))
+        ;; "Split the include path".
+        ((list* (or "-I-" "--include-barrier") rest)
+         (setf current? nil)
+         (setf iquote-dirs
+               (nconc (shiftf i-dirs nil)
+                      iquote-dirs))
+         (rec rest))
+        ((list* (and p (type string))
+                (and f (type string))
+                rest)
+         ;; NB Long options seem to be Clang-only. TODO: Clang allows
+         ;; = with long options.
+         (string-case p
+           ("-iquote"
+            (push f iquote-dirs))
+           (("-I" "--include-directory")
+            (push f i-dirs))
+           ;; TODO Is this Clang-specific.
+           (("-isystem" "-cxx-isystem")
+            (push f isystem-dirs))
+           (("-idirafter" "--include-directory-after")
+            (push f idirafter-dirs))
+           ("-iprefix"
+            (setf f iprefix))
+           ("-iwithprefixbefore"
+            (push (string+ iprefix f) i-dirs))
+           ("-iwithprefix"
+            (push (string+ iprefix f) idirafter-dirs)))
+         (rec rest))
+        ((list* _ rest)
+         (rec rest))))
+    (nconc (and current? (list :current))
+           (nreverse iquote-dirs)
+           (list :always)
+           (nreverse i-dirs)
+           (list :system)
+           (nreverse isystem-dirs)
+           (and stdinc? (list :stdinc))
+           (nreverse idirafter-dirs))))
