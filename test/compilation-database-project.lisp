@@ -74,18 +74,26 @@
   (is (equal '("-D" "name")
              (normalize-flags-string "" "-D 'name'"))))
 
-(deftest test-parse-macro-definition ()
-  (is (equal (multiple-value-list (parse-macro-definition "name"))
-             (list "name" "1")))
-  (is (equal (multiple-value-list (parse-macro-definition "name="))
-             (list "name" "")))
-  (is (equal (multiple-value-list (parse-macro-definition "name=myname"))
-             (list "name" "myname")))
-  (is (equal (multiple-value-list (parse-macro-definition
-                                   (fmt "name=before-newline~%after-newline")))
-             (list "name" "before-newline")))
-  (is (equal (multiple-value-list (parse-macro-definition "x=x=1"))
-             (list "x" "x=1"))))
+(deftest test-parse-function-like-macro-definition ()
+  (is (equal (multiple-value-list (parse-macro-definition "name(arg)=x"))
+             '(("name" "arg") "x")))
+  (is (equal (multiple-value-list (parse-macro-definition "name()=x"))
+             '(("name") "x")))
+  (is (equal (multiple-value-list (parse-macro-definition "name(...)=x"))
+             '(("name" "...") "x")))
+  (is (equal (multiple-value-list (parse-macro-definition "name(x,y)=x"))
+             '(("name" "x" "y") "x")))
+  (is (equal (multiple-value-list (parse-macro-definition "name(x,y,...)=x"))
+             '(("name" "x" "y" "...") "x"))))
+
+(Deftest test-parse-bad-function-like-macro-definition ()
+  ;; These looks weird, but try it for yourself:
+
+  ;; `echo 'x' | cpp -D'x (y)=z=1'`
+  (is (equal (multiple-value-list (parse-macro-definition "x (y)=z"))
+             '("x" "(y) z")))
+  (is (equal (multiple-value-list (parse-macro-definition "x (y)=z=1"))
+             '("x" "(y) z=1"))))
 
 (deftest test-command-object-definitions ()
   (is (equal `(("_U_" . "a")

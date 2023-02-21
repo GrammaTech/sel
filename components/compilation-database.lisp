@@ -237,7 +237,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                   source))))
 
 (-> parse-macro-definition (string)
-    (values string macro-def))
+    (values (or string (soft-list-of string)) macro-def))
 (defun parse-macro-definition (string)
   (if-let (pos (position #\= string))
     (let ((name (take pos string))
@@ -248,9 +248,24 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                (split-sequence #\Newline _ :count 1)
                car)))
       ;; TODO
-      (when (find #\( name)
-        (warn "Function-like macro not parsed"))
-      (values name definition))
+      (if-let (lparen (position #\( name))
+        (if (whitespacep (aref name (1- lparen)))
+            ;; Handle a space between the name and the arg.
+            (values
+             (take (position-if #'whitespacep name) name)
+             (string+ (subseq name lparen)
+                      #\Space
+                      definition))
+            ;; Parse a function-like macro.
+            (let ((rparen (position #\) name)))
+              (assert rparen)
+              (let* ((name (take lparen string))
+                     (arg-string (subseq string (1+ lparen) rparen))
+                     (args (mapcar #'trim-whitespace
+                                   (split-sequence #\, arg-string
+                                                   :remove-empty-subseqs t))))
+                (values (cons name args) definition))))
+        (values name definition)))
     ;; A definition without a value has an implicit value of 1.
     (values string "1")))
 
