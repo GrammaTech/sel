@@ -142,4 +142,13 @@
   (is (equal '("../mydir" :always "../my-other-dir" :system :stdinc)
              (compute-header-dirs '("-I" "../mydir" "-I-" "-I" "../my-other-dir"))))
   (is (equal '("../my-dir" :always "../my-other-dir" :system :stdinc)
-             (compute-header-dirs '("-I" "../my-dir" "--include-barrier" "-I" "../my-other-dir")))))
+             (compute-header-dirs '("-I" "../my-dir" "--include-barrier" "-I" "../my-other-dir"))))
+  (is (equal '("../my-dir" :always "../my-other-dir" :system :stdinc)
+             (compute-header-dirs '("-I" "../my-dir" "--include-barrier" "-I" "../my-other-dir"))))
+  (is (equal '(:current :always "/prefix/suffix2" :system :stdinc "/prefix/suffix1")
+             (compute-header-dirs '("-iprefix"
+                                    "/prefix/"
+                                    "-iwithprefix"
+                                    "suffix1"
+                                    "-iwithprefixbefore"
+                                    "suffix2")))))

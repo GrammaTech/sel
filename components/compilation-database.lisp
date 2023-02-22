@@ -27,7 +27,11 @@
            :command-header-dirs
            :compute-header-dirs
            :header-dir
-           :header-dirs))
+           :header-dirs)
+  (:nicknames
+   :sel/components/compilation-database
+   :sel/components/compdb
+   :sel/cp/compdb))
 (in-package :software-evolution-library/components/compilation-database)
 
 (deftype macro-def ()
@@ -41,26 +45,31 @@
 (deftype header-dirs ()
   '(soft-list-of header-dir))
 
-(defparameter *path-flags*
-  '("-L"
-    "-I" "--include-directory"
-    "-isystem" "-cxx-isystem"
-    "-iquote"
-    "-idirafter" "--include-directory-after"
-    "-iwithprefix" "-iwithprefixbefore")
-  "Flags whose values are paths to be resolved.")
+(let* ((flags
+        '("-L"
+          "-I" "--include-directory"
+          "-isystem" "-cxx-isystem"
+          "-iquote"
+          "-idirafter" "--include-directory-after"
+          "-iprefix"))
+       (table (set-hash-table flags :test #'equal)))
 
-(defparameter *normalizable-flags*
-  (stable-sort (append *path-flags*
-                       '("-D" "-U"))
-               #'length>)
-  "Flags to normalize, in descending order of length.")
+  (defparameter *path-flags* flags
+    "Flags whose values are paths to be resolved.")
 
-(defparameter *path-flags-table*
-  (set-hash-table *path-flags* :test #'equal))
+  (defparameter *path-flags-table* table))
 
-(defparameter *normalizable-flags-table*
-  (set-hash-table *normalizable-flags* :test #'equal))
+(let ((flags (filter (op (length= 2 _))
+                     (append *path-flags* '("-D" "-U"))))
+      (table (set-hash-table *normalizable-flags* :test #'equal)))
+
+  (defparameter *normalizable-flags* flags
+    "Flags to normalize.
+To normalize a flag is to split it:
+    \"-Idir\" -> '\(\"-I\" \"-dir\")
+")
+
+  (defparameter *normalizable-flags-table* table))
 
 ;;; Define classes for compile_commands.json and its command objects.
 ;;; This lets us pretend they are uniform by lazily computing any
@@ -249,7 +258,6 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                ;; Drop everything after the first newline.
                (split-sequence #\Newline _ :count 1)
                car)))
-      ;; TODO
       (if-let (lparen (position #\( name))
         (if (whitespacep (aref name (1- lparen)))
             ;; Handle a space between the name and the arg.
@@ -272,6 +280,14 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
     (values string "1")))
 
 (defun preprocessor-definition-alist (flags)
+  "Extract an alist of macro definitions from FLAGS.
+The alist maps names to definitions.
+
+If the macro name has been undefined (with `-U'), the definition is
+nil.
+
+If the macro is a function-like macro, the \"name\" is a list of the
+name and its arguments."
   (nreverse                             ;Later should override.
    (iter (for f in flags)
          (for p previous f)
@@ -282,26 +298,37 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                ((equal p "-U")
                 (collect (cons f nil)))))))
 
-(defun normalize-flags (dir flags)
+(defun normalize-flags (dir flags
+                        &aux (nflags *normalizable-flags*)
+                          (nflags-table *normalizable-flags-table*))
   "Normalize the list of compiler FLAGS so all search paths are fully
 expanded relative to DIR.
 
 * DIR base directory for all relative paths
 * FLAGS list of compiler flags
 "
-  (labels ((split-flags (flags &aux (normalizable-flags *normalizable-flags*))
+  (labels ((nflag-arg (nflag flag)
+             "Normalize FLAG according to NFLAG, the flag it starts with."
+             (if (string^= "--" nflag)
+                 (drop-prefix "=" (drop-prefix nflag flag))
+                 ;; We can't always remove =; it has meaning if
+                 ;; --sysroot is specified.
+                 (drop-prefix nflag flag)))
+           (split-flag (flag)
+             "Split leading -I, -L, etc."
+             (or (some
+                  (lambda (nflag)
+                    (or (and (gethash flag nflags-table)
+                             (list flag))
+                        (and (string^= nflag flag)
+                             (list nflag (nflag-arg nflag flag)))))
+                  nflags)
+                 (list flag)))
+           (split-flags (flags)
              (nest (remove-if #'emptyp)
                    (mapcar #'trim-whitespace)
-                   (mappend (lambda (flag)   ; Split leading -I, -L, etc.
-                              (or (some (lambda (nflag)
-                                          (or (and (gethash flag *normalizable-flags-table*)
-                                                   (list flag))
-                                              (and (string^= nflag flag)
-                                                   (list nflag
-                                                         (drop-prefix nflag flag)))))
-                                        normalizable-flags)
-                                  (list flag)))
-                            flags))))
+                   (mappend #'split-flag flags))))
+    (declare (ftype (-> (string) list) split-flag))
     (iter (for f in (split-flags flags))
           (for p previous f)
           (collect (if (and dir (gethash p *path-flags-table*))
@@ -381,7 +408,7 @@ This search path is a list of:
            (("-idirafter" "--include-directory-after")
             (push f idirafter-dirs))
            ("-iprefix"
-            (setf f iprefix))
+            (setf iprefix f))
            ("-iwithprefixbefore"
             (push (string+ iprefix f) i-dirs))
            ("-iwithprefix"
