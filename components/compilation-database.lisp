@@ -38,6 +38,12 @@
   ;; Null for a canceled definition.
   '(or null string))
 
+(deftype macro-name ()
+  '(or string (soft-list-of string)))
+
+(deftype macro-alist ()
+  '(soft-alist-of macro-name macro-def))
+
 (deftype header-dir ()
   '(or (member :current :always :system :stdinc)
     string))
@@ -161,11 +167,11 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
     :reader command-compiler
     :documentation "compiler")
    (preprocessor-definitions
-    :type (soft-alist-of string macro-def)
+    :type macro-alist
     :reader command-preproc-defs
     :documentation "Preprocessor definition alist.")
    (header-dirs
-    :type (soft-list-of (or string keyword))
+    :type header-dirs
     :reader command-header-dirs))
   (:documentation "Entry in a compiler database")
   (:default-initargs
@@ -248,8 +254,11 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                   source))))
 
 (-> parse-macro-definition (string)
-    (values (or string (soft-list-of string)) macro-def))
+    (values macro-name macro-def))
 (defun parse-macro-definition (string)
+  "Parse STRING, a macro definition.
+
+Return the macro name and macro definition as two values."
   (if-let (pos (position #\= string))
     (let ((name (take pos string))
           (definition
@@ -279,6 +288,8 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
     ;; A definition without a value has an implicit value of 1.
     (values string "1")))
 
+(-> preprocesssor-definition-alist ((soft-list-of string))
+    (values macro-alist &optional))
 (defun preprocessor-definition-alist (flags)
   "Extract an alist of macro definitions from FLAGS.
 The alist maps names to definitions.
@@ -387,8 +398,8 @@ This search path is a list of:
          (rec rest))
         ;; "Split the include path".
         ((list* (or "-I-" "--include-barrier") rest)
-         (setf current? nil)
-         (setf iquote-dirs
+         (setf current? nil
+               iquote-dirs
                (nconc (shiftf i-dirs nil)
                       iquote-dirs))
          (rec rest))

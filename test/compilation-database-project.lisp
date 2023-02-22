@@ -87,7 +87,8 @@
              '(("name" "x" "y" "...") "x"))))
 
 (Deftest test-parse-bad-function-like-macro-definition ()
-  ;; These looks weird, but try it for yourself:
+  ;; If you put a space before the arguments to a definition, things
+  ;; get weird. Try it for yourself:
 
   ;; `echo 'x' | cpp -D'x (y)=z=1'`
   (is (equal (multiple-value-list (parse-macro-definition "x (y)=z"))
