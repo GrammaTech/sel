@@ -6,7 +6,6 @@
    (:json :cl-json))
   (:shadow :path)
   (:import-from :shlex)
-  (:shadowing-import-from :serapeum :~>)
   (:export :parse-compilation-database
            :normalize-flags
            :normalize-flags-string
@@ -27,7 +26,8 @@
            :command-header-dirs
            :compute-header-dirs
            :header-dir
-           :header-dirs)
+           :header-dirs
+           :command-isysroot)
   (:nicknames
    :sel/components/compilation-database
    :sel/components/compdb
@@ -51,31 +51,29 @@
 (deftype header-dirs ()
   '(soft-list-of header-dir))
 
-(let* ((flags
-        '("-L"
-          "-I" "--include-directory"
-          "-isystem" "-cxx-isystem"
-          "-iquote"
-          "-idirafter" "--include-directory-after"
-          "-iprefix"))
-       (table (set-hash-table flags :test #'equal)))
+(progn
+  (defparameter *path-flags*
+    '("-L"
+      "-I" "--include-directory"
+      "-isystem" "-cxx-isystem"
+      "-iquote"
+      "-idirafter" "--include-directory-after"
+      "-iprefix"
+      "-isysroot" "--sysroot"))
+  "Flags whose values are paths to be resolved."
 
-  (defparameter *path-flags* flags
-    "Flags whose values are paths to be resolved.")
+  (defparameter *path-flags-table*
+    (set-hash-table *path-flags* :test #'equal))
 
-  (defparameter *path-flags-table* table))
-
-(let ((flags (filter (op (length= 2 _))
-                     (append *path-flags* '("-D" "-U"))))
-      (table (set-hash-table *normalizable-flags* :test #'equal)))
-
-  (defparameter *normalizable-flags* flags
+  (defparameter *normalizable-flags*
+    (stable-sort (append *path-flags* '("-D" "-U")) #'length>)
     "Flags to normalize.
 To normalize a flag is to split it:
     \"-Idir\" -> '\(\"-I\" \"-dir\")
 ")
 
-  (defparameter *normalizable-flags-table* table))
+  (defparameter *normalizable-flags-table*
+    (set-hash-table *normalizable-flags* :test #'equal)))
 
 ;;; Define classes for compile_commands.json and its command objects.
 ;;; This lets us pretend they are uniform by lazily computing any
@@ -172,7 +170,10 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
     :documentation "Preprocessor definition alist.")
    (header-dirs
     :type header-dirs
-    :reader command-header-dirs))
+    :reader command-header-dirs)
+   (isysroot
+    :type (or null string)
+    :reader command-isysroot))
   (:documentation "Entry in a compiler database")
   (:default-initargs
    :directory (required-argument :directory)
@@ -221,6 +222,12 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
   (setf (slot-value self 'header-dirs)
         (compute-header-dirs (command-flags self))))
 
+(defmethod slot-unbound ((class t)
+                         (self command-object)
+                         (slot-name (eql 'isysroot)))
+  (setf (slot-value self 'isysroot)
+        (extract-isysroot (command-flags self))))
+
 (defmethod initialize-instance :after ((self command-object) &key command arguments)
   (unless (or command arguments)
     (error "Either ~s or ~s is required for a command object."
@@ -262,11 +269,11 @@ Return the macro name and macro definition as two values."
   (if-let (pos (position #\= string))
     (let ((name (take pos string))
           (definition
-           (~> string
-               (drop (1+ pos) _)
-               ;; Drop everything after the first newline.
-               (split-sequence #\Newline _ :count 1)
-               car)))
+           (car
+            ;; Drop everything after the first newline.
+            (split-sequence #\Newline
+                            (drop (1+ pos) string)
+                            :count 1))))
       (if-let (lparen (position #\( name))
         (if (whitespacep (aref name (1- lparen)))
             ;; Handle a space between the name and the arg.
@@ -309,6 +316,23 @@ name and its arguments."
                ((equal p "-U")
                 (collect (cons f nil)))))))
 
+(defun extract-isysroot (split-flags)
+  "Extract the isysroot (or sysroot) if there is one."
+  (let (sysroot)
+    (nlet rec ((split-flags split-flags))
+      (match split-flags
+        ((list) sysroot)
+        ;; Sysroot uses two dashes, isysroot uses one.
+        ((list* "--sysroot" s rest)
+         (setf sysroot s)
+         (rec rest))
+        ((list* "-isysroot" s _)
+         ;; Return the isysroot! If both are supplied
+         ;; isysroot is preferred.
+         s)
+        ((list* _ rest)
+         (rec rest))))))
+
 (defun normalize-flags (dir flags
                         &aux (nflags *normalizable-flags*)
                           (nflags-table *normalizable-flags-table*))
@@ -317,7 +341,9 @@ expanded relative to DIR.
 
 * DIR base directory for all relative paths
 * FLAGS list of compiler flags
-"
+
+This function also expands = and $SYSROOT prefixes when --sysroot or
+-isysroot is specified."
   (labels ((nflag-arg (nflag flag)
              "Normalize FLAG according to NFLAG, the flag it starts with."
              (if (string^= "--" nflag)
@@ -336,28 +362,45 @@ expanded relative to DIR.
                   nflags)
                  (list flag)))
            (split-flags (flags)
+             "Split FLAGS using `split-flag'."
              (nest (remove-if #'emptyp)
                    (mapcar #'trim-whitespace)
-                   (mappend #'split-flag flags))))
+                   (mappend #'split-flag flags)))
+           (maybe-prepend-sysroot (sysroot path)
+             "Handle a PATH starting with = or $SYSROOT."
+             (cond ((no sysroot) nil)
+                   ((string^= "=" path)
+                    (string+ sysroot (drop-prefix "=" path)))
+                   ((string^= "$SYSROOT" path)
+                    (string+ sysroot (drop-prefix "$SYSROOT" path)))
+                   (t nil)))
+           (normalize-dir (f sysroot)
+             "Normalize dir F, maybe prepending SYSROOT."
+             (or (maybe-prepend-sysroot sysroot f)
+                 (namestring
+                  (if (absolute-pathname-p f)
+                      (nest (ensure-directory-pathname)
+                            (canonical-pathname f))
+                      (nest (canonical-pathname)
+                            (merge-pathnames-as-directory
+                             (ensure-directory-pathname dir)
+                             (make-pathname :directory
+                                            (list :relative f))))))))
+           (normalize-flags (split-flags sysroot)
+             (iter (for f in split-flags)
+                   (for p previous f)
+                   (collecting
+                    (if (and dir (gethash p *path-flags-table*))
+                        ;; Ensure include/library paths
+                        ;; point to the correct location
+                        ;; and not a temporary build directory.
+                        (normalize-dir f sysroot)
+                        ;; Pass the flag thru.
+                        f)))))
     (declare (ftype (-> (string) list) split-flag))
-    (iter (for f in (split-flags flags))
-          (for p previous f)
-          (collect (if (and dir (gethash p *path-flags-table*))
-                       ;; Ensure include/library paths
-                       ;; point to the correct location
-                       ;; and not a temporary build directory.
-                       (if (absolute-pathname-p f)
-                           (nest (namestring)
-                                 (ensure-directory-pathname)
-                                 (canonical-pathname f))
-                           (nest (namestring)
-                                 (canonical-pathname)
-                                 (merge-pathnames-as-directory
-                                  (ensure-directory-pathname dir)
-                                  (make-pathname :directory
-                                                 (list :relative f)))))
-                       ;; Pass the flag thru.
-                       f)))))
+    (let* ((flags (split-flags flags))
+           (sysroot (extract-isysroot flags)))
+      (normalize-flags flags sysroot))))
 
 (defun normalize-flags-string (dir flag-string)
   (normalize-flags dir (shlex:split flag-string)))
@@ -377,12 +420,11 @@ expanded relative to DIR.
 (defun compute-header-dirs (flags)
   "Compute the header search path from FLAGS.
 This search path is a list of:
-- Ab absolute directory path.
+- An absolute directory path.
 - `:current', to replace with the current directory.
 - `:always', which precedes directories to always search.
 - `:system', which precedes system include directories.
 - `:stdinc', which should be replaced by standard includes."
-  ;; TODO Handle -sysroot and -isysroot?
   (let ((current? t)
         (stdinc? t)
         iquote-dirs

@@ -87,8 +87,8 @@
              '(("name" "x" "y" "...") "x"))))
 
 (Deftest test-parse-bad-function-like-macro-definition ()
-  ;; If you put a space before the arguments to a definition, things
-  ;; get weird. Try it for yourself:
+  ;; If you put a space before the arguments to a macro, it treats the
+  ;; arguments as part of the definition. Try it for yourself:
 
   ;; `echo 'x' | cpp -D'x (y)=z=1'`
   (is (equal (multiple-value-list (parse-macro-definition "x (y)=z"))
@@ -129,6 +129,8 @@
   (is (equal '(:current :always "mydir" :system :stdinc)
              (compute-header-dirs '("-I" "mydir"))))
   (is (equal '(:current :always "mydir" :system :stdinc)
+             (compute-header-dirs '("-I" "mydir"))))
+  (is (equal '(:current :always "mydir" :system :stdinc)
              (compute-header-dirs '("--include-directory" "mydir"))))
   (is (equal '(:current :always :system "../mydir" :stdinc)
              (compute-header-dirs '("-isystem" "../mydir"))))
@@ -153,3 +155,38 @@
                                     "suffix1"
                                     "-iwithprefixbefore"
                                     "suffix2")))))
+
+(deftest test-compute-header-dirs/sysroot ()
+  (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
+             (compute-header-dirs
+              (normalize-flags
+               ""
+               '("-isysroot"
+                 "/sysroot"
+                 "-I"
+                 "=/mydir")))))
+  (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
+             (compute-header-dirs
+              (normalize-flags
+               ""
+               '("-isysroot"
+                 "/sysroot"
+                 "-I"
+                 "$SYSROOT/mydir")))))
+  (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
+             (compute-header-dirs
+              (normalize-flags
+               ""
+               '("-isysroot"
+                 "/sysroot"
+                 "--sysroot"
+                 "/other-sysroot"
+                 "-I"
+                 "=/mydir")))))
+  (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
+             (compute-header-dirs
+              (normalize-flags
+               ""
+               '("--sysroot=/sysroot"
+                 "-I"
+                 "=/mydir"))))))
