@@ -25,7 +25,9 @@
            :command-preproc-defs
            :parse-macro-definition
            :command-header-dirs
-           :compute-header-dirs))
+           :compute-header-dirs
+           :header-dir
+           :header-dirs))
 (in-package :software-evolution-library/components/compilation-database)
 
 (deftype macro-def ()
