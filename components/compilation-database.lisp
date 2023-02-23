@@ -4,7 +4,7 @@
   (:use :gt/full)
   (:local-nicknames
    (:json :cl-json))
-  (:shadow :path)
+  (:shadow :path :macro-name)
   (:import-from :shlex)
   (:export :parse-compilation-database
            :normalize-flags
@@ -22,7 +22,7 @@
            :command-flags
            :command-compiler
            :command-preproc-defs
-           :parse-macro-definition
+           :parse-macro-def
            :command-header-dirs
            :compute-header-dirs
            :header-dir
@@ -35,16 +35,26 @@
 (in-package :software-evolution-library/components/compilation-database)
 
 (deftype macro-def ()
-  ;; Null for a canceled definition.
+  "Macro definition: either a string or nil, for a macro that has been
+undefined."
   '(or null string))
 
 (deftype macro-name ()
+  "The name of a macro: a string, or, for a function-like macro, a list
+of strings."
   '(or string (soft-list-of string)))
 
 (deftype macro-alist ()
+  "Alist from macro names to macro definitions."
   '(soft-alist-of macro-name macro-def))
 
 (deftype header-dir ()
+  "Specification of a directory to search for headers.
+This can be a string for a concrete directory, or:
+* `:current', to replace with the current directory.
+* `:always', which precedes directories to always search.
+* `:system', which precedes system include directories.
+* `:stdinc', which should be replaced by standard includes."
   '(or (member :current :always :system :stdinc)
     string))
 
@@ -67,10 +77,12 @@
 
   (defparameter *normalizable-flags*
     (stable-sort (append *path-flags* '("-D" "-U")) #'length>)
-    "Flags to normalize.
-To normalize a flag is to split it:
+    "Flags to normalize, in descending order of length.
+
+To normalize a flag is first to split it, if it is a single (shell)
+token with its argument:
     \"-Idir\" -> '\(\"-I\" \"-dir\")
-")
+Then, if the argument is a directory, it is made absolute.")
 
   (defparameter *normalizable-flags-table*
     (set-hash-table *normalizable-flags* :test #'equal)))
@@ -182,7 +194,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
 (defmethod slot-unbound ((class t)
                          (self command-object)
                          (slot-name (eql 'arguments)))
-  ;; Lazily compute the arguments from the command.
+  "Lazily compute the arguments from the command."
   (assert (slot-boundp self 'command))
   (with-slots (command arguments) self
     (setf arguments (shlex:split command))))
@@ -190,8 +202,8 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
 (defmethod slot-unbound ((class t)
                          (self command-object)
                          (slot-name (eql 'command)))
+  "Lazily compute the command from the arguments."
   (assert (slot-boundp self 'arguments))
-  ;; Lazily compute the command from the arguments.
   (with-slots (command arguments) self
     (setf command
           (mapconcat #'shlex:quote arguments " "))))
@@ -199,42 +211,48 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
 (defmethod slot-unbound ((class t)
                          (self command-object)
                          (slot-name (eql 'compiler)))
-  ;; Lazily parse out the compiler.
+  "Lazily parse out the compiler."
   (setf (slot-value self 'compiler)
         (first (command-arguments self))))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
                          (slot-name (eql 'flags)))
-  ;; Lazily parse out the flags.
+  "Lazily parse out the flags."
   (setf (slot-value self 'flags)
         (compilation-db-entry-flags self)))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
                          (slot-name (eql 'preprocessor-definitions)))
+  "Lazily compute preprocessor definitions."
   (setf (slot-value self 'preprocessor-definitions)
         (preprocessor-definition-alist (command-flags self))))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
                          (slot-name (eql 'header-dirs)))
+  "Lazily compute header search path."
   (setf (slot-value self 'header-dirs)
         (compute-header-dirs (command-flags self))))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
                          (slot-name (eql 'isysroot)))
+  "Lazily compute sysroot for standard includes."
   (setf (slot-value self 'isysroot)
         (extract-isysroot (command-flags self))))
 
 (defmethod initialize-instance :after ((self command-object) &key command arguments)
+  "Require that at least one of command or arguments is provided."
   (unless (or command arguments)
     (error "Either ~s or ~s is required for a command object."
            :arguments
            :command)))
 
 (defgeneric parse-compilation-database (source &key path)
+  (:documentation "Parse SOURCE into a compilation database.
+PATH is a fallback to use for the path slot.")
   (:method ((source compilation-database) &key path)
     (declare (ignore path))
     source)
@@ -260,9 +278,9 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                            (alist-plist args)))
                   source))))
 
-(-> parse-macro-definition (string)
+(-> parse-macro-def (string)
     (values macro-name macro-def))
-(defun parse-macro-definition (string)
+(defun parse-macro-def (string)
   "Parse STRING, a macro definition.
 
 Return the macro name and macro definition as two values."
@@ -276,7 +294,8 @@ Return the macro name and macro definition as two values."
                             :count 1))))
       (if-let (lparen (position #\( name))
         (if (whitespacep (aref name (1- lparen)))
-            ;; Handle a space between the name and the arg.
+            ;; A space between the name and the arg means this is not
+            ;; actually a function-like macro.
             (values
              (take (position-if #'whitespacep name) name)
              (string+ (subseq name lparen)
@@ -295,7 +314,7 @@ Return the macro name and macro definition as two values."
     ;; A definition without a value has an implicit value of 1.
     (values string "1")))
 
-(-> preprocesssor-definition-alist ((soft-list-of string))
+(-> preprocessor-definition-alist ((soft-list-of string))
     (values macro-alist &optional))
 (defun preprocessor-definition-alist (flags)
   "Extract an alist of macro definitions from FLAGS.
@@ -305,19 +324,21 @@ If the macro name has been undefined (with `-U'), the definition is
 nil.
 
 If the macro is a function-like macro, the \"name\" is a list of the
-name and its arguments."
+actual name and the arguments."
   (nreverse                             ;Later should override.
    (iter (for f in flags)
          (for p previous f)
          (cond ((equal p "-D")
                 (collecting
                  (multiple-value-call #'cons
-                   (parse-macro-definition f))))
+                   (parse-macro-def f))))
                ((equal p "-U")
                 (collect (cons f nil)))))))
 
 (defun extract-isysroot (split-flags)
-  "Extract the isysroot (or sysroot) if there is one."
+  "Extract the sysroot for standard includes if there is one.
+This is the value of `-isysroot', or the value of `--sysroot' if
+`-isysroot' is not provided."
   (let (sysroot)
     (nlet rec ((split-flags split-flags))
       (match split-flags
@@ -418,13 +439,7 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
 (-> compute-header-dirs ((soft-list-of string))
     (values header-dirs &optional))
 (defun compute-header-dirs (flags)
-  "Compute the header search path from FLAGS.
-This search path is a list of:
-- An absolute directory path.
-- `:current', to replace with the current directory.
-- `:always', which precedes directories to always search.
-- `:system', which precedes system include directories.
-- `:stdinc', which should be replaced by standard includes."
+  "Compute the header search path from FLAGS."
   (let ((current? t)
         (stdinc? t)
         iquote-dirs

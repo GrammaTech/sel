@@ -74,26 +74,26 @@
   (is (equal '("-D" "name")
              (normalize-flags-string "" "-D 'name'"))))
 
-(deftest test-parse-function-like-macro-definition ()
-  (is (equal (multiple-value-list (parse-macro-definition "name(arg)=x"))
+(deftest test-parse-function-like-macro-def ()
+  (is (equal (multiple-value-list (parse-macro-def "name(arg)=x"))
              '(("name" "arg") "x")))
-  (is (equal (multiple-value-list (parse-macro-definition "name()=x"))
+  (is (equal (multiple-value-list (parse-macro-def "name()=x"))
              '(("name") "x")))
-  (is (equal (multiple-value-list (parse-macro-definition "name(...)=x"))
+  (is (equal (multiple-value-list (parse-macro-def "name(...)=x"))
              '(("name" "...") "x")))
-  (is (equal (multiple-value-list (parse-macro-definition "name(x,y)=x"))
+  (is (equal (multiple-value-list (parse-macro-def "name(x,y)=x"))
              '(("name" "x" "y") "x")))
-  (is (equal (multiple-value-list (parse-macro-definition "name(x,y,...)=x"))
+  (is (equal (multiple-value-list (parse-macro-def "name(x,y,...)=x"))
              '(("name" "x" "y" "...") "x"))))
 
-(Deftest test-parse-bad-function-like-macro-definition ()
+(Deftest test-parse-bad-function-like-macro-def ()
   ;; If you put a space before the arguments to a macro, it treats the
   ;; arguments as part of the definition. Try it for yourself:
 
   ;; `echo 'x' | cpp -D'x (y)=z=1'`
-  (is (equal (multiple-value-list (parse-macro-definition "x (y)=z"))
+  (is (equal (multiple-value-list (parse-macro-def "x (y)=z"))
              '("x" "(y) z")))
-  (is (equal (multiple-value-list (parse-macro-definition "x (y)=z=1"))
+  (is (equal (multiple-value-list (parse-macro-def "x (y)=z=1"))
              '("x" "(y) z=1"))))
 
 (deftest test-command-object-definitions ()
