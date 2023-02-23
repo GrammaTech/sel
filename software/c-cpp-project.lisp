@@ -65,10 +65,12 @@ by the symbol-table attribute."))
     (format stream "~a" (header-name self)))
   self)
 
-(defgeneric get-system-header (project system-header-string)
-  (:method (project system-header-string) nil)
-  (:method (project (system-header-ast c/cpp-system-lib-string))
-    (get-system-header project (trim-path-string system-header-ast)))
+(defgeneric get-system-header (project system-header-string &key header-dirs)
+  (:method (project system-header-string &key header-dirs)
+    (declare (ignore header-dirs))
+    nil)
+  (:method (project (system-header-ast c/cpp-system-lib-string) &key header-dirs)
+    (get-system-header project (trim-path-string system-header-ast) :header-dirs header-dirs))
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING
 and add it to PROJECT."))
 
@@ -112,47 +114,143 @@ and add it to PROJECT."))
       (command-header-dirs co))))
 
 (defmethod get-system-header ((project c/cpp-project) (path-string string)
+                              &key header-dirs
                               &aux (genome (genome project)))
-  (synchronized ('*system-header-cache*)
-    (symbol-macrolet ((header-hash (gethash
-                                    path-string
-                                    (system-headers/string->ast genome))))
-      (labels ((populate-header-entry (project path-string)
-                 (lret ((system-header
-                         (ensure2 (cache-lookup *system-header-cache* project path-string)
-                           (make-instance
-                            'c/cpp-system-header
-                            :header-name path-string
-                            :children
-                            (nest (ensure-list)
-                                  (parse-header-synopsis path-string :class-ast)
-                                  (format-symbol :sel/sw/ts "~a-AST")
-                                  (component-class project))))))
-                   (setf header-hash system-header)
-                   (assert (slot-exists-p (genome project) 'system-headers))
-                   (setf (genome project)
-                         (copy (genome project)
-                               :system-headers (cons system-header
-                                                     (system-headers genome)))))))
-        (or header-hash
-            (populate-header-entry project path-string))))))
+  (when (or (no header-dirs)
+            (member :stdinc header-dirs))
+    (synchronized ('*system-header-cache*)
+      (symbol-macrolet ((header-hash (gethash
+                                      path-string
+                                      (system-headers/string->ast genome))))
+        (labels ((populate-header-entry (project path-string)
+                   (lret ((system-header
+                           (ensure2 (cache-lookup *system-header-cache* project path-string)
+                             (make-instance
+                              'c/cpp-system-header
+                              :header-name path-string
+                              :children
+                              (nest (ensure-list)
+                                    (parse-header-synopsis path-string :class-ast)
+                                    (format-symbol :sel/sw/ts "~a-AST")
+                                    (component-class project))))))
+                     (setf header-hash system-header)
+                     (assert (slot-exists-p (genome project) 'system-headers))
+                     (setf (genome project)
+                           (copy (genome project)
+                                 :system-headers (cons system-header
+                                                       (system-headers genome)))))))
+          (or header-hash
+              (populate-header-entry project path-string)))))))
 
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
   "Return the text of PATH-AST with the quotes around it removed."
   (subseq text 1 (1- (length text))))
 
-(defmethod from-file :around ((project c/cpp-project) file)
+(defmethod from-file :around ((project c/cpp-project) dir)
   (labels ((maybe-populate-header (ast)
              (match ast
                ((c/cpp-preproc-include
                  (c/cpp-path (and path (c/cpp-system-lib-string))))
-                (get-system-header project (trim-path-string path))))))
+                (get-system-header project (trim-path-string path)
+                                   :header-dirs
+                                   (ast-header-dirs project ast))))))
     (let ((result (call-next-method)))
       (setf #1=(genome result) (make-instance 'c/cpp-root
                                               :project-directory #1#))
       (mapc #'maybe-populate-header project)
       result)))
 
+
+;;; Program headers.
+
+(defmethod get-program-header ((project c/cpp-project)
+                               file
+                               include-ast
+                               path-ast
+                               &key
+                                 (global *global-search-for-include-files*)
+                                 header-dirs)
+  (declare (ignorable header-dirs))
+  (let* ((project-dir (project-dir project))
+         (file-path (make-pathname :name nil :type nil
+                                   :directory
+                                   (cons :relative
+                                         (mapcar #'sel/sw/directory::name
+                                                 (cdr (reverse (get-parent-asts* project file)))))
+                                   :defaults project-dir))
+         (absolute-file-path (path-join project-dir file-path))
+         (include-path (pathname (trim-path-string path-ast)))
+         ;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
+         ;; Warn about this below if this happened.
+         (tweaked-include-path-dir (substitute :back :up (pathname-directory include-path)))
+         (tweaked-include-path (make-pathname :directory tweaked-include-path-dir
+                                              :defaults include-path))
+         (absolute-include-path (path-join absolute-file-path tweaked-include-path))
+         (relative-include-path (path-join file-path tweaked-include-path))
+         (include-path-string
+          (namestring (canonical-pathname relative-include-path))))
+    #+debug-fstfi
+    (macrolet ((%d (v)
+                 `(format t "~a = ~s~%" ',v ,v)))
+      (%d project-dir) (%d file-path) (%d absolute-file-path)
+      (%d include-path) (%d tweaked-include-path-dir)
+      (%d absolute-include-path)
+      (%d relative-include-path)
+      (%d include-path-string))
+    (unless (equal (pathname-directory include-path) tweaked-include-path-dir)
+      (warn "~A in ~A may be interpreted incorrectly in the presence of symlinks"
+            (remove #\Newline (source-text include-ast))
+            (namestring file-path)))
+    (labels ((global-search ()
+               "Search for the include everywhere in the project."
+               (let ((matches
+                      (filter
+                       ;; Search for the include file everywhere.
+                       (op (let ((p (original-path (cdr _))))
+                             (and (equal (pathname-name p)
+                                         (pathname-name include-path))
+                                  (equal (pathname-type p)
+                                         (pathname-type include-path)))))
+                       (evolve-files project))))
+                 (if (null (cdr matches))
+                     (cdar matches)
+                     (if-let* ((m (find absolute-include-path matches
+                                        :key (op (original-path (cdr _)))
+                                        :test #'equal)))
+                       ;; If one of the matches is in the directory
+                       ;; targeted by the include relative to the including
+                       ;; file, choose it even if there are files elsewhere
+                       ;; with the same name.
+                       (cdr m)
+                       (restart-case
+                           (error 'include-conflict-error
+                                  :ast path-ast
+                                  :candidates matches)
+                         (ignore ()
+                           :report "Ignore the conflict, return nil"
+                           nil)
+                         (first ()
+                           :report "Return the first candidate"
+                           (cdar matches))
+                         (whichever ()
+                           :report "Pick one at random"
+                           (cdr (random-elt matches)))
+                         (use-value (match)
+                           :report "Specify the header to use"
+                           (assert (member match matches))
+                           (cdr match)))))))
+             (simple-relative-search ()
+               ;; Search only relative to the location of the file
+               ;; containing the include-ast.  TODO: add a set
+               ;; of paths to search in. TODO: Allow searching
+               ;; up through grandparent directories (as some
+               ;; compilers do).
+               (aget include-path-string
+                     (evolve-files project)
+                     :test #'equal)))
+      (or (simple-relative-search)
+          (and global
+               (global-search))))))
 
 
 ;;; Symbol Table
@@ -201,8 +299,9 @@ file to be printed for debugging purposes.")
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
                                          (global *global-search-for-include-files*)
+                                         header-dirs
                                        &aux #+debug-fstfi2
-                                         (iftn *include-files-to-note*))
+                                            (iftn *include-files-to-note*))
   "Find the symbol table in PROJECT for the include file
 included by INCLUDE-AST.  IN is the symbol table before entry
 to the include-ast.  If GLOBAL is true, search for non-system
@@ -232,114 +331,42 @@ include files in all directories of the project."
            (process-system-header (project path-ast)
              (if-let ((system-header
                        (get-system-header
-                        project (trim-path-string path-ast))))
+                        project (trim-path-string path-ast)
+                        :header-dirs (ast-header-dirs project path-ast))))
                (progn
                  (merge-cached-symbol-table system-header)
                  (symbol-table system-header in))
                nil))
-           (process-relative-header (path-ast)
+           (process-program-header (path-ast)
              "Get the corresponding symbol table for the relative path
               represented by PATH-AST."
-             #+debug-fstfi (format t "Enter process-relative-header on ~a~%" path-ast)
+             #+debug-fstfi (format t "Enter process-program-header on ~a~%" path-ast)
              (if-let* ((file (find-enclosing 'file-ast project include-ast)))
-               (let* ((project-dir (project-dir project))
-                      (file-path (make-pathname :name nil :type nil
-                                                :directory
-                                                (cons :relative
-                                                      (mapcar #'sel/sw/directory::name
-                                                              (cdr (reverse (get-parent-asts* project file)))))
-                                                :defaults project-dir))
-                      (absolute-file-path (path-join project-dir file-path))
-                      (include-path (pathname (trim-path-string path-ast)))
-                      ;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
-                      ;; Warn about this below if this happened.
-                      (tweaked-include-path-dir (substitute :back :up (pathname-directory include-path)))
-                      (tweaked-include-path (make-pathname :directory tweaked-include-path-dir
-                                                           :defaults include-path))
-                      (absolute-include-path (path-join absolute-file-path tweaked-include-path))
-                      (relative-include-path (path-join file-path tweaked-include-path))
-                      (include-path-string
-                        (namestring (canonical-pathname relative-include-path))))
-                 #+debug-fstfi
-                 (macrolet ((%d (v)
-                              `(format t "~a = ~s~%" ',v ,v)))
-                   (%d project-dir) (%d file-path) (%d absolute-file-path)
-                   (%d include-path) (%d tweaked-include-path-dir)
-                   (%d absolute-include-path)
-                   (%d relative-include-path)
-                   (%d include-path-string))
-                 (unless (equal (pathname-directory include-path) tweaked-include-path-dir)
-                   (warn "~A in ~A may be interpreted incorrectly in the presence of symlinks"
-                         (remove #\Newline (source-text include-ast))
-                         (namestring file-path)))
-                 (let ((software
-                         (if global
-                             (let ((matches
-                                     (filter
-                                      ;; Search for the include file everywhere.
-                                      (op (let ((p (original-path (cdr _))))
-                                            (and (equal (pathname-name p)
-                                                        (pathname-name include-path))
-                                                 (equal (pathname-type p)
-                                                        (pathname-type include-path)))))
-                                      (evolve-files project))))
-                               (if (null (cdr matches))
-                                   (cdar matches)
-                                   (if-let* ((m (find absolute-include-path matches
-                                                      :key (op (original-path (cdr _)))
-                                                      :test #'equal)))
-                                            ;; If one of the matches is in the directory
-                                            ;; targeted by the include relative to the including
-                                            ;; file, choose it even if there are files elsewhere
-                                            ;; with the same name.
-                                            (cdr m)
-                                            (restart-case
-                                                (error 'include-conflict-error
-                                                       :ast path-ast
-                                                       :candidates matches)
-                                              (ignore ()
-                                                :report "Ignore the conflict, return nil"
-                                                nil)
-                                              (first ()
-                                                :report "Return the first candidate"
-                                                (cdar matches))
-                                              (whichever ()
-                                                :report "Pick one at random"
-                                                (cdr (random-elt matches)))
-                                              (use-value (match)
-                                                :report "Specify the header to use"
-                                                (assert (member match matches))
-                                                (cdr match))))))
-                             ;; Search only relative to the location of the file
-                             ;; containing the include-ast.  TODO: add a set
-                             ;; of paths to search in. TODO: Allow searching
-                             ;; up through grandparent directories (as some
-                             ;; compilers do).
-                             (aget include-path-string
-                                   (evolve-files project)
-                                   :test #'equal))))
-                   (cond
-                     ((or (null software)
-                           (member software *include-file-stack* :test #'equal))
-                      (when software
-                        (format t "Note: skipping nested include of ~a~%" software))
-                      nil)
-                     (t
-                      (let* ((*include-file-stack* (cons software *include-file-stack*))
-                             (st (symbol-table software in)))
-                        #+debug-fstfi2
-                        (progn
-                          (format t "~3@{~a~:*~}~a~a~%" #\Space
-                                  software)
-                          (let ((ns (name-string (original-path software))))
-                            (when (some (op (search _ ns)) iftn)
-                              (format t "~a~%" st))))
-                        st)))))
+               (let ((software (get-program-header project file include-ast path-ast
+                                                   :global global
+                                                   :header-dirs header-dirs)))
+                 (cond
+                   ((or (null software)
+                        (member software *include-file-stack* :test #'equal))
+                    (when software
+                      (format t "Note: skipping nested include of ~a~%" software))
+                    nil)
+                   (t
+                    (let* ((*include-file-stack* (cons software *include-file-stack*))
+                           (st (symbol-table software in)))
+                      #+debug-fstfi2
+                      (progn
+                        (format t "~3@{~a~:*~}~a~a~%" #\Space
+                                software)
+                        (let ((ns (name-string (original-path software))))
+                          (when (some (op (search _ ns)) iftn)
+                            (format t "~a~%" st))))
+                      st))))
                nil)))
     (ematch include-ast
       ((c/cpp-preproc-include
         (c/cpp-path (and path (c/cpp-string-literal))))
-       (or (process-relative-header path)
+       (or (process-program-header path)
            ;; If a quoted header cannot be found, we should fall back
            ;; to looking in system headers.
            (process-system-header project path)
