@@ -7,7 +7,10 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable)
-  (:local-nicknames (:attrs :functional-trees/attrs))
+  (:local-nicknames
+   (:attrs :functional-trees/attrs)
+   (:compdb-project
+    :software-evolution-library/software/compilation-database-project))
   (:shadowing-import-from :software-evolution-library/software/compilable
                           :flags :compiler :compilable)
   (:export :file-ast
@@ -64,6 +67,11 @@
              :documentation "Contents of the file.")
    (child-slots :initform '(contents) :allocation :class))
   (:documentation "FT Node to hold a file entry."))
+
+(defmethod compdb-project:command-object ((obj directory-project) (file file-ast))
+  (if-let (db (compdb-project:compilation-database obj))
+    (lookup db (full-pathname file))
+    (values nil nil)))
 
 (defmethod print-object ((obj directory-or-file-ast) stream)
   (if *print-readably*

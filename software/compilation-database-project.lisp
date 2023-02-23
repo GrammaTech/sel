@@ -1,9 +1,12 @@
 (defpackage :software-evolution-library/software/compilation-database-project
-  (:nicknames :sel/software/compilation-database-project
-   :sel/sw/compilation-database-project)
+  (:nicknames
+   :sel/software/compilation-database-project
+   :sel/sw/compilation-database-project
+   :sel/sw/compdb-project)
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/components/compilation-database
+        :software-evolution-library/components/file
         :software-evolution-library/software/simple
         :software-evolution-library/software/parseable
         :software-evolution-library/software/project
@@ -12,7 +15,8 @@
   (:export
     :compilation-database-project
     :compilation-database
-    :ensure-compilation-database))
+    :ensure-compilation-database
+    :command-object))
 (in-package :software-evolution-library/software/compilation-database-project)
 
 (define-software compilation-database-project (project)
@@ -43,3 +47,19 @@ information on the format of compilation databases.")))
 (defgeneric ensure-compilation-database (obj)
   (:method ((obj compilation-database-project))
     nil))
+
+(defgeneric command-object (obj file)
+  (:method ((obj compilation-database-project)
+            (file string))
+    (command-object obj (pathname file)))
+  (:method ((obj compilation-database-project)
+            (file software))
+    (command-object obj (original-path file)))
+  (:method ((obj compilation-database-project)
+            (path pathname))
+    (if-let (db (compilation-database obj))
+      (let* ((key (if (absolute-pathname-p path)
+                      path
+                      (project-relative-pathname obj path))))
+        (lookup db (namestring key)))
+      (values nil nil))))

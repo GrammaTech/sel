@@ -142,6 +142,9 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
 (defmethod lookup ((self compilation-database) (key string))
   (gethash key (file-command-objects self)))
 
+(defmethod lookup ((self compilation-database) (key pathname))
+  (gethash (namestring key) (file-command-objects self)))
+
 (defclass command-object ()
   ((directory
     :type string

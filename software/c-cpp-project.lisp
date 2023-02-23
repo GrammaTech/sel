@@ -105,6 +105,12 @@ and add it to PROJECT."))
   (synchronized ('*system-header-symbol-table-cache*)
     (clrhash *system-header-symbol-table-cache*)))
 
+(defun ast-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
+  (declare (optimize (Debug 3)))
+  (when (and project file)
+    (when-let ((co (command-object project file)))
+      (command-header-dirs co))))
+
 (defmethod get-system-header ((project c/cpp-project) (path-string string)
                               &aux (genome (genome project)))
   (synchronized ('*system-header-cache*)
