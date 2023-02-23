@@ -62,7 +62,7 @@ headers."
     string))
 
 (deftype header-dirs ()
-  '(soft-list-of header-dir))
+  '(and (not null) (soft-list-of header-dir)))
 
 (progn
   (defparameter *path-flags*
