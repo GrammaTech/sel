@@ -191,6 +191,10 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
    :directory (required-argument :directory)
    :file (required-argument :file)))
 
+(defmethod print-object ((self command-object) stream)
+  (print-unreadable-object (self stream :type t)
+    (format stream (command-file self))))
+
 (defmethod slot-unbound ((class t)
                          (self command-object)
                          (slot-name (eql 'arguments)))
