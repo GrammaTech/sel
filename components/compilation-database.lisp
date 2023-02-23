@@ -54,7 +54,10 @@ This can be a string for a concrete directory, or:
 * `:current', to replace with the current directory.
 * `:always', which precedes directories to always search.
 * `:system', which precedes system include directories.
-* `:stdinc', which should be replaced by standard includes."
+* `:stdinc', which should be replaced by standard includes.
+
+Note that directories before `:always' are only searched for program
+headers."
   '(or (member :current :always :system :stdinc)
     string))
 
