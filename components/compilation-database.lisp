@@ -22,12 +22,12 @@
            :command-flags
            :command-compiler
            :command-preproc-defs
-           :parse-macro-def
            :command-header-dirs
+           :command-isysroot
+           :parse-macro-def
            :compute-header-dirs
            :header-dir
-           :header-dirs
-           :command-isysroot)
+           :header-dirs)
   (:nicknames
    :sel/components/compilation-database
    :sel/components/compdb
