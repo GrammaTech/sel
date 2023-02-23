@@ -16,7 +16,7 @@
         :software-evolution-library/software/directory
         :software-evolution-library/components/file)
   (:export :c/cpp-project
-           :get-system-header
+           :get-std-header
            :header-name
            :system-headers
            :c/cpp-root
@@ -65,12 +65,12 @@ by the symbol-table attribute."))
     (format stream "~a" (header-name self)))
   self)
 
-(defgeneric get-system-header (project system-header-string &key header-dirs)
+(defgeneric get-std-header (project system-header-string &key header-dirs)
   (:method (project system-header-string &key header-dirs)
     (declare (ignore header-dirs))
     nil)
   (:method (project (system-header-ast c/cpp-system-lib-string) &key header-dirs)
-    (get-system-header project (trim-path-string system-header-ast) :header-dirs header-dirs))
+    (get-std-header project (trim-path-string system-header-ast) :header-dirs header-dirs))
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING
 and add it to PROJECT."))
 
@@ -113,7 +113,7 @@ and add it to PROJECT."))
     (when-let ((co (command-object project file)))
       (command-header-dirs co))))
 
-(defmethod get-system-header ((project c/cpp-project) (path-string string)
+(defmethod get-std-header ((project c/cpp-project) (path-string string)
                               &key header-dirs
                               &aux (genome (genome project)))
   (when (or (no header-dirs)
@@ -151,7 +151,7 @@ and add it to PROJECT."))
              (match ast
                ((c/cpp-preproc-include
                  (c/cpp-path (and path (c/cpp-system-lib-string))))
-                (get-system-header project (trim-path-string path)
+                (get-std-header project (trim-path-string path)
                                    :header-dirs
                                    (ast-header-dirs project ast))))))
     (let ((result (call-next-method)))
@@ -330,7 +330,7 @@ include files in all directories of the project."
                          alist)))))
            (process-system-header (project path-ast)
              (if-let ((system-header
-                       (get-system-header
+                       (get-std-header
                         project (trim-path-string path-ast)
                         :header-dirs (ast-header-dirs project path-ast))))
                (progn
