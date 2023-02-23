@@ -163,6 +163,18 @@ and add it to PROJECT."))
 
 ;;; Program headers.
 
+(defun search-include-directories (evolve-files include-path-string dirs)
+  "Return the first hit from EVOLVE-FILES for INCLUDE-PATH-STRING in DIRS."
+  (let ((include-path-string (drop-prefix "/" include-path-string)))
+    (some (lambda (dir)
+            (let ((key
+                   (string+ dir
+                            (if (string$= "/" dir) "" "/")
+                            include-path-string)))
+              (aget key evolve-files
+                    :test #'equal)))
+          dirs)))
+
 (defmethod get-program-header ((project c/cpp-project)
                                file
                                include-ast
@@ -170,7 +182,6 @@ and add it to PROJECT."))
                                &key
                                  (global *global-search-for-include-files*)
                                  header-dirs)
-  (declare (ignorable header-dirs))
   (let* ((project-dir (project-dir project))
          (file-path (make-pathname :name nil :type nil
                                    :directory
@@ -247,8 +258,29 @@ and add it to PROJECT."))
                ;; compilers do).
                (aget include-path-string
                      (evolve-files project)
-                     :test #'equal)))
-      (or (simple-relative-search)
+                     :test #'equal))
+             (header-dirs-search (header-dirs)
+               (let* ((header-dirs
+                       ;; Drop system dirs.
+                       (ldiff header-dirs (member :always header-dirs)))
+                      (header-dirs
+                       (iter (for dir in header-dirs)
+                             (econd
+                              ((eql dir :current)
+                               ;; Need the current file.
+                               (collecting
+                                (namestring
+                                 (pathname-directory-pathname
+                                  absolute-file-path))))
+                              ((stringp dir)
+                               (collect dir))))))
+                 (search-include-directories
+                  (evolve-files project)
+                  include-path-string
+                  header-dirs))))
+      (or (and header-dirs
+               (header-dirs-search header-dirs))
+          (simple-relative-search)
           (and global
                (global-search))))))
 
