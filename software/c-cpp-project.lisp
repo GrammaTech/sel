@@ -360,7 +360,7 @@ include files in all directories of the project."
                          ;; Preserve any previously computed attributes.
                          (append alist old)
                          alist)))))
-           (process-system-header (project path-ast)
+           (process-std-header (project path-ast)
              (if-let ((system-header
                        (get-std-header
                         project (trim-path-string path-ast)
@@ -399,15 +399,15 @@ include files in all directories of the project."
       ((c/cpp-preproc-include
         (c/cpp-path (and path (c/cpp-string-literal))))
        (or (process-program-header path)
-           ;; If a quoted header cannot be found, we should fall back
-           ;; to looking in system headers.
-           (process-system-header project path)
+           ;; If a program header cannot be found, we should fall back
+           ;; to system headers.
+           (process-std-header project path)
            (progn
              (warn 'include-not-found-warning :include-ast include-ast)
              (empty-map))))
       ((c/cpp-preproc-include
         (c/cpp-path (and path (c/cpp-system-lib-string))))
-       (or (process-system-header project path)
+       (or (process-std-header project path)
            (progn
              (warn 'include-not-found-warning :include-ast include-ast)
              (empty-map)))))))
