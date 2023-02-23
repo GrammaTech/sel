@@ -111,7 +111,7 @@ and add it to PROJECT."))
   (declare (optimize (Debug 3)))
   (when (and project file)
     (when-let ((co (command-object project file)))
-      (command-header-dirs co))))
+      (command-header-dirs (only-elt co)))))
 
 (defmethod get-std-header ((project c/cpp-project) (path-string string)
                               &key header-dirs
