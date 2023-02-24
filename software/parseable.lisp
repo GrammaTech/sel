@@ -97,6 +97,7 @@
            :recontextualize-mutation
            :recontextualize
            :select-crossover-points
+           :select-crossover-points-pool
            :parent-ast-p
            :prepend-text-to-genome
            :append-text-to-genome-preamble
@@ -903,12 +904,16 @@ to allow for successful mutation of SOFTWARE at PT."))
  represented as a path which refers to a node in both software objects.
  If no suitable point is found the returned point may be nil.")
   (:method ((a parseable) (b parseable))
-    (let ((nodes (convert 'list a)))
-      (when-let* ((pt-a (elt nodes (random (length nodes))))
-                  (path-a (ast-path (genome a) pt-a))
-                  (pt-b (ignore-errors (@ (genome b) path-a))))
-        (return-from select-crossover-points path-a))
-      nil))) ; did not find suitable point
+    (let* ((pt-a (random-elt (select-crossover-points-pool a b)))
+           (path-a (ast-path (genome a) pt-a))
+           (pt-b (ignore-errors (@ (genome b) path-a))))
+      (and pt-a pt-b path-a))))
+
+(defgeneric select-crossover-points-pool (a b)
+  (:documentation "Return a list of ASTs in A suitable for use in crossover.")
+  (:method ((a parseable) (b parseable))
+    (declare (ignorable b))
+    (convert 'list a)))
 
 (defmethod crossover ((a parseable) (b parseable))
   "Perform single-point crossover between two parseable software
@@ -1178,10 +1183,11 @@ the `genome' of the software object."
            (with-slots (line column) location
              (make-instance 'source-location
                :line (1- line) :column (1- column)))))
-    (with-slots (begin end) (aget ast (ast-source-ranges software))
-      (make-instance 'source-range
-        :begin (0-index begin)
-        :end (0-index end)))))
+    (when-let ((range (aget ast (ast-source-ranges software))))
+      (with-slots (begin end) range
+        (make-instance 'source-range
+          :begin (0-index begin)
+          :end (0-index end))))))
 
 
 ;;; Retrieving ASTs

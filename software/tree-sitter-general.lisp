@@ -1897,9 +1897,7 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
   "Returns true iff the ast is one which we will select for mutations."
   (typep ast '(not (or inner-whitespace comment-ast root-ast))))
 
-(defun evolution-candidate-asts (software
-                                 &key (filter
-                                   (lambda (x) (declare (ignore x)) t)))
+(defun evolution-candidate-asts (software &key (filter (constantly t)))
   "Returns list of asts in software genome which are valid mutation candidates."
   (iter (for a in-tree (genome software))
     (when (and (evolution-candidate-ast-p a)
@@ -2081,6 +2079,14 @@ temporary software objects."
 (defmethod pick-mutation-type ((obj tree-sitter))
   "Select type of mutation to apply to OBJ."
   (random-pick *tree-sitter-mutation-types*))
+
+
+;;;
+;;; Crossover
+;;;
+(defmethod select-crossover-points-pool ((a tree-sitter) (b tree-sitter))
+  (declare (ignorable b))
+  (evolution-candidate-asts a))
 
 
 ;;; AST Construction
