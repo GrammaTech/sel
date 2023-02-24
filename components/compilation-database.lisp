@@ -27,7 +27,8 @@
            :parse-macro-def
            :compute-header-dirs
            :header-dir
-           :header-dirs)
+           :header-dirs
+           :*default-header-dirs*)
   (:nicknames
    :sel/components/compilation-database
    :sel/components/compdb
@@ -63,6 +64,10 @@ headers."
 
 (deftype header-dirs ()
   '(and (not null) (soft-list-of header-dir)))
+
+(declaim (type header-dirs *default-header-dirs*))
+(defparameter *default-header-dirs*
+  '(:current :always :system :stdinc))
 
 (progn
   (defparameter *path-flags*

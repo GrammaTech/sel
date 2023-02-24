@@ -107,15 +107,14 @@ and add it to PROJECT."))
   (synchronized ('*system-header-symbol-table-cache*)
     (clrhash *system-header-symbol-table-cache*)))
 
-(defun ast-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
-  (declare (optimize (Debug 3)))
+(defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
   (when (and project file)
     (when-let ((co (command-object project file)))
       (command-header-dirs (only-elt co)))))
 
 (defmethod get-std-header ((project c/cpp-project) (path-string string)
-                              &key header-dirs
-                              &aux (genome (genome project)))
+                           &key header-dirs
+                           &aux (genome (genome project)))
   (when (or (no header-dirs)
             (member :stdinc header-dirs))
     (synchronized ('*system-header-cache*)
@@ -153,7 +152,7 @@ and add it to PROJECT."))
                  (c/cpp-path (and path (c/cpp-system-lib-string))))
                 (get-std-header project (trim-path-string path)
                                    :header-dirs
-                                   (ast-header-dirs project ast))))))
+                                   (file-header-dirs project ast))))))
     (let ((result (call-next-method)))
       (setf #1=(genome result) (make-instance 'c/cpp-root
                                               :project-directory #1#))
@@ -163,25 +162,13 @@ and add it to PROJECT."))
 
 ;;; Program headers.
 
-(defun search-include-directories (evolve-files include-path-string dirs)
-  "Return the first hit from EVOLVE-FILES for INCLUDE-PATH-STRING in DIRS."
-  (let ((include-path-string (drop-prefix "/" include-path-string)))
-    (some (lambda (dir)
-            (let ((key
-                   (string+ dir
-                            (if (string$= "/" dir) "" "/")
-                            include-path-string)))
-              (aget key evolve-files
-                    :test #'equal)))
-          dirs)))
-
 (defmethod get-program-header ((project c/cpp-project)
                                file
                                include-ast
                                path-ast
                                &key
                                  (global *global-search-for-include-files*)
-                                 header-dirs)
+                                 base)
   (let* ((project-dir (project-dir project))
          (file-path (make-pathname :name nil :type nil
                                    :directory
@@ -196,8 +183,12 @@ and add it to PROJECT."))
          (tweaked-include-path-dir (substitute :back :up (pathname-directory include-path)))
          (tweaked-include-path (make-pathname :directory tweaked-include-path-dir
                                               :defaults include-path))
-         (absolute-include-path (path-join absolute-file-path tweaked-include-path))
-         (relative-include-path (path-join file-path tweaked-include-path))
+         (absolute-include-path
+          (path-join (or base absolute-file-path) tweaked-include-path))
+         (relative-include-path
+          (if base
+              (enough-namestring project-dir absolute-include-path)
+              (path-join file-path tweaked-include-path)))
          (include-path-string
           (namestring (canonical-pathname relative-include-path))))
     #+debug-fstfi
@@ -258,29 +249,8 @@ and add it to PROJECT."))
                ;; compilers do).
                (aget include-path-string
                      (evolve-files project)
-                     :test #'equal))
-             (header-dirs-search (header-dirs)
-               (let* ((header-dirs
-                       ;; Drop system dirs.
-                       (ldiff header-dirs (member :always header-dirs)))
-                      (header-dirs
-                       (iter (for dir in header-dirs)
-                             (econd
-                              ((eql dir :current)
-                               ;; Need the current file.
-                               (collecting
-                                (namestring
-                                 (pathname-directory-pathname
-                                  absolute-file-path))))
-                              ((stringp dir)
-                               (collect dir))))))
-                 (search-include-directories
-                  (evolve-files project)
-                  include-path-string
-                  header-dirs))))
-      (or (and header-dirs
-               (header-dirs-search header-dirs))
-          (simple-relative-search)
+                     :test #'equal)))
+      (or (simple-relative-search)
           (and global
                (global-search))))))
 
@@ -343,6 +313,7 @@ include files in all directories of the project."
   (format t "Enter find-symbol-table-from-include on ~a~%"
           (source-text include-ast))
   (labels ((merge-cached-symbol-table (header)
+             "Merge the cached symbol table for HEADER into ours."
              (let ((cached-table
                     (synchronized ('*system-header-symbol-table-cache*)
                       (ensure2 (cache-lookup *system-header-symbol-table-cache*
@@ -361,56 +332,70 @@ include files in all directories of the project."
                          (append alist old)
                          alist)))))
            (process-std-header (project path-ast)
+             "Retrieve a standard header from the cache."
              (if-let ((system-header
                        (get-std-header
                         project (trim-path-string path-ast)
-                        :header-dirs (ast-header-dirs project path-ast))))
+                        :header-dirs header-dirs)))
                (progn
                  (merge-cached-symbol-table system-header)
                  (symbol-table system-header in))
                nil))
-           (process-program-header (path-ast)
+           (safe-symbol-table (software)
+             "Extract a symbol table from SOFTWARE, guarding for circularity."
+             (cond
+               ((or (null software)
+                    (member software *include-file-stack* :test #'equal))
+                (when software
+                  (format t "Note: skipping nested include of ~a~%" software))
+                nil)
+               (t
+                (let* ((*include-file-stack* (cons software *include-file-stack*))
+                       (st (symbol-table software in)))
+                  #+debug-fstfi2
+                  (progn
+                    (format t "~3@{~a~:*~}~a~a~%" #\Space
+                            software)
+                    (let ((ns (name-string (original-path software))))
+                      (when (some (op (search _ ns)) iftn)
+                        (format t "~a~%" st))))
+                  st))))
+           (process-header (path-ast &key base file (global global))
              "Get the corresponding symbol table for the relative path
               represented by PATH-AST."
              #+debug-fstfi (format t "Enter process-program-header on ~a~%" path-ast)
-             (if-let* ((file (find-enclosing 'file-ast project include-ast)))
-               (let ((software (get-program-header project file include-ast path-ast
-                                                   :global global
-                                                   :header-dirs header-dirs)))
-                 (cond
-                   ((or (null software)
-                        (member software *include-file-stack* :test #'equal))
-                    (when software
-                      (format t "Note: skipping nested include of ~a~%" software))
-                    nil)
-                   (t
-                    (let* ((*include-file-stack* (cons software *include-file-stack*))
-                           (st (symbol-table software in)))
-                      #+debug-fstfi2
-                      (progn
-                        (format t "~3@{~a~:*~}~a~a~%" #\Space
-                                software)
-                        (let ((ns (name-string (original-path software))))
-                          (when (some (op (search _ ns)) iftn)
-                            (format t "~a~%" st))))
-                      st))))
-               nil)))
-    (ematch include-ast
-      ((c/cpp-preproc-include
-        (c/cpp-path (and path (c/cpp-string-literal))))
-       (or (process-program-header path)
-           ;; If a program header cannot be found, we should fall back
-           ;; to system headers.
-           (process-std-header project path)
-           (progn
-             (warn 'include-not-found-warning :include-ast include-ast)
-             (empty-map))))
-      ((c/cpp-preproc-include
-        (c/cpp-path (and path (c/cpp-system-lib-string))))
-       (or (process-std-header project path)
-           (progn
-             (warn 'include-not-found-warning :include-ast include-ast)
-             (empty-map)))))))
+             (when-let* ((file (or file (find-enclosing 'file-ast project include-ast))))
+               (safe-symbol-table
+                (get-program-header project file include-ast path-ast
+                                    :base base
+                                    :global global))))
+           (header-symbol-table (file header-dirs path-ast)
+             (some (lambda (dir)
+                     (econd ((eql dir :current)
+                             (process-header path-ast :file file :global nil))
+                            ((member dir '(:always :system))
+                             nil)
+                            ((eql dir :stdinc)
+                             (process-std-header project path-ast))
+                            ((stringp dir)
+                             (process-header path-ast :base dir :global nil))))
+                   header-dirs)))
+    (let* ((file (find-enclosing 'file-ast project include-ast))
+           (header-dirs? (file-header-dirs project include-ast :file file))
+           (header-dirs (or header-dirs? *default-header-dirs*)))
+      (ematch include-ast
+        ((c/cpp-preproc-include
+          (c/cpp-path (and path-ast (c/cpp-string-literal))))
+         (or (header-symbol-table file
+                                  header-dirs
+                                  path-ast)
+             (and global
+                  (process-header path-ast :global t))))
+        ((c/cpp-preproc-include
+          (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
+         (header-symbol-table file
+                              (member :always header-dirs)
+                              path-ast))))))
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (let ((root (attrs-root *attrs*)))
