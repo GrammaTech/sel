@@ -28,7 +28,8 @@
            :compute-header-dirs
            :header-dir
            :header-dirs
-           :*default-header-dirs*)
+           :*default-header-dirs*
+           :preproc-macro-source)
   (:nicknames
    :sel/components/compilation-database
    :sel/components/compdb
@@ -328,6 +329,16 @@ Return the macro name and macro definition as two values."
         (values name definition)))
     ;; A definition without a value has an implicit value of 1.
     (values string "1")))
+
+(defun preproc-macro-source (mname mdef)
+  "Return the source code for a macro."
+  (assert (not (position #\Newline mdef)))
+  (if (listp mname)
+      (fmt "#define ~a(~{~a~^, ~}) ~a~%"
+           (first mname)
+           (rest mname)
+           mdef)
+      (fmt "#define ~a ~a~%" mname mdef)))
 
 (-> preprocessor-definition-alist ((soft-list-of string))
     (values macro-alist &optional))
