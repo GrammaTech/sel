@@ -1,0 +1,1 @@
+int MYCONST = 2;

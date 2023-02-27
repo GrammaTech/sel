@@ -69,9 +69,7 @@
   (:documentation "FT Node to hold a file entry."))
 
 (defmethod compdb-project:command-object ((obj directory-project) (file file-ast))
-  (if-let (db (compdb-project:compilation-database obj))
-    (lookup db (full-pathname file))
-    (values nil nil)))
+  (compdb-project:command-object obj (full-pathname file)))
 
 (defmethod print-object ((obj directory-or-file-ast) stream)
   (if *print-readably*

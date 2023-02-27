@@ -229,3 +229,62 @@ present when the project was created."
          :function
          (find-if (of-type 'cpp-field-expression)
                   new-genome))))))
+
+(deftest test-cpp-project-include-resolution/compdb ()
+  "Test simple include resolution for program and system includes.
+For each permutation, we load the project with a specific compilation
+directory pointing to one of two include directories defining the same
+binding with different contents and check that the symbol table gets
+the correct binding."
+  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+         (project-dir (path-join sel-dir #p"test/etc/cpp-include-project/"))
+         (project-compdb-path (path-join project-dir #p"compile_commands.json"))
+         (db-templates (sort (directory (path-join project-dir #p"*.json"))
+                             #'string< :key #'pathname-name))
+         (source-files '("program_include.cc" "system_include.cc")))
+    (is (length= db-templates 2))
+    (macrolet ((with-temp-compdb ((db &key) &body body)
+                 (with-thunk (body)
+                   `(call/temp-compdb ,db ,body))))
+      (labels ((copy-file/subst (from to)
+                 "Copy FROM to TO, replacing ${SEL} with the SEL path."
+                 (let ((prefix (drop-suffix "/" (namestring sel-dir))))
+                   (write-string-into-file
+                    (string-replace-all
+                     "${SEL}"
+                     (read-file-into-string from)
+                     prefix)
+                    to
+                    :if-exists :error)))
+               (call/temp-compdb (db fn)
+                 (unwind-protect
+                      (progn
+                        (copy-file/subst db project-compdb-path)
+                        (is (file-exists-p project-compdb-path))
+                        (funcall fn))
+                   (delete-file-if-exists project-compdb-path)))
+               (do-test (n db file)
+                 "Test a single permutation.
+                Temporarily copy DB as compile_commands.json before loading the project."
+                 (with-temp-compdb (db)
+                   (let* ((project
+                           (is (from-file 'cpp-project project-dir)))
+                          (software
+                           (is (assocdr file (evolve-files project) :test #'equal)))
+                          (ast
+                           (is (find-if (op (source-text= "MYCONST" _))
+                                        (genome software)))))
+                     (is (sel/cp/compdb:command-header-dirs
+                          (only-elt
+                           (is (sel/cp/compdb:command-object project file)))))
+                     (with-attr-table project
+                       (let* ((decl (is (get-declaration-ast :variable ast)))
+                              (assignment
+                               (is (find-if (of-type 'variable-initialization-ast)
+                                            decl))))
+                         (is (source-text= (rhs assignment)
+                                           (princ-to-string n)))))))))
+        (iter (for i from 1)
+              (for db in db-templates)
+              (for file in source-files)
+              (do-test i db file))))))

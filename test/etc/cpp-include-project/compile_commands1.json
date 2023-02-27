@@ -1,0 +1,24 @@
+[
+  {
+  "directory": "${SEL}/test/etc/cpp-include-project",
+  "file": "${SEL}/test/etc/cpp-include-project/program_include.cc",
+  "arguments": [
+    "cc",
+    "-Iincludes1",
+    "-o",
+    "program_include",
+    "program_include.cc"
+  ]
+},
+  {
+  "directory": "${SEL}/test/etc/cpp-include-project",
+  "file": "${SEL}/test/etc/cpp-include-project/system_include.cc",
+  "arguments": [
+    "cc",
+    "-Iincludes1",
+    "-o",
+    "system_include",
+    "system_include.cc"
+  ]
+}
+]

@@ -193,7 +193,7 @@ and add it to PROJECT."))
           (path-join (or base absolute-file-path) tweaked-include-path))
          (relative-include-path
           (if base
-              (enough-namestring project-dir absolute-include-path)
+              (enough-namestring absolute-include-path project-dir)
               (path-join file-path tweaked-include-path)))
          (include-path-string
           (namestring (canonical-pathname relative-include-path))))
