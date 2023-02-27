@@ -24,7 +24,8 @@
            :include-not-found-warning
            :include-conflict-error
            :include-conflict-error.ast
-           :include-conflict-error.candidates))
+           :include-conflict-error.candidates
+           :file-preproc-defs))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -111,6 +112,11 @@ and add it to PROJECT."))
   (when (and project file)
     (when-let ((co (command-object project file)))
       (command-header-dirs (only-elt co)))))
+
+(defun file-preproc-defs (project ast &key (file (find-enclosing 'file-ast project ast)))
+  (when (and project file)
+    (when-let ((co (command-object project file)))
+      (command-preproc-defs co))))
 
 (defmethod get-std-header ((project c/cpp-project) (path-string string)
                            &key header-dirs
