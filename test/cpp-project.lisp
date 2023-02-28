@@ -238,13 +238,12 @@ binding with different contents and check that the symbol table gets
 the correct binding."
   (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
          (project-dir (path-join sel-dir #p"test/etc/cpp-include-project/"))
-         (project-compdb-path (path-join project-dir #p"compile_commands.json"))
          (db-templates (sort (directory (path-join project-dir #p"*.json"))
                              #'string< :key #'pathname-name))
          (source-files '("program_include.cc" "system_include.cc")))
     (is (length= db-templates 2))
-    (macrolet ((with-temp-compdb ((db &key) &body body)
-                 (with-thunk (body)
+    (macrolet ((with-temp-compdb ((db temp &key) &body body)
+                 (with-thunk (body temp)
                    `(call/temp-compdb ,db ,body))))
       (labels ((copy-file/subst (from to)
                  "Copy FROM to TO, replacing ${SEL} with the SEL path."
@@ -257,18 +256,18 @@ the correct binding."
                     to
                     :if-exists :error)))
                (call/temp-compdb (db fn)
-                 (unwind-protect
-                      (progn
-                        (copy-file/subst db project-compdb-path)
-                        (is (file-exists-p project-compdb-path))
-                        (funcall fn))
-                   (delete-file-if-exists project-compdb-path)))
+                 (with-temporary-file (:pathname p)
+                   (copy-file/subst db p)
+                   (is (file-exists-p p))
+                   (funcall fn p)))
                (do-test (n db file)
                  "Test a single permutation.
                 Temporarily copy DB as compile_commands.json before loading the project."
-                 (with-temp-compdb (db)
+                 (with-temp-compdb (db temp)
                    (let* ((project
-                           (is (from-file 'cpp-project project-dir)))
+                           (is (from-file
+                                (make 'cpp-project :compilation-database-path temp)
+                                project-dir)))
                           (software
                            (is (assocdr file (evolve-files project) :test #'equal)))
                           (ast

@@ -13,10 +13,11 @@
         :software-evolution-library/software/parseable-project)
   (:local-nicknames (:json :cl-json))
   (:export
-    :compilation-database-project
+    :command-object
     :compilation-database
-    :ensure-compilation-database
-    :command-object))
+    :compilation-database-path
+    :compilation-database-project
+    :ensure-compilation-database))
 (in-package :software-evolution-library/software/compilation-database-project)
 
 (define-software compilation-database-project (project)
@@ -25,15 +26,31 @@
                          :initform nil
                          :documentation "Compilation database for the project.
 See https://clang.llvm.org/docs/JSONCompilationDatabase.html for
-information on the format of compilation databases.")))
+information on the format of compilation databases.")
+   (compilation-database-path
+    :initarg :compilation-database-path
+    :reader compilation-database-path
+    :type (or null string pathname)
+    :documentation "Location of the compilation database."))
+  (:default-initargs
+   :compilation-database-path nil))
 
 (defmethod collect-evolve-files :before ((obj compilation-database-project))
   "Ensure OBJ has a compilation-database populated."
   (unless (compilation-database obj)
-    (let* ((comp-db-paths
+    (let* ((supplied-path (compilation-database-path obj))
+           (default-compdb-paths
             (mapcar (op (project-relative-pathname obj _))
                     '("compile_commands.json"
                       "build/compile_commands.json")))
+           (comp-db-paths
+            (ensure-list
+             (econd ((no supplied-path)
+                     default-compdb-paths)
+                    ((relative-pathname-p supplied-path)
+                     (project-relative-pathname obj supplied-path))
+                    ((absolute-pathname-p supplied-path)
+                     supplied-path))))
            (compilation-database
             (progn
               (unless (find-if #'file-exists-p comp-db-paths)
@@ -49,6 +66,7 @@ information on the format of compilation databases.")))
     nil))
 
 (defgeneric command-object (obj file)
+  (:documentation "Get FILE's command object in OBJ's compilation database.")
   (:method ((obj compilation-database-project)
             (file string))
     (command-object obj (pathname file)))
