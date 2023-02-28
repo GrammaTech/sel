@@ -177,6 +177,15 @@ the standard path and add it to PROJECT."))
                                &key
                                  (global *global-search-for-include-files*)
                                  base)
+  "Look for a header designated by a program include.
+This does not search in standard directories.
+
+When we have a search path \(from a compilation database) this is used
+as a subroutine and called for every directory in the search path.
+
+If we don't have a search path, this function does the entire search;
+if GLOBAL is true, it searches through all files in the project, and
+signals a restartable error if their are collisions."
   (let* ((project-dir (project-dir project))
          (file-path (make-pathname :name nil :type nil
                                    :directory
@@ -212,7 +221,8 @@ the standard path and add it to PROJECT."))
             (remove #\Newline (source-text include-ast))
             (namestring file-path)))
     (labels ((global-search ()
-               "Search for the include everywhere in the project."
+               "Search for the include everywhere in the project.
+This is used as a fallback when we have no header search path."
                (let ((matches
                       (filter
                        ;; Search for the include file everywhere.
@@ -250,6 +260,8 @@ the standard path and add it to PROJECT."))
                            (assert (member match matches))
                            (cdr match)))))))
              (simple-relative-search ()
+               "Do a search relative to BASE, if supplied, or the location of
+the including file."
                ;; Search only relative to the location of the file
                ;; containing the include-ast.  TODO: add a set
                ;; of paths to search in. TODO: Allow searching
@@ -397,6 +409,7 @@ include files in all directories of the project."
          (or (header-symbol-table file
                                   header-dirs
                                   path-ast)
+             ;; Fall back to global search.
              (and global
                   (process-header path-ast :global t))))
         ((c/cpp-preproc-include
