@@ -25,7 +25,9 @@
            :include-conflict-error
            :include-conflict-error.ast
            :include-conflict-error.candidates
-           :file-preproc-defs))
+           :file-preproc-defs
+           :get-implicit-header
+           :command-implicit-header))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -41,25 +43,37 @@
                    :initarg :system-headers
                    :initform nil)
    (system-headers/string->ast :accessor system-headers/string->ast
-                               :initform (make-hash-table :test #'equal))
+                               :initform (dict))
+   (implicit-headers
+    :accessor implicit-headers
+    :initarg :implicit-headers)
+   (implicit-headers-table
+    :reader implicit-headers-table
+    :initform (dict))
    (project-directory :accessor project-directory
                       :initarg :project-directory
                       :initform nil)
    (child-slots :initform '((project-directory . 1) (system-headers . 0))
                 :allocation :class))
+  (:default-initargs
+   :system-headers nil
+   :implicit-headers nil)
   (:documentation "Node for c/cpp-project objects that allows for storing the
 system-headers directly in the tree. Note that system headers are lazily added
 by the symbol-table attribute."))
 
-(define-node-class c/cpp-system-header (functional-tree-ast)
-  ((header-name :initarg :header-name
-                :accessor header-name)
-   (children :initarg :children
+(define-node-class synthetic-header (functional-tree-ast)
+  ((children :initarg :children
              :accessor children
              :initform nil)
    (child-slots :initform '((children . 0))
                 :allocation :class))
-  (:documentation "Node for representing system headers."))
+  (:documentation "Superclass of synthetic headers."))
+
+(define-node-class c/cpp-system-header (synthetic-header)
+  ((header-name :initarg :header-name
+                :accessor header-name))
+  (:documentation "Node for representing synthetic system headers."))
 
 (defmethod print-object ((self c/cpp-system-header) stream)
   (print-unreadable-object (self stream :type t)
@@ -76,6 +90,44 @@ by the symbol-table attribute."))
                               :header-dirs header-dirs))
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING from
 the standard path and add it to PROJECT."))
+
+(define-node-class implicit-header (synthetic-header)
+  ((source-file
+    :initarg :source-file
+    :reader source-file)))
+
+(defgeneric command-implicit-header (command lang)
+  (:documentation "Synthesize an implicit header for COMMAND.")
+  (:method ((co command-object) lang)
+    (when-let (defs (command-preproc-defs co))
+      (let ((source
+             (mapconcat (lambda (cons)
+                          (preproc-macro-source (car cons) (cdr cons)))
+                        defs
+                        "")))
+        (make 'implicit-header
+              :source-file (command-file co)
+              :children
+              (collect-if
+               (of-type '(or c/cpp-preproc-def c/cpp-preproc-function-def))
+               (from-string lang source)))))))
+
+(defgeneric get-implicit-header (project file)
+  (:method ((project c/cpp-project) (file file-ast))
+    (get-implicit-header project (full-pathname file)))
+  (:method ((project c/cpp-project) (file software))
+    (get-implicit-header project (original-path file)))
+  (:method ((project c/cpp-project) (file pathname))
+    (assert (relative-pathname-p file))
+    (when-let* ((cos (command-object project file))
+                (co (only-elt cos)))
+      (let* ((genome (genome project))
+             (table (implicit-headers-table genome))
+             (lang (component-class project)))
+        (ensure2 (gethash file table)
+          (lret ((header (command-implicit-header co lang)))
+            (when header
+              (push header (implicit-headers genome)))))))))
 
 (defmethod lookup ((obj c/cpp-root) (key string))
   ;; Enables the use of the `@' macro directly against projects.
