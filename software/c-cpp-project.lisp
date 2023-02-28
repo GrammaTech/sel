@@ -16,7 +16,7 @@
         :software-evolution-library/software/directory
         :software-evolution-library/components/file)
   (:export :c/cpp-project
-           :get-std-header
+           :get-standard-path-header
            :header-name
            :system-headers
            :c/cpp-root
@@ -66,14 +66,16 @@ by the symbol-table attribute."))
     (format stream "~a" (header-name self)))
   self)
 
-(defgeneric get-std-header (project system-header-string &key header-dirs)
+(defgeneric get-standard-path-header (project system-header-string
+                                      &key header-dirs)
   (:method (project system-header-string &key header-dirs)
     (declare (ignore header-dirs))
     nil)
   (:method (project (system-header-ast c/cpp-system-lib-string) &key header-dirs)
-    (get-std-header project (trim-path-string system-header-ast) :header-dirs header-dirs))
-  (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING
-and add it to PROJECT."))
+    (get-standard-path-header project (trim-path-string system-header-ast)
+                              :header-dirs header-dirs))
+  (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING from
+the standard path and add it to PROJECT."))
 
 (defmethod lookup ((obj c/cpp-root) (key string))
   ;; Enables the use of the `@' macro directly against projects.
@@ -118,7 +120,7 @@ and add it to PROJECT."))
     (when-let ((co (command-object project file)))
       (command-preproc-defs co))))
 
-(defmethod get-std-header ((project c/cpp-project) (path-string string)
+(defmethod get-standard-path-header ((project c/cpp-project) (path-string string)
                            &key header-dirs
                            &aux (genome (genome project)))
   (when (or (no header-dirs)
@@ -156,7 +158,7 @@ and add it to PROJECT."))
              (match ast
                ((c/cpp-preproc-include
                  (c/cpp-path (and path (c/cpp-system-lib-string))))
-                (get-std-header project (trim-path-string path)
+                (get-standard-path-header project (trim-path-string path)
                                    :header-dirs
                                    (file-header-dirs project ast))))))
     (let ((result (call-next-method)))
@@ -340,7 +342,7 @@ include files in all directories of the project."
            (process-std-header (project path-ast)
              "Retrieve a standard header from the cache."
              (if-let ((system-header
-                       (get-std-header
+                       (get-standard-path-header
                         project (trim-path-string path-ast)
                         :header-dirs header-dirs)))
                (progn
