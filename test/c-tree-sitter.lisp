@@ -1641,3 +1641,31 @@ int x = 0;
 #endif")
         (*use-blotting* nil))
     (is (not (find-if (of-type 'blot) (convert 'c-ast source))))))
+
+
+;;; Fset specializations
+(deftest c-less-preproc-include ()
+  "Removing a preproc-include maintains whitespace by moving it to the
+before-text of the following AST if one exists."
+  (let* ((root (convert 'c-ast "
+#if X
+#include <stdint.h>
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+"))
+         (include-asts (collect-if (of-type 'c-preproc-include) root)))
+    (is (source-text= (less root (cadr include-asts))
+                      "
+#if X
+#include <stdint.h>
+#endif
+#include <stdlib.h>
+"))
+    (is (source-text= (less root (caddr include-asts))
+                      "
+#if X
+#include <stdint.h>
+#endif
+#include <stdio.h>
+"))))

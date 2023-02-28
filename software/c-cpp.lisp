@@ -967,6 +967,24 @@ Should return `:failure' in the base case.")
               (collect ast))))))
 
 
+;;; Fset
+
+(defmethod less :around ((root c/cpp-ast) (ast c/cpp-preproc-include)
+                         &optional ast2)
+  (declare (ignorable ast2))
+  ;; NOTE: c/cpp-preproc-includes have a newline attached to the end of them.
+  ;;       This can be an issue when they are removed as they are expected to
+  ;;       be in the before-text of the following AST when one exists.
+  (let ((new-root (call-next-method))
+        (successor (successor root ast)))
+    (if successor
+        (with new-root
+              successor
+              (copy successor
+                    :before-text (string+ #.(fmt "~%") (before-text successor))))
+        new-root)))
+
+
 ;;;; Whitespace/formatting
 (defmethod whitespace-between/parent ((parent c/cpp-do-statement)
                                       (style c-style-indentation)
