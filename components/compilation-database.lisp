@@ -338,7 +338,9 @@ Return the macro name and macro definition as two values."
            (first mname)
            (rest mname)
            mdef)
-      (fmt "#define ~a ~a~%" mname mdef)))
+      (if (null mdef)
+          (fmt "#undef ~a~%" mname)
+          (fmt "#define ~a ~a~%" mname mdef))))
 
 (-> preprocessor-definition-alist ((soft-list-of string))
     (values macro-alist &optional))

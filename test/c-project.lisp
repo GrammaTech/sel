@@ -278,7 +278,7 @@ file including it."
                                          (genome software)))
                     (included-software (aget "file.h" (evolve-files *project*)
                                              :test #'equal)))
-               (is (equal? (symbol-table target-ast)
+               (is (equal? (less (symbol-table target-ast) :macro)
                            (get-symbol-map included-software
                                            '((:variable "x")
                                              (:function "function"))))))))

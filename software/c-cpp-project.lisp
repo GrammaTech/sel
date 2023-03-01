@@ -19,6 +19,7 @@
            :get-standard-path-header
            :header-name
            :system-headers
+           :implicit-headers
            :c/cpp-root
            :*global-search-for-include-files*
            :include-not-found-warning
@@ -39,25 +40,33 @@
   (:documentation "Mixin for common project functionality between C and C++."))
 
 (define-node-class c/cpp-root (functional-tree-ast normal-scope-ast)
-  ((system-headers :reader system-headers
-                   :initarg :system-headers
-                   :initform nil)
-   (system-headers/string->ast :accessor system-headers/string->ast
-                               :initform (dict))
+  ((system-headers
+    :reader system-headers
+    :initarg :system-headers)
+   (system-headers/string->ast
+    :accessor system-headers/string->ast
+    :initarg :system-headers/string->ast)
    (implicit-headers
     :accessor implicit-headers
     :initarg :implicit-headers)
    (implicit-headers-table
     :reader implicit-headers-table
-    :initform (dict))
-   (project-directory :accessor project-directory
-                      :initarg :project-directory
-                      :initform nil)
-   (child-slots :initform '((project-directory . 1) (system-headers . 0))
-                :allocation :class))
+    :initarg :implicit-headers-table
+    :type hash-table)
+   (project-directory
+    :accessor project-directory
+    :initarg :project-directory
+    :initform nil)
+   (child-slots
+    :initform '((project-directory . 1)
+                (system-headers . 0)
+                (implicit-headers . 0))
+    :allocation :class))
   (:default-initargs
    :system-headers nil
-   :implicit-headers nil)
+   :implicit-headers nil
+   :implicit-headers-table (dict)
+   :system-headers/string->ast (dict))
   (:documentation "Node for c/cpp-project objects that allows for storing the
 system-headers directly in the tree. Note that system headers are lazily added
 by the symbol-table attribute."))
@@ -70,31 +79,44 @@ by the symbol-table attribute."))
                 :allocation :class))
   (:documentation "Superclass of synthetic headers."))
 
-(define-node-class c/cpp-system-header (synthetic-header)
-  ((header-name :initarg :header-name
-                :accessor header-name))
-  (:documentation "Node for representing synthetic system headers."))
+(defun trim-path-string (path-ast &aux (text (text path-ast)))
+  "Return the text of PATH-AST with the quotes around it removed."
+  (subseq text 1 (1- (length text))))
 
-(defmethod print-object ((self c/cpp-system-header) stream)
-  (print-unreadable-object (self stream :type t)
-    (format stream "~a" (header-name self)))
-  self)
+(defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
+  (when (and project file)
+    (when-let ((co (command-object project file)))
+      (command-header-dirs (only-elt co)))))
 
-(defgeneric get-standard-path-header (project system-header-string
-                                      &key header-dirs)
-  (:method (project system-header-string &key header-dirs)
-    (declare (ignore header-dirs))
-    nil)
-  (:method (project (system-header-ast c/cpp-system-lib-string) &key header-dirs)
-    (get-standard-path-header project (trim-path-string system-header-ast)
-                              :header-dirs header-dirs))
-  (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING from
-the standard path and add it to PROJECT."))
+(defun file-preproc-defs (project ast &key (file (find-enclosing 'file-ast project ast)))
+  (when (and project file)
+    (when-let ((co (command-object project file)))
+      (command-preproc-defs co))))
 
-(define-node-class implicit-header (synthetic-header)
+(define-node-class implicit-header (synthetic-header
+                                    ;; Inherit symbol-table-union
+                                    ;; specialization.
+                                    c-like-syntax-ast)
   ((source-file
     :initarg :source-file
-    :reader source-file)))
+    :reader source-file))
+  (:documentation "A fake implicit header containing definitions for preprocessor macros
+supplied at the command line."))
+
+(defun clear-implicit-headers (project)
+  "Clear cached implicit headers in GENOME.
+For development."
+  (setf (genome project)
+        (copy (genome project)
+              :implicit-headers nil
+              :implicit-headers-table (dict)))
+  (values))
+
+#+(or :TREE-SITTER-C :TREE-SITTER-CPP)
+(progn
+
+  
+;;; Implicit Headers
 
 (defgeneric command-implicit-header (command lang)
   (:documentation "Synthesize an implicit header for COMMAND.")
@@ -119,13 +141,6 @@ the standard path and add it to PROJECT."))
               (list
                (make root-class :children children)))))))
 
-(defun clear-implicit-headers (genome)
-  "Clear cached implicit headers in GENOME.
-For development."
-  (setf (implicit-headers genome) nil)
-  (clrhash (implicit-headers-table genome))
-  (values))
-
 (defgeneric get-implicit-header (project file)
   (:method ((project c/cpp-project) (file file-ast))
     (get-implicit-header project (full-pathname file)))
@@ -143,14 +158,33 @@ For development."
         (ensure2 (gethash file table)
           (lret ((header (command-implicit-header co lang)))
             (when header
-              (push header (implicit-headers genome)))))))))
+              (setf (genome project)
+                    (copy (genome project)
+                          :implicit-headers
+                          (adjoin header (implicit-headers genome)))))))))))
+
+(defun implicit-header-symbol-table (header)
+  (with-attr-table header
+    (symbol-table (first (children header)))))
 
 (defmethod lookup ((obj c/cpp-root) (key string))
   ;; Enables the use of the `@' macro directly against projects.
   (lookup (project-directory obj) key))
 
-#+(or :TREE-SITTER-C :TREE-SITTER-CPP)
-(progn
+(defmethod symbol-table :around ((ast c/cpp-translation-unit) &optional in)
+  (let ((root (attrs-root*)))
+    (or (and-let* (((typep root 'c/cpp-project))
+                   ((compilation-database root))
+                   (file (find-enclosing 'file-ast root ast))
+                   (implicit-header (get-implicit-header root file)))
+          (let* ((implicit-header-symbol-table
+                  (implicit-header-symbol-table implicit-header))
+                 (augmented-table
+                  (symbol-table-union root
+                                      in
+                                      implicit-header-symbol-table)))
+            (call-next-method ast augmented-table)))
+        (call-next-method))))
 
 
 ;;; System Headers
@@ -160,6 +194,27 @@ For development."
 
 (defvar *system-header-symbol-table-cache* (dict)
   "Cache system header symbol tables.")
+
+(define-node-class c/cpp-system-header (synthetic-header)
+  ((header-name :initarg :header-name
+                :accessor header-name))
+  (:documentation "Node for representing synthetic system headers."))
+
+(defmethod print-object ((self c/cpp-system-header) stream)
+  (print-unreadable-object (self stream :type t)
+    (format stream "~a" (header-name self)))
+  self)
+
+(defgeneric get-standard-path-header (project system-header-string
+                                      &key header-dirs)
+  (:method ((project t) (system-header-string t) &key header-dirs)
+    (declare (ignore header-dirs))
+    nil)
+  (:method ((project t) (system-header-ast c/cpp-system-lib-string) &key header-dirs)
+    (get-standard-path-header project (trim-path-string system-header-ast)
+                              :header-dirs header-dirs))
+  (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING from
+the standard path and add it to PROJECT."))
 
 (defun cache-lookup (cache project path-string)
   (if-let (dict (gethash (type-of project) cache))
@@ -178,19 +233,9 @@ For development."
   (synchronized ('*system-header-symbol-table-cache*)
     (clrhash *system-header-symbol-table-cache*)))
 
-(defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
-  (when (and project file)
-    (when-let ((co (command-object project file)))
-      (command-header-dirs (only-elt co)))))
-
-(defun file-preproc-defs (project ast &key (file (find-enclosing 'file-ast project ast)))
-  (when (and project file)
-    (when-let ((co (command-object project file)))
-      (command-preproc-defs co))))
-
 (defmethod get-standard-path-header ((project c/cpp-project) (path-string string)
-                           &key header-dirs
-                           &aux (genome (genome project)))
+                                     &key header-dirs
+                                     &aux (genome (genome project)))
   (when (or (no header-dirs)
             (member :stdinc header-dirs))
     (synchronized ('*system-header-cache*)
@@ -212,23 +257,19 @@ For development."
                      (assert (slot-exists-p (genome project) 'system-headers))
                      (setf (genome project)
                            (copy (genome project)
-                                 :system-headers (cons system-header
-                                                       (system-headers genome)))))))
+                                 :system-headers (adjoin system-header
+                                                         (system-headers genome)))))))
           (or header-hash
               (populate-header-entry project path-string)))))))
 
-(defun trim-path-string (path-ast &aux (text (text path-ast)))
-  "Return the text of PATH-AST with the quotes around it removed."
-  (subseq text 1 (1- (length text))))
-
-(defmethod from-file :around ((project c/cpp-project) dir)
+(defmethod from-file :around ((project c/cpp-project) (dir t))
   (labels ((maybe-populate-header (ast)
              (match ast
                ((c/cpp-preproc-include
                  (c/cpp-path (and path (c/cpp-system-lib-string))))
                 (get-standard-path-header project (trim-path-string path)
-                                   :header-dirs
-                                   (file-header-dirs project ast))))))
+                                          :header-dirs
+                                          (file-header-dirs project ast))))))
     (let ((result (call-next-method)))
       (setf #1=(genome result) (make-instance 'c/cpp-root
                                               :project-directory #1#))
@@ -236,7 +277,7 @@ For development."
       result)))
 
 
-;;; Program headers.
+;;; Program Headers
 
 (defmethod get-program-header ((project c/cpp-project)
                                file
@@ -343,7 +384,7 @@ the including file."
                (global-search))))))
 
 
-;;; Symbol Table
+;;; Includes Symbol Table
 
 (define-condition include-conflict-error (error)
   ((ast :initarg :ast :type ast :reader include-conflict-error.ast)

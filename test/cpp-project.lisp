@@ -287,3 +287,49 @@ the correct binding."
               (for db in db-templates)
               (for file in source-files)
               (do-test i db file))))))
+
+(defun call/temp-compdb (db fn)
+  (let ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil)))
+    (labels ((copy-file/subst (from to)
+               "Copy FROM to TO, replacing ${SEL} with the SEL path."
+               (let ((prefix (drop-suffix "/" (namestring sel-dir))))
+                 (write-string-into-file
+                  (string-replace-all
+                   "${SEL}"
+                   (read-file-into-string from)
+                   prefix)
+                  to
+                  :if-exists :error))))
+      (with-temporary-file (:pathname p)
+        (copy-file/subst db p)
+        (is (file-exists-p p))
+        (funcall fn p)))))
+
+(defmacro with-temp-compdb ((db temp &key) &body body)
+  (with-thunk (body temp)
+    `(call/temp-compdb ,db ,body)))
+
+(deftest test-cpp-project-preproc-resolution/compdb ()
+  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+         (project-dir (path-join sel-dir #p"test/etc/cpp-preproc-project/"))
+         (db-template (path-join project-dir #p"compile_commands_template.json")))
+    (with-temp-compdb (db-template temp)
+      (let* ((project
+              (is (from-file
+                   (make 'cpp-project :compilation-database-path temp)
+                   project-dir)))
+             (software
+              (is (assocdr "main.cc" (evolve-files project) :test #'equal)))
+             (const-1
+              (is (find-if (op (source-text= "MYCONST_1" _))
+                           (genome software))))
+             (const-2
+              (is (find-if (op (source-text= "MYCONST_2" _))
+                           (genome software))))
+             (plus
+              (is (find-if (op (source-text= "MYPLUS" _))
+                           (genome software)))))
+        (with-attr-table project
+          (list (get-declaration-ast :macro const-1)
+                (get-declaration-ast :macro const-2)
+                (get-declaration-ast :macro plus)))))))

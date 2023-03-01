@@ -1,0 +1,14 @@
+[
+  {
+  "directory": "${SEL}/test/etc/cpp-preproc-project",
+  "file": "${SEL}/test/etc/cpp-preproc-project/main.cc",
+  "arguments": [
+    "cc",
+    "-DMYCONST_1=1",
+    "-DMYPLUS(X,Y)=(x+y)",
+    "-o",
+    "main",
+    "main.cc"
+  ]
+}
+]

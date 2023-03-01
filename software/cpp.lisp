@@ -1567,6 +1567,14 @@ for the outermost qualified namespace."
     (namespace (cpp-arguments ast) in))
   in)
 
+(defmethod namespace ((ast cpp-preproc-def) &optional in)
+  (declare (ignore in))
+  (call-next-method ast ""))
+
+(defmethod namespace ((ast cpp-preproc-function-def) &optional in)
+  (declare (ignore in))
+  (call-next-method ast ""))
+
 
 ;;; Symbol Table
 
