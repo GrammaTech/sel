@@ -112,6 +112,13 @@ the standard path and add it to PROJECT."))
                (of-type '(or c/cpp-preproc-def c/cpp-preproc-function-def))
                (from-string lang source)))))))
 
+(defun clear-implicit-headers (genome)
+  "Clear cached implicit headers in GENOME.
+For development."
+  (setf (implicit-headers genome) nil)
+  (clrhash (implicit-headers-table genome))
+  (values))
+
 (defgeneric get-implicit-header (project file)
   (:method ((project c/cpp-project) (file file-ast))
     (get-implicit-header project (full-pathname file)))
