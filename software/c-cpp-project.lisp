@@ -100,17 +100,24 @@ the standard path and add it to PROJECT."))
   (:documentation "Synthesize an implicit header for COMMAND.")
   (:method ((co command-object) lang)
     (when-let (defs (command-preproc-defs co))
-      (let ((source
-             (mapconcat (lambda (cons)
-                          (preproc-macro-source (car cons) (cdr cons)))
-                        defs
-                        "")))
+      (let* ((source
+              (mapconcat (lambda (cons)
+                           (preproc-macro-source (car cons) (cdr cons)))
+                         defs
+                         ""))
+             (children
+              (collect-if
+               (of-type '(or c/cpp-preproc-def c/cpp-preproc-function-def))
+               (from-string lang source)))
+             (root-class
+              (ecase lang
+                (c 'c-translation-unit)
+                (cpp 'cpp-translation-unit))))
         (make 'implicit-header
               :source-file (command-file co)
               :children
-              (collect-if
-               (of-type '(or c/cpp-preproc-def c/cpp-preproc-function-def))
-               (from-string lang source)))))))
+              (list
+               (make root-class :children children)))))))
 
 (defun clear-implicit-headers (genome)
   "Clear cached implicit headers in GENOME.
