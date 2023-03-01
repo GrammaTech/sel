@@ -19,7 +19,7 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defparameter *cpp-extensions*
-  '("h" "cpp" "cp" "cc")
+  '("h" "cpp" "cp" "cc" "cxx")
   "List of extensions we will consider for evolving.")
 
 (define-software cpp-project (c/cpp-project)
