@@ -316,6 +316,14 @@ pointer declarations which are nested on themselves."
     (values (cons type type-decls)
             (cons :type type-namespaces))))
 
+(defmethod outer-declarations ((ast c/cpp-preproc-def))
+  (values (list (c/cpp-name ast))
+          '(:macro)))
+
+(defmethod outer-declarations ((ast c/cpp-preproc-function-def))
+  (values (list (c/cpp-name ast))
+          '(:macro)))
+
 (defmethod enclosing-definition ((sw c/cpp) (ast t))
   (find-enclosing '(or definition-ast c/cpp-primitive-type)
                   sw ast))
