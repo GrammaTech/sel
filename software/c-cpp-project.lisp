@@ -131,6 +131,8 @@ For development."
     (get-implicit-header project (full-pathname file)))
   (:method ((project c/cpp-project) (file software))
     (get-implicit-header project (original-path file)))
+  (:method ((project c/cpp-project) (file string))
+    (get-implicit-header project (pathname file)))
   (:method ((project c/cpp-project) (file pathname))
     (assert (relative-pathname-p file))
     (when-let* ((cos (command-object project file))
