@@ -288,7 +288,8 @@ the correct binding."
               (for file in source-files)
               (do-test i db file))))))
 
-(defun call/temp-compdb (db fn)
+(defun call/temp-compdb (db-template fn)
+  "Call FN with a temporary database realized from DB-TEMPLATE."
   (let ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil)))
     (labels ((copy-file/subst (from to)
                "Copy FROM to TO, replacing ${SEL} with the SEL path."
@@ -301,13 +302,14 @@ the correct binding."
                   to
                   :if-exists :error))))
       (with-temporary-file (:pathname p)
-        (copy-file/subst db p)
+        (copy-file/subst db-template p)
         (is (file-exists-p p))
         (funcall fn p)))))
 
-(defmacro with-temp-compdb ((db temp &key) &body body)
+(defmacro with-temp-compdb ((db-template temp &key) &body body)
+  "Run BODY with a temporary database realized from DB-TEMPLATE."
   (with-thunk (body temp)
-    `(call/temp-compdb ,db ,body)))
+    `(call/temp-compdb ,db-template ,body)))
 
 (deftest test-cpp-project-preproc-resolution/compdb ()
   (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))

@@ -84,11 +84,13 @@ by the symbol-table attribute."))
   (subseq text 1 (1- (length text))))
 
 (defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
+  "Get a header search path for FILE from PROJECT's compilation database."
   (when (and project file)
     (when-let ((co (command-object project file)))
       (command-header-dirs (only-elt co)))))
 
 (defun file-preproc-defs (project ast &key (file (find-enclosing 'file-ast project ast)))
+  "Get preprocessor definitions for FILE from PROJECT's compilation database."
   (when (and project file)
     (when-let ((co (command-object project file)))
       (command-preproc-defs co))))
@@ -100,11 +102,11 @@ by the symbol-table attribute."))
   ((source-file
     :initarg :source-file
     :reader source-file))
-  (:documentation "A fake implicit header containing definitions for preprocessor macros
+  (:documentation "A fake header containing definitions for preprocessor macros
 supplied at the command line."))
 
 (defun clear-implicit-headers (project)
-  "Clear cached implicit headers in GENOME.
+  "Clear cached implicit headers in PROJECT's genome.
 For development."
   (setf (genome project)
         (copy (genome project)
