@@ -121,11 +121,11 @@ For development."
 (defgeneric command-implicit-header (command lang)
   (:documentation "Synthesize an implicit header for COMMAND.")
   (:method ((co command-object) lang)
-    (when-let (defs (command-preproc-defs co))
+    (when-let (alist (command-preproc-defs co))
       (let* ((source
               (mapconcat (lambda (cons)
                            (preproc-macro-source (car cons) (cdr cons)))
-                         defs
+                         (reverse alist)
                          ""))
              (children
               (collect-if
