@@ -335,3 +335,26 @@ the correct binding."
           (list (get-declaration-ast :macro const-1)
                 (get-declaration-ast :macro const-2)
                 (get-declaration-ast :macro plus)))))))
+
+(deftest test-cpp-project-recursive-include-resolution/compdb ()
+  "Test that nested includes inherit the header search path of the compilation unit."
+  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+         (project-dir (path-join sel-dir #p"test/etc/cpp-recursive-include-project/"))
+         (db-template (path-join project-dir #p"compile_commands_template.json")))
+    (with-temp-compdb (db-template temp)
+      (let* ((project
+              (is (from-file
+                   (make 'cpp-project :compilation-database-path temp)
+                   project-dir)))
+             (main
+              (is (assocdr "main.cc" (evolve-files project) :test #'equal)))
+             (const-2
+              (is (find-if (op (source-text= "MYCONST_2" _))
+                           (genome main)))))
+        (with-attr-table project
+          (let* ((const-2-decl
+                  (is (get-declaration-ast :variable const-2)))
+                 (const-1
+                  (find-if (op (source-text= "MYCONST_1" _))
+                           const-2-decl)))
+            (is (get-declaration-ast :variable const-1))))))))

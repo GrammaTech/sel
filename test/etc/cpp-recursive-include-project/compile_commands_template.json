@@ -1,0 +1,14 @@
+[
+  {
+  "directory": "${SEL}/test/etc/cpp-recursive-include-project",
+  "file": "${SEL}/test/etc/cpp-recursive-include-project/main.cc",
+  "arguments": [
+    "cc",
+    "-Iincludes1",
+    "-Iincludes2",
+    "-o",
+    "main",
+    "main.cc"
+  ]
+}
+]

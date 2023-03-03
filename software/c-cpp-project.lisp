@@ -33,6 +33,13 @@
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
 
+(defvar *header-dirs* nil
+  "The header search path of the current compilation unit.")
+
+(defparameter *header-extensions*
+  '("h" "hpp" "hh")
+  "Header file extensions.")
+
 (defclass c/cpp-project
     (directory-project compilation-database-project parseable-project compilable
      include-paths-mixin normal-scope)
@@ -117,6 +124,30 @@ For development."
 
 #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
 (progn
+
+  
+;;; Symbol Table
+
+  (defmethod symbol-table ((project c/cpp-project) &optional in)
+    "Force computing symbol tables in compilation units.
+We delay header files to the end. At this point, their symbol tables
+should already have been computed as part of their compilation units."
+    (mvlet* ((files
+              (collect-if (of-type 'file-ast)
+                          (genome project)))
+             (headers non-headers
+              (partition (lambda (file)
+                           (let ((path (full-pathname file)))
+                             (some (lambda (ext)
+                                     (equal ext (pathname-type path)))
+                                   *header-extensions*)))
+                         files)))
+      (dolist (file non-headers)
+        (symbol-table file in))
+      (dolist (file headers)
+        (symbol-table file in))
+      ;; Fill in symbol tables for directories.
+      (call-next-method)))
 
   
 ;;; Implicit Headers
@@ -431,7 +462,6 @@ file to be printed for debugging purposes.")
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
                                          (global *global-search-for-include-files*)
-                                         header-dirs
                                        &aux #+debug-fstfi2
                                             (iftn *include-files-to-note*))
   "Find the symbol table in PROJECT for the include file
@@ -466,7 +496,7 @@ include files in all directories of the project."
              (if-let ((system-header
                        (get-standard-path-header
                         project (trim-path-string path-ast)
-                        :header-dirs header-dirs)))
+                        :header-dirs *header-dirs*)))
                (progn
                  (merge-cached-symbol-table system-header)
                  (symbol-table system-header in))
@@ -512,7 +542,10 @@ include files in all directories of the project."
                    header-dirs)))
     (let* ((file (find-enclosing 'file-ast project include-ast))
            (header-dirs? (file-header-dirs project include-ast :file file))
-           (header-dirs (or header-dirs? *default-header-dirs*)))
+           (header-dirs (or header-dirs?
+                            *header-dirs*
+                            *default-header-dirs*))
+           (*header-dirs* header-dirs))
       (ematch include-ast
         ((c/cpp-preproc-include
           (c/cpp-path (and path-ast (c/cpp-string-literal))))
