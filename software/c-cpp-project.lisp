@@ -77,7 +77,8 @@ by the symbol-table attribute."))
              :initform nil)
    (child-slots :initform '((children . 0))
                 :allocation :class))
-  (:documentation "Superclass of synthetic headers."))
+  (:documentation "Superclass of synthetic headers, such as substitute system
+headers and implicit headers for command-line preprocessor macros."))
 
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
   "Return the text of PATH-AST with the quotes around it removed."
