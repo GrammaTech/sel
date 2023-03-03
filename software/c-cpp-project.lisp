@@ -326,7 +326,7 @@ as a subroutine and called for every directory in the search path.
 
 If we don't have a search path, this function does the entire search;
 if GLOBAL is true, it searches through all files in the project, and
-signals a restartable error if their are collisions."
+signals a restartable error if there are collisions."
   (let* ((project-dir (project-dir project))
          (file-path (make-pathname :name nil :type nil
                                    :directory
