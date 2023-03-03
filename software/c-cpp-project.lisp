@@ -180,12 +180,10 @@ For development."
                    ((compilation-database root))
                    (file (find-enclosing 'file-ast root ast))
                    (implicit-header (get-implicit-header root file)))
-          (let* ((implicit-header-symbol-table
-                  (implicit-header-symbol-table implicit-header))
-                 (augmented-table
+          (let ((augmented-table
                   (symbol-table-union root
                                       in
-                                      implicit-header-symbol-table)))
+                                      (implicit-header-symbol-table implicit-header))))
             (call-next-method ast augmented-table)))
         (call-next-method))))
 
