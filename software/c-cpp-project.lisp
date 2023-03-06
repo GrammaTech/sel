@@ -550,17 +550,16 @@ include files in all directories of the project."
                              (process-header path-ast :base dir :global nil))))
                    header-dirs)))
     (let* ((file (find-enclosing 'file-ast project include-ast))
-           (header-dirs? (file-header-dirs project include-ast :file file))
-           (header-dirs (or header-dirs?
-                            *header-dirs*
-                            *default-header-dirs*))
-           (*header-dirs* header-dirs))
+           (*header-dirs*
+            (or (file-header-dirs project include-ast :file file)
+                *header-dirs*
+                *default-header-dirs*)))
       (handler-case
           (ematch include-ast
             ((c/cpp-preproc-include
               (c/cpp-path (and path-ast (c/cpp-string-literal))))
              (or (header-symbol-table file
-                                      header-dirs
+                                      *header-dirs*
                                       path-ast)
                  ;; Fall back to global search.
                  (and global
@@ -568,7 +567,7 @@ include files in all directories of the project."
             ((c/cpp-preproc-include
               (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
              (header-symbol-table file
-                                  (member :always header-dirs)
+                                  (member :always *header-dirs*)
                                   path-ast)))
         (circular-inclusion ()
           nil)))))
