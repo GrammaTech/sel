@@ -358,3 +358,15 @@ the correct binding."
                   (find-if (op (source-text= "MYCONST_1" _))
                            const-2-decl)))
             (is (get-declaration-ast :variable const-1))))))))
+
+(deftest test-cpp-project-circular-inclusion ()
+  "Test that circular inclusion works."
+  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+         (project-dir (path-join sel-dir #p"test/etc/cpp-circular-include-project/"))
+         (project (is (from-file (make 'cpp-project) project-dir)))
+         (main (is (assocdr "main.cc" (evolve-files project) :test #'equal)))
+         (const-1
+          (is (find-if (op (source-text= "MYCONST_1" _))
+                       (genome main)))))
+    (with-attr-table project
+      (is (get-declaration-ast :variable const-1)))))

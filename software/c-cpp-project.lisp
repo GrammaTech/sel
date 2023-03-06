@@ -447,6 +447,15 @@ the including file."
   "Stack of include file names currently being processed during type
 inference.  Used to prevent circular attr propagation.")
 
+(define-condition circular-inclusion (error)
+  ((header :initarg :header :reader header)
+   (stack :initarg :stack :reader include-file-stack))
+  (:default-initargs
+   :stack *include-file-stack*)
+  (:report (lambda (c s)
+             (with-slots (header) c
+               (format s "Circular inclusion of ~a" header)))))
+
 (defparameter *global-search-for-include-files* nil
   "When true, search for include files in the entire directory tree
 of a project.  Used to set default value of the :GLOBAL keyword
@@ -504,11 +513,11 @@ include files in all directories of the project."
            (safe-symbol-table (software)
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond
-               ((or (null software)
-                    (member software *include-file-stack* :test #'equal))
-                (when software
-                  (format t "Note: skipping nested include of ~a~%" software))
-                nil)
+               ((null software) nil)
+               ((member software *include-file-stack*)
+                ;; Just returning nil might still result in a global
+                ;; search. We found the header, we just can't use it.
+                (error 'circular-inclusion :header software))
                (t
                 (let* ((*include-file-stack* (cons software *include-file-stack*))
                        (st (symbol-table software in)))
@@ -546,27 +555,30 @@ include files in all directories of the project."
                             *header-dirs*
                             *default-header-dirs*))
            (*header-dirs* header-dirs))
-      (ematch include-ast
-        ((c/cpp-preproc-include
-          (c/cpp-path (and path-ast (c/cpp-string-literal))))
-         (or (header-symbol-table file
-                                  header-dirs
-                                  path-ast)
-             ;; Fall back to global search.
-             (and global
-                  (process-header path-ast :global t))))
-        ((c/cpp-preproc-include
-          (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
-         (header-symbol-table file
-                              (member :always header-dirs)
-                              path-ast))))))
+      (handler-case
+          (ematch include-ast
+            ((c/cpp-preproc-include
+              (c/cpp-path (and path-ast (c/cpp-string-literal))))
+             (or (header-symbol-table file
+                                      header-dirs
+                                      path-ast)
+                 ;; Fall back to global search.
+                 (and global
+                      (process-header path-ast :global t))))
+            ((c/cpp-preproc-include
+              (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
+             (header-symbol-table file
+                                  (member :always header-dirs)
+                                  path-ast)))
+        (circular-inclusion ()
+          nil)))))
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (let ((root (attrs-root *attrs*)))
     (if (typep root 'directory-project)
-        (symbol-table-union root
-                            in
-                            (find-symbol-table-from-include root node :in in))
+        (if-let (st (find-symbol-table-from-include root node :in in))
+          (symbol-table-union root in st)
+          (call-next-method))
         (call-next-method))))
 
 (defmethod symbol-table ((node c/cpp-system-header) &optional in)
