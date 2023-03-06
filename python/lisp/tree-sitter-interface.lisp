@@ -22,10 +22,37 @@
         :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library :oid)
   #-windows (:import-from :osicat)
-  (:import-from :deploy :define-library)
+  (:import-from :deploy
+                :define-library
+                :define-hook
+                :*foreign-libraries-to-reload*
+                :status)
+  (:import-from :cffi :foreign-library-name)
   (:export :run-tree-sitter-interface))
 (in-package :software-evolution-library/python/lisp/tree-sitter-interface)
 (in-readtable :curry-compose-reader-macros)
+
+;;;; Foreign library load order
+(define-hook (:boot foreign-libraries-load-order (1+ most-positive-fixnum)) ()
+  ;; NOTE: the tree-sitter wrapper lib needs to be loaded after the tree-sitter
+  ;;       lib. This hook ensures such.
+  ;; NOTE: #'deploy::warmly-boot appears to load the foreign-libraries in.
+  ;;       (1+ most-positive-fixnum) should give this hook a higher priority than
+  ;;       what the corresponding hook for loading the libraries in has.
+  (status 0 "Reordering foreign library load list.")
+  (labels ((reorder (current &optional previous)
+             (let ((current-lib (car current)))
+               (cond
+                 ((not current)
+                  (deploy:status 1 "Could not find tree-sitter foreign library."))
+                 ((equal (symbol-name (foreign-library-name current-lib))
+                         "TREE-SITTER")
+                  (setf *foreign-libraries-to-reload*
+                        (cons current-lib
+                              (append (reverse previous) (cdr current)))))
+                 (t
+                  (reorder (cdr current) (cons current-lib previous)))))))
+    (reorder *foreign-libraries-to-reload*)))
 
 ;;;; Command line interface:
 (eval-when (:compile-toplevel :load-toplevel :execute)
