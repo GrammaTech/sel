@@ -1,6 +1,6 @@
 __packagename__ = "asts"
 __description__ = "A library for programmatic software modification"
-__version__ = "0.9.5"
+__version__ = "0.9.6"
 __pythonbaseversion__ = "3.6.0"
 __classifiers__ = [
     "Development Status :: 3 - Alpha",
