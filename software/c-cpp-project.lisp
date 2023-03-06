@@ -138,9 +138,9 @@ should already have been computed as part of their compilation units."
              (headers non-headers
               (partition (lambda (file)
                            (let ((path (full-pathname file)))
-                             (some (lambda (ext)
-                                     (equal ext (pathname-type path)))
-                                   *header-extensions*)))
+                             (member (pathname-type path)
+                                     *header-extensions*
+                                     :test #'equal)))
                          files)))
       (dolist (file non-headers)
         (symbol-table file in))
