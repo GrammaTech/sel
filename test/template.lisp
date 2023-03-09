@@ -309,5 +309,19 @@ surrounding container."
 (deftest test-template-no-inner-fragment ()
   (is (typep (rust* "type Output = Self") 'rust-type-item)))
 
+(deftest test-template-match-ignores-whitespace ()
+  (is (source-text= "x"
+                    (match (cpp* "x   = 1")
+                      ((cpp* "$NAME=1" :name name)
+                       name))))
+  (dolist (variant '("int* x = &y;"
+                     "int *x = &y;"
+                     "int * x = &y;"))
+    (is (source-text=
+         "x"
+         (match (convert 'cpp-ast variant :deepest t)
+           ((cpp* "int *$VAR = &y" :var var)
+            var))))))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)

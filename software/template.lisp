@@ -453,7 +453,11 @@ languages allow you to use a pattern with the same name as shorthand:
     (match x ((python \"$ID = 1\" :id \"x\") ...))
     ≡ (match x ((ast-template \"$ID = 1\" 'python-ast :id \"x\") ...))"
   (check-ast-template template class args)
-  (mvlet* ((class
+  (mvlet* ((*slots-excluded*
+            ;; Ignore before and after text when matching.
+            (append '(before-text after-text)
+                    *slots-excluded*))
+           (class
             (match class
               ((list 'quote class) class)
               (otherwise class)))
