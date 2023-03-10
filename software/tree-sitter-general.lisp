@@ -1178,8 +1178,9 @@ more than one thing (destructuring).")
                      (assignees assigner))
             :initial-value (call-next-method)))
   (:method ((ast ast))
-    (reduce #'map-union
-            (mapcar #'assignees-table (children ast))
+    (reduce (op (map-union _ _ #'append))
+            (children ast)
+            :key #'assignees-table
             :initial-value (empty-map))))
 
 (defmethod attr-missing ((attr (eql 'assignees-table)) node)
@@ -1187,11 +1188,27 @@ more than one thing (destructuring).")
 
 (def-attr-fun assignments ()
   "Return a list of ASTs that assign to TARGET.
-TARGET should be the actual declaration ID (from `get-declaration-id'.)"
+TARGET should be the actual declaration ID (from `get-declaration-id'.)
+
+Note that in languages with pointers, the assignments include both
+assignments through the pointer and assignment of the pointer. To
+get just the pointer assignments, use `pointer-assignments'."
   (:method ((target identifier-ast))
     (values
      (lookup (assignees-table (attrs-root*))
              (get-declaration-id :variable target))))
+  (:method ((target t))
+    nil))
+
+(def-attr-fun pointer-assignments ()
+  "Return a list of ASTs that assign a new address to TARGET, a pointer.
+Assignments include pointer arithmetic.
+
+TARGET should be the actual declaration ID (from `get-declaration-id'.)
+
+Returns a subset of `assignments'.
+
+For languages without pointers, this will always return nil."
   (:method ((target t))
     nil))
 

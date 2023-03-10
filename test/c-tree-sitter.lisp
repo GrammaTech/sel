@@ -16,6 +16,8 @@
    :software-evolution-library/components/formatting
    :functional-trees/attrs)
   (:shadowing-import-from :cl-tree-sitter :parse-string)
+  (:local-nicknames
+   (:ts :software-evolution-library/software/tree-sitter))
   (:import-from :software-evolution-library/software/tree-sitter
                 :outer-defs
                 :blot)
@@ -1487,6 +1489,30 @@ struct foo_s {
 
 
 ;;; Symbol Table
+(deftest test-pointer-assignment ()
+  (let ((c (from-string 'c (fmt "~
+int n = 1;
+int* p = malloc(sizeof(int));
+*p = 42;
+p = &n;"))))
+    (with-attr-table c
+      (let ((ptr (is (find-if (op (source-text= "p" _)) c))))
+        (is (length= 2 (assignments ptr)))
+        (is (length= 1 (pointer-assignments ptr)))))))
+
+(deftest test-pointer-arithmetic ()
+  (let ((c (from-string 'c (fmt "~
+int a[] = {1, 2, 3};
+int *p;
+p = a;
+(*p)++;
+p++;
+*p++;"))))
+    (with-attr-table c
+      (let ((ptr (is (find-if (op (source-text= "p" _)) c))))
+        (is (length= 4 (assignments ptr)))
+        (is (length= 2 (pointer-assignments ptr)))))))
+
 (deftest c-symbol-table-1 ()
   "Symbol table only shows what has occurred before each AST at that occurs in
 the root AST."

@@ -542,6 +542,7 @@
            :collect-var-uses
            :collect-arg-uses
            :assignments
+           :pointer-assignments
            :get-declaration-ast
            :get-declaration-asts
            :relevant-declaration-type

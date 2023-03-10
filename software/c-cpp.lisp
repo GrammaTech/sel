@@ -877,6 +877,27 @@ determined by looking at PARENT.")
      c/cpp-assignment-expression)
   t)
 
+(defmethod pointer-assignments ((ast c/cpp-identifier))
+  (and-let* ((id (get-declaration-id :variable ast))
+             ;; NB Arrays are pointers but array names are not
+             ;; variables and cannot be assigned.
+             (expr
+              (find-enclosing 'c/cpp-pointer-declarator
+                              (attrs-root*)
+                              id))
+             ((eql (c/cpp-declarator expr) id)))
+    (filter (lambda (assignment)
+              (typecase assignment
+                (c/cpp-update-expression
+                 (typep (c/cpp-argument assignment)
+                        'c/cpp-identifier))
+                (assignment-ast
+                 (and-let*
+                     ((rhs (rhs assignment))
+                      ((typep rhs 'c/cpp-pointer-expression))
+                      ((typep (c/cpp-operator rhs) 'c/cpp-&)))))))
+            (assignments id))))
+
 (defgeneric initializer-aliasee (sw lhs rhs)
   (:documentation "Resolve the aliasee of an initializer.
 Should return `:failure' in the base case.")
@@ -900,7 +921,7 @@ Should return `:failure' in the base case.")
             aliasee
             (call-next-method))))))
 
-(defmethod aliasee ((ast cpp-ast))
+(defmethod aliasee ((ast c/cpp-ast))
   (let ((sw (find-enclosing 'root-ast (attrs-root*) ast)))
     (match ast
       ((and id (type identifier-ast))
