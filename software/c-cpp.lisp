@@ -892,10 +892,7 @@ determined by looking at PARENT.")
                  (typep (c/cpp-argument assignment)
                         'c/cpp-identifier))
                 (assignment-ast
-                 (and-let*
-                     ((rhs (rhs assignment))
-                      ((typep rhs 'c/cpp-pointer-expression))
-                      ((typep (c/cpp-operator rhs) 'c/cpp-&)))))))
+                 (typep (lhs assignment) 'c/cpp-identifier))))
             (assignments id))))
 
 (defgeneric initializer-aliasee (sw lhs rhs)

@@ -1511,7 +1511,7 @@ p++;
     (with-attr-table c
       (let ((ptr (is (find-if (op (source-text= "p" _)) c))))
         (is (length= 4 (assignments ptr)))
-        (is (length= 2 (pointer-assignments ptr)))))))
+        (is (length= 3 (pointer-assignments ptr)))))))
 
 (deftest c-symbol-table-1 ()
   "Symbol table only shows what has occurred before each AST at that occurs in
