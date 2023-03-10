@@ -28,7 +28,10 @@
            :include-conflict-error.candidates
            :file-preproc-defs
            :get-implicit-header
-           :command-implicit-header))
+           :command-implicit-header
+           :project-include-tree
+           :who-includes?
+           :file-include-tree))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -39,6 +42,26 @@
 (defparameter *header-extensions*
   '("h" "hpp" "hh")
   "Header file extensions.")
+
+(defgeneric header-path (header)
+  (:method ((file string))
+    (pathname file))
+  (:method ((path pathname))
+    path)
+  (:method ((path symbol))
+    "\"Path\" for a standard header."
+    (if (keywordp path)
+        (pathname (string path))
+        (call-next-method)))
+  (:method ((file file-ast))
+    (full-pathname file))
+  (:method ((sw software))
+    (original-path sw)))
+
+(defun header-file? (file)
+  (member (pathname-type (header-path file))
+          *header-extensions*
+          :test #'equal))
 
 (defclass c/cpp-project
     (directory-project compilation-database-project parseable-project compilable
@@ -59,6 +82,14 @@
    (implicit-headers-table
     :reader implicit-headers-table
     :initarg :implicit-headers-table
+    :type hash-table)
+   (downstream-headers
+    :reader downstream-headers
+    :initform (dict)
+    :type hash-table)
+   (upstream-headers
+    :reader upstream-headers
+    :initform (dict)
     :type hash-table)
    (project-directory
     :accessor project-directory
@@ -122,10 +153,67 @@ For development."
               :implicit-headers-table (dict)))
   (values))
 
+(deftype include-tree ()
+  '(soft-list-of include-tree-entry))
+
+(deftype include-tree-entry ()
+  '(cons (or string keyword) list))
+
+(defun project-include-tree (project)
+  "Dump the header graph of PROJECT as a cons tree.
+The top level is a list of entries. Entries have the form (FILE .
+INCLUDEES), where each of INCLUDEES is itself an entry.
+
+In each entry, FILE is either a string (for a file) or a keyword (for
+a standard include)."
+  (assure include-tree
+    (let* ((genome (genome project))
+           (downstream-headers (downstream-headers genome)))
+      (symbol-table project)
+      (labels ((rec (path)
+                 (cons path
+                       (sort (mapcar #'rec
+                                     (href downstream-headers path))
+                             #'string<
+                             :key #'car
+                             ))))
+        (sort
+         (mapcar #'rec
+                 (remove-if #'header-file?
+                            (mapcar #'car
+                                    (evolve-files project))))
+         #'string<
+         :key #'car)))))
+
+(defgeneric file-include-tree (project file)
+  (:method ((project t) (file software))
+    (file-include-tree project
+                       (pathname-relativize (project-dir project)
+                                            (original-path file))))
+  (:method ((project t) (file file-ast))
+    (file-include-tree project
+                       (full-pathname file)))
+  (:method ((project t) (file string))
+    (aget file
+          (project-include-tree project)
+          :test #'equal)))
+
+(defun who-includes? (project header)
+  (let* ((genome (genome project))
+         (upstream-headers (upstream-headers genome))
+         (path (header-path header))
+         (path (pathname-relativize (project-dir project) path)))
+    (symbol-table project)
+    (labels ((who-includes? (path)
+               (let ((includes (href upstream-headers path)))
+                 (cons path
+                       (mappend #'who-includes? includes)))))
+      (cdr (who-includes? path)))))
+
 #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
 (progn
 
-  
+
 ;;; Symbol Table
 
   (defmethod symbol-table ((project c/cpp-project) &optional in)
@@ -149,7 +237,7 @@ should already have been computed as part of their compilation units."
       ;; Fill in symbol tables for directories.
       (call-next-method)))
 
-  
+
 ;;; Implicit Headers
 
 (defgeneric command-implicit-header (command lang)
@@ -502,14 +590,33 @@ include files in all directories of the project."
                          alist)))))
            (process-std-header (project path-ast)
              "Retrieve a standard header from the cache."
-             (if-let ((system-header
-                       (get-standard-path-header
-                        project (trim-path-string path-ast)
-                        :header-dirs *header-dirs*)))
-               (progn
-                 (merge-cached-symbol-table system-header)
-                 (symbol-table system-header in))
-               nil))
+             (let ((path-string (trim-path-string path-ast)))
+               (update-header-graph nil :path (make-keyword path-string))
+               (if-let ((system-header
+                         (get-standard-path-header
+                          project path-string
+                          :header-dirs *header-dirs*)))
+                 (progn
+                   (merge-cached-symbol-table system-header)
+                   (symbol-table system-header in))
+                 nil)))
+           (update-header-graph (software
+                                 &key (path (pathname-relativize
+                                             (project-dir project)
+                                             (original-path software))))
+             (let ((project-dir (project-dir project)))
+               (dolist (header *include-file-stack*)
+                 (let ((header-path
+                        (pathname-relativize project-dir
+                                             (original-path header))))
+                   (pushnew path
+                            (href (downstream-headers (genome project))
+                                  header-path)
+                            :test #'equal)
+                   (pushnew header-path
+                            (href (upstream-headers (genome project))
+                                  path)
+                            :test #'equal)))))
            (safe-symbol-table (software)
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond
@@ -519,6 +626,7 @@ include files in all directories of the project."
                 ;; search. We found the header, we just can't use it.
                 (error 'circular-inclusion :header software))
                (t
+                (update-header-graph software)
                 (let* ((*include-file-stack* (cons software *include-file-stack*))
                        (st (symbol-table software in)))
                   #+debug-fstfi2
@@ -550,6 +658,14 @@ include files in all directories of the project."
                              (process-header path-ast :base dir :global nil))))
                    header-dirs)))
     (let* ((file (find-enclosing 'file-ast project include-ast))
+           (*include-file-stack*
+            ;; Initialize the stack with a top-level file, if needed.
+            (or *include-file-stack*
+                (and-let* ((file)
+                           (sw (aget (namestring (full-pathname file))
+                                     (evolve-files project)
+                                     :test #'equal)))
+                  (list sw))))
            (*header-dirs*
             (or (file-header-dirs project include-ast :file file)
                 *header-dirs*
@@ -584,5 +700,4 @@ include files in all directories of the project."
   (if-let ((root-ast (car (children node))))
     (symbol-table root-ast in)
     (empty-map)))
-
 ) ; #+(or :TREE-SITTER-C :TREE-SITTER-CPP)

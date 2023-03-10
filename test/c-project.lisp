@@ -232,7 +232,14 @@
       (is (equal
            (let ((include-ast (second (convert 'list f1c))))
              (find-include-files *project* f1c include-ast))
-           (list f1h))))))
+           (list f1h)))
+      (with-attr-table *project*
+        (is (equal (project-include-tree *project*)
+                   '(("f1.c"
+                      ("f1.h")
+                      ("lib/f2.h"))
+                     ("lib/f1.c"
+                      ("lib/f1.h")))))))))
 
 
 ;;; System Headers

@@ -182,7 +182,8 @@ imported into the symbol table of the file including it."
                             system-header)))))
     (with-fixture cpp-symbol-table-project
       (with-attr-table *project*
-        (test-main.cc)))))
+        (test-main.cc)
+        *project*))))
 
 (deftest cpp-project-symbol-table-2 ()
   "Locally included header files have their symbols imported into the
@@ -201,6 +202,20 @@ symbol table of the file including it."
                (return-symbol-table (symbol-table return-ast)))
           (is (lookup-type target-symbol-table "N::my_class"))
           (is (lookup-type return-symbol-table "N::my_class")))))))
+
+(deftest cpp-project-include-tree-2 ()
+  "Locally included header files have their symbols imported into the
+symbol table of the file including it."
+  (with-fixture cpp-relative-include-symbol-table-project
+    (with-attr-table *project*
+      (is (equal (project-include-tree *project*)
+                 '(("my_class.cc" (:|iostream|) ("my_class.h"))
+                   ("my_program.cc" ("my_class.h")))))
+      (is (set-equal '("my_class.cc" "my_program.cc")
+                     (who-includes? *project* "my_class.h")
+                     :test #'equal))
+      (is (equal '(("my_class.h"))
+                 (file-include-tree *project* "my_program.cc"))))))
 
 (deftest cpp-project-symbol-table-3 ()
   "Check that we handle the case where a header is added that was not
@@ -282,7 +297,8 @@ the correct binding."
                                (is (find-if (of-type 'variable-initialization-ast)
                                             decl))))
                          (is (source-text= (rhs assignment)
-                                           (princ-to-string n)))))))))
+                                           (princ-to-string n)))
+                         project))))))
         (iter (for i from 1)
               (for db in db-templates)
               (for file in source-files)

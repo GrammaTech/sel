@@ -3971,6 +3971,9 @@ by MULTI-DECLARATION-KEYS."
          in))))
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
+  (symbol-table (attrs-root *attrs*) (empty-map)))
+
+(defmethod attr-missing ((fn-name (eql 'symbol-table)) (node tree-sitter-ast))
   (labels ((extra-ast-types (language)
              (mapcar (op (format-symbol 'sel/sw/ts "~a-~a" language _))
                      (extra-asts language))))
