@@ -23,7 +23,8 @@
                 :canonical-type=
                 :strip-template-arguments)
   (:import-from :software-evolution-library/software/tree-sitter
-                :explicit-namespace-qualifiers)
+                :explicit-namespace-qualifiers
+                :qualified-name-variants)
   (:local-nicknames (:project :software-evolution-library/software/project)
                     (:dir :software-evolution-library/software/directory))
   (:export :test-cpp-tree-sitter))
@@ -1765,6 +1766,32 @@ different orders."
                       ,(fset:map
                         ("x" (collect-if (op (equal (source-text _) "x"))
                                          root)))))))))))
+
+(deftest test-qualified-name-variants ()
+  (is (equal '("x") (qualified-name-variants "x")))
+  (is (equal '("x::y" "y") (qualified-name-variants "x::y")))
+  (is (equal '("x::y::z" "x::z" "z") (qualified-name-variants "x::y::z"))))
+
+(deftest cpp-test-nested-namespace-lookup ()
+  "Test that we \"inherit\" definitions from the surrounding namespace."
+  (let* ((source (fmt "~
+enum class Unit { IN, CM };
+
+struct Distance {
+  Unit unit;
+};
+
+Unit getUnit(Distance& d) {
+    return d.unit;
+}"))
+         (cpp (from-string 'cpp source)))
+    (with-attr-table cpp
+      (is (typep
+           (get-declaration-ast
+            :type
+            (infer-type (lastcar (collect-if (op (source-text= _ "d.unit"))
+                                             cpp))))
+           'cpp-enum-specifier)))))
 
 
 ;;; Conversion tests

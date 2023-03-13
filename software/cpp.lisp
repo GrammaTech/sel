@@ -1614,8 +1614,29 @@ available to use at any point in a C++ AST.")
            (butlast parts)))
          (combined
           (combine-namespace-qualifiers explicit implicit)))
-    (string-join (append1 combined (lastcar parts)) ;
+    (string-join (append1 combined (lastcar parts))
                  "::")))
+
+(defun qualified-name-variants (qname)
+  (let ((parts (split "::" qname)))
+    (if (single parts) parts
+        (multiple-value-bind (namespaces name)
+            (halves parts -1)
+          (let ((name (car name))
+                (namespaces (apply #'vect namespaces))
+                (variants (queue)))
+            (iter (until (emptyp namespaces))
+                  (enq
+                   (string+ (string-join namespaces "::" :end t)
+                            name)
+                   variants)
+                  (vector-pop namespaces)
+                  (finally (enq name variants)))
+            (qlist variants))))))
+
+(defmethod qualify-declared-ast-names ((declared-ast cpp-ast))
+  "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."
+  (qualified-name-variants (qualify-declared-ast-name declared-ast)))
 
 (defmethod qualify-declared-ast-name ((id cpp-type-identifier))
   (or (and-let* ((type (find-enclosing 'type-declaration-ast (attrs-root*) id))

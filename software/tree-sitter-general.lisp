@@ -4058,19 +4058,34 @@ looking them up.")
     (or (declarator-name ast)
         (source-text ast))))
 
+(defgeneric qualify-declared-ast-names (ast)
+  (:documentation "Generate qualified names for AST.
+This is used when looking up symbols in the symbol table.")
+  (:method ((ast ast))
+    (list (qualify-declared-ast-name ast))))
+
+(defsubst symbol-table-lookup (symbol-table query)
+  "Lookup QUERY in SYMBOL-TABLE.
+This is an inlined function, but if `find-in-symbol-table' is compiled
+with debug settings it can be traced."
+  (lookup symbol-table query))
+
 (defgeneric find-in-symbol-table (ast namespace query)
   (:documentation "Lookup QUERY in the symbol table for AST using NAMESPACE.")
   (:method ((ast ast) (ns null) (query string))
     (let* ((symbol-table (symbol-table ast)))
-      (lookup symbol-table query)))
+      (symbol-table-lookup symbol-table query)))
   (:method ((ast ast) (ns null) (query ast))
-    (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
+    (find-in-symbol-table ast ns (qualify-declared-ast-names query)))
   (:method ((ast ast) (ns symbol) (query ast))
-    (find-in-symbol-table ast ns (qualify-declared-ast-name query)))
+    (find-in-symbol-table ast ns (qualify-declared-ast-names query)))
   (:method ((ast ast) (namespace symbol) (query string))
     (when-let* ((symbol-table (symbol-table ast))
                 (ns-table (lookup symbol-table namespace)))
-      (values (lookup ns-table query)))))
+      (values (symbol-table-lookup ns-table query))))
+  (:method ((ast ast) (namespace symbol) (query list))
+    (some (op (find-in-symbol-table ast namespace _))
+          query)))
 
 (defun outer-and-inner-defs (ast)
   (symbol-table-union
