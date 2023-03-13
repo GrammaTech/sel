@@ -327,6 +327,9 @@ should already have been computed as part of their compilation units."
                 :accessor header-name))
   (:documentation "Node for representing synthetic system headers."))
 
+(defmethod original-path ((self c/cpp-system-header))
+  (make-keyword (header-name self)))
+
 (defmethod print-object ((self c/cpp-system-header) stream)
   (print-unreadable-object (self stream :type t)
     (format stream "~a" (header-name self)))
@@ -579,26 +582,7 @@ include files in all directories of the project."
   #+debug-fstfi
   (format t "Enter find-symbol-table-from-include on ~a~%"
           (source-text include-ast))
-  (labels ((merge-cached-symbol-table (header)
-             "Merge the cached symbol table for HEADER into ours."
-             (let ((cached-table
-                    (synchronized ('*system-header-symbol-table-cache*)
-                      (ensure2 (cache-lookup *system-header-symbol-table-cache*
-                                             project header)
-                        (with-attr-table
-                            ;; Shallow-copy the root so we get a
-                            ;; separate table.
-                            (copy (attrs-root *attrs*))
-                          (symbol-table header (empty-map))
-                          (attrs-table *attrs*)))))
-                   (target-table (attrs-table *attrs*)))
-               (do-hash-table (node alist cached-table)
-                 (setf (gethash node target-table)
-                       (if-let (old (gethash node target-table))
-                         ;; Preserve any previously computed attributes.
-                         (append alist old)
-                         alist)))))
-           (process-std-header (project path-ast)
+  (labels ((process-std-header (project path-ast)
              "Retrieve a standard header from the cache."
              (let ((path-string (trim-path-string path-ast)))
                (update-header-graph nil :path (make-keyword path-string))
@@ -606,8 +590,8 @@ include files in all directories of the project."
                          (get-standard-path-header
                           project path-string
                           :header-dirs *header-dirs*)))
-                 (progn
-                   (merge-cached-symbol-table system-header)
+                 (let ((*include-file-stack*
+                        (cons system-header *include-file-stack*)))
                    (symbol-table system-header in))
                  nil)))
            (update-header-graph (software
@@ -616,9 +600,12 @@ include files in all directories of the project."
                                              (original-path software))))
              (let ((project-dir (project-dir project)))
                (dolist (header *include-file-stack*)
-                 (let ((header-path
-                        (pathname-relativize project-dir
-                                             (original-path header))))
+                 (let* ((original-path (original-path header))
+                        (header-path
+                         (if (keywordp original-path)
+                             original-path
+                             (pathname-relativize project-dir
+                                                  (original-path header)))))
                    (pushnew path
                             (href (downstream-headers (genome project))
                                   header-path)

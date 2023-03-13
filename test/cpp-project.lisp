@@ -392,3 +392,18 @@ the correct binding."
                (:circle "include.h"))
               (:|stdio.h|)))
            (project-include-tree project))))))
+
+(deftest cpp-test-std-id ()
+  "Test that we can look up a symbol defined in a transitively included
+standard header."
+  (let* ((source (fmt "~
+#include <iostream>
+
+int main () {
+    std::cout << \"Hello, world\" << std::endl;
+}"))
+         (cpp (from-string 'cpp-project source))
+         (endl (find-if (op (source-text= "std::endl" _)) cpp)))
+    (with-attr-table cpp
+      (symbol-table endl)
+      (get-declaration-ast :variable endl))))
