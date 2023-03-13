@@ -385,4 +385,10 @@ the correct binding."
           (is (find-if (op (source-text= "MYCONST_1" _))
                        (genome main)))))
     (with-attr-table project
-      (is (get-declaration-ast :variable const-1)))))
+      (is (get-declaration-ast :variable const-1))
+      (is (equal
+           '(("main.cc"
+              ("include.h"
+               (:circle "include.h"))
+              (:|stdio.h|)))
+           (project-include-tree project))))))

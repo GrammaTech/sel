@@ -162,21 +162,27 @@ For development."
 (defun project-include-tree (project)
   "Dump the header graph of PROJECT as a cons tree.
 The top level is a list of entries. Entries have the form (FILE .
-INCLUDEES), where each of INCLUDEES is itself an entry.
+INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
+:CIRCLE for a circular inclusion.
 
 In each entry, FILE is either a string (for a file) or a keyword (for
 a standard include)."
   (assure include-tree
     (let* ((genome (genome project))
-           (downstream-headers (downstream-headers genome)))
+           (downstream-headers (downstream-headers genome))
+           (seen* nil))
+      (declare (special seen*))
       (symbol-table project)
       (labels ((rec (path)
-                 (cons path
-                       (sort (mapcar #'rec
-                                     (href downstream-headers path))
-                             #'string<
-                             :key #'car
-                             ))))
+                 (if (find path seen* :test #'equal)
+                     (list :circle path)
+                     (let ((seen* (cons path seen*)))
+                       (declare (special seen*))
+                       (cons path
+                             (sort (mapcar #'rec
+                                           (href downstream-headers path))
+                                   #'string<
+                                   :key #'car))))))
         (sort
          (mapcar #'rec
                  (remove-if #'header-file?
@@ -186,6 +192,7 @@ a standard include)."
          :key #'car)))))
 
 (defgeneric file-include-tree (project file)
+  (:documentation "Return the tree of includes rooted at FILE in PROJECT.")
   (:method ((project t) (file software))
     (file-include-tree project
                        (pathname-relativize (project-dir project)
@@ -624,6 +631,7 @@ include files in all directories of the project."
                ((member software *include-file-stack*)
                 ;; Just returning nil might still result in a global
                 ;; search. We found the header, we just can't use it.
+                (update-header-graph software)
                 (error 'circular-inclusion :header software))
                (t
                 (update-header-graph software)
