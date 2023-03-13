@@ -85,10 +85,12 @@
     :type hash-table)
    (downstream-headers
     :reader downstream-headers
+    :initarg :downstream-headers
     :initform (dict)
     :type hash-table)
    (upstream-headers
     :reader upstream-headers
+    :initarg :upstream-headers
     :initform (dict)
     :type hash-table)
    (project-directory
@@ -371,7 +373,8 @@ the standard path and add it to PROJECT."))
     (synchronized ('*system-header-cache*)
       (symbol-macrolet ((header-hash (gethash
                                       path-string
-                                      (system-headers/string->ast genome))))
+                                      (system-headers/string->ast genome)))
+                        (genome (genome project)))
         (labels ((populate-header-entry (project path-string)
                    (ensure2 (cache-lookup *system-header-cache* project path-string)
                      (make-instance
@@ -390,8 +393,8 @@ the standard path and add it to PROJECT."))
           (lret ((header
                   (ensure2 header-hash
                     (populate-header-entry project path-string))))
-            (setf (genome project)
-                  (copy (genome project)
+            (setf genome
+                  (copy genome
                         :system-headers (adjoin header
                                                 (system-headers genome))))))))))
 
@@ -605,7 +608,7 @@ include files in all directories of the project."
                          (if (keywordp original-path)
                              original-path
                              (pathname-relativize project-dir
-                                                  (original-path header)))))
+                                                  original-path))))
                    (pushnew path
                             (href (downstream-headers (genome project))
                                   header-path)
