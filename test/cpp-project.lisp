@@ -209,7 +209,13 @@ symbol table of the file including it."
   (with-fixture cpp-relative-include-symbol-table-project
     (with-attr-table *project*
       (is (equal (project-include-tree *project*)
-                 '(("my_class.cc" (:|iostream|) ("my_class.h"))
+                 '(("my_class.cc"
+                    (:|iostream|
+                     (:|ios| (:|iosfwd|))
+                     (:|istream|)
+                     (:|ostream|)
+                     (:|streambuf|))
+                    ("my_class.h"))
                    ("my_program.cc" ("my_class.h")))))
       (is (set-equal '("my_class.cc" "my_program.cc")
                      (who-includes? *project* "my_class.h")

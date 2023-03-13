@@ -588,34 +588,32 @@ include files in all directories of the project."
   (labels ((process-std-header (project path-ast)
              "Retrieve a standard header from the cache."
              (let ((path-string (trim-path-string path-ast)))
-               (update-header-graph nil :path (make-keyword path-string))
                (if-let ((system-header
                          (get-standard-path-header
                           project path-string
                           :header-dirs *header-dirs*)))
-                 (let ((*include-file-stack*
-                        (cons system-header *include-file-stack*)))
-                   (symbol-table system-header in))
+                 (progn
+                   (update-header-graph system-header)
+                   (let ((*include-file-stack*
+                          (cons system-header *include-file-stack*)))
+                     (symbol-table system-header in)))
                  nil)))
-           (update-header-graph (software
-                                 &key (path (pathname-relativize
-                                             (project-dir project)
-                                             (original-path software))))
-             (let ((project-dir (project-dir project)))
-               (dolist (header *include-file-stack*)
-                 (let* ((original-path (original-path header))
-                        (header-path
-                         (if (keywordp original-path)
-                             original-path
-                             (pathname-relativize project-dir
-                                                  original-path))))
-                   (pushnew path
+           (relativize (path)
+             (if (keywordp path) path
+                 (pathname-relativize (project-dir project)
+                                      path)))
+           (update-header-graph (includee)
+             (let ((includee-path (relativize (original-path includee)))
+                   (includer (car *include-file-stack*)))
+               (when includer
+                 (let ((includer-path (relativize (original-path includer))))
+                   (pushnew includee-path
                             (href (downstream-headers (genome project))
-                                  header-path)
+                                  includer-path)
                             :test #'equal)
-                   (pushnew header-path
+                   (pushnew includer-path
                             (href (upstream-headers (genome project))
-                                  path)
+                                  includee-path)
                             :test #'equal)))))
            (safe-symbol-table (software)
              "Extract a symbol table from SOFTWARE, guarding for circularity."
