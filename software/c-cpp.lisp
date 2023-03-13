@@ -1081,7 +1081,8 @@ Should return `:failure' in the base case.")
              ((ppcre "<(.*)>" s)
               (collect s)))))))
 
-(defun parse-header-synopsis (path-string &key (class-ast 'c-ast))
+(defun parse-header-synopsis (path-string &key (class-ast 'c-ast)
+                                            namespace)
   "Parse the system header synopsis at PATH-STRING into an AST."
   (labels ((get-synopsis-string (path-string)
              "Get the synopsis string from the header represented
@@ -1188,7 +1189,14 @@ Should return `:failure' in the base case.")
                          ast))))
     (when-let* ((synopsis-string (get-synopsis-string path-string))
                 (markup-synopsis (markup-synopsis synopsis-string))
-                (root-ast (convert class-ast markup-synopsis)))
+                (namespaced-synopsis
+                 (if (no namespace) markup-synopsis
+                     (if (search "namespace" markup-synopsis)
+                         markup-synopsis
+                         (fmt "namespace ~a {~%~a~%}"
+                              namespace
+                              markup-synopsis))))
+                (root-ast (convert class-ast namespaced-synopsis)))
       (patch-system-header-ast root-ast))))
 
 

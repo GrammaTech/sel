@@ -370,24 +370,27 @@ the standard path and add it to PROJECT."))
                                       path-string
                                       (system-headers/string->ast genome))))
         (labels ((populate-header-entry (project path-string)
-                   (lret ((system-header
-                           (ensure2 (cache-lookup *system-header-cache* project path-string)
-                             (make-instance
-                              'c/cpp-system-header
-                              :header-name path-string
-                              :children
-                              (nest (ensure-list)
-                                    (parse-header-synopsis path-string :class-ast)
-                                    (format-symbol :sel/sw/ts "~a-AST")
-                                    (component-class project))))))
-                     (setf header-hash system-header)
-                     (assert (slot-exists-p (genome project) 'system-headers))
-                     (setf (genome project)
-                           (copy (genome project)
-                                 :system-headers (adjoin system-header
-                                                         (system-headers genome)))))))
-          (or header-hash
-              (populate-header-entry project path-string)))))))
+                   (ensure2 (cache-lookup *system-header-cache* project path-string)
+                     (make-instance
+                      'c/cpp-system-header
+                      :header-name path-string
+                      :children
+                      (nest (ensure-list)
+                            (parse-header-synopsis
+                             path-string
+                             :namespace
+                             (when (eql (component-class project) 'cpp)
+                               "std")
+                             :class-ast)
+                            (format-symbol :sel/sw/ts "~a-AST")
+                            (component-class project))))))
+          (lret ((header
+                  (ensure2 header-hash
+                    (populate-header-entry project path-string))))
+            (setf (genome project)
+                  (copy (genome project)
+                        :system-headers (adjoin header
+                                                (system-headers genome))))))))))
 
 (defmethod from-file :around ((project c/cpp-project) (dir t))
   (labels ((maybe-populate-header (ast)
