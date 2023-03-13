@@ -1232,6 +1232,9 @@ otherwise.
 * AST node to start parent search from")
   (:method ((obj parseable) (possible-parent-ast ast) (ast ast))
     (member possible-parent-ast (get-parent-asts obj ast)
+            :test #'equalp))
+  (:method ((root ast) (possible-parent-ast ast) (ast ast))
+    (member possible-parent-ast (get-parent-asts root ast)
             :test #'equalp)))
 
 (defmethod get-vars-in-scope ((obj parseable) (ast ast)
