@@ -209,14 +209,14 @@ symbol table of the file including it."
   (with-fixture cpp-relative-include-symbol-table-project
     (with-attr-table *project*
       (is (equal (project-include-tree *project*)
-                 '(("my_class.cc"
+                 '(("my_program.cc" ("my_class.h"))
+                   ("my_class.cc"
                     (:|iostream|
-                     (:|ios| (:|iosfwd|))
-                     (:|istream|)
+                     (:|streambuf|)
                      (:|ostream|)
-                     (:|streambuf|))
-                    ("my_class.h"))
-                   ("my_program.cc" ("my_class.h")))))
+                     (:|istream|)
+                     (:|ios| (:|iosfwd|)))
+                    ("my_class.h")))))
       (is (set-equal '("my_class.cc" "my_program.cc")
                      (who-includes? *project* "my_class.h")
                      :test #'equal))
@@ -394,9 +394,9 @@ the correct binding."
       (is (get-declaration-ast :variable const-1))
       (is (equal
            '(("main.cc"
+              (:|stdio.h|)
               ("include.h"
-               (:circle "include.h"))
-              (:|stdio.h|)))
+               (:circle "include.h"))))
            (project-include-tree project))))))
 
 (deftest cpp-test-std-id ()

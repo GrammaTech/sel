@@ -188,17 +188,12 @@ a standard include)."
                      (let ((seen* (cons path seen*)))
                        (declare (special seen*))
                        (cons path
-                             (sort (mapcar #'rec
-                                           (href included-headers path))
-                                   #'string<
-                                   :key #'car))))))
-        (sort
-         (mapcar #'rec
-                 (remove-if #'header-file?
-                            (mapcar #'car
-                                    (evolve-files project))))
-         #'string<
-         :key #'car)))))
+                             (mapcar #'rec
+                                     (href included-headers path)))))))
+        (mapcar #'rec
+                (remove-if #'header-file?
+                           (mapcar #'car
+                                   (evolve-files project))))))))
 
 (defgeneric file-include-tree (project file)
   (:documentation "Return the tree of includes rooted at FILE in PROJECT.")

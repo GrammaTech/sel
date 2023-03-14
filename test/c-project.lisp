@@ -235,11 +235,11 @@
            (list f1h)))
       (with-attr-table *project*
         (is (equal (project-include-tree *project*)
-                   '(("f1.c"
-                      ("f1.h")
-                      ("lib/f2.h"))
-                     ("lib/f1.c"
-                      ("lib/f1.h")))))))))
+                   '(("lib/f1.c"
+                      ("lib/f1.h"))
+                     ("f1.c"
+                      ("lib/f2.h")
+                      ("f1.h")))))))))
 
 
 ;;; System Headers
