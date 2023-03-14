@@ -72,6 +72,23 @@
                          (rec (1+ pos) bracket-count acc)
                          (rec (1+ pos) bracket-count (cons char acc)))))))))))
 
+(defun qualified-name-variants (qname)
+  (let ((parts (split "::" qname)))
+    (if (single parts) parts
+        (multiple-value-bind (namespaces name)
+            (halves parts -1)
+          (let ((name (car name))
+                (namespaces (apply #'vect namespaces))
+                (variants (queue)))
+            (iter (until (emptyp namespaces))
+                  (enq
+                   (string+ (string-join namespaces "::" :end t)
+                            name)
+                   variants)
+                  (vector-pop namespaces)
+                  (finally (enq name variants)))
+            (qlist variants))))))
+
 #+:TREE-SITTER-CPP
 (progn
 
@@ -1616,23 +1633,6 @@ available to use at any point in a C++ AST.")
           (combine-namespace-qualifiers explicit implicit)))
     (string-join (append1 combined (lastcar parts))
                  "::")))
-
-(defun qualified-name-variants (qname)
-  (let ((parts (split "::" qname)))
-    (if (single parts) parts
-        (multiple-value-bind (namespaces name)
-            (halves parts -1)
-          (let ((name (car name))
-                (namespaces (apply #'vect namespaces))
-                (variants (queue)))
-            (iter (until (emptyp namespaces))
-                  (enq
-                   (string+ (string-join namespaces "::" :end t)
-                            name)
-                   variants)
-                  (vector-pop namespaces)
-                  (finally (enq name variants)))
-            (qlist variants))))))
 
 (defmethod qualify-declared-ast-names ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."
