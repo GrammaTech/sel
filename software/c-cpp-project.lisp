@@ -44,6 +44,7 @@
   "Header file extensions.")
 
 (defgeneric header-path (header)
+  (:documentation "Extract the path from HEADER.")
   (:method ((file string))
     (pathname file))
   (:method ((path pathname))
