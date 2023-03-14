@@ -84,14 +84,14 @@
     :reader implicit-headers-table
     :initarg :implicit-headers-table
     :type hash-table)
-   (downstream-headers
-    :reader downstream-headers
-    :initarg :downstream-headers
+   (included-headers
+    :reader included-headers
+    :initarg :included-headers
     :initform (dict)
     :type hash-table)
-   (upstream-headers
-    :reader upstream-headers
-    :initarg :upstream-headers
+   (including-files
+    :reader including-files
+    :initarg :including-files
     :initform (dict)
     :type hash-table)
    (project-directory
@@ -172,7 +172,7 @@ In each entry, FILE is either a string (for a file) or a keyword (for
 a standard include)."
   (assure include-tree
     (let* ((genome (genome project))
-           (downstream-headers (downstream-headers genome))
+           (included-headers (included-headers genome))
            (seen* nil))
       (declare (special seen*))
       (symbol-table project)
@@ -183,7 +183,7 @@ a standard include)."
                        (declare (special seen*))
                        (cons path
                              (sort (mapcar #'rec
-                                           (href downstream-headers path))
+                                           (href included-headers path))
                                    #'string<
                                    :key #'car))))))
         (sort
@@ -210,12 +210,12 @@ a standard include)."
 
 (defun who-includes? (project header)
   (let* ((genome (genome project))
-         (upstream-headers (upstream-headers genome))
+         (including-files (including-files genome))
          (path (header-path header))
          (path (pathname-relativize (project-dir project) path)))
     (symbol-table project)
     (labels ((who-includes? (path)
-               (let ((includes (href upstream-headers path)))
+               (let ((includes (href including-files path)))
                  (cons path
                        (mappend #'who-includes? includes)))))
       (cdr (who-includes? path)))))
@@ -609,11 +609,11 @@ include files in all directories of the project."
                (when includer
                  (let ((includer-path (relativize (original-path includer))))
                    (pushnew includee-path
-                            (href (downstream-headers (genome project))
+                            (href (included-headers (genome project))
                                   includer-path)
                             :test #'equal)
                    (pushnew includer-path
-                            (href (upstream-headers (genome project))
+                            (href (including-files (genome project))
                                   includee-path)
                             :test #'equal)))))
            (safe-symbol-table (software)
