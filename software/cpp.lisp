@@ -73,6 +73,9 @@
                          (rec (1+ pos) bracket-count (cons char acc)))))))))))
 
 (defun qualified-name-variants (qname)
+  "List variants under which to look up QNAME.
+For example, for a qualified name like `x::y::z', we might also want
+to look it up as `x::z' or just `z'."
   (let ((parts (split "::" qname)))
     (if (single parts) parts
         (multiple-value-bind (namespaces name)

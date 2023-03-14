@@ -85,11 +85,15 @@
     :initarg :implicit-headers-table
     :type hash-table)
    (included-headers
+    :documentation
+    "Table from file paths to headers they directly include."
     :reader included-headers
     :initarg :included-headers
     :initform (dict)
     :type hash-table)
    (including-files
+    :documentation
+    "Table from headers to files that include them."
     :reader including-files
     :initarg :including-files
     :initform (dict)
@@ -175,6 +179,8 @@ a standard include)."
            (included-headers (included-headers genome))
            (seen* nil))
       (declare (special seen*))
+      ;; Populate the symbol table, recording header dependencies as a
+      ;; side effect.
       (symbol-table project)
       (labels ((rec (path)
                  (if (find path seen* :test #'equal)
