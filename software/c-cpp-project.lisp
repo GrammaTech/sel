@@ -416,6 +416,12 @@ the standard path and add it to PROJECT."))
 
 ;;; Program Headers
 
+(defparameter *global-search-for-include-files* nil
+  "When true, search for include files in the entire directory tree
+of a project.  Used to set default value of the :GLOBAL keyword
+arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.  If there are duplicates
+but the file is available locally, prioritize the local file.")
+
 (defmethod get-program-header ((project c/cpp-project)
                                file
                                include-ast
@@ -560,12 +566,6 @@ inference.  Used to prevent circular attr propagation.")
   (:report (lambda (c s)
              (with-slots (header) c
                (format s "Circular inclusion of ~a" header)))))
-
-(defparameter *global-search-for-include-files* nil
-  "When true, search for include files in the entire directory tree
-of a project.  Used to set default value of the :GLOBAL keyword
-arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.  If there are duplicates
-but the file is available locally, prioritize the local file.")
 
 #+debug-fstfi2
 (defparameter *include-files-to-note* nil
