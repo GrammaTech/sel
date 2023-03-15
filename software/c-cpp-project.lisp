@@ -176,21 +176,18 @@ In each entry, FILE is either a string (for a file) or a keyword (for
 a standard include)."
   (assure include-tree
     (let* ((genome (genome project))
-           (included-headers (included-headers genome))
-           (seen* nil))
-      (declare (special seen*))
+           (included-headers (included-headers genome)))
       ;; Populate the symbol table, recording header dependencies as a
       ;; side effect.
       (symbol-table project)
-      (labels ((rec (path)
-                 (if (find path seen* :test #'equal)
+      (labels ((rec (path seen)
+                 (if (find path seen :test #'equal)
                      (list :circle path)
-                     (let ((seen* (cons path seen*)))
-                       (declare (special seen*))
+                     (let ((seen (cons path seen)))
                        (cons path
-                             (mapcar #'rec
+                             (mapcar (op (rec _ seen))
                                      (href included-headers path)))))))
-        (mapcar #'rec
+        (mapcar (op (rec _ nil))
                 (remove-if #'header-file?
                            (mapcar #'car
                                    (evolve-files project))))))))
