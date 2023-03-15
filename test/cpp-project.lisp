@@ -15,6 +15,8 @@
    :software-evolution-library/software/project
    :software-evolution-library/software/c-cpp-project
    :software-evolution-library/software/cpp-project)
+  (:local-nicknames
+   (:dir :software-evolution-library/software/directory))
   #-windows (:shadowing-import-from :osicat
                                     :file-permissions :pathname-as-directory)
   (:export :test-cpp-project))
@@ -433,3 +435,47 @@ int main () {
     (with-attr-table cpp
       (symbol-table endl)
       (get-declaration-ast :variable endl))))
+
+(define-node-class incremental-unit (cpp-translation-unit)
+  ;; NB There is no initarg arg as the slot should not be copied.
+  ((symbol-table-out)))
+
+(defmethod symbol-table ((ast incremental-unit) &optional in)
+  (declare (ignore in))
+  (let ((result (call-next-method)))
+    (unless (slot-boundp ast 'symbol-table-out)
+      (setf (slot-value ast 'symbol-table-out) result))
+    (is (eql result (slot-value ast 'symbol-table-out)))
+    result))
+
+(deftest test-incremental-symbol-table ()
+  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+         (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
+         (project (is (from-file (make 'cpp-project) project-dir)))
+         (file (lookup project "my_program.cc"))
+         (ast (find-if (of-type 'cpp-call-expression) file)))
+    (iter (for node in-tree (genome project))
+          (when (typep node 'cpp-translation-unit)
+            (change-class node 'incremental-unit)))
+    ;; Compute and cache symbol table. This would only fail if symbol
+    ;; tables were being computed more than once for the same file.
+    (finishes
+     (with-attr-table project
+       (symbol-table ast)))
+    (let ((units (collect-if (of-type 'incremental-unit) project)))
+      (is (every (op (slot-boundp _ 'symbol-table-out)) units)))
+    (let* ((new-ast (cpp* "mc.do_something_else()"))
+           (new-project
+            (with project ast new-ast))
+           (new-file (lookup new-project "my_program.cc")))
+      (is (not (eql new-project project)))
+      ;; The root has been copied.
+      (is (not (eql (only-elt (dir:contents file))
+                    (only-elt (dir:contents new-file)))))
+      (let ((units (collect-if (of-type 'incremental-unit) new-project)))
+        (is (= 3 (count-if (op (slot-boundp _ 'symbol-table-out)) units)))
+        (is (= 1 (count-if-not (op (slot-boundp _ 'symbol-table-out)) units))))
+      ;; This passes if no symbol tables needs to be recomputed on
+      ;; unchanged files.
+      (with-attr-table new-project
+        (symbol-table new-ast)))))
