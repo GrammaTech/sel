@@ -53,7 +53,7 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
       :documentation
       "Source files which may be used but not evolved.
 This holds a list of cons cells of the form (path . software-object-for-path)."
-      :copier shallow-copy-files)
+      :copier copy-files)
      (ignore-paths
       :initarg :ignore-paths
       :reader ignore-paths
