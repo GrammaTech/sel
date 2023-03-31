@@ -444,10 +444,6 @@ to look it up as `x::z' or just `z'."
   (transform-labeled-statement parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':cpp)) (class (eql 'cpp-for-statement)) parse-tree &key)
-  (transform-for-statement parse-tree))
-
-(defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-for-range-loop)) parse-tree &key)
   (transform-c-declaration-specifiers parse-tree))
 
@@ -1482,8 +1478,8 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (:method ((ast cpp-qualified-identifier))
     (declare (optimize (debug 0)))
     (unqualified-name (cpp-name ast)))
-  (:method ((ast cpp-namespace-definition-name))
-    (lastcar (children ast))))
+  (:method ((ast cpp-nested-namespace-specifier))
+    (car (children ast))))
 
 (defmethod initializer-aliasee ((sw t)
                                 (lhs cpp-reference-declarator)

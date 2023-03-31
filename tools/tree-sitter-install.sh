@@ -26,9 +26,9 @@ declare -A pins
 pins[tree-sitter]=efe009f4
 pins[python]=24b530c
 pins[bash]=275effd
-pins[c]=3ced8d6
+pins[c]=f357890
 pins[commonlisp]=c7e8149
-pins[cpp]=38d8b49
+pins[cpp]=0b6d0eb
 pins[css]=a03f1d2
 pins[go]=aeb2f33
 pins[html]=29f53d8

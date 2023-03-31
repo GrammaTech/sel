@@ -196,8 +196,7 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
         (:post-type-qualifiers (:multiple . t)))
        (c-case-statement
         (:statements (:multiple . t)))
-       (c-labeled-statement (:statement))
-       (c-for-statement (:body)))
+       (c-labeled-statement (:statement)))
       (:cpp
        (cpp-parameter-declaration
         (:pre-specifiers (:multiple . t))
@@ -234,7 +233,6 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
        (cpp-case-statement
         (:statements (:multiple . t)))
        (cpp-labeled-statement (:statement))
-       (cpp-for-statement (:body))
        (cpp-sized-type-specifier (:modifiers (:multiple . t)))
        (cpp-access-specifier (:keyword))
        (cpp-type-parameter-declaration (:keyword))
@@ -1325,54 +1323,6 @@ are ignored by templates, whereas named ones are preserved.")
          ((:TYPE . "FIELD")
           (:NAME . "statement")
           (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))))
-       (:FOR-STATEMENT
-        (:TYPE . "SEQ")
-        (:MEMBERS
-         ((:TYPE . "STRING") (:VALUE . "for"))
-         ((:TYPE . "STRING") (:VALUE . "("))
-         ((:TYPE . "CHOICE")
-          (:MEMBERS
-           ((:TYPE . "FIELD")
-            (:NAME . "initializer")
-            (:CONTENT
-             (:TYPE . "SYMBOL")
-             (:NAME . "declaration")))
-           ((:TYPE . "SEQ")
-            (:MEMBERS
-             ((:TYPE . "FIELD")
-              (:NAME . "initializer")
-              (:CONTENT
-               (:TYPE . "CHOICE")
-               (:MEMBERS
-                ((:TYPE . "CHOICE")
-                 (:MEMBERS
-                  ((:TYPE . "SYMBOL") (:NAME . "_expression"))
-                  ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
-                ((:TYPE . "BLANK")))))
-             ((:TYPE . "STRING") (:VALUE . ";"))))))
-         ((:TYPE . "FIELD")
-          (:NAME . "condition")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "SYMBOL") (:NAME . "_expression"))
-            ((:TYPE . "BLANK")))))
-         ((:TYPE . "STRING") (:VALUE . ";"))
-         ((:TYPE . "FIELD")
-          (:NAME . "update")
-          (:CONTENT
-           (:TYPE . "CHOICE")
-           (:MEMBERS
-            ((:TYPE . "CHOICE")
-             (:MEMBERS
-              ((:TYPE . "SYMBOL") (:NAME . "_expression"))
-              ((:TYPE . "SYMBOL") (:NAME . "comma_expression"))))
-            ((:TYPE . "BLANK")))))
-         ((:TYPE . "STRING") (:VALUE . ")"))
-         ;; Add a body field.
-         ((:TYPE . "FIELD")
-          (:NAME . "body")
-          (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_statement")))))
        ;; This is to get around _EMPTY_DECLARATION inlining a semicolon
        ;; without any further information to reproduce it.
        (:EMPTY-STATEMENT
@@ -1609,7 +1559,7 @@ are ignored by templates, whereas named ones are preserved.")
             ((:TYPE . "SYMBOL") (:NAME . "storage_class_specifier"))
             ((:TYPE . "SYMBOL") (:NAME . "type_qualifier"))
             ((:TYPE . "SYMBOL") (:NAME . "attribute_specifier"))
-            ((:TYPE . "SYMBOL") (:NAME . "virtual_function_specifier"))
+            ((:TYPE . "SYMBOL") (:NAME . "virtual"))
             ((:TYPE . "SYMBOL") (:NAME . "explicit_function_specifier")))))))
        ;; TODO This one could probably be upstreamed.
        (:OPERATOR-NAME

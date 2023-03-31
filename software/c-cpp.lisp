@@ -766,7 +766,7 @@ appears as a return statement is assumed to be the type of the function."
           child-tree)
          ((member car '(:storage-class-specifier :type-qualifier
                         :attribute-specifier :attribute-declaration
-                        :ms-declspec-modifier :virtual-function-specifier
+                        :ms-declspec-modifier :virtual
                         :explicit-function-specifier))
           (cons (list position-slot (car child-tree))
                 (cdr child-tree)))
@@ -803,11 +803,6 @@ following the case to be stored in the 'statements' AST slot."
   "Transform the labeled statement's PARSE-TREE to allow the last child to be
 stored in the 'statement' AST slot."
   (label-last-child :statement parse-tree))
-
-(defun transform-for-statement (parse-tree)
-  "Transform the for statement's PARSE-TREE to allow the last child to be
-stored in the 'body' AST slot."
-  (label-last-child :body parse-tree))
 
 (defun transform-empty-statements (parse-tree)
   "Transform the empty statements in PARSE-TREE such that they appear as empty

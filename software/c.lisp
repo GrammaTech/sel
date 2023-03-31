@@ -89,10 +89,6 @@ field."
   (transform-labeled-statement parse-tree))
 
 (defmethod transform-parse-tree
-    ((language (eql ':c)) (class (eql 'c-for-statement)) parse-tree &key)
-  (transform-for-statement parse-tree))
-
-(defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-compound-statement)) parse-tree &key)
   (transform-empty-statements parse-tree))
 
