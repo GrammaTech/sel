@@ -39,7 +39,7 @@ pins[json]=368736a
 # Special case: pin tree-sitter-python to 24b530c until https://github.com/tree-sitter/tree-sitter/issues/1654 is resolved
 pins[python]=24b530c
 pins[regex]=e1cfca3
-pins[rust]=36ae187
+pins[rust]=fbf9e50
 pins[typescript]=1b3ba31
 pins[yaml]=0e36bed
 
