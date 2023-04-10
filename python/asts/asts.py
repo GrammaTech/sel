@@ -406,15 +406,15 @@ class AST:
     def replace(root: "AST", pt: PathOrAST, value: LiteralOrAST) -> "AST":
         """Return a new root with pt replaced with value."""
         value = AST._ensure_ast(value, language=root.language)
-
-        AST._root_mutation_check(root, pt)
-        return _interface.dispatch(AST.replace.__name__, root, pt, value)
+        if not pt or root == pt:
+            return value
+        else:
+            return _interface.dispatch(AST.replace.__name__, root, pt, value)
 
     @staticmethod
     def insert(root: "AST", pt: PathOrAST, value: LiteralOrAST) -> "AST":
         """Return a new root with value inserted at pt."""
         value = AST._ensure_ast(value, language=root.language)
-
         AST._root_mutation_check(root, pt)
         return _interface.dispatch(AST.insert.__name__, root, pt, value)
 

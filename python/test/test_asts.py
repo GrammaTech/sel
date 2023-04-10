@@ -339,6 +339,14 @@ class MutationTestDriver(unittest.TestCase):
         self.assertEqual(1, len(new_root.children))
         self.assertEqual("y = 2\n", new_root.source_text)
 
+    def replace_root_driver(self, pt: PathOrAST):
+        new_ast = AST.from_string("y = 2\n", language=ASTLanguage.Python, deepest=True)
+        new_root = AST.replace(self.root, pt, new_ast)
+        self.assertNotEqual(new_root.oid, self.root.oid)
+        self.assertNotEqual(new_root.serial_number, self.root.serial_number)
+        self.assertEqual(1, len(new_root.children))
+        self.assertEqual("y = 2", new_root.source_text)
+
     def insert_driver(self, pt: PathOrAST):
         new_ast = AST.from_string("y = 2\n", language=ASTLanguage.Python, deepest=True)
         new_root = AST.insert(self.root, pt, new_ast)
@@ -353,6 +361,10 @@ class MutationTestDriver(unittest.TestCase):
     def test_replace_ast(self):
         self.replace_driver(self.statement)
         self.replace_driver(self.path)
+
+    def test_replace_root_ast(self):
+        self.replace_root_driver(self.root)
+        self.replace_root_driver([])
 
     def test_insert_ast(self):
         self.insert_driver(self.statement)
