@@ -258,6 +258,9 @@ message ID followed by a function name from the API and arguments."
 (-> int/gc (list) null)
 (defun int/gc (oids) (mapcar #'deallocate-ast oids) nil)
 
+(-> int/serial-number (ast) number)
+(defun int/serial-number (ast) (serial-number ast))
+
 (-> int/parent (ast ast) (values (or ast null) &optional))
 (defun int/parent (root ast) (get-parent-ast root ast))
 

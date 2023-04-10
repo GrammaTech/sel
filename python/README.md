@@ -571,7 +571,10 @@ distinct from the AST(s) created.
 
 ### Mutation Primitives
 
-Currently, clients may cut, insert, or replace AST subtrees, as shown:
+Currently, clients may cut, insert, or replace AST subtrees, as shown. The
+operations are based on AST serial numbers; we find the AST in the root node
+passed as the first parameter with the same serial number as the point
+modify and perform the corresponding operation.
 
 CUT:
 ```python
@@ -833,6 +836,16 @@ using the `oid` property on python ASTs; to test for python AST
 equality, we check to see if the ASTs point to the same object using
 the oids.
 
+Additionally, python AST objects contain a serial number attribute
+representing a serial number on the Common Lisp side of the interface.
+This serial number is used when performing modifications (mutations)
+to an AST such as cut/replace/insert. To perform these modifications,
+we find the AST in the root with the same serial number as the
+point to modify and perform the operation. Serial numbers are stable
+in the unmodified, original tree across operations; however, the
+serial numbers of values inserted into the tree will differ from the
+AST given to insert.
+
 To allow for garbage collection, the ASTs are manually reference
 counted.  Whenever a python AST (pointer) is created, the reference
 count for the associated Common Lisp AST is incremented.  Similarly,
@@ -992,6 +1005,28 @@ This error is raised when the Common Lisp binary (`tree-sitter-interface`)
 backing the ASTs python package crashes.  If available, the error will
 report the standard output and standard error streams for the
 `tree-sitter-interface` process prior to the crash.
+
+#### What is the difference between object ID (oid) and serial number?
+
+Python AST objects contain a oid attribute representing an
+object id (oid) on the Common Lisp side of the interface; in essence,
+the python ASTs are pointers to Common Lisp memory locations.  When
+calling a python AST method, the oid is serialized to the Common Lisp
+side of the interface where the underlying AST object is found
+(dereferenced) and the operation performed.
+
+Additionally, python AST objects contain a serial number attribute
+representing a serial number on the Common Lisp side of the interface.
+This serial number is used when performing modifications (mutations)
+to an AST such as cut/replace/insert. To perform these modifications,
+we find the AST in the root with the same serial number as the
+point to modify and perform the operation. Serial numbers are stable
+in the unmodified, original tree across operations; however, the
+serial numbers of values inserted into the tree will differ from the
+AST given to insert.
+
+Two objects with the same oid will always the same serial number.
+The converse does not hold.
 
 # License
 

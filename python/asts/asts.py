@@ -249,6 +249,11 @@ class AST:
         """Return the oid for this AST."""
         return self._oid
 
+    @cached_property
+    def serial_number(self) -> int:
+        """Return the serial number for this AST."""
+        return _interface.dispatch(AST.serial_number.func.__name__, self)
+
     @property
     def size(self) -> int:
         """
@@ -398,13 +403,23 @@ class AST:
     # AST mutation
     @staticmethod
     def cut(root: "AST", pt: PathOrAST) -> "AST":
-        """Return a new root with pt removed."""
+        """
+        Return a new root with pt removed.
+
+        To perform the deletion, we find the node in root with the
+        same serial number as pt and excise it from the tree.
+        """
         AST._root_mutation_check(root, pt)
         return _interface.dispatch(AST.cut.__name__, root, pt)
 
     @staticmethod
     def replace(root: "AST", pt: PathOrAST, value: LiteralOrAST) -> "AST":
-        """Return a new root with pt replaced with value."""
+        """
+        Return a new root with pt replaced with value.
+
+        To perform the replacement, we find the node in root with the
+        same serial number as pt and replace it with value.
+        """
         value = AST._ensure_ast(value, language=root.language)
         if not pt or root == pt:
             return value
@@ -413,7 +428,12 @@ class AST:
 
     @staticmethod
     def insert(root: "AST", pt: PathOrAST, value: LiteralOrAST) -> "AST":
-        """Return a new root with value inserted at pt."""
+        """
+        Return a new root with value inserted at pt.
+
+        To perform the insertion, we find the node in root with the
+        same serial number as pt and insert value prior to it.
+        """
         value = AST._ensure_ast(value, language=root.language)
         AST._root_mutation_check(root, pt)
         return _interface.dispatch(AST.insert.__name__, root, pt, value)
