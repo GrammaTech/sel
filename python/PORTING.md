@@ -162,6 +162,13 @@ Deleted `__len__` method and instead exposed `size` property on ASTs.
 use in replacement/insertion respectively, enforcing the existing type
 annotation.
 
+## v0.9.5 -> v0.9.6
+
+- Expose the `serial_number` attribute of common lisp ASTs.
+- `cut`/`insert`/`replace` allow an AST path to be passed as the point
+to be modified.
+- `replace` does not throw an error if we are replacing the root node.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
