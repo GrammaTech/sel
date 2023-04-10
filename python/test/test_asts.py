@@ -1,7 +1,7 @@
 import unittest
 import copy
 
-from asts.asts import AST, ASTException, ASTLanguage, LiteralOrAST
+from asts.asts import AST, ASTException, ASTLanguage, LiteralOrAST, PathOrAST
 from asts.types import (
     CCastExpression,
     CComment,
@@ -323,27 +323,40 @@ class MutationTestDriver(unittest.TestCase):
     def setUp(self):
         self.root = AST.from_string("x = 88\n", ASTLanguage.Python)
         self.statement = self.root.children[0]
+        self.path = self.root.ast_path(self.statement)
         return
 
-    def test_cut(self):
-        new_root = AST.cut(self.root, self.statement)
+    def cut_driver(self, pt: PathOrAST):
+        new_root = AST.cut(self.root, pt)
         self.assertNotEqual(new_root.oid, self.root.oid)
         self.assertEqual(0, len(new_root.children))
         self.assertEqual("", new_root.source_text)
 
-    def test_replace_ast(self):
+    def replace_driver(self, pt: PathOrAST):
         new_ast = AST.from_string("y = 2\n", language=ASTLanguage.Python, deepest=True)
-        new_root = AST.replace(self.root, self.statement, new_ast)
+        new_root = AST.replace(self.root, pt, new_ast)
         self.assertNotEqual(new_root.oid, self.root.oid)
         self.assertEqual(1, len(new_root.children))
         self.assertEqual("y = 2\n", new_root.source_text)
 
-    def test_insert_ast(self):
+    def insert_driver(self, pt: PathOrAST):
         new_ast = AST.from_string("y = 2\n", language=ASTLanguage.Python, deepest=True)
-        new_root = AST.insert(self.root, self.statement, new_ast)
+        new_root = AST.insert(self.root, pt, new_ast)
         self.assertNotEqual(new_root.oid, self.root.oid)
         self.assertEqual(2, len(new_root.children))
         self.assertEqual("y = 2\nx = 88\n", new_root.source_text)
+
+    def test_cut_path(self):
+        self.cut_driver(self.statement)
+        self.cut_driver(self.path)
+
+    def test_replace_ast(self):
+        self.replace_driver(self.statement)
+        self.replace_driver(self.path)
+
+    def test_insert_ast(self):
+        self.insert_driver(self.statement)
+        self.insert_driver(self.path)
 
     def test_replace_literal(self):
         lhs = self.statement.children[0].children[0]

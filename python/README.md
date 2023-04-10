@@ -630,6 +630,20 @@ values for insertion and replacement, as shown below:
 "x = 3\n"
 ```
 
+Finally, AST paths may be used as mutation point parameters to cut,
+insert, and replace, as shown below:
+
+```python
+>>> root = asts.AST.from_string(
+...     "x = 2\n",
+...     language=asts.ASTLanguage.Python
+... )
+>>> literal_path = [('CHILDREN', 0), ('CHILDREN', 0), 'RIGHT']
+>>> root = asts.AST.replace(root, literal_path, 3)
+>>> root.source_text
+"x = 3\n"
+```
+
 ### Transformers
 
 In addition to simple mutation primitives, the API also supports walking

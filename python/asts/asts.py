@@ -35,6 +35,7 @@ from backports.cached_property import cached_property
 from typing_extensions import Final
 
 LiteralOrAST = Union[int, float, str, "AST"]
+PathOrAST = Union[List, "AST"]
 
 
 # Auxillary classes
@@ -396,13 +397,13 @@ class AST:
 
     # AST mutation
     @staticmethod
-    def cut(root: "AST", pt: "AST") -> "AST":
+    def cut(root: "AST", pt: PathOrAST) -> "AST":
         """Return a new root with pt removed."""
         AST._root_mutation_check(root, pt)
         return _interface.dispatch(AST.cut.__name__, root, pt)
 
     @staticmethod
-    def replace(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
+    def replace(root: "AST", pt: PathOrAST, value: LiteralOrAST) -> "AST":
         """Return a new root with pt replaced with value."""
         value = AST._ensure_ast(value, language=root.language)
 
@@ -410,7 +411,7 @@ class AST:
         return _interface.dispatch(AST.replace.__name__, root, pt, value)
 
     @staticmethod
-    def insert(root: "AST", pt: "AST", value: LiteralOrAST) -> "AST":
+    def insert(root: "AST", pt: PathOrAST, value: LiteralOrAST) -> "AST":
         """Return a new root with value inserted at pt."""
         value = AST._ensure_ast(value, language=root.language)
 
@@ -506,9 +507,9 @@ class AST:
             return AST.from_string(str(value), deepest=True)
 
     @staticmethod
-    def _root_mutation_check(root: "AST", pt: "AST") -> None:
+    def _root_mutation_check(root: "AST", pt: PathOrAST) -> None:
         """Sanity check to ensure we are not mutating the root node directly."""
-        assert root != pt, "Cannot mutate the root node of an AST."
+        assert pt and root != pt, "Cannot mutate the root node of an AST."
 
 
 # Tree-sitter interface process management
