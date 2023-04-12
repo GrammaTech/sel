@@ -436,46 +436,67 @@ int main () {
       (symbol-table endl)
       (get-declaration-ast :variable endl))))
 
-(define-node-class incremental-unit (cpp-translation-unit)
-  ;; NB There is no initarg arg as the slot should not be copied.
-  ((symbol-table-out)))
-
-(defmethod symbol-table ((ast incremental-unit) &optional in)
-  (declare (ignore in))
-  (let ((result (call-next-method)))
-    (unless (slot-boundp ast 'symbol-table-out)
-      (setf (slot-value ast 'symbol-table-out) result))
-    (is (eql result (slot-value ast 'symbol-table-out)))
-    result))
-
 (deftest test-incremental-symbol-table ()
-  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
-         (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
-         (project (is (from-file (make 'cpp-project) project-dir)))
-         (file (lookup project "my_program.cc"))
-         (ast (find-if (of-type 'cpp-call-expression) file)))
-    (iter (for node in-tree (genome project))
-          (when (typep node 'cpp-translation-unit)
-            (change-class node 'incremental-unit)))
-    ;; Compute and cache symbol table. This would only fail if symbol
-    ;; tables were being computed more than once for the same file.
-    (finishes
-     (with-attr-table project
-       (symbol-table ast)))
-    (let ((units (collect-if (of-type 'incremental-unit) project)))
-      (is (every (op (slot-boundp _ 'symbol-table-out)) units)))
-    (let* ((new-ast (cpp* "mc.do_something_else()"))
-           (new-project
-            (with project ast new-ast))
-           (new-file (lookup new-project "my_program.cc")))
-      (is (not (eql new-project project)))
-      ;; The root has been copied.
-      (is (not (eql (only-elt (dir:contents file))
-                    (only-elt (dir:contents new-file)))))
-      (let ((units (collect-if (of-type 'incremental-unit) new-project)))
-        (is (= 3 (count-if (op (slot-boundp _ 'symbol-table-out)) units)))
-        (is (= 1 (count-if-not (op (slot-boundp _ 'symbol-table-out)) units))))
-      ;; This passes if no symbol tables needs to be recomputed on
-      ;; unchanged files.
-      (with-attr-table new-project
-        (symbol-table new-ast)))))
+  (labels ((file-root (file-ast)
+             (only-elt (dir:contents file-ast)))
+           (symbol-table-alist (current-project &optional old-project)
+             (if old-project
+                 (with-attr-table old-project
+                   (symbol-table-alist current-project))
+                 (with-attr-table current-project
+                   (iter (for file in (collect-if (of-type 'dir:file-ast) current-project))
+                         (collect (cons (namestring (dir:full-pathname file))
+                                        (symbol-table (file-root file))))))))
+           (aget* (name alist)
+             (let ((result (aget name alist :test #'equal)))
+               (is result)
+               result)))
+    (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+           (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
+           (project (is (from-file (make 'cpp-project) project-dir)))
+           (cc-file (lookup project "my_program.cc"))
+           (cc-ast (find-if (of-type 'cpp-call-expression) cc-file))
+           (hpp-file (lookup project "my_class.h"))
+           (hpp-ast (find-if (of-type 'cpp-field-declaration) hpp-file)))
+      ;; Test changing the .cc file.
+      (let* ((new-ast (cpp* "mc.do_something_else()"))
+             (new-project
+              (with project cc-ast new-ast))
+             (new-file (lookup new-project "my_program.cc"))
+             (old-symbol-table-alist
+              (symbol-table-alist project))
+             (new-symbol-table-alist
+              (symbol-table-alist new-project project)))
+        (is (not (eql new-project project))
+            "The project must have changed")
+        (is (not (eql (file-root cc-file)
+                      (file-root new-file)))
+            "The cc file must have changed")
+        (dolist (file '("my_class.cc" "my_class.h"))
+          (is (eql (aget* file old-symbol-table-alist)
+                   (aget* file new-symbol-table-alist))
+              "Unchanged files must have the same symbol table"))
+        (is (not (eql (aget* "my_program.cc" old-symbol-table-alist)
+                      (aget* "my_program.cc" new-symbol-table-alist)))
+            "Changed files must have new symbol tables"))
+      ;; Test changing the header file.
+      (let* ((new-ast (tree-copy hpp-ast))
+             (id (find-if (of-type 'cpp-field-identifier) new-ast))
+             (new-ast (with new-ast
+                            id
+                            (copy id :text "do_something_else")))
+             (new-project (with project hpp-ast new-ast))
+             (new-file (lookup new-project "my_class.h"))
+             (old-symbol-table-alist
+              (symbol-table-alist project))
+             (new-symbol-table-alist
+              (symbol-table-alist new-project project)))
+        (is (not (eql new-project project))
+            "The project must have changed")
+        (is (not (eql (file-root hpp-file)
+                      (file-root new-file)))
+            "The header file must have changed")
+        (dolist (file '("my_class.cc" "my_class.h" "my_program.cc"))
+          (is (not (eql (aget* file old-symbol-table-alist)
+                        (aget* file new-symbol-table-alist)))
+              "Changed files and dependents must have new symbol tables"))))))
