@@ -150,6 +150,7 @@ dependent-trace-db:
       --context=$CI_PROJECT_DIR/
       --dockerfile=$CI_PROJECT_DIR/Dockerfile
       --destination=$DESTINATION
+      --destination=$DESTINATION:r$(date '+%F')
   only:
     - schedules
 
