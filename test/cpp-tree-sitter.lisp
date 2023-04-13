@@ -1793,6 +1793,20 @@ Unit getUnit(Distance& d) {
                                              cpp))))
            'cpp-enum-specifier)))))
 
+(deftest test-template-parameters-as-type-declaration ()
+  "Test that template type parameters are treated as type declarations."
+  (let* ((cpp (from-string 'cpp "template <typename T>
+T plus (T x, T y) {
+  return x+y;
+}"))
+         (x (lastcar (collect-if (op (source-text= "x" _))
+                                 cpp))))
+    (with-attr-table cpp
+      (let ((x-type (infer-type x)))
+        (is (source-text= x-type "T"))
+        (is (typep (get-declaration-ast :type (infer-type x))
+                   'cpp-type-parameter-declaration))))))
+
 
 ;;; Conversion tests
 

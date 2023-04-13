@@ -833,6 +833,13 @@ to look it up as `x::z' or just `z'."
 (defmethod outer-declarations ((ast cpp-alias-declaration))
   (values (list (cpp-name ast)) '(:type)))
 
+(defmethod inner-declarations ((ast cpp-template-declaration))
+  (let* ((params (children (cpp-parameters ast)))
+         (types (filter (of-type 'cpp-type-identifier)
+                        (mappend #'children params))))
+    (values types
+            (mapcar (constantly :type) types))))
+
 (defmethod field-table ((typedef cpp-type-definition))
   "Given a typedef for a template type, recursively resolve the
 templated definition's field table."

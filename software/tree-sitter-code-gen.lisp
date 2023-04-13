@@ -556,7 +556,7 @@ for the language.")
         c-union-tag-specifier))
       (:cpp
        (:definition-ast cpp-class-specifier cpp-namespace-definition)
-       (:type-declaration-ast cpp-class-specifier cpp-alias-declaration)
+       (:type-declaration-ast cpp-class-specifier cpp-alias-declaration cpp-type-parameter-declaration)
        (:composite-type-ast cpp-class-specifier)
        (:namespace-declaration-ast cpp-namespace-definition)
        (:string-ast cpp-raw-string-literal)
