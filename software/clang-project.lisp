@@ -42,17 +42,26 @@
   ;;         (obj)
   ;;         "Clang-project requires a compilation-database ~
   ;;          or a build-command and 'bear' in your PATH")
-  (let ((comp-db-path (project-relative-pathname obj "compile_commands.json")))
-    (multiple-value-bind (stdout stderr errno)
-        (shell "cd ~a && bear ~a" (project-dir obj) (build-command obj))
-      (declare (ignorable errno))
-      (unless (probe-file comp-db-path)
-        (error "Failed to create compilation database for project.~%~
+  (labels ((bear-2-p ()
+             "Return T if the version of bear is 2."
+             (string^= "bear 2" (shell "bear --version"))))
+    (let ((comp-db-path (project-relative-pathname obj "compile_commands.json")))
+      (multiple-value-bind (stdout stderr errno)
+          (shell "cd ~a && bear ~a ~a"
+                 (project-dir obj)
+                 ;; NOTE: calling convention for bear changes after version 2.
+                 (if (bear-2-p)
+                     ""
+                     "--")
+                 (build-command obj))
+        (declare (ignorable errno))
+        (unless (probe-file comp-db-path)
+          (error "Failed to create compilation database for project.~%~
                    build command: ~a~%~
                    stdout: ~a~%~
                    stderr: ~a~%"
-               (build-command obj)
-               stdout stderr)))))
+                 (build-command obj)
+                 stdout stderr))))))
 
 (defmethod collect-evolve-files ((clang-project clang-project))
   (labels ((get-file-path (entry)
