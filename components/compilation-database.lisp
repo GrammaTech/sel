@@ -177,7 +177,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
     :documentation "The compile command, as one string.")
    (output
     :type string
-    :initarg output
+    :initarg :output
     :reader command-output
     :documentation "The output file.")
    (flags
