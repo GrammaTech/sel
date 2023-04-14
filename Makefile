@@ -90,10 +90,6 @@ LISP_DEPS =				\
 	$(wildcard software/*.lisp)	\
 	$(wildcard python/lisp/*.lisp)
 
-TEST_ARTIFACTS = \
-	test/etc/gcd/gcd \
-	test/etc/gcd/gcd.s
-
 # FIXME: move test binaries into test/bin or bin/test/
 # Extend cl.mk to have a separate build target for test binaries
 BINS = rest-server dump-store tree-sitter-interface tree-sitter-py-generator test-parse \
