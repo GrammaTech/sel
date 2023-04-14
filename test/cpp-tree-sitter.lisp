@@ -1807,6 +1807,58 @@ T plus (T x, T y) {
         (is (typep (get-declaration-ast :type (infer-type x))
                    'cpp-type-parameter-declaration))))))
 
+(deftest test-extract-template-type-parameters ()
+  ;; See https://en.cppreference.com/w/cpp/language/template_parameters.
+  (let ((alist
+         '(("template<auto n>
+struct B { /* ... */ };")
+           ("template<auto...>
+struct C {};")
+           ("template<A a>
+void f();")
+           ("template<class T>
+class My_vector { /* ... */ };"
+            "T")
+           ("template<class T = void>
+struct My_op_functor { /* ... */ };"
+            "T")
+           ("template<typename... Ts>
+class My_tuple { /* ... */ };"
+            "Ts")
+           ("template<class>
+class My_vector;")
+           ("template<class = void>
+struct My_op_functor;")
+           ("template<typename...>
+class My_tuple;")
+           ("template<typename T, typename U>
+concept C3 = true;"
+            "T" "U")
+
+           ("template<typename K, typename V, template<typename> typename C = my_array>
+class Map
+{
+    C<K> key;
+    C<V> value;
+};"
+            "K" "V" "C")
+           ("template<class T, int N>
+class Y;"
+            "T"))))
+    (iter (for (template-string . types) in alist)
+          (let ((template
+                 (find-if (of-type 'cpp-template-declaration)
+                          (convert 'cpp-ast template-string))))
+            (is (typep template 'cpp-template-declaration)
+                "No template in:~%~a" template-string)
+            (let ((param-types
+                   (sel/sw/ts::template-parameter-types
+                    template)))
+              (is (set-equal types param-types
+                             :test #'source-text=)
+                  "Template defines ~a but got ~a:~%~a"
+                  types param-types template-string))))))
+
 
 ;;; Conversion tests
 

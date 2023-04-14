@@ -833,10 +833,25 @@ to look it up as `x::z' or just `z'."
 (defmethod outer-declarations ((ast cpp-alias-declaration))
   (values (list (cpp-name ast)) '(:type)))
 
+(defun template-parameter-types (template)
+  (let ((params (cpp-parameters template)))
+    (mappend (named-lambda param-name (param)
+               (typecase param
+                 (cpp-type-parameter-declaration
+                  (when-let (name (first (direct-children param)) )
+                    (list name)))
+                 (cpp-optional-type-parameter-declaration
+                  (when-let (name (cpp-name param))
+                    (list name)))
+                 (cpp-variadic-type-parameter-declaration
+                  (when-let (name (first (direct-children param)))
+                    (list name)))
+                 (cpp-template-template-parameter-declaration
+                  (mappend #'param-name (children param)))))
+             (children params))))
+
 (defmethod inner-declarations ((ast cpp-template-declaration))
-  (let* ((params (children (cpp-parameters ast)))
-         (types (filter (of-type 'cpp-type-identifier)
-                        (mappend #'children params))))
+  (let* ((types (template-parameter-types ast)))
     (values types
             (mapcar (constantly :type) types))))
 
