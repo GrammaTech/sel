@@ -109,12 +109,6 @@ LONG_BIN_TESTS =		\
 
 include .cl-make/cl.mk
 
-test/etc/gcd/gcd: test/etc/gcd/gcd.c
-	$(CC) $< -o $@
-
-test/etc/gcd/gcd.s: test/etc/gcd/gcd.c
-	$(CC) $< -S -masm=intel -o $@
-
 bin/limit: limit.c
 	$(CC) $< -o $@
 
