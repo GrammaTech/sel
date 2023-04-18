@@ -340,12 +340,12 @@
                    2 0 javascript-left)))
       (let ((*soft* (with *soft* path
                           (make-instance 'javascript-identifier
-                                         :text (list "RIGHT")))))
+                                         :text "RIGHT"))))
         (is (typep (@ *soft* path) 'javascript-identifier))
         (is (equalp "RIGHT" (source-text (@ *soft* path)))))
       (let ((*soft* (with *soft* path
                           (make-instance 'javascript-identifier
-                                         :text (list "LEFT")))))
+                                         :text "LEFT"))))
         (is (typep (@ *soft* path) 'javascript-identifier))
         (is (equalp "LEFT" (source-text (@ *soft* path))))))))
 
