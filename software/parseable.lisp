@@ -606,6 +606,7 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
 (defgeneric source-text (ast &key stream &allow-other-keys)
   (:documentation "Return the source code corresponding to an AST,
 optionally writing to STREAM.")
+
   (:method :around ((ast t) &rest args &key stream)
     (let (*print-pretty*)
       (with-string (s stream)

@@ -2958,12 +2958,18 @@ of an AST."))
     ()
     (:documentation "A mixin for computed text ASTs."))
 
- (defmethod source-text :around ((ast computed-text) &key stream)
-   (if (no stream)
-       (if (no (text ast))
-           (call-next-method)
-           (text ast))
-       (call-next-method)))
+ (defmethod source-text :around ((ast computed-text) &key stream (trim nil trim-supplied?))
+   (declare (ignore trim))
+   (if-let (text
+            (and
+             ;; Not invoked recursively.
+             (no stream)
+             ;; Not computing indentation.
+             (not trim-supplied?)
+             ;; Has text.
+             (text ast)))
+     text
+     (call-next-method)))
 
   (defclass text-fragment (tree-sitter-ast)
     ((text
