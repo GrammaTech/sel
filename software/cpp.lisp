@@ -1674,6 +1674,11 @@ available to use at any point in a C++ AST.")
         (qualify-declared-ast-name type-name))
       (call-next-method)))
 
+(defmethod inner-declarations ((fn cpp-lambda-expression))
+  (let ((result (call-next-method)))
+    (values result
+            (mapcar (constantly :variable) result))))
+
 (defmethod outer-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (outer-declarations node)))
     (convert 'fset:map
