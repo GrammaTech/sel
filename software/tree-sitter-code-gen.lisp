@@ -2958,6 +2958,13 @@ of an AST."))
     ()
     (:documentation "A mixin for computed text ASTs."))
 
+ (defmethod source-text :around ((ast computed-text) &key stream)
+   (if (no stream)
+       (if (no (text ast))
+           (call-next-method)
+           (text ast))
+       (call-next-method)))
+
   (defclass text-fragment (tree-sitter-ast)
     ((text
       :accessor text

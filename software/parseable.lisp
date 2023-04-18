@@ -610,14 +610,31 @@ optionally writing to STREAM.")
     (let (*print-pretty*)
       (with-string (s stream)
         (apply #'call-next-method ast :stream s (plist-drop :stream args)))))
+
   (:method ((ast null) &key stream)
     (write-string "" stream))
+  (:method :around ((ast null) &key stream)
+    (if (no stream) ""
+        (call-next-method)))
+
   (:method ((str string) &key stream)
     (write-string str stream))
+  (:method :around ((str string) &key stream)
+    (if (no stream) str
+        (write-string str stream)))
+
   (:method ((c character) &rest args &key)
     (apply #'source-text (string c) args))
+  (:method :around ((c character) &key stream)
+    (if (no stream) (string c)
+        (call-next-method)))
+
   (:method ((s symbol) &rest args &key)
     (apply #'source-text (string s) args))
+  (:method :around ((s symbol) &key stream)
+    (if (no stream) (string s)
+        (call-next-method)))
+
   (:method ((c conflict-ast) &rest args &key stream)
     (format stream "<")
     (iter (for e on (conflict-ast-child-alist c))
