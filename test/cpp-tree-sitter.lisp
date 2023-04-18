@@ -1014,6 +1014,11 @@ Distance::Unit y;")))
                   (lastcar (collect-if (op (source-text= "a" _)) cpp)))
                  'cpp-parameter-declaration)))))
 
+(deftest test-lambda/no-parameters ()
+  (let ((cpp (cpp* "[] {}")))
+    (is (typep cpp 'cpp-lambda-expression))
+    (is (null (function-parameters cpp)))))
+
 
 ;;; Parsing tests
 

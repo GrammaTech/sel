@@ -707,7 +707,8 @@ to look it up as `x::z' or just `z'."
     (otherwise (call-next-method))))
 
 (defmethod function-parameters ((fn cpp-lambda-expression))
-  (cpp-parameters (cpp-declarator fn)))
+  (when-let (d (cpp-declarator fn))
+    (cpp-parameters d)))
 
 (defmethod definition-name-ast ((field cpp-field-declaration))
   (match field
