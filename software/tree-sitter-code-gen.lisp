@@ -2959,6 +2959,7 @@ of an AST."))
     (:documentation "A mixin for computed text ASTs."))
 
  (defmethod source-text :around ((ast computed-text) &key stream (trim nil trim-supplied?))
+   "Avoid needless copying when calling `source-text' on a `computed-text' ast."
    (declare (ignore trim))
    (if-let (text
             (and
