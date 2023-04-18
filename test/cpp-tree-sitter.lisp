@@ -1006,6 +1006,14 @@ Distance::Unit y;")))
         (is (typep (get-declaration-ast :type unit)
                    'cpp-enum-specifier))))))
 
+(deftest test-lambda-bindings ()
+  (let ((cpp (cpp* "[](auto a, auto&& b) { return a < b; }")))
+    (with-attr-table cpp
+      (is (typep (get-declaration-ast
+                  :variable
+                  (lastcar (collect-if (op (source-text= "a" _)) cpp)))
+                 'cpp-parameter-declaration)))))
+
 
 ;;; Parsing tests
 
