@@ -2961,16 +2961,14 @@ of an AST."))
  (defmethod source-text :around ((ast computed-text) &key stream (trim nil trim-supplied?))
    "Avoid needless copying when calling `source-text' on a `computed-text' ast."
    (declare (ignore trim))
-   (if-let (text
-            (and
-             ;; Not invoked recursively.
-             (no stream)
-             ;; Not computing indentation.
-             (not trim-supplied?)
-             ;; Has text.
-             (text ast)))
-     text
-     (call-next-method)))
+   (or (and
+        ;; Not invoked recursively.
+        (no stream)
+        ;; Not computing indentation.
+        (not trim-supplied?)
+        ;; Has text.
+        (text ast))
+       (call-next-method)))
 
   (defclass text-fragment (tree-sitter-ast)
     ((text
