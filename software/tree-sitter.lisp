@@ -188,7 +188,6 @@
 ;;;
 ;;; Clone the following repositories to the local-projects directory for quicklisp:
 ;;; - @url{https://github.com/death/cl-tree-sitter}
-;;; - @url{https://github.com/death/cffi}
 ;;;
 ;;; @node Structured Text, Templates, cl-tree-sitter Setup, Source Code with @code{tree-sitter}
 ;;; @subsection Structured Text
