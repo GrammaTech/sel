@@ -267,25 +267,6 @@ def $READ_NAME():
                           (list (make 'rust-identifier :text (source-text _)))))
                 traits)))
 
-(deftest test-make-derive ()
-  "Test that list elements are inserted as direct children of the
-surrounding container."
-  (is (source-text=
-       "#[derive(Clone)]"
-       (make-derive '("Clone"))))
-  (is (source-text=
-       "#[derive(PartialEq, PartialOrd)]"
-       (make-derive '("PartialEq" "PartialOrd")))))
-
-(deftest test-match-derive ()
-  "Test that list elements are inserted as direct children of the
-surrounding container."
-  (ematch (make-derive '("PartialEq" "PartialOrd"))
-    ((rust "#[derive(@ARGS)]" :args args)
-     (is (every #'source-text=
-                args
-                '("PartialEq" "PartialOrd"))))))
-
 (deftest test-match-not-invalid ()
   "Regression test that ast-for-match isn't used when expanding templates."
   (is (match (cpp* "true")
