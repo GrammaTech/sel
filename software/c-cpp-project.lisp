@@ -646,7 +646,9 @@ include files in all directories of the project."
   #+debug-fstfi
   (format t "Enter find-symbol-table-from-include on ~a~%"
           (source-text include-ast))
-  (labels ((relativize (path)
+  (labels ((symbol-table* (header in)
+             (symbol-table (genome header) in))
+           (relativize (path)
              (if (symbolp path) path
                  (pathname-relativize (project-dir project)
                                       path)))
@@ -675,7 +677,7 @@ include files in all directories of the project."
                (t
                 (update-header-graph software)
                 (let ((*include-file-stack* (cons software *include-file-stack*)))
-                  (symbol-table software in))))))
+                  (symbol-table* software in))))))
     (let* ((file (find-enclosing '(or file-ast synthetic-header)
                                  project include-ast))
            (*include-file-stack*

@@ -8,6 +8,8 @@
         :software-evolution-library/software/tree-sitter-general
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable)
+  (:import-from :functional-trees/attrs
+                :subroot)
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:compdb-project

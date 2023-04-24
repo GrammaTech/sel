@@ -3038,7 +3038,7 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass ecma-comment (comment-ast) ()
     (:documentation "Mix-in for comments in dialects of ECMAScript."))
 
-  (defclass root-ast (ast) ()
+ (defclass root-ast (ast subroot) ()
     (:documentation "Mix-in for AST classes which are roots."))
 
   (defclass statement-ast (ast) ()

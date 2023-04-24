@@ -11,7 +11,8 @@
   (:import-from :functional-trees
    :path-later-p :slot-specifier-slot :slot-specifier-class
    :slot-specifier)
-  (:import-from :functional-trees/attrs :with-attr-table)
+  (:import-from :functional-trees/attrs
+                :attrs-root :with-attr-table)
   (:local-nicknames (:tg :trivial-garbage)
                     (:attrs :functional-trees/attrs))
   (:export ;; ASTs
@@ -128,7 +129,7 @@
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software parseable (software file)
+(define-software parseable (attrs-root software file)
   ((genome   :initarg :genome :accessor genome :initform ""
              :documentation "Lazily parsed AST representation of the code."))
   (:documentation "Parsed AST tree software representation."))
@@ -163,7 +164,7 @@ whether they inherit from the functional trees library."))
                 :documentation "A cached hash." :type (or null hash-type)))
   (:documentation "Mixin for stored-hash slot"))
 
-(defclass functional-tree-ast (node ast oid-object stored-hash)
+(defclass functional-tree-ast (node ast oid-object stored-hash attrs-root)
   ((annotations :initarg :annotations :initform nil :reader ast-annotations
                 :documentation "A-list of annotations." :type list))
   (:documentation "Base class for SEL functional tree ASTs.
@@ -1991,13 +1992,17 @@ represented by ALIAS-STRING.")
 ;;; Attributes
 (defmethod apply-mutation :around ((obj parseable) mutation)
   ;; Ensure an attribute table is available.
-  (with-attr-table (genome obj)
-    (call-next-method)))
+  (if (typep (genome obj) 'attrs-root)
+      (with-attr-table (genome obj)
+        (call-next-method))
+      (call-next-method)))
 
 (defmethod mutate :around ((obj parseable))
   ;; Ensure an attribute table is available.
-  (with-attr-table (genome obj)
-    (call-next-method)))
+  (if (typep (genome obj) 'attrs-root)
+      (with-attr-table (genome obj)
+        (call-next-method))
+      (call-next-method)))
 
 
 ;;; Logging

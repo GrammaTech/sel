@@ -5,7 +5,8 @@
         :software-evolution-library
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter-base
-        :software-evolution-library/utility/range))
+        :software-evolution-library/utility/range)
+  (:import-from :functional-trees/attrs))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -28,7 +29,8 @@
     functional-trees:descendant-map
     fset:size
     functional-trees:child-slots
-    functional-trees:child-slot-specifiers)
+    functional-trees:child-slot-specifiers
+    ft/attrs::subroot-index)
   "List of slots to exclude when converting an AST to a list expression.")
 
 (defparameter *match-refinement-functions* nil)

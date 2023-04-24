@@ -439,17 +439,28 @@ int main () {
 (deftest test-incremental-symbol-table ()
   (labels ((file-root (file-ast)
              (only-elt (dir:contents file-ast)))
-           (symbol-table-alist (current-project &optional old-project)
-             (if old-project
-                 (with-attr-table old-project
-                   (symbol-table-alist current-project))
-                 (with-attr-table current-project
-                   (iter (for file in (collect-if (of-type 'dir:file-ast) current-project))
-                         (collect (cons (namestring (dir:full-pathname file))
-                                        (symbol-table (file-root file))))))))
+           (symbol-table-alist (project)
+             (with-attr-table project
+               (iter (for file in (collect-if (of-type 'dir:file-ast) project))
+                     (collect (cons (namestring (dir:full-pathname file))
+                                    (symbol-table (file-root file)))))))
+           (compare-projects (old-project new-project &key unchanged changed)
+             (let ((old-symbol-table-alist (symbol-table-alist old-project))
+                   (new-symbol-table-alist (symbol-table-alist new-project)))
+               (dolist (file unchanged)
+                 (let ((v1 (aget* file old-symbol-table-alist))
+                       (v2 (aget* file new-symbol-table-alist)))
+                   (is (eql v1 v2)
+                       "Unchanged files must have the same symbol table: ~a" file)))
+               (dolist (file changed)
+                 (let ((v1 (aget* file old-symbol-table-alist))
+                       (v2 (aget* file new-symbol-table-alist)))
+                   (is (not (eql v1 v2))
+                       "Changed files/dependents must have new symbol tables: ~a" file)))))
            (aget* (name alist)
              (let ((result (aget name alist :test #'equal)))
                (is result)
+               (is (not (empty? result)))
                result)))
     (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
            (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
@@ -458,45 +469,40 @@ int main () {
            (cc-ast (find-if (of-type 'cpp-call-expression) cc-file))
            (hpp-file (lookup project "my_class.h"))
            (hpp-ast (find-if (of-type 'cpp-field-declaration) hpp-file)))
+      ;; Compute before copying.
+      (symbol-table-alist project)
       ;; Test changing the .cc file.
       (let* ((new-ast (cpp* "mc.do_something_else()"))
              (new-project
               (with project cc-ast new-ast))
-             (new-file (lookup new-project "my_program.cc"))
-             (old-symbol-table-alist
-              (symbol-table-alist project))
-             (new-symbol-table-alist
-              (symbol-table-alist new-project project)))
+             (new-file (lookup new-project "my_program.cc")))
         (is (not (eql new-project project))
             "The project must have changed")
         (is (not (eql (file-root cc-file)
                       (file-root new-file)))
             "The cc file must have changed")
-        (dolist (file '("my_class.cc" "my_class.h"))
-          (is (eql (aget* file old-symbol-table-alist)
-                   (aget* file new-symbol-table-alist))
-              "Unchanged files must have the same symbol table"))
-        (is (not (eql (aget* "my_program.cc" old-symbol-table-alist)
-                      (aget* "my_program.cc" new-symbol-table-alist)))
-            "Changed files must have new symbol tables"))
+        (is (eql (file-root hpp-file)
+                 (file-root (lookup new-project (ast-path project hpp-file))))
+            "The hpp file must not have changed")
+        (compare-projects project new-project
+                          :unchanged '("my_class.cc" "my_class.h")
+                          :changed '("my_program.cc")))
       ;; Test changing the header file.
       (let* ((new-ast (tree-copy hpp-ast))
              (id (find-if (of-type 'cpp-field-identifier) new-ast))
-             (new-ast (with new-ast
-                            id
-                            (copy id :text "do_something_else")))
-             (new-project (with project hpp-ast new-ast))
-             (new-file (lookup new-project "my_class.h"))
-             (old-symbol-table-alist
-              (symbol-table-alist project))
-             (new-symbol-table-alist
-              (symbol-table-alist new-project project)))
+             (new-ast
+              (with new-ast
+                    id
+                    (copy id :text "do_something_else")))
+             (new-project
+              (with project hpp-ast new-ast))
+             (new-file (lookup new-project "my_class.h")))
         (is (not (eql new-project project))
             "The project must have changed")
-        (is (not (eql (file-root hpp-file)
-                      (file-root new-file)))
+        (is (not (eql hpp-file
+                      new-file))
             "The header file must have changed")
-        (dolist (file '("my_class.cc" "my_class.h" "my_program.cc"))
-          (is (not (eql (aget* file old-symbol-table-alist)
-                        (aget* file new-symbol-table-alist)))
-              "Changed files and dependents must have new symbol tables"))))))
+        ;; (is (ft/attrs::reachable? new-project new-file))
+        ;; (is (not (ft/attrs::reachable? new-project hpp-file)))
+        (compare-projects project new-project
+                          :changed '("my_class.cc" "my_class.h" "my_program.cc"))))))

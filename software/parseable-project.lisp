@@ -9,11 +9,12 @@
         :software-evolution-library
         :software-evolution-library/software/parseable
         :software-evolution-library/software/project)
+  (:import-from :functional-trees/attrs :attrs-root)
   (:export :parseable-project))
 (in-package :software-evolution-library/software/parseable-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software parseable-project (project) ()
+(define-software parseable-project (project attrs-root) ()
   (:documentation "Abstract project specialization for parseable software
 objects."))
 
