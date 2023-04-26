@@ -176,7 +176,7 @@ the trailing characters of the symbol string SYMNAME."
                           ("LR\"" . "long-raw-string-double-quote")
                           ("u8R\"" . "utf-8-raw-string-double-quote")
                           ("uR\"" . "utf-16-raw-string-double-quote")
-                          ("UR\"" . "utf-32-raw-string-double-quote")
+                          ("uR\"-terminal" . "utf-16-raw-string-double-quote-terminal")
                           ("--unaligned" . "underscore-unaligned")
                           (".*" . "pointer-to-member-dot")
                           ("->*" . "pointer-to-member-arrow")
