@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Install required system packages
 RUN export DEBIAN_FRONTEND=noninteractive
