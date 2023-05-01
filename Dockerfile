@@ -9,7 +9,7 @@ RUN apt-get -y --fix-missing update \
     clang clang-format clang-tidy bear astyle \
     sbcl emacs-nox elpa-paredit jq \
     pkg-config libboost-iostreams-dev libboost-system-dev libboost-serialization-dev \
-    locales ca-certificates
+    locales ca-certificates libffi-dev file
 ENV LC_ALL=C.UTF-8 LANG=C.UTF-8
 
 # Install NPM
