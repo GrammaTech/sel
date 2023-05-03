@@ -5,6 +5,7 @@
         :software-evolution-library
         :software-evolution-library/software/simple
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/tree-sitter-general
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable)
   (:local-nicknames
@@ -156,8 +157,7 @@
 (defmethod with ((project directory-project)
                  (old parseable)
                  &optional new)
-  "When updating a directory project, update both the AST and the
-evolve-files."
+  "When updating an evolve-file, update the genome too."
   (unless (typep new 'parseable)
     (return-from with (call-next-method)))
   (let ((old-root (genome old))
@@ -180,6 +180,89 @@ evolve-files."
   (with project
         (aget old (evolve-files project) :test #'equal)
         new))
+
+(defun sync-changed-file! (new-project old-project changed-file)
+  "Update NEW-PROJECT's evolve-files with CHANGED-FILE."
+  (prog1 new-project
+    (and-let* (((typep changed-file 'file-ast))
+               (enclosing-file-path
+                (ast-path new-project changed-file))
+               (orig-file
+                (lookup old-project enclosing-file-path))
+               ((typep orig-file 'file-ast))
+               ((equal (full-pathname orig-file)
+                       (full-pathname changed-file)))
+               (old-genome (only-elt (contents orig-file)))
+               (new-genome (only-elt (contents changed-file)))
+               ((not (eql old-genome new-genome)))
+               (old-entry
+                (rassoc old-genome
+                        (evolve-files new-project)
+                        :key #'genome))
+               (new-entry
+                (cons (car old-entry)
+                      (copy (cdr old-entry)
+                            :genome new-genome))))
+      (setf (evolve-files new-project)
+            (substitute new-entry
+                        old-entry
+                        (evolve-files new-project)
+                        :count 1)))))
+
+(defmethod with :around ((project directory-project)
+                         old &optional new)
+  "When updating the genome, update the evolve files too."
+  (if (typep new 'ast)
+      (let* ((result (call-next-method))
+             (changed-file (find-enclosing 'file-ast result new)))
+        (sync-changed-file! result project changed-file))
+      (call-next-method)))
+
+(defmethod less :around ((project directory-project) (old ast) &optional val)
+  "When updating the genome, update the evolve files too."
+  (declare (ignore val))
+  (if-let* ((old-file (find-enclosing 'file-ast project old))
+            (result (call-next-method))
+            (changed-file (lookup result (ast-path project old-file))))
+    (sync-changed-file! result project changed-file)
+    (call-next-method)))
+
+(defmethod insert :around ((project directory-project) (path t) (value ast))
+  "When updating the genome, update the evolve files too."
+  (if-let* ((old-file (find-enclosing 'file-ast project (lookup project path)))
+            (result (call-next-method))
+            (changed-file (lookup result (ast-path project old-file))))
+    (sync-changed-file! result project changed-file)
+    (call-next-method)))
+
+(defmethod splice :around ((project directory-project) (path t) (values t))
+  "When updating the genome, update the evolve files too."
+  (if-let* ((old-file (find-enclosing 'file-ast project (lookup project path)))
+            (result (call-next-method))
+            (changed-file (lookup result (ast-path project old-file))))
+    (sync-changed-file! result project changed-file)
+    (call-next-method)))
+
+(defmethod mapcar :around (fn (project directory-project) &rest more)
+  "When updating the genome, update the evolve files too."
+  (fset::check-two-arguments more 'mapcar 'directory-project)
+  (let* ((result (call-next-method))
+         (old-files (collect-if (of-type 'file-ast) project))
+         (new-files (collect-if (of-type 'file-ast) result))
+         (changed-files
+          (set-difference new-files old-files
+                          :key (lambda (file)
+                                 (only-elt (contents file))))))
+    (reduce (lambda (new-project changed-file)
+              (sync-changed-file! new-project project changed-file))
+            changed-files
+            :initial-value result)))
+
+(defmethod mapcar (fn (project directory-project) &rest more)
+  "Override the method on projects in general, which operates on genomes."
+  (fset::check-two-arguments more 'mapcar 'directory-project)
+  (copy project
+        :genome (mapcar fn (genome project))))
 
 (defmethod from-file ((obj directory-project) path)
   (assert (probe-file path) (path) "~a does not exist." path)

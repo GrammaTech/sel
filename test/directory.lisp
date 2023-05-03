@@ -10,10 +10,12 @@
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/directory
    :software-evolution-library/software/javascript-project
+   :software-evolution-library/software/cpp-project
    :software-evolution-library/software/json)
   (:import-from :software-evolution-library/software/parseable
                 :source-text
-                :source-text=)
+                :source-text=
+                :ast-path)
   (:export :test-directory))
 (in-package :software-evolution-library/test/directory)
 (in-readtable :curry-compose-reader-macros)
@@ -116,6 +118,79 @@ module.exports = {
       (is (not (equal? *soft* v1)))
       (is (not (equal? *soft* v2)))
       (is (equal? (genome v1) (genome v2))))))
+
+(defmacro define-sync-test (name (&rest args) &body body)
+  `(deftest ,name ,args
+     (labels ((file-root (file-ast)
+                (only-elt (contents file-ast))))
+       (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+              (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
+              (project (is (from-file (make 'cpp-project) project-dir)))
+              (hpp-file (lookup project "my_class.h"))
+              (hpp-ast (find-if (of-type 'cpp-field-declaration) hpp-file)))
+         (declare (ignorable hpp-ast))
+         (flet ((test-sync (new-project new-file)
+                  (is (not (eql new-project project)))
+                  (is (not (eql hpp-file new-file)))
+                  (is (rassoc (file-root new-file)
+                              (evolve-files new-project)
+                              :key #'genome))))
+           ,@body)))))
+
+(define-sync-test test-update-evolve-files-with-genome/with ()
+  (let* ((new-ast (tree-copy hpp-ast))
+         (id (find-if (of-type 'cpp-field-identifier) new-ast))
+         (new-ast
+          (with new-ast
+                id
+                (copy id :text "do_something_else")))
+         (new-project
+          (with project hpp-ast new-ast))
+         (new-file (lookup new-project "my_class.h")))
+    (test-sync new-project new-file)))
+
+(define-sync-test test-update-evolve-files-with-genome/less ()
+  (let* ((new-project (less project hpp-ast))
+         (new-file (lookup new-project "my_class.h")))
+    (test-sync new-project new-file)))
+
+(define-sync-test test-update-evolve-files-with-genome/insert ()
+  ;; Insert
+  (let* ((new-project
+          (insert project
+                  (ast-path project
+                            (first (children
+                                    (is (find-enclosing
+                                         'cpp-translation-unit
+                                         project hpp-ast)))))
+                  (make 'cpp-identifier :text "new-id")))
+         (new-file (lookup new-project "my_class.h")))
+    (test-sync new-project new-file)))
+
+(define-sync-test test-update-evolve-files-with-genome/splice ()
+  ;; Splice
+  (let* ((new-project
+          (splice project
+                  (ast-path project
+                            (first (children
+                                    (is (find-enclosing
+                                         'cpp-translation-unit
+                                         project hpp-ast)))))
+                  (list
+                   (make 'cpp-identifier :text "new-id"))))
+         (new-file (lookup new-project "my_class.h")))
+    (test-sync new-project new-file)))
+
+(define-sync-test test-update-evolve-files-with-genome/mapcar ()
+  (let* ((new-project
+          (mapcar
+           (lambda (ast)
+             (and (typep ast 'identifier-ast)
+                  (source-text= ast "do_something")
+                  (copy ast :text "do_something_else")))
+           project))
+         (new-file (lookup new-project "my_class.h")))
+    (test-sync new-project new-file)))
 
 (deftest invoke-sequence-methods-on-project-genomes ()
   ;; This test checks that we're invoking sequence methods on project
