@@ -1,4 +1,4 @@
-// my_class.cpp
+// my_class.cc
 #include "my_class.h" // header in local directory
 #include <iostream> // header in standard library
 

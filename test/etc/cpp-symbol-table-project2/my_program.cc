@@ -1,4 +1,4 @@
-// my_program.cpp
+// my_program.cc
 #include "my_class.h"
 
 using namespace N;
