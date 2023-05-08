@@ -763,7 +763,11 @@ time."
             ((single path)
              ;; The parent is the top-level AST.
              (@ obj nil))
-            (t (@ obj (butlast path)))))))
+            (t (@ obj (butlast path))))))
+  (:method (obj (ast functional-tree-ast))
+    (multiple-value-bind (parents ast)
+        (rpath-to-node (convert 'node obj) ast)
+      (and ast (car parents)))))
 
 (defgeneric get-parent-asts (obj ast)
   (:documentation "Return the parent nodes of AST in OBJ including AST.
@@ -775,6 +779,10 @@ If OBJ is an AST, it is also included. ")
           (mapcar {lookup obj})           ; Lookup each prefix.
           (maplist #'reverse) (reverse)   ; Prefixes of path.
           (ast-path obj ast)))
+  (:method (obj (ast functional-tree-ast))
+    (multiple-value-bind (parents ast)
+        (rpath-to-node (convert 'node obj) ast)
+      (and ast (cons ast (butlast parents)))))
   (:method ((obj ast) (ast ast))
     (append1 (call-next-method) obj)))
 
