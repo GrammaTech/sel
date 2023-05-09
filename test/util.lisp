@@ -5,7 +5,6 @@
         :software-evolution-library/utility/debug
         :software-evolution-library/utility/range
         :stefil+
-        :software-evolution-library/software/elf-cisc
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
         :functional-trees/attrs)
@@ -61,7 +60,6 @@
            :soft
            :range
            :double-range
-           :gcd-elf
            :test-ast-source-ranges-for-files
            :test-single-ast-source-ranges
            :expand-wildcard
@@ -303,10 +301,6 @@ AST holding STMT is found.")
                          :genome (coerce (loop :for i :from 0 :to 9 :collect i)
                                          'vector))))
   (:teardown (setf *soft* nil)))
-
-(defixture gcd-elf
-  (:setup (setf *gcd* (from-file (make-instance 'elf-x86) (gcd-dir "gcd"))))
-  (:teardown (setf *gcd* nil)))
 
 (defun fully-every (fn seq &rest other-seqs)
   "A version of EVERY that also checks that all sequences are

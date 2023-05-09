@@ -40,7 +40,6 @@
         :software-evolution-library/test/declaration-type-databases
         :software-evolution-library/test/diff
         :software-evolution-library/test/directory
-        :software-evolution-library/test/elf
         :software-evolution-library/test/fix-compilation
         :software-evolution-library/test/go-tree-sitter
         :software-evolution-library/test/indentation

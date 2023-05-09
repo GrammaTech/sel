@@ -122,7 +122,7 @@ and evaluation of extant software.
 
 A common interface abstracts over multiple types of software objects
 (@pxref{Software Objects}) including abstract syntax trees parsed from
-source code, LLVM IR, compiled assembler, and linked ELF binaries.
+source code, LLVM IR, and compiled assembler.
 Mutation and evaluation methods (@pxref{Software Methods}) are
 implemented on top of this interface supporting automation of common
 software engineering tasks.  Support is included for Search Based
@@ -190,7 +190,6 @@ information about creating new software objects.
 @item C/C++ using Clang             @tab mature
 @item Common LISP                   @tab mature
 @item compiled assembler (ASM)      @tab mature
-@item linked ELF binaries           @tab mature
 @item LLVM IR                       @tab experimental
 @item CIL                           @tab experimental
 @item Forth                         @tab experimental
@@ -326,21 +325,21 @@ which are given in remainder of this section.
      |  intermediate   |      | Basic Vector |                      |    Parsed AST    |
      | representation  |      |   Genome     |-----+                |  representation  |
      +-----------------+      +--------------+     |                +------------------+
-                     |        |           |        |                                |
- +----------+        |        |           | +--------------+   +--------------+     |
- |   LLVM   |--------+    +------------+  | |    forth     |   |    clang     |-----+
- |----------|        |    |    ELF     |  | |--------------|   +--------------|     |
- | LLVM IR  |        |    |------------|  | | forth source |   | C/C++ source |     |
- +----------+        |    | Executable |  | +--------------+   +--------------+     |
- +----------------+  |    |  Linkable  |  |                                         |
- |       CIL      |--+    |   Format   |  |    +------------+  +--------------+     |
- |----------------|       +------------+  +----|    asm     |  | common-lisp  |-----+
- | C Intermediate |   +----------+   |         |------------|  +--------------+     |
- |    Language    |   | elf-risc |---+         |  assembly  |                       |
- +----------------+   +----------+   |         |    code    |  +--------------+     |
-                      +----------+   |         +------------+  | tree-sitter  |-----+
-                      | elf-cisc |---+               |         +--------------+
-                      +----------+                   |                |
+                     |                    |        |                                |
+ +----------+        |                    | +--------------+   +--------------+     |
+ |   LLVM   |--------+                    | |    forth     |   |    clang     |-----+
+ |----------|        |                    | |--------------|   +--------------|     |
+ | LLVM IR  |        |                    | | forth source |   | C/C++ source |     |
+ +----------+        |                    | +--------------+   +--------------+     |
+ +----------------+  |                    |                                         |
+ |       CIL      |--+                    |    +------------+  +--------------+     |
+ |----------------|                       +----|    asm     |  | common-lisp  |-----+
+ | C Intermediate |                            |------------|  +--------------+     |
+ |    Language    |                            |  assembly  |                       |
+ +----------------+                            |    code    |  +--------------+     |
+                                               +------------+  | tree-sitter  |-----+
+                                                     |         +--------------+
+                                                     |                |
                                         +------------------+   +----------------------+
                                         |    asm-range     |   | agda bash c c-sharp  |
                                         |------------------|   | cpp css go html java |
@@ -399,10 +398,6 @@ with an indicate of their relative maturity.
 @item compiled assembler (ASM)
       @tab @refapiclass{sel/sw/asm:asm}
       @tab mature
-
-@item linked ELF binaries
-      @tab @*  @refapiclass{sel/sw/elf-cisc:elf-cisc}
-      @tab mature (not recommended)
 
 @item LLVM IR
       @tab @refapiclass{sel/sw/llvm:llvm}

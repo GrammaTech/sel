@@ -4,7 +4,6 @@
         :cl-store
         :software-evolution-library
         :software-evolution-library/software/asm
-        :software-evolution-library/software/elf
         :software-evolution-library/software/cil
         :software-evolution-library/utility/debug)
   (:export :main))
@@ -92,8 +91,7 @@ Options:
             (from-file (make-instance
                            (case (intern (string-upcase (pathname-type *path*)))
                              (s 'asm)
-                             (c 'cil)
-                             (t 'elf)))
+                             (c 'cil)))
                        *path*)))
 
     (when (string= (pathname-type (pathname *path*)) "store")

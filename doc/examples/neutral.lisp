@@ -19,8 +19,7 @@ SCRIPT:
 ORIGINAL:
   A file holding the original program.  The software representation
   used to generate neutral variants will be guessed based on the type
-  of the ORIGINAL file.  Supported file types include ELF, assembler
-  and C source code.
+  of the ORIGINAL file.
 
 Options:
  -h,--help ------------- print this help message and exit
@@ -52,8 +51,7 @@ Options:
          ;; guess type from path
          (type (case (intern (string-upcase (pathname-type path)))
                  (s 'asm)
-                 (c 'cil)
-                 (t 'elf-cisc)))
+                 (c 'cil)))
          (num 256) (steps 16) keep
          (res-dir "neutral-variants")
          orig previous collected linker flags)
