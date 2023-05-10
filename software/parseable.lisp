@@ -133,6 +133,12 @@
              :documentation "Lazily parsed AST representation of the code."))
   (:documentation "Parsed AST tree software representation."))
 
+(defmethod convert ((to-type (eql 'node)) (p parseable) &key)
+  (genome p))
+
+(defmethod convert ((to-type (eql 'ast)) (p parseable) &key)
+  (genome p))
+
 
 ;;; AST data structure definitions.
 (defclass ast () ()
