@@ -140,6 +140,9 @@
 (defmethod convert ((to-type (eql 'ast)) (p parseable) &key)
   (genome p))
 
+(defmethod tree-copy ((p parseable))
+  (copy p :genome (tree-copy (genome p))))
+
 
 ;;; AST data structure definitions.
 (defclass ast () ()
