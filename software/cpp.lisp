@@ -40,11 +40,6 @@
     "()" "[]")
   "Names of operators that can occur in operator_name ASTs.")
 
-(defconst +cpp-implicitly-converting-arithmetic-operators+
-  '("+" "-" "*" "/" "%"
-    "<" ">" "<=" ">=" "==" "!="
-    "&" "^" "|"))
-
 (define-language-alias-mappings
     cpp ("c plus plus" "c++" "c-plus-plus" "cc" "cp" "cpp" "cxx" "hpp"))
 
@@ -1217,26 +1212,6 @@ types."
   (or (call-next-method)
       (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
-(defmethod infer-expression-type ((ast cpp-parenthesized-expression))
-  (infer-expression-type (only-elt (direct-children ast))))
-
-(defmethod infer-expression-type ((ast cpp-binary-expression))
-  (string-case (source-text (cpp-operator ast))
-    (#.+cpp-implicitly-converting-arithmetic-operators+
-     (let* ((left-type (infer-type (cpp-left ast)))
-            (right-type (infer-type (cpp-right ast)))
-            (left-type-descriptor (type-descriptor left-type))
-            (right-type-descriptor (type-descriptor right-type))
-            (conversion (usual-arithmetic-conversions
-                         left-type-descriptor
-                         right-type-descriptor)))
-       (econd
-        ((equal? conversion left-type-descriptor)
-         left-type)
-        ((equal? conversion right-type-descriptor)
-         right-type)
-        ((null conversion) nil))))))
-
 ;;; TODO Also use this to look up free variables (not just this) in a
 ;;; function.
 (defun friend-function-class (fn)
@@ -1256,27 +1231,6 @@ types."
     ;; Infer type of this for a friend function.
     (when-let (fn (find-enclosing 'cpp-function-definition obj ast))
       (friend-function-class fn))))
-
-(defun usual-arithmetic-conversions (type1 type2)
-  ;; TODO Sized integer types. Complex and imaginary types? Note that
-  ;; one thing we would want from type descriptors is to be able to
-  ;; have, e.g. an integer type descriptor that matches all integer
-  ;; types, so that individual rules don't have to be written for
-  ;; signed, signed, long, short ints to express the fact that they
-  ;; all get coerce to floats.
-  (match* ((string type1) (string type2))
-    ;; There's a long double.
-    (("long double" _) type1)
-    ((_ "long double") type2)
-    ;; There's a double.
-    (("double" "float") type1)
-    (("float" "double") type2)
-    (("double" "int") type1)
-    (("int" "double") type1)
-    ;; There's a float.
-    (("float" "int") type1)
-    (("int" "float") type2)
-    ((x y) (and (equal x y) type1))))
 
 (defgeneric qualified-name->list (ast)
   ;; TODO Qualified type and field identifiers.

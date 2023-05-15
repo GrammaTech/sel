@@ -23,6 +23,11 @@
 (create-tree-sitter-language-cache "cpp")
 ;;;===================================================
 
+(defconst +c/cpp-implicitly-converting-arithmetic-operators+
+  '("+" "-" "*" "/" "%"
+    "<" ">" "<=" ">=" "==" "!="
+    "&" "^" "|"))
+
 #+(or :tree-sitter-c :tree-sitter-cpp)
 (progn
 
@@ -675,6 +680,47 @@ appears as a return statement is assumed to be the type of the function."
 (defmethod infer-expression-type :around ((ast expression-ast))
   (or (call-next-method)
       (infer-type-as-c/cpp-expression (attrs-root*) ast)))
+
+(defun usual-arithmetic-conversions (type1 type2)
+  ;; TODO These rules have been taken from C++ and should be checked
+  ;; against C.
+
+  ;; TODO Sized integer types. Complex and imaginary types? Note that
+  ;; one thing we would want from type descriptors is to be able to
+  ;; have, e.g. an integer type descriptor that matches all integer
+  ;; types, so that individual rules don't have to be written for
+  ;; signed, signed, long, short ints to express the fact that they
+  ;; all get coerce to floats.
+  (match* ((string type1) (string type2))
+    ;; There's a long double.
+    (("long double" _) type1)
+    ((_ "long double") type2)
+    ;; There's a double.
+    (("double" "float") type1)
+    (("float" "double") type2)
+    (("double" "int") type1)
+    (("int" "double") type1)
+    ;; There's a float.
+    (("float" "int") type1)
+    (("int" "float") type2)
+    ((x y) (and (equal x y) type1))))
+
+(defmethod infer-expression-type ((ast c/cpp-binary-expression))
+  (string-case (source-text (c/cpp-operator ast))
+    (#.+c/cpp-implicitly-converting-arithmetic-operators+
+     (let* ((left-type (infer-type (c/cpp-left ast)))
+            (right-type (infer-type (c/cpp-right ast)))
+            (left-type-descriptor (type-descriptor left-type))
+            (right-type-descriptor (type-descriptor right-type))
+            (conversion (usual-arithmetic-conversions
+                         left-type-descriptor
+                         right-type-descriptor)))
+       (econd
+        ((equal? conversion left-type-descriptor)
+         left-type)
+        ((equal? conversion right-type-descriptor)
+         right-type)
+        ((null conversion) nil))))))
 
 (defmethod expression-type ((ast c/cpp-declaration))
   (c/cpp-type ast))
