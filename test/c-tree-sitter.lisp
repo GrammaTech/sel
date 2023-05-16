@@ -1561,19 +1561,34 @@ the root AST."
 #endif
 
 unsigned defined_always = 1;
-final();")
-         (c (from-string 'c source)))
-    (with-attr-table c
-      (is (= 3 (size (lookup
-                      (symbol-table (stmt-with-text c "pp_final();"))
-                      :variable))))
-      (is (= 1 (size (lookup
-                      (symbol-table (stmt-with-text c "final();"))
-                      :variable)))))
+final();"))
+    (let ((c1 (from-string 'c source)))
+      (with-attr-table c1
+        (is (= 3 (size (lookup
+                        (symbol-table (stmt-with-text c1 "pp_final()"))
+                        :variable))))
+        (is (= 1 (size (lookup
+                        (symbol-table (stmt-with-text c1 "final()"))
+                        :variable))))))
     (let ((c2 (from-string 'c (fmt "#define DEBUG 1~%~a" source))))
       (with-attr-table c2
         (is (= 4 (size (lookup
-                        (symbol-table (stmt-with-text c2 "final();"))
+                        (symbol-table (stmt-with-text c2 "final()"))
+                        :variable))))))
+    (let ((c3 (from-string 'c (string-replace "ifdef" source "ifndef"))))
+      (with-attr-table c3
+        (is (= 4 (size (lookup
+                        (symbol-table (stmt-with-text c3 "final()"))
+                        :variable))))))
+    (let ((c4 (from-string 'c
+                           (fmt "#define DEBUG 1~%~a"
+                                (string-replace "ifdef" source "ifndef")))))
+      (with-attr-table c4
+        (is (= 3 (size (lookup
+                        (symbol-table (stmt-with-text c4 "pp_final()"))
+                        :variable))))
+        (is (= 1 (size (lookup
+                        (symbol-table (stmt-with-text c4 "final()"))
                         :variable))))))))
 
 
