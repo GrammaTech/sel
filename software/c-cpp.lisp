@@ -108,7 +108,19 @@
   (propagate-declarations-down node in))
 
 (defmethod symbol-table ((node c/cpp-preproc-ifdef) &optional in)
-  (propagate-declarations-down node in))
+  ;; TODO Extend to #if defined and #elif defined.
+  (match node
+    ((c/cpp-preproc-ifdef
+      (c/cpp-name (and name (identifier-ast))))
+     (let ((macro-ns (lookup in :macro)))
+       (if (and macro-ns
+                (lookup macro-ns (source-text name)))
+           (propagate-declarations-down node in)
+           ;; Make new definitions visible, but only inside the ifdef.
+           (prog1 in
+             (propagate-declarations-down node in)))))
+    (otherwise
+     (propagate-declarations-down node in))))
 
 (defmethod symbol-table ((node c/cpp-preproc-elif) &optional in)
   (propagate-declarations-down node in))

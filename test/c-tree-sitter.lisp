@@ -1553,6 +1553,29 @@ the root AST."
                                 ("b" (list (stmt-with-text root "b")))
                                 ("c" (list (stmt-with-text root "c"))))))))))))
 
+(deftest c-symbol-table-ifdef ()
+  (let* ((source "#ifdef DEBUG
+ unsigned debug_only_1 = 0;
+ unsigned debug_only_2 = 0, debug_only_3 = 0;
+ pp_final();
+#endif
+
+unsigned defined_always = 1;
+final();")
+         (c (from-string 'c source)))
+    (with-attr-table c
+      (is (= 3 (size (lookup
+                      (symbol-table (stmt-with-text c "pp_final();"))
+                      :variable))))
+      (is (= 1 (size (lookup
+                      (symbol-table (stmt-with-text c "final();"))
+                      :variable)))))
+    (let ((c2 (from-string 'c (fmt "#define DEBUG 1~%~a" source))))
+      (with-attr-table c2
+        (is (= 4 (size (lookup
+                        (symbol-table (stmt-with-text c2 "final();"))
+                        :variable))))))))
+
 
 ;;; Blotting
 (deftest c-blot-ranges-1 ()
