@@ -298,7 +298,7 @@ should already have been computed as part of their compilation units."
                           (adjoin header (implicit-headers genome)))))))))))
 
 (defun implicit-header-symbol-table (header)
-  (with-attr-table header
+  (with-attr-session (header :inherit nil)
     (symbol-table (first (children header)))))
 
 (defmethod lookup ((obj c/cpp-root) (key string))
