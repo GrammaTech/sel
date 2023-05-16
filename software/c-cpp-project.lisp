@@ -200,7 +200,7 @@ a standard include)."
                                             (original-path file))))
   (:method ((project t) (file file-ast))
     (file-include-tree project
-                       (full-pathname file)))
+                       (namestring (full-pathname file))))
   (:method ((project t) (file string))
     (aget file
           (project-include-tree project)
@@ -447,7 +447,7 @@ signals a restartable error if there are collisions."
          (include-path (pathname (trim-path-string path-ast)))
          ;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
          ;; Warn about this below if this happened.
-         (tweaked-include-path-dir (substitute :back :up (pathname-directory include-path)))
+         (tweaked-include-path-dir (substitute :up :back (pathname-directory include-path)))
          (tweaked-include-path (make-pathname :directory tweaked-include-path-dir
                                               :defaults include-path))
          (absolute-include-path
