@@ -30,7 +30,7 @@
     fset:size
     functional-trees:child-slots
     functional-trees:child-slot-specifiers
-    ft/attrs::subroot-index)
+    ft/attrs::subroot-map)
   "List of slots to exclude when converting an AST to a list expression.")
 
 (defparameter *match-refinement-functions* nil)
