@@ -127,7 +127,7 @@ headers and implicit headers for command-line preprocessor macros."))
 
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
   "Return the text of PATH-AST with the quotes around it removed."
-  (subseq text 1 (1- (length text))))
+  (string-trim "<>\"" text))
 
 (defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
   "Get a header search path for FILE from PROJECT's compilation database."
@@ -375,27 +375,34 @@ the standard path and add it to PROJECT."))
                                       (system-headers/string->ast genome)))
                         (genome (genome project)))
         (labels ((populate-header-entry (project path-string)
-                   (ensure2 (cache-lookup *system-header-cache* project path-string)
-                     (make-instance
-                      'c/cpp-system-header
-                      :header-name path-string
-                      :children
-                      (nest (ensure-list)
-                            (parse-header-synopsis
-                             path-string
-                             :namespace
-                             (when (eql (component-class project) 'cpp)
-                               "std")
-                             :class-ast)
-                            (format-symbol :sel/sw/ts "~a-AST")
-                            (component-class project))))))
+                   (symbol-macrolet ((cached-value
+                                      (cache-lookup *system-header-cache*
+                                                    project path-string)))
+                     (or cached-value
+                         (when-let (children
+                                    (nest (ensure-list)
+                                          (parse-header-synopsis
+                                           path-string
+                                           :namespace
+                                           (when (eql (component-class project) 'cpp)
+                                             "std")
+                                           :class-ast)
+                                          (format-symbol :sel/sw/ts "~a-AST")
+                                          (component-class project)))
+                           (setf cached-value
+                                 (make-instance
+                                  'c/cpp-system-header
+                                  :header-name path-string
+                                  :children children)))))))
           (lret ((header
-                  (ensure2 header-hash
-                    (populate-header-entry project path-string))))
-            (setf genome
-                  (copy genome
-                        :system-headers (adjoin header
-                                                (system-headers genome))))))))))
+                  (or header-hash
+                      (when-let (header (populate-header-entry project path-string))
+                        (setf header-hash header)))))
+            (when header
+              (setf genome
+                    (copy genome
+                          :system-headers (adjoin header
+                                                  (system-headers genome)))))))))))
 
 (defmethod from-file :around ((project c/cpp-project) (dir t))
   (labels ((maybe-populate-header (ast)
