@@ -358,7 +358,7 @@ the header.")
   (make-keyword (header-name self)))
 
 (defmethod original-path ((self c/cpp-unknown-header))
-  (gensym (header-name self)))
+  (make-symbol (header-name self)))
 
 (defmethod print-object ((self named-synthetic-header) stream)
   (print-unreadable-object (self stream :type t)
