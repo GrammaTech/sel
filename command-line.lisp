@@ -214,7 +214,7 @@
 (defun handle-save-random-state-to-path-argument (path)
   (with-open-file (out path :direction :output
                        :if-exists :supersede)
-    (format out "~S" *random-state*)))
+    (prog1 path (format out "~S" *random-state*))))
 
 (defun handle-set-quiet-argument (arg)
   (declare (ignorable arg))
