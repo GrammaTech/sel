@@ -327,15 +327,32 @@ languages. There is a top-level table for the type of the
 project (e.g. C vs. C++) and another table from the name to
 the header.")
 
-(define-node-class c/cpp-system-header (synthetic-header)
+(define-node-class named-synthetic-header (synthetic-header)
   ((header-name :initarg :header-name
+                :type string
                 :accessor header-name))
+  (:documentation "Node for representing named synthetic headers."))
+
+(define-node-class c/cpp-system-header (named-synthetic-header)
+  ()
   (:documentation "Node for representing synthetic system headers."))
+
+(define-node-class c/cpp-unknown-header (named-synthetic-header)
+  ()
+  (:documentation "Node for representing unknown system headers."))
+
+(defun make-unknown-header (name)
+  (make 'c/cpp-unknown-header
+        :header-name name
+        :children nil))
 
 (defmethod original-path ((self c/cpp-system-header))
   (make-keyword (header-name self)))
 
-(defmethod print-object ((self c/cpp-system-header) stream)
+(defmethod original-path ((self c/cpp-unknown-header))
+  (gensym (header-name self)))
+
+(defmethod print-object ((self named-synthetic-header) stream)
   (print-unreadable-object (self stream :type t)
     (format stream "~a" (header-name self)))
   self)
@@ -398,7 +415,8 @@ the standard path and add it to PROJECT."))
           (lret ((header
                   (or header-hash
                       (when-let (header (populate-header-entry project path-string))
-                        (setf header-hash header)))))
+                        (setf header-hash header))
+                      (make-unknown-header path-string))))
             (when header
               (setf genome
                     (copy genome
@@ -691,4 +709,9 @@ include files in all directories of the project."
   (if-let ((root-ast (car (children node))))
     (symbol-table root-ast in)
     (empty-map)))
+
+(defmethod symbol-table ((node c/cpp-unknown-header) &optional in)
+  (declare (ignore in))
+  (empty-map))
+
 ) ; #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
