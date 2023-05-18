@@ -365,8 +365,7 @@ the standard path and add it to PROJECT."))
     (clrhash *system-header-symbol-table-cache*)))
 
 (defmethod get-standard-path-header ((project c/cpp-project) (path-string string)
-                                     &key header-dirs
-                                     &aux (genome (genome project)))
+                                     &key header-dirs)
   (when (or (no header-dirs)
             (member :stdinc header-dirs))
     (synchronized ('*system-header-cache*)

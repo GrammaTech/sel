@@ -203,9 +203,8 @@ symbol table of the file including it."
           (is (lookup-type target-symbol-table "N::my_class"))
           (is (lookup-type return-symbol-table "N::my_class")))))))
 
-(deftest cpp-project-include-tree-2 ()
-  "Locally included header files have their symbols imported into the
-symbol table of the file including it."
+(deftest cpp-project-include-tree-1 ()
+  "Check computed include tree for a project."
   (with-fixture cpp-relative-include-symbol-table-project
     (with-attr-table *project*
       (is (equal (project-include-tree *project*)
@@ -222,6 +221,25 @@ symbol table of the file including it."
                      :test #'equal))
       (is (equal '(("my_class.h"))
                  (file-include-tree *project* "my_program.cc"))))))
+
+(deftest cpp-project-include-tree-2 ()
+  "Ensure including locally with system headers doesn't produce
+different results."
+  (with-fixture cpp-relative-include-symbol-table-project
+    (let ((project2
+           (mapcar (lambda (ast)
+                     (when (typep ast 'cpp-preproc-include)
+                       (unless (typep (cpp-path ast) 'cpp-system-lib-string)
+                         (tree-copy
+                          (copy ast
+                                :cpp-path
+                                (make 'cpp-system-lib-string
+                                      :text (source-text (cpp-path ast))))))))
+                   *project*)))
+      (is (equal (with-attr-table *project*
+                   (project-include-tree *project*))
+                 (with-attr-table project2
+                   (project-include-tree project2)))))))
 
 (deftest cpp-project-symbol-table-3 ()
   "Check that we handle the case where a header is added that was not
