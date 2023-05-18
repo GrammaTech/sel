@@ -18,6 +18,13 @@
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-compilation-database-project "Mixin for compilation databases.")
 
+(deftest compilation-database-relative-names ()
+  (let ((db (parse-compilation-database
+             '(((:arguments "cc")
+                (:directory . "/home/me/files/dir1/")
+                (:file . "../dir2/file"))))))
+    (is (lookup db "/home/me/files/dir2/file"))))
+
 (deftest compilation-database-flags-test ()
   (is (equal (list "-D" "DIR=\"/tmp\"" "-D" "IN" "-D" "_U_=a")
              (command-flags
