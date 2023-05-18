@@ -223,8 +223,10 @@ symbol table of the file including it."
                  (file-include-tree *project* "my_program.cc"))))))
 
 (deftest cpp-project-include-tree-2 ()
-  "Ensure including locally with system headers doesn't produce
-different results."
+  "Ensure we get the same results for local files from system and program headers.
+
+I.e. `#include \"x\"` and `#include <x>` should get the same results
+for non-system headers (assuming they're on the path)."
   (with-fixture cpp-relative-include-symbol-table-project
     (let ((project2
            (mapcar (lambda (ast)
