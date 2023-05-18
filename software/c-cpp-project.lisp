@@ -125,6 +125,9 @@ by the symbol-table attribute."))
   (:documentation "Superclass of synthetic headers, such as substitute system
 headers and implicit headers for command-line preprocessor macros."))
 
+(defmethod command-object ((project c/cpp-project) (file synthetic-header))
+  nil)
+
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
   "Return the text of PATH-AST with the quotes around it removed."
   (string-trim "<>\"" text))
@@ -570,17 +573,40 @@ inference.  Used to prevent circular attr propagation.")
              (with-slots (header) c
                (format s "Circular inclusion of ~a" header)))))
 
-#+debug-fstfi2
-(defparameter *include-files-to-note* nil
-  "A list of strings that, if present in the namestring of
-an include file, cause the symbol table of that
-file to be printed for debugging purposes.")
+(defun include-ast-path-ast (include-ast)
+  (ematch include-ast
+    ((c/cpp-preproc-include
+      (c/cpp-path (and path-ast (c/cpp-string-literal))))
+     path-ast)
+    ((c/cpp-preproc-include
+      (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
+     path-ast)))
+
+(defun find-include (project file header-dirs include-ast &key global)
+  (assert file)
+  (let ((path-ast (include-ast-path-ast include-ast)))
+    (some (lambda (dir)
+            (econd ((eql dir :current)
+                    (when file          ;No file means we are inside a system header.
+                      (get-program-header project file include-ast path-ast
+                                          :base nil
+                                          :global global)))
+                   ((member dir '(:always :system))
+                    nil)
+                   ((eql dir :stdinc)
+                    (get-standard-path-header
+                     project path-ast
+                     :header-dirs header-dirs))
+                   ((stringp dir)
+                    (get-program-header
+                     project file include-ast path-ast
+                     :base dir
+                     :global global))))
+          header-dirs)))
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
-                                         (global *global-search-for-include-files*)
-                                       &aux #+debug-fstfi2
-                                            (iftn *include-files-to-note*))
+                                         (global *global-search-for-include-files*))
   "Find the symbol table in PROJECT for the include file
 included by INCLUDE-AST.  IN is the symbol table before entry
 to the include-ast.  If GLOBAL is true, search for non-system
@@ -589,21 +615,8 @@ include files in all directories of the project."
   #+debug-fstfi
   (format t "Enter find-symbol-table-from-include on ~a~%"
           (source-text include-ast))
-  (labels ((process-std-header (project path-ast)
-             "Retrieve a standard header from the cache."
-             (let ((path-string (trim-path-string path-ast)))
-               (if-let ((system-header
-                         (get-standard-path-header
-                          project path-string
-                          :header-dirs *header-dirs*)))
-                 (progn
-                   (update-header-graph system-header)
-                   (let ((*include-file-stack*
-                          (cons system-header *include-file-stack*)))
-                     (symbol-table system-header in)))
-                 nil)))
-           (relativize (path)
-             (if (keywordp path) path
+  (labels ((relativize (path)
+             (if (symbolp path) path
                  (pathname-relativize (project-dir project)
                                       path)))
            (update-header-graph (includee)
@@ -630,37 +643,10 @@ include files in all directories of the project."
                 (error 'circular-inclusion :header software))
                (t
                 (update-header-graph software)
-                (let* ((*include-file-stack* (cons software *include-file-stack*))
-                       (st (symbol-table software in)))
-                  #+debug-fstfi2
-                  (progn
-                    (format t "~3@{~a~:*~}~a~a~%" #\Space
-                            software)
-                    (let ((ns (name-string (original-path software))))
-                      (when (some (op (search _ ns)) iftn)
-                        (format t "~a~%" st))))
-                  st))))
-           (process-header (path-ast &key base file (global global))
-             "Get the corresponding symbol table for the relative path
-              represented by PATH-AST."
-             #+debug-fstfi (format t "Enter process-program-header on ~a~%" path-ast)
-             (when-let* ((file (or file (find-enclosing 'file-ast project include-ast))))
-               (safe-symbol-table
-                (get-program-header project file include-ast path-ast
-                                    :base base
-                                    :global global))))
-           (header-symbol-table (file header-dirs path-ast)
-             (some (lambda (dir)
-                     (econd ((eql dir :current)
-                             (process-header path-ast :file file :global nil))
-                            ((member dir '(:always :system))
-                             nil)
-                            ((eql dir :stdinc)
-                             (process-std-header project path-ast))
-                            ((stringp dir)
-                             (process-header path-ast :base dir :global nil))))
-                   header-dirs)))
-    (let* ((file (find-enclosing 'file-ast project include-ast))
+                (let ((*include-file-stack* (cons software *include-file-stack*)))
+                  (symbol-table software in))))))
+    (let* ((file (find-enclosing '(or file-ast synthetic-header)
+                                 project include-ast))
            (*include-file-stack*
             ;; Initialize the stack with a top-level file, if needed.
             (or *include-file-stack*
@@ -676,18 +662,20 @@ include files in all directories of the project."
       (handler-case
           (ematch include-ast
             ((c/cpp-preproc-include
-              (c/cpp-path (and path-ast (c/cpp-string-literal))))
-             (or (header-symbol-table file
-                                      *header-dirs*
-                                      path-ast)
-                 ;; Fall back to global search.
-                 (and global
-                      (process-header path-ast :global t))))
+              (c/cpp-path (c/cpp-string-literal)))
+             (when-let ((include
+                         (or (find-include project file *header-dirs*
+                                           include-ast)
+                             ;; Fall back to global search.
+                             (and global
+                                  (find-include project file *header-dirs*
+                                                include-ast
+                                                :global t)))))
+               (safe-symbol-table include)))
             ((c/cpp-preproc-include
-              (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
-             (header-symbol-table file
-                                  (member :always *header-dirs*)
-                                  path-ast)))
+              (c/cpp-path (c/cpp-system-lib-string)))
+             (when-let (include (find-include project file *header-dirs* include-ast))
+               (safe-symbol-table include))))
         (circular-inclusion ()
           nil)))))
 
