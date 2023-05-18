@@ -317,11 +317,12 @@ should already have been computed as part of their compilation units."
 
 ;;; System Headers
 
-(defvar *system-header-cache* (dict)
-  "Store system headers that have already been parsed.")
-
-(defvar *system-header-symbol-table-cache* (dict)
-  "Cache system header symbol tables.")
+(defvar *system-header-cache* (make-hash-table :size 0)
+  "Store system headers that have already been parsed.
+The cache has two levels, to prevent commingling headers for different
+languages. There is a top-level table for the type of the
+project (e.g. C vs. C++) and another table from the name to
+the header.")
 
 (define-node-class c/cpp-system-header (synthetic-header)
   ((header-name :initarg :header-name
@@ -360,9 +361,7 @@ the standard path and add it to PROJECT."))
 
 (defun clear-cache ()
   (synchronized ('*system-header-cache*)
-    (clrhash *system-header-cache*))
-  (synchronized ('*system-header-symbol-table-cache*)
-    (clrhash *system-header-symbol-table-cache*)))
+    (clrhash *system-header-cache*)))
 
 (defmethod get-standard-path-header ((project c/cpp-project) (path-string string)
                                      &key header-dirs)
