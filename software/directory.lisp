@@ -287,10 +287,11 @@
 (defmethod collect-evolve-files :around ((obj directory-project))
   (let ((evolve-files (call-next-method)))
     (dolist (pair evolve-files evolve-files)
-      (destructuring-bind (path . software-object) pair
-        (ensure-path (genome obj) path)
-        (setf (contents (get-path (genome obj) path))
-              (list (genome software-object)))))))
+      (with-simple-restart (continue "Skip evolve file")
+        (destructuring-bind (path . software-object) pair
+          (ensure-path (genome obj) path)
+          (setf (contents (get-path (genome obj) path))
+                (list (genome software-object))))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
