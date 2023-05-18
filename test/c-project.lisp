@@ -89,6 +89,15 @@
                                          "c-symbol-table-project")))))
   (:teardown (setf *project* nil)))
 
+(defixture symbol-table-project2
+    (:setup
+     (setf *project*
+           (from-file 'c-project
+                      (make-pathname
+                       :directory (append1 +etc-dir+
+                                           "c-symbol-table-project2")))))
+  (:teardown (setf *project* nil)))
+
 (defmethod test-method ((obj simple) value)
   value)
 
@@ -253,12 +262,12 @@
 
 (deftest c-project-system-headers-2 ()
   "System headers that can't be found create an entry without children."
-  (with-fixture symbol-table-project
-    (let ((system-header (get-standard-path-header *project* "doesn't-exist")))
-      (is (null (children system-header)))
-      (is (eq system-header
-              (find-if (op (equal (header-name _) "doesn't-exist"))
-                       (system-headers (genome *project*))))))))
+  (with-fixture symbol-table-project2
+    (with-attr-table *project*
+      (is (find-if (op (and (symbolp _1)
+                            (not (keywordp _1))
+                            (string^= "doesnt-exist" _1)))
+                   (project-include-tree *project*))))))
 
 
 ;;; Symbol Table
