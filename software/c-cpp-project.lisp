@@ -31,7 +31,8 @@
            :command-implicit-header
            :project-include-tree
            :who-includes?
-           :file-include-tree))
+           :file-include-tree
+           :find-include))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -341,10 +342,17 @@ the header.")
   ()
   (:documentation "Node for representing unknown system headers."))
 
-(defun make-unknown-header (name)
-  (make 'c/cpp-unknown-header
-        :header-name name
-        :children nil))
+(defgeneric make-unknown-header (name)
+  (:method ((name string))
+    (make 'c/cpp-unknown-header
+          :header-name name
+          :children nil))
+  (:method ((name c/cpp-preproc-include))
+    (make-unknown-header (include-ast-path-ast name)))
+  (:method ((name c/cpp-system-lib-string))
+    (make-unknown-header (trim-path-string name)))
+  (:method ((name c/cpp-string-literal))
+    (make-unknown-header (trim-path-string name))))
 
 (defmethod original-path ((self c/cpp-system-header))
   (make-keyword (header-name self)))
@@ -415,8 +423,7 @@ the standard path and add it to PROJECT."))
           (lret ((header
                   (or header-hash
                       (when-let (header (populate-header-entry project path-string))
-                        (setf header-hash header))
-                      (make-unknown-header path-string))))
+                        (setf header-hash header)))))
             (when header
               (setf genome
                     (copy genome
@@ -603,24 +610,30 @@ inference.  Used to prevent circular attr propagation.")
 (defun find-include (project file header-dirs include-ast &key global)
   (assert file)
   (let ((path-ast (include-ast-path-ast include-ast)))
-    (some (lambda (dir)
-            (econd ((eql dir :current)
-                    (when file          ;No file means we are inside a system header.
-                      (get-program-header project file include-ast path-ast
-                                          :base nil
-                                          :global global)))
-                   ((member dir '(:always :system))
-                    nil)
-                   ((eql dir :stdinc)
-                    (get-standard-path-header
-                     project path-ast
-                     :header-dirs header-dirs))
-                   ((stringp dir)
-                    (get-program-header
-                     project file include-ast path-ast
-                     :base dir
-                     :global global))))
-          header-dirs)))
+    (labels ((find-include (global)
+               (some
+                (lambda (dir)
+                  (econd ((eql dir :current)
+                          (get-program-header project file include-ast
+                                              path-ast
+                                              :base nil
+                                              :global global))
+                         ((member dir '(:always :system))
+                          nil)
+                         ((eql dir :stdinc)
+                          (get-standard-path-header
+                           project path-ast
+                           :header-dirs header-dirs))
+                         ((stringp dir)
+                          (get-program-header
+                           project file include-ast path-ast
+                           :base dir
+                           :global global))))
+                header-dirs)))
+      (declare (dynamic-extent #'find-include))
+      (or (find-include nil)
+          (and global (find-include t))
+          (make-unknown-header include-ast)))))
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
@@ -679,21 +692,10 @@ include files in all directories of the project."
                 *default-header-dirs*)))
       (handler-case
           (ematch include-ast
-            ((c/cpp-preproc-include
-              (c/cpp-path (c/cpp-string-literal)))
-             (when-let ((include
-                         (or (find-include project file *header-dirs*
-                                           include-ast)
-                             ;; Fall back to global search.
-                             (and global
-                                  (find-include project file *header-dirs*
-                                                include-ast
-                                                :global t)))))
-               (safe-symbol-table include)))
-            ((c/cpp-preproc-include
-              (c/cpp-path (c/cpp-system-lib-string)))
-             (when-let (include (find-include project file *header-dirs* include-ast))
-               (safe-symbol-table include))))
+            ((c/cpp-preproc-include)
+             (safe-symbol-table
+              (find-include project file *header-dirs*
+                            include-ast))))
         (circular-inclusion ()
           nil)))))
 
