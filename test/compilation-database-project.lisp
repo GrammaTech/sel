@@ -156,6 +156,17 @@
                                     "-iwithprefixbefore"
                                     "suffix2")))))
 
+(deftest test-compute-header-dirs-regression ()
+  (nest
+   (is)
+   (length= 2)
+   (filter #'stringp)
+   (compute-header-dirs
+    '("-c" "-D" "DEF1" "-D" "DEF2" "-D" "DEF3"
+      "-D" "DEF4" "-D" "DEF5" "-I" "dir1" "-I" "dir2"
+      "-std=c++11" "-std=gnu++11" "-Wno-tautological-constant-compare" "-O3" "-D"
+      "NDEBUG" "-o" "out"))))
+
 (deftest test-compute-header-dirs/sysroot ()
   (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
              (compute-header-dirs

@@ -495,21 +495,28 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
          ;; = with long options.
          (string-case p
            ("-iquote"
-            (push f iquote-dirs))
+            (push f iquote-dirs)
+            (rec rest))
            (("-I" "--include-directory")
-            (push f i-dirs))
+            (push f i-dirs)
+            (rec rest))
            ;; TODO Is this Clang-specific.
            (("-isystem" "-cxx-isystem")
-            (push f isystem-dirs))
+            (push f isystem-dirs)
+            (rec rest))
            (("-idirafter" "--include-directory-after")
-            (push f idirafter-dirs))
+            (push f idirafter-dirs)
+            (rec rest))
            ("-iprefix"
-            (setf iprefix f))
+            (setf iprefix f)
+            (rec rest))
            ("-iwithprefixbefore"
-            (push (string+ iprefix f) i-dirs))
+            (push (string+ iprefix f) i-dirs)
+            (rec rest))
            ("-iwithprefix"
-            (push (string+ iprefix f) idirafter-dirs)))
-         (rec rest))
+            (push (string+ iprefix f) idirafter-dirs)
+            (rec rest))
+           (otherwise (rec (rest flags)))))
         ((list* _ rest)
          (rec rest))))
     (nconc (and current? (list :current))
