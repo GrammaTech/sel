@@ -138,6 +138,14 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
     (setf (slot-value self 'size)
           (length command-objects))))
 
+(defun canonical-pathname* (p)
+  "Work around lack of supprt for :up in `canonical-pathname'."
+  (canonical-pathname
+   (make-pathname :defaults p
+                  :directory
+                  (substitute :back :up
+                              (pathname-directory p)))))
+
 (defmethod slot-unbound ((class t)
                          (self compilation-database)
                          (slot-name (eql 'file-command-objects)))
@@ -145,8 +153,17 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
   (setf (slot-value self 'file-command-objects)
         (lret ((dict (dict)))
           (do-each (entry (command-objects self))
-            (with-slots (file) entry
-              (push entry (href dict file)))))))
+            (with-slots (directory file) entry
+              (let ((key
+                     ;; "All paths specified in the command or file
+                     ;; fields must be either absolute or relative to
+                     ;; this directory."
+                     (if (absolute-pathname-p file) file
+                         (namestring
+                          (canonical-pathname*
+                           (merge-pathnames file directory))))))
+                (assert (absolute-pathname-p key))
+                (push entry (href dict key))))))))
 
 (defmethod lookup ((self compilation-database) (key string))
   (gethash key (file-command-objects self)))
