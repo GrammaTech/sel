@@ -38,28 +38,31 @@ information on the format of compilation databases.")
 (defmethod collect-evolve-files :before ((obj compilation-database-project))
   "Ensure OBJ has a compilation-database populated."
   (unless (compilation-database obj)
-    (let* ((supplied-path (compilation-database-path obj))
-           (default-compdb-paths
-            (mapcar (op (project-relative-pathname obj _))
-                    '("compile_commands.json"
-                      "build/compile_commands.json")))
-           (comp-db-paths
-            (ensure-list
-             (econd ((no supplied-path)
-                     default-compdb-paths)
-                    ((relative-pathname-p supplied-path)
-                     (project-relative-pathname obj supplied-path))
-                    ((absolute-pathname-p supplied-path)
-                     supplied-path))))
-           (compilation-database
-            (progn
-              (unless (find-if #'file-exists-p comp-db-paths)
-                (ensure-compilation-database obj))
-              (when-let (comp-db-path (find-if #'file-exists-p comp-db-paths))
-                (with-open-file (in comp-db-path)
-                  (parse-compilation-database in))))))
-      (when compilation-database
-        (setf (compilation-database obj) compilation-database)))))
+    (populate-compilation-database obj)))
+
+(defun populate-compilation-database (obj)
+  (let* ((supplied-path (compilation-database-path obj))
+         (default-compdb-paths
+          (mapcar (op (project-relative-pathname obj _))
+                  '("compile_commands.json"
+                    "build/compile_commands.json")))
+         (comp-db-paths
+          (ensure-list
+           (econd ((no supplied-path)
+                   default-compdb-paths)
+                  ((relative-pathname-p supplied-path)
+                   (project-relative-pathname obj supplied-path))
+                  ((absolute-pathname-p supplied-path)
+                   supplied-path))))
+         (compilation-database
+          (progn
+            (unless (find-if #'file-exists-p comp-db-paths)
+              (ensure-compilation-database obj))
+            (when-let (comp-db-path (find-if #'file-exists-p comp-db-paths))
+              (with-open-file (in comp-db-path)
+                (parse-compilation-database in))))))
+    (when compilation-database
+      (setf (compilation-database obj) compilation-database))))
 
 (defgeneric ensure-compilation-database (obj)
   (:method ((obj compilation-database-project))
