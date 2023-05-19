@@ -264,10 +264,10 @@
   "System headers that can't be found create an entry without children."
   (with-fixture symbol-table-project2
     (with-attr-table *project*
-      (is (find-if (op (and (symbolp _1)
-                            (not (keywordp _1))
-                            (string^= "doesnt-exist" _1)))
-                   (project-include-tree *project*))))))
+      (is (occurs-if (op (and (symbolp _1)
+                              (not (keywordp _1))
+                              (string^= "doesnt-exist" _1)))
+                     (project-include-tree *project*))))))
 
 
 ;;; Symbol Table
