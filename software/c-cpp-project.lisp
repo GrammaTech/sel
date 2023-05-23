@@ -629,11 +629,15 @@ inference.  Used to prevent circular attr propagation.")
                            project file include-ast path-ast
                            :base dir
                            :global global))))
-                header-dirs)))
+                header-dirs))
+             (make-unknown-header* (include-ast)
+               (lret ((unknown-header (make-unknown-header include-ast)))
+                 (when (boundp '*attrs*)
+                   (setf (attr-proxy unknown-header) include-ast)))))
       (declare (dynamic-extent #'find-include))
       (or (find-include nil)
-          (and global (find-include t))
-          (make-unknown-header include-ast)))))
+          (and global (find-include :global))
+          (make-unknown-header* include-ast)))))
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
