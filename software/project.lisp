@@ -7,6 +7,8 @@
         :software-evolution-library/software/simple
         :software-evolution-library/components/formatting
         :software-evolution-library/components/configuration)
+  (:import-from :software-evolution-library/software/parseable
+                :ast-path)
   (:export :project
            :*build-dir*
            :build-command
@@ -475,6 +477,9 @@ making a directory."
 (defmethod lookup ((obj project) (key string))
   ;; Enables the use of the `@' macro directly against projects.
   (cdr (assoc key (evolve-files obj) :test #'string=)))
+
+(defmethod ast-path ((obj project) (key software))
+  (car (rassoc key (evolve-files obj))))
 
 (defmethod mapc (function (obj project) &rest more)
   (declare (ignorable more))
