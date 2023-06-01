@@ -33,7 +33,8 @@
            :who-includes?
            :file-include-tree
            :find-include
-           :*header-extensions*))
+           :*header-extensions*
+           :evolve-files/dependency-order))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -226,6 +227,35 @@ a standard include)."
                  (cons path
                        (mappend #'who-includes? includes)))))
       (cdr (who-includes? path)))))
+
+(defun include-tree-constraints (include-tree)
+  (labels ((generate-constraints (constraint-tree)
+             (destructuring-bind (dependent &rest dependencies) constraint-tree
+               (mapcar (op (list (car _) dependent))
+                       (remove-if-not (op (stringp (car _))) dependencies)))))
+    (reduce #'append include-tree :key #'generate-constraints)))
+
+(defun include-tree-dependency-order (include-tree)
+  (let ((sort-function (toposort (include-tree-constraints include-tree)
+                                 :test #'equal))
+        (items (remove-duplicates (flatten include-tree) :test #'equal)))
+    (remove-if-not (of-type 'string)
+                   (sort items sort-function))))
+
+(defun evolve-files/dependency-order (project &key include-tree)
+  (let ((dependency-order
+          (include-tree-dependency-order
+           (or include-tree
+               (project-include-tree project)))))
+    (iter
+      (iter:with evolve-files = (alist-hash-table (evolve-files project)
+                                                  :test #'equal))
+      (for path in dependency-order)
+      (if-let ((target (gethash path evolve-files)))
+        (collect (cons path target))
+        (error "~a does not exist in evolve-files of ~a."
+               target project)))))
+
 
 #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
 (progn
