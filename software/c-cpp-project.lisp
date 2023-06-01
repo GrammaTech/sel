@@ -612,7 +612,8 @@ inference.  Used to prevent circular attr propagation.")
       (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
      path-ast)))
 
-(defun find-include (project file header-dirs include-ast &key global)
+(defun find-include (project file header-dirs include-ast
+                     &key (global *global-search-for-include-files*))
   (assert file)
   (let ((path-ast (include-ast-path-ast include-ast)))
     (labels ((find-include (global)
