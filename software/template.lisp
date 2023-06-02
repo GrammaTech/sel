@@ -401,15 +401,25 @@ path that is just a slot reference, without an offset."
           "Copy SUBTREE, preserving before and after text from TARGET.
 If SUBTREE is a list do the same for each element."
           (flet ((cp (subtree)
-                   (tree-copy
-                    (copy subtree
-                          :before-text
-                          (before-text target)
-                          :after-text
-                          (after-text target)))))
+                   (if (and (equal (before-text subtree) (before-text target))
+                            (equal (after-text subtree) (after-text target)))
+                       subtree
+                       (copy subtree :before-text (before-text target)
+                                     :after-text (after-text target)))))
             (if (listp subtree)
                 (mapcar #'cp subtree)
                 (cp subtree))))
+        (uniquify-subtrees (subtrees)
+          "Make sure every subtree in SUBTREES is distinct."
+          (fbind ((distinct? (distinct :key #'serial-number)))
+            (labels ((uniquify-subtrees (subtrees)
+                       (mapcar (lambda (tree)
+                                 (if (listp tree)
+                                     (uniquify-subtrees tree)
+                                     (if (distinct? tree) tree
+                                         (tree-copy tree))))
+                               subtrees)))
+              (uniquify-subtrees subtrees))))
         (insert-name-subtrees (ast name)
           ;; Strings have already been inlined.
           (if (stringp (name-subtree name)) ast
@@ -417,8 +427,9 @@ If SUBTREE is a list do the same for each element."
                      (subtree (name-subtree name))
                      (targets (mapcar (op (lookup ast _)) paths))
                      (subtree-copies
-                      (mapcar (op (copy-subtree subtree _))
-                              targets)))
+                      (uniquify-subtrees
+                       (mapcar (op (copy-subtree subtree _))
+                               targets))))
                 (reduce
                  (lambda (ast path.subtree)
                    "Insert SUBTREE into AST at PATH."

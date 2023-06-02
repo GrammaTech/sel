@@ -304,5 +304,20 @@ def $READ_NAME():
            ((cpp* "int *$VAR = &y" :var var)
             var))))))
 
+(deftest test-templates-dont-copy-unless-needed ()
+  ;; Note the absence of whitespace is to avoid copying to insert
+  ;; around-text.
+  (let* ((ast (cpp "int x=1;"))
+         (expr (stmt-with-text ast "1"))
+         (new-expr (cpp* "$N+1" :n expr))
+         (new-ast (with ast expr new-expr)))
+    (is (eql expr (lookup new-expr (ast-path new-expr expr))))
+    (is (eql expr (lookup new-ast (ast-path new-ast expr))))
+    (let* ((new-expr (cpp* "$N+$N" :n expr))
+           (new-ast (with ast expr new-expr))
+           (instances (collect-if (of-type 'literal-ast) new-ast)))
+      (is (member expr instances))
+      (is (notevery (eqls expr) instances)))))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
