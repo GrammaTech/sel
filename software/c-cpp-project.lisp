@@ -172,7 +172,7 @@ For development."
 (deftype include-tree-entry ()
   '(cons (or string keyword) list))
 
-(defun project-include-tree (project)
+(defun project-include-tree (project &key allow-headers)
   "Dump the header graph of PROJECT as a cons tree.
 The top level is a list of entries. Entries have the form (FILE .
 INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
@@ -182,7 +182,8 @@ In each entry, FILE is either a string (for a file) or a keyword (for
 a standard include)."
   (assure include-tree
     (let* ((genome (genome project))
-           (included-headers (included-headers genome)))
+           (included-headers (included-headers genome))
+           (files (mapcar #'car (evolve-files project))))
       ;; Populate the symbol table, recording header dependencies as a
       ;; side effect.
       (symbol-table project)
@@ -194,9 +195,9 @@ a standard include)."
                              (mapcar (op (rec _ seen))
                                      (href included-headers path)))))))
         (mapcar (op (rec _ nil))
-                (remove-if #'header-file?
-                           (mapcar #'car
-                                   (evolve-files project))))))))
+                (if allow-headers
+                    files
+                    (remove-if #'header-file? files)))))))
 
 (defgeneric file-include-tree (project file)
   (:documentation "Return the tree of includes rooted at FILE in PROJECT.")
