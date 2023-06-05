@@ -148,7 +148,13 @@ around generic-type-with-turbofish being aliased to generic-type."
 
 ;;; Whitespace.
 
-(define-empty-whitespace-methods ()
+(defclass rustfmt-style (c-style-indentation)
+  ())
+
+(defmethod default-whitespace-style ((ast rust-ast))
+  (make 'rustfmt-style))
+
+(define-empty-whitespace-methods (:style rustfmt-style)
   :|.| rust-ast
   rust-ast :|.|
   rust-ast rust-arguments
@@ -176,92 +182,92 @@ around generic-type-with-turbofish being aliased to generic-type."
   :|impl| rust-type-parameters
   :|*| rust-mutable-specifier)
 
-(defmethod whitespace-between (s (x (eql :=)) (y rust-ast))
+(defmethod whitespace-between ((s rustfmt-style) (x (eql :=)) (y rust-ast))
   " ")
 
-(defmethod whitespace-between (s (x rust-ast) (y (eql :|{|)))
+(defmethod whitespace-between ((s rustfmt-style) (x rust-ast) (y (eql :|{|)))
   " ")
 
-(defmethod whitespace-between (s (x (eql :|{|)) (y rust-ast))
+(defmethod whitespace-between ((s rustfmt-style) (x (eql :|{|)) (y rust-ast))
   " ")
 
-(defmethod whitespace-between (s (x rust-ast) (y (eql :|}|)))
+(defmethod whitespace-between ((s rustfmt-style) (x rust-ast) (y (eql :|}|)))
   " ")
 
-(defmethod whitespace-between (s (x (eql :|}|)) (y rust-ast))
+(defmethod whitespace-between ((s rustfmt-style) (x (eql :|}|)) (y rust-ast))
   " ")
 
-(defmethod whitespace-between (s (x rust-function-item) (y rust-function-item))
+(defmethod whitespace-between ((s rustfmt-style) (x rust-function-item) (y rust-function-item))
   #.(fmt "~2%"))
 
-(defmethod whitespace-between (s (x rust-attribute-item) (y rust-struct-item))
+(defmethod whitespace-between ((s rustfmt-style) (x rust-attribute-item) (y rust-struct-item))
   #.(fmt "~%"))
 
 (defmethod whitespace-between/parent ((parent rust-ast)
-                                      style
+                                      (s rustfmt-style)
                                       (x (eql :|let|))
                                       (y t))
   " ")
 
 (defmethod whitespace-between/parent ((parent rust-parameter)
-                                      style
+                                      (s rustfmt-style)
                                       (x (eql :|:|))
                                       (y t))
   "Leave a space after a colon, but only in a parameter."
   " ")
 
 (defmethod whitespace-between/parent ((parent rust-field-declaration)
-                                      style
+                                      (s rustfmt-style)
                                       (x (eql :|:|))
                                       (y t))
   "Leave a space after a colon in a field declaration."
   " ")
 
 (defmethod whitespace-between/parent ((parent rust-field-initializer)
-                                      style
+                                      (s rustfmt-style)
                                       (x (eql :|:|))
                                       (y t))
   "Leave a space after a colon in a field initializer."
   " ")
 
 (defmethod whitespace-between/parent ((parent rust-generic-type)
-                                      style
+                                      (s rustfmt-style)
                                       (y t)
                                       (x |RUST-::|))
   "")
 
 (defmethod whitespace-between/parent ((parent rust-generic-type)
-                                      style
+                                      (s rustfmt-style)
                                       (x |RUST-::|)
                                       (y t))
   "")
 
 (defmethod whitespace-between/parent ((parent rust-index-expression)
-                                      style
+                                      (s rustfmt-style)
                                       (x rust-ast)
                                       (y (eql :|[|)))
   "")
 
 (defmethod whitespace-between/parent ((parent rust-range-expression)
-                                      style
+                                      (s rustfmt-style)
                                       (x rust-ast)
                                       (y |RUST-..|))
   "")
 
 (defmethod whitespace-between/parent ((parent rust-range-expression)
-                                      style
+                                      (s rustfmt-style)
                                       (y |RUST-..|)
                                       (x rust-ast))
   "")
 
 (defmethod whitespace-between/parent ((parent rust-range-expression)
-                                      style
+                                      (s rustfmt-style)
                                       (y |RUST-..=|)
                                       (x rust-ast))
   "")
 
 (defmethod whitespace-between/parent ((parent rust-range-expression)
-                                      style
+                                      (s rustfmt-style)
                                       (x rust-ast)
                                       (y |RUST-..=|))
   "")

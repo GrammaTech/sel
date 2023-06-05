@@ -1077,6 +1077,10 @@ Should return `:failure' in the base case.")
 
 
 ;;;; Whitespace/formatting
+
+(define-empty-whitespace-methods (:style c-style-indentation)
+  c/cpp-ast :|;|)
+
 (defmethod whitespace-between/parent ((parent c/cpp-do-statement)
                                       (style c-style-indentation)
                                       (ast1 ast)

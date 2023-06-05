@@ -1468,16 +1468,19 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
 
 ;;; Whitespace rules
 
-(define-empty-whitespace-methods ()
+(define-empty-whitespace-methods (:style c-style-indentation)
   cpp-namespace-identifier :|::|
   :|::| cpp-qualified-identifier
   :|::| cpp-type-identifier
   cpp-type-identifier cpp-template-argument-list
+  :< cpp-type-descriptor
   cpp-type-descriptor :>
-  cpp-template-type :|::|)
+  cpp-template-type :|::|
+  cpp-identifier cpp-template-argument-list
+  cpp-template-function cpp-argument-list)
 
 (defmethod whitespace-between/parent ((parent cpp-namespace-definition)
-                                      (style t)
+                                      (style c-style-indentation)
                                       (x ast)
                                       (y ast))
   #\Newline)

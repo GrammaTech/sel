@@ -1881,3 +1881,14 @@ class Y;"
       (dolist (type2 types)
         (is (typep (convert type1 (make type2 :text "foo"))
                    type1))))))
+
+
+;;; patch-whitespace tests
+
+(defun check-patch-whitespace (cpp)
+  (let ((ast (convert 'cpp-ast cpp :deepest t)))
+    (is (not (typep ast 'source-text-fragment)))
+    (is (equal cpp (source-text (patch-whitespace ast :prettify t))))))
+
+(deftest test-cpp-patch-whitespace ()
+  (check-patch-whitespace "static_cast<double>(x + y);"))

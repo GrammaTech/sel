@@ -2260,6 +2260,12 @@ determine the translation."
                                       parse-tree})))))))))
     (insert-parse-tree-ranges parse-tree)))
 
+(defgeneric default-whitespace-style (ast)
+  (:documentation "Get the default whitespace style for AST.")
+  (:method ((ast t)) nil)
+  (:method ((software parseable))
+    (default-whitespace-style (genome software))))
+
 (defgeneric whitespace-between/parent (parent style ast1 ast2)
   (:method-combination standard/context)
   (:method :context (parent s ast1 ast)
@@ -2402,7 +2408,10 @@ That is, inherit the before and after text of the node being replaced."
   space to the before-text and after-text slots that need it.")
   (:method ((ast t) &key) ast)
   (:method ((ast terminal-symbol) &key) ast)
-  (:method ((ast structured-text) &key style software prettify (recursive t))
+  (:method ((ast structured-text) &key (style (default-whitespace-style ast))
+                                    software
+                                    prettify
+                                    (recursive t))
     "Destructively patch whitespace on AST by adding a
 space to the before-text and after-text slots that need it.
 
@@ -2468,7 +2477,14 @@ setting it if it isn't already set."
 on STYLE.
 
 :AST can be provided to prettify an AST locally. It will still patch its
-parent in the cases where the parent indentation changes.")
+parent in the cases where the parent indentation changes.
+
+If STYLE is T, it means to use the value of `default-whitespace-style'
+on SOFTWARE.")
+  (:method ((style (eql t)) software &key (ast (genome software)))
+    (prettify-software (default-whitespace-style software)
+                       software
+                       :ast ast))
   (:method (style software &key (ast (genome software)))
       (lret ((ast-path (ast-path software ast))
              (new-software (copy software :genome (tree-copy (genome software)))))
@@ -3642,6 +3658,9 @@ the rebinding"
   ;;       instead of the software object.
   ()
   (:documentation "A class used to represent indentation in c-style languages."))
+
+(defmethod default-whitespace-style ((ast c-like-syntax-ast))
+  (make 'c-style-indentation))
 
 (defmethod get-style-indentation ((style c-style-indentation) software ast &key)
   nil)

@@ -1284,19 +1284,10 @@ Returns nil if the length of KEYS is not the same as VALUES'."
 
 (def +pep8+ (make 'pep8))
 
+(defmethod default-whitespace-style ((ast python-ast))
+  +pep8+)
+
 ;;; Default to PEP8.
-(defmethod whitespace-between/parent ((parent t) (style null) (x python-ast) y)
-  (whitespace-between/parent parent +pep8+ x y))
-
-(defmethod whitespace-between/parent ((parent t) (style null) x (y python-ast))
-  (whitespace-between/parent parent +pep8+ x y))
-
-(defmethod whitespace-between ((style null) x (y python-ast))
-  (whitespace-between +pep8+ x y))
-
-(defmethod whitespace-between ((style null) (x python-ast) y)
-  (whitespace-between +pep8+ x y))
-
 (define-empty-whitespace-methods (:style pep8)
   python-lambda-parameters :|:|
   python-** python-ast
@@ -1320,7 +1311,7 @@ Returns nil if the length of KEYS is not the same as VALUES'."
   "A newline before a block."
   (fmt "~%"))
 
-(defmethod whitespace-between (style
+(defmethod whitespace-between ((style pep8)
                                (x python-ast)
                                (y python-block))
   "A newline before a block."

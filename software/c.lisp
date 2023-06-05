@@ -510,12 +510,12 @@ the outer-defs for NODE are returned instead."
 (define-empty-whitespace-methods ()
   c-ast (eql :|;|))
 
-(defmethod whitespace-between ((style t)
+(defmethod whitespace-between ((style c-style-indentation)
                                (x c-preproc-include)
                                (y c-ast))
   (fmt "~%"))
 
-(defmethod whitespace-between ((style t)
+(defmethod whitespace-between ((style c-style-indentation)
                                (y c-ast)
                                (x c-preproc-include))
   (whitespace-between style x y))
