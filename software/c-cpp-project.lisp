@@ -234,28 +234,70 @@ a standard include)."
              (destructuring-bind (dependent &rest dependencies) constraint-tree
                (mapcar (op (list (car _) dependent))
                        (remove-if-not (op (stringp (car _))) dependencies)))))
-    (reduce #'append include-tree :key #'generate-constraints)))
+    (mappend #'generate-constraints include-tree)))
 
 (defun include-tree-dependency-order (include-tree)
   (let ((sort-function (toposort (include-tree-constraints include-tree)
                                  :test #'equal))
         (items (remove-duplicates (flatten include-tree) :test #'equal)))
     (remove-if-not (of-type 'string)
-                   (sort items sort-function))))
+                   (stable-sort items sort-function))))
 
-(defun evolve-files/dependency-order (project &key include-tree)
-  (let ((dependency-order
-          (include-tree-dependency-order
-           (or include-tree
-               (project-include-tree project)))))
+(defun include-tree-compilation-database-order
+    (project &key (include-tree (project-include-tree project :allow-headers t))
+               (comp-db (compilation-database project)))
+  (labels ((relativized-path (project command-object)
+             "Relative the path of COMMAND-OBJECT to PROJECT's path."
+             (with-accessors ((directory command-directory)
+                              (file command-file))
+                 command-object
+               (namestring
+                (enough-pathname
+                 (canonical-pathname (fmt "~a/~a" directory file))
+                 (project-dir project)))))
+           (grab-paths (include-tree &aux paths)
+             "Grab all paths in INCLUDE-TREE."
+             (assert include-tree)
+             (walk-tree (lambda (child)
+                          (and-let* (((consp child))
+                                     (item (car child))
+                                     ((stringp item)))
+                            (push item paths)))
+                        include-tree)
+             (reverse paths)))
     (iter
-      (iter:with evolve-files = (alist-hash-table (evolve-files project)
-                                                  :test #'equal))
-      (for path in dependency-order)
-      (if-let ((target (gethash path evolve-files)))
-        (collect (cons path target))
-        (error "~a does not exist in evolve-files of ~a."
-               target project)))))
+      (iter:with include-table = (alist-hash-table include-tree :test #'equal))
+      (for entry in (command-objects comp-db))
+      (for filename = (relativized-path project entry))
+      (appending (cons filename (grab-paths (gethash filename include-table)))
+                 into result at beginning)
+      (finally (return (reverse result))))))
+
+(defun evolve-files/dependency-order
+    (project &key (include-tree (project-include-tree project :allow-headers t)))
+  "Return the evolve-files of PROJECT sorted in dependency order."
+  (let ((dependency-order
+          (if-let ((comp-db (compilation-database project)))
+            (include-tree-compilation-database-order
+             project :include-tree include-tree :comp-db comp-db)
+            (include-tree-dependency-order include-tree))))
+    (symbol-macrolet ((target-hash (gethash path evolve-files nil)))
+      (iter
+        (iter:with evolve-files = (alist-hash-table (evolve-files project)
+                                                    :test #'equal))
+        (for path in dependency-order)
+        (for target = target-hash)
+        (cond
+          ;; NOTE: it is likely that INCLUDE-TREE has cycles, so the value is
+          ;;       marked as :visited to prevent adding the same file more than
+          ;;       once.
+          ((eql target :visited))
+          (target
+           (setf target-hash :visited)
+           (collect (cons path target)))
+          (t
+           (error "~a does not exist in evolve-files of ~a."
+                  path project)))))))
 
 
 #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
