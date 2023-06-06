@@ -269,35 +269,47 @@ a standard include)."
       (iter:with include-table = (alist-hash-table include-tree :test #'equal))
       (for entry in (command-objects comp-db))
       (for filename = (relativized-path project entry))
-      (appending (cons filename (grab-paths (gethash filename include-table)))
+      (for include-tree = (gethash filename include-table))
+      (appending (cons filename (and include-tree (grab-paths include-tree)))
                  into result at beginning)
       (finally (return (reverse result))))))
 
 (defun evolve-files/dependency-order
     (project &key (include-tree (project-include-tree project :allow-headers t)))
   "Return the evolve-files of PROJECT sorted in dependency order."
-  (let ((dependency-order
-          (if-let ((comp-db (compilation-database project)))
-            (include-tree-compilation-database-order
-             project :include-tree include-tree :comp-db comp-db)
-            (include-tree-dependency-order include-tree))))
-    (symbol-macrolet ((target-hash (gethash path evolve-files nil)))
-      (iter
-        (iter:with evolve-files = (alist-hash-table (evolve-files project)
-                                                    :test #'equal))
-        (for path in dependency-order)
-        (for target = target-hash)
-        (cond
-          ;; NOTE: it is likely that INCLUDE-TREE has cycles, so the value is
-          ;;       marked as :visited to prevent adding the same file more than
-          ;;       once.
-          ((eql target :visited))
-          (target
-           (setf target-hash :visited)
-           (collect (cons path target)))
-          (t
-           (error "~a does not exist in evolve-files of ~a."
-                  path project)))))))
+  (labels ((unused-files (table &key (used-flag :visited))
+             (iter
+               (for (key value) in-hashtable table)
+               (unless (eql value used-flag)
+                 (collect (cons key value))))))
+    (let ((dependency-order
+            (if-let ((comp-db (compilation-database project)))
+              (include-tree-compilation-database-order
+               project :include-tree include-tree :comp-db comp-db)
+              (include-tree-dependency-order include-tree))))
+      (symbol-macrolet ((target-hash (gethash path evolve-files nil)))
+        (iter
+          (iter:with evolve-files = (alist-hash-table (evolve-files project)
+                                                      :test #'equal))
+          (for path in dependency-order)
+          (for target = target-hash)
+          (cond
+            ;; NOTE: it is likely that INCLUDE-TREE has cycles, so the value is
+            ;;       marked as :visited to prevent adding the same file more than
+            ;;       once.
+            ((eql target :visited))
+            (target
+             (setf target-hash :visited)
+             (collect (cons path target) into ordered-files at beginning))
+            (t
+             (error "~a does not exist in evolve-files of ~a."
+                    path project)))
+          (finally
+           (return
+             ;; NOTE: add header files which haven't been reached to the end.
+             (reverse
+              (append (unused-files evolve-files)
+                      ordered-files)))))))))
 
 
 #+(or :TREE-SITTER-C :TREE-SITTER-CPP)

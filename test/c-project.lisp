@@ -328,3 +328,18 @@ file including it."
       (with-attr-table *project*
         (symbol-table *project* (empty-map))
         (test-main.c)))))
+
+(deftest c-project-dependency-order-1 ()
+  "Header files that aren't included by any of the project files are still
+present in evolve-files/dependency-order."
+  (with-fixture multiple-artifacts-project
+    (with-attr-session (*project*)
+      (let* ((evolve-files (evolve-files *project*))
+             (evolve-files/dependency-order
+               (evolve-files/dependency-order *project*)))
+        (is (length= evolve-files evolve-files/dependency-order))
+        ;; Same files
+        (is (not (set-exclusive-or
+                  (mapcar #'car evolve-files)
+                  (mapcar #'car evolve-files/dependency-order)
+                  :test #'equal)))))))
