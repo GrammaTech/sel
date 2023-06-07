@@ -102,6 +102,15 @@
                                            "cpp-symbol-table-project3")))))
   (:teardown (setf *project* nil)))
 
+(defixture cpp-dependency-order
+    (:setup
+     (setf *project*
+           (from-file 'cpp-project
+                      (make-pathname
+                       :directory (append1 +etc-dir+
+                                           "cpp-dependency-order")))))
+  (:teardown (setf *project* nil)))
+
 (defmethod test-method ((obj simple) value)
   value)
 
@@ -629,3 +638,16 @@ int main () {
          (main (evolve-files-ref cpp "main.cc")))
     (with-attr-table cpp
       (get-declaration-ast :type (stmt-with-text (genome main) "A")))))
+
+(deftest cpp-evolve-files-dependency-order ()
+  "Cycles are handled without error."
+  (with-fixture cpp-dependency-order
+    (with-attr-session (*project*)
+      (let* ((evolve-files (evolve-files *project*))
+             (evolve-files/dependency-order
+               (evolve-files/dependency-order *project*)))
+        (is (length= evolve-files evolve-files/dependency-order))
+        ;; Same files
+
+        (is (equal '("a.h" "b.h" "f.h" "g.h" "main.cc")
+                   (mapcar #'car evolve-files/dependency-order)))))))

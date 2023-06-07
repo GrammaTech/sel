@@ -1,0 +1,13 @@
+[
+    {
+        "arguments": [
+            "cc",
+            "-c",
+            "-o",
+            "main",
+            "main.cc"
+        ],
+        "directory": "/home/nberch/quicklisp/local-projects/sel/test/etc/cpp-dependency-order",
+        "file": "main.cc"
+    }
+]
