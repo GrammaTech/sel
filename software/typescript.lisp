@@ -3,6 +3,7 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/tree-sitter-base
+        :software-evolution-library/software/ecma
         :software-evolution-library/software/template))
 
 (in-package :software-evolution-library/software/tree-sitter)

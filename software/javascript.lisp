@@ -4,6 +4,7 @@
         :cl-json
         :software-evolution-library
         :software-evolution-library/software/tree-sitter-base
+        :software-evolution-library/software/ecma
         :software-evolution-library/software/template))
 
 (in-package :software-evolution-library/software/tree-sitter)
@@ -216,17 +217,5 @@ scope of START-AST."
 ;; Implement the generic format-genome method for Javascript objects.
 (defmethod format-genome ((obj javascript) &key)
   (prettier obj))
-
-
-;;; Whitespace rules
-
-(define-empty-whitespace-methods ()
-  javascript-ast javascript---
-  javascript--- javascript-ast
-  javascript-++ javascript-ast
-  javascript-ast javascript-++
-  javascript-ast javascript-\;
-  ;; No whitespace before the arguments of an IIFE.
-  javascript-parenthesized-expression javascript-arguments)
 
 ) ; #+:TREE-SITTER-JAVASCRIPT

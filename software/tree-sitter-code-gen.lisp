@@ -601,7 +601,9 @@ for the language.")
        (:c/cpp-< c-< cpp-<)
        (:c/cpp-> c-> cpp->)
        (:c/cpp--> c--> cpp-->)
+       (:increment-operator-ast c-++ cpp-++)
        (:c/cpp-++ c-++ cpp-++)
+       (:decrement-operator-ast c--- cpp---)
        (:c/cpp--- c--- cpp---)
        (:c/cpp-#define c-#define cpp-#define)
        (:c/cpp-#else c-#else cpp-#else)
@@ -856,10 +858,26 @@ for the language.")
         javascript-arguments
         typescript-ts-arguments
         typescript-tsx-arguments)
+       (:ecma-parenthesized-expression
+        javascript-parenthesized-expression
+        typescript-ts-parenthesized-expression
+        typescript-tsx-parenthesized-expression)
        (:ecma-member-expression
         javascript-member-expression
         typescript-ts-member-expression
-        typescript-tsx-member-expression))
+        typescript-tsx-member-expression)
+       (:decrement-operator-ast
+        javascript---
+        typescript-ts---
+        typescript-tsx---)
+       (:increment-operator-ast
+        javascript-++
+        typescript-ts-++
+        typescript-tsx-++)
+       (:semicolon-ast
+        javascript-\;
+        typescript-ts-\;
+        typescript-tsx-\;))
       (:python
        (:root-ast python-module)
        (:comment-ast python-comment)
@@ -3207,6 +3225,18 @@ not declarations)."))
 
   (defclass catch-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are error catch clauses."))
+
+ (defclass operator-ast (ast) ()
+   (:documentation "Mixin for an operator AST."))
+
+ (defclass semicolon-ast (operator-ast) ()
+   (:documentation "Mix-in for a semicolon."))
+
+ (defclass increment-operator-ast (operator-ast) ()
+   (:documentation "Mix-in for ++."))
+
+ (defclass decrement-operator-ast (operator-ast) ()
+   (:documentation "Mix-in for --."))
 
   (defclass terminal-symbol ()
     ()
