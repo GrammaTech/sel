@@ -408,7 +408,11 @@ for the language.")
         (javascript-left :reader lhs :reader assignee)
         (javascript-right :reader rhs))
        (javascript-update-expression
-        (javascript-argument :reader assignee)))
+        (javascript-argument :reader assignee))
+       (javascript-if-statement
+        (javascript-condition :initarg :condition :reader condition)
+        (javascript-consequence :initarg :consequence :reader consequence)
+        (javascript-alternative :initarg :alternative :reader alternative)))
       (:python
        (python-call
         (python-function :reader call-function)
@@ -537,7 +541,16 @@ for the language.")
        (typescript-ts-update-expression
         (typescript-ts-argument :reader assignee))
        (typescript-tsx-update-expression
-        (typescript-tsx-argument :reader assignee))))
+        (typescript-tsx-argument :reader assignee))
+       ;; If statements.
+       (typescript-ts-if-statement
+        (typescript-ts-condition :initarg :condition :reader condition)
+        (typescript-ts-consequence :initarg :consequence :reader consequence)
+        (typescript-ts-alternative :initarg :alternative :reader alternative))
+       (typescript-tsx-if-statement
+        (typescript-tsx-condition :initarg :condition :reader condition)
+        (typescript-tsx-consequence :initarg :consequence :reader consequence)
+        (typescript-tsx-alternative :initarg :alternative :reader alternative))))
     "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
