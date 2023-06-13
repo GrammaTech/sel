@@ -177,12 +177,31 @@
                 old-root
                 new-root))))
 
-(defun copy-directory-hierarchy (ast)
-  ;; TODO Don't traverse the whole thing.
-  (mapcar (lambda (ast)
-            (when (typep ast 'directory-ast)
-              (copy ast)))
-          ast))
+(defun copy-path (project path)
+  "Return a copy of PROJECT where every directory-ast in PATH has been copied."
+  (etypecase path
+    (string
+     (copy-path project (pathname path)))
+    (pathname
+     (copy-path project (cdr (pathname-directory path))))
+    (list
+     (labels ((rec (parent path)
+                (if (no path) (copy parent)
+                    (let ((dir-name (first path)))
+                      (if-let (child-dir
+                               (find dir-name (entries parent)
+                                     :key #'name :test #'equal))
+                        (let ((new-child-dir (rec child-dir (rest path))))
+                          (copy parent
+                                :entries
+                                (substitute new-child-dir
+                                            child-dir
+                                            (entries parent))))
+                        (let ((new-dir (make 'directory-ast :name dir-name)))
+                          (copy parent
+                                :entries (cons (rec new-dir (rest path))
+                                               (entries parent)))))))))
+       (copy project :genome (rec (genome project) path))))))
 
 (defmethod with ((project directory-project)
                  (path string)
@@ -194,11 +213,7 @@
     ;; We are replacing a software object.
     (with project old-obj new)
     ;; We are adding new software.
-    (lret* ((new-genome
-             (copy-directory-hierarchy
-              (genome project)))
-            (new-project
-             (copy project :genome new-genome)))
+    (lret* ((new-project (copy-path project path)))
       (setf (evolve-files-ref new-project path) new)
       (insert-file new-project path new))))
 
