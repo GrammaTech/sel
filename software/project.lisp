@@ -15,6 +15,8 @@
            :artifacts
            :evolve-files
            :evolve-files-ref
+           :walk-evolve-files
+           :evolve-files-alist
            :other-files
            :ignore-paths
            :only-paths
@@ -122,9 +124,19 @@ object (e.g., the original program).")
     (or (and only-paths (not (included only-paths)))
         (included ignore-paths))))
 
+(defun evolve-files-alist (software)
+  "Get the evolve files of SOFTWARE as an alist."
+  (evolve-files software))
+
 (defun evolve-files-ref (software path)
   "Lookup PATH in the evolve-files of SOFTWARE."
   (aget path (evolve-files software) :test #'equal))
+
+(defun walk-evolve-files (project fn)
+  "Call FN on the path and software of each evolve-file in PROJECT."
+  (fbind (fn)
+    (iter (for (k . v) in (evolve-files project))
+          (fn k v))))
 
 (defun (setf evolve-files-ref) (value software path)
   "Make PATH pointer to VALUE in SOFTWARE."
