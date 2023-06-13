@@ -14,6 +14,7 @@
            :build-command
            :artifacts
            :evolve-files
+           :evolve-files-ref
            :other-files
            :ignore-paths
            :only-paths
@@ -120,6 +121,21 @@ object (e.g., the original program).")
            (find-if {pathname-match-p canonical-path} files)))
     (or (and only-paths (not (included only-paths)))
         (included ignore-paths))))
+
+(defun evolve-files-ref (software path)
+  "Lookup PATH in the evolve-files of SOFTWARE."
+  (aget path (evolve-files software) :test #'equal))
+
+(defun (setf evolve-files-ref) (value software path)
+  "Make PATH pointer to VALUE in SOFTWARE."
+  (check-type value software)
+  ;; Update without mutating in case of shared structure with other
+  ;; projects.
+  (setf (evolve-files software)
+        (acons path value
+               (remove path (evolve-files software)
+                       :key #'car
+                       :test #'equal))))
 
 (defgeneric ignored-evolve-path-p (software path)
   (:documentation "Check if PATH is an ignored evolve path in SOFTWARE.")

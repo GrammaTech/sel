@@ -25,6 +25,7 @@
            :full-pathname
            :get-path
            :evolve-files
+           :evolve-files-ref
            :other-files
            :ignore-paths
            :only-paths
