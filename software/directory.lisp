@@ -287,14 +287,18 @@
       (write-string-into-file string path)
       (from-file obj d))))
 
+(defun insert-file (obj path software-object)
+  "Insert SOFTWARE-OBJECT into OBJ at PATH."
+  (ensure-path (genome obj) path)
+  (setf (contents (get-path (genome obj) path))
+        (list (genome software-object))))
+
 (defmethod collect-evolve-files :around ((obj directory-project))
   (let ((evolve-files (call-next-method)))
     (dolist (pair evolve-files evolve-files)
       (with-simple-restart (continue "Skip evolve file")
         (destructuring-bind (path . software-object) pair
-          (ensure-path (genome obj) path)
-          (setf (contents (get-path (genome obj) path))
-                (list (genome software-object))))))))
+          (insert-file obj path software-object))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
