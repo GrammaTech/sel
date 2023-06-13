@@ -177,12 +177,30 @@
                 old-root
                 new-root))))
 
+(defun copy-directory-hierarchy (ast)
+  ;; TODO Don't traverse the whole thing.
+  (mapcar (lambda (ast)
+            (when (typep ast 'directory-ast)
+              (copy ast)))
+          ast))
+
 (defmethod with ((project directory-project)
-                 (old string)
+                 (path string)
                  &optional new)
-  (with project
-        (aget old (evolve-files project) :test #'equal)
-        new))
+  (unless (typep new 'software)
+    (return-from with
+      (call-next-method)))
+  (if-let (old-obj (evolve-files-ref project path))
+    ;; We are replacing a software object.
+    (with project old-obj new)
+    ;; We are adding new software.
+    (lret* ((new-genome
+             (copy-directory-hierarchy
+              (genome project)))
+            (new-project
+             (copy project :genome new-genome)))
+      (setf (evolve-files-ref new-project path) new)
+      (insert-file new-project path new))))
 
 (defun sync-changed-file! (new-project old-project changed-file)
   "Update NEW-PROJECT's evolve-files with CHANGED-FILE."

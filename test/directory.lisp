@@ -44,6 +44,13 @@
   (:teardown
    (setf *soft* nil)))
 
+(def +alert.js+
+  "module.exports = {
+  alert: function(arg) {
+    window.alert(arg);
+  }
+}")
+
 (deftest can-ensure-a-path-under-a-directory ()
   (let ((dir (make-instance 'directory-ast :name "foo")))
     (is (sel/sw/directory::ensure-path dir "bar"))
@@ -88,6 +95,37 @@
   (with-fixture fib-project-javascript
     (is (= 1 (count-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*))))
     (is (find-if (op (subtypep (type-of _) 'function-ast)) (genome *soft*)))))
+
+(defun can-insert-file-helper (old-project path new-file)
+  (is (stringp path))
+  ;; The file doesn't already exist.
+  (is (null (evolve-files-ref old-project path)))
+  (is (null (lookup old-project path)))
+  (let ((new-project (with old-project path new-file)))
+    ;; Make sure the old project hasn't been mutated.
+    (is (null (evolve-files-ref old-project path)))
+    (is (null (lookup old-project path)))
+    ;; The evolve files have been updated.
+    (is (eql new-file (evolve-files-ref new-project path)))
+    ;; A file AST has been created.
+    (let ((file-ast (lookup new-project path)))
+      (is (typep file-ast 'file-ast))
+      (is (eql (genome new-file)
+               (only-elt (children file-ast)))))
+    (with-temporary-directory (:pathname d)
+      (phenome new-project :bin d)
+      (is (file-exists-p (path-join d path))))))
+
+(deftest can-insert-file/same-level ()
+  (with-fixture fib-project-javascript
+    (let* ((new-js (from-string 'javascript +alert.js+)))
+      (can-insert-file-helper *soft* "alert.js" new-js))))
+
+(deftest can-insert-file/subdirectory ()
+  (with-fixture fib-project-javascript
+    (let* ((new-js (from-string 'javascript +alert.js+))
+           (random (princ-to-string (random-in-range 100000 999999))))
+      (can-insert-file-helper *soft* (string+ random "/alert.js") new-js))))
 
 (deftest can-replace-file-in-directory ()
   "Test that the AST and evolve files remain in sync when updating."
