@@ -16,7 +16,6 @@
            :evolve-files
            :evolve-files-ref
            :walk-evolve-files
-           :evolve-files-alist
            :other-files
            :ignore-paths
            :only-paths
@@ -123,10 +122,6 @@ object (e.g., the original program).")
            (find-if {pathname-match-p canonical-path} files)))
     (or (and only-paths (not (included only-paths)))
         (included ignore-paths))))
-
-(defun evolve-files-alist (software)
-  "Get the evolve files of SOFTWARE as an alist."
-  (evolve-files software))
 
 (defun evolve-files-ref (software path)
   "Lookup PATH in the evolve-files of SOFTWARE."
