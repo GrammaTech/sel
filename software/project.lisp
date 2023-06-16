@@ -212,7 +212,7 @@ If PATH is a string, it is parsed using Unix syntax.")
   (:documentation "Create the evolve files for PROJECT."))
 
 (defun text-file-p (p)
-  "Given a path, returns true if the file appears to be a text file.
+  "Given a path, returns T if the file appears to be a text file (not binary).
  This is determined by a heuristic: if no 0 bytes are found in the first
  256 bytes, it presumes it is text (and not binary)."
   (with-open-file (is p :direction :input :element-type 'unsigned-byte)
