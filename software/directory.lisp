@@ -320,11 +320,17 @@
       (write-string-into-file string path)
       (from-file obj d))))
 
-(defun insert-file (obj path software-object)
-  "Insert SOFTWARE-OBJECT into OBJ at PATH."
-  (ensure-path (genome obj) path)
-  (setf (contents (get-path (genome obj) path))
-        (list (genome software-object))))
+(defgeneric insert-file (obj path software-object)
+  (:documentation "Insert SOFTWARE-OBJECT into OBJ at PATH.")
+  (:method ((obj software) path software-object)
+    (insert-file (genome obj) path software-object))
+  (:method ((obj functional-tree-ast) path software-object)
+    (insert-file (find-if (of-type 'directory-ast) obj)
+                 path software-object))
+  (:method ((ast directory-ast) path software-object)
+    (ensure-path ast path)
+    (setf (contents (get-path ast path))
+          (list (genome software-object)))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
   (let ((evolve-files (call-next-method)))
