@@ -205,6 +205,10 @@ a standard include)."
   (:method ((project t) (file file-ast))
     (file-include-tree project
                        (namestring (full-pathname file))))
+  (:method ((project t) (file ast))
+    (if-let (enclosing (find-enclosing 'file-ast project file))
+      (file-include-tree project enclosing)
+      (error "No enclosing file for ~a in ~a" file project)))
   (:method ((project t) (file string))
     (aget file
           (project-include-tree project)
