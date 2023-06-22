@@ -209,7 +209,8 @@
 
 (defun handle-read-random-state-from-path-argument (path)
   (setf *random-state*
-        (with-open-file (in path :direction :input) (read in))))
+        (with-open-file (in path :direction :input) (read in)))
+  path)
 
 (defun handle-save-random-state-to-path-argument (path)
   (with-open-file (out path :direction :output
