@@ -177,16 +177,25 @@
                 old-root
                 new-root))))
 
-(defun copy-path (project path)
-  "Return a copy of PROJECT where every directory-ast in PATH has been copied."
+(defun extract-tld (root)
+  "Get the top-level directory from ROOT."
+  (etypecase root
+    (software (extract-tld (genome root)))
+    (directory-ast root)
+    (node (find-if (of-type 'directory-ast) root))))
+
+(defun copy-path (project path new-entry)
+  "Return a copy of PROJECT where every directory-ast in PATH has been
+copied, inserting NEW-ENTRY as an entry of the last directory."
   (etypecase path
     (string
-     (copy-path project (pathname path)))
+     (copy-path project (pathname path) new-entry))
     (pathname
-     (copy-path project (cdr (pathname-directory path))))
+     (copy-path project (cdr (pathname-directory path)) new-entry))
     (list
      (labels ((rec (parent path)
-                (if (no path) (copy parent)
+                (if (no path)
+                    (copy parent :entries (append1 (entries parent) new-entry))
                     (let ((dir-name (first path)))
                       (if-let (child-dir
                                (find dir-name (entries parent)
@@ -201,7 +210,15 @@
                           (copy parent
                                 :entries (cons (rec new-dir (rest path))
                                                (entries parent)))))))))
-       (copy project :genome (rec (genome project) path))))))
+       (let* ((genome (genome project))
+              (tld (extract-tld genome))
+              (new-tld (rec tld path))
+              (new-genome
+               (if (eql tld genome) new-tld
+                   (with genome tld new-tld))))
+         (assert (eql (lookup new-genome (ast-path new-genome new-tld))
+                      new-tld))
+         (copy project :genome new-genome))))))
 
 (defmethod with ((project directory-project)
                  (path string)
@@ -213,9 +230,14 @@
     ;; We are replacing a software object.
     (with project old-obj new)
     ;; We are adding new software.
-    (lret* ((new-project (copy-path project path)))
-      (setf (evolve-files-ref new-project path) new)
-      (insert-file new-project path new))))
+    (lret* ((pathname (pathname path))
+            (filename (nth-value 1 (pathname-to-list pathname)))
+            (file-ast (make 'file-ast
+                            :name filename
+                            :full-pathname pathname
+                            :contents (list (genome new))))
+            (new-project (copy-path project path file-ast)))
+      (setf (evolve-files-ref new-project path) new))))
 
 (defun sync-changed-file! (new-project old-project changed-file)
   "Update NEW-PROJECT's evolve-files with CHANGED-FILE."

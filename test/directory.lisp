@@ -109,12 +109,15 @@
     (is (eql new-file (evolve-files-ref new-project path)))
     ;; A file AST has been created.
     (let ((file-ast (lookup new-project path)))
+      (is (eql file-ast
+               (lookup new-project (ast-path new-project file-ast))))
       (is (typep file-ast 'file-ast))
       (is (eql (genome new-file)
                (only-elt (children file-ast)))))
     (with-temporary-directory (:pathname d)
       (phenome new-project :bin d)
-      (is (file-exists-p (path-join d path))))))
+      (is (file-exists-p (path-join d path))))
+    new-project))
 
 (deftest can-insert-file/same-level ()
   (with-fixture fib-project-javascript
