@@ -5,6 +5,7 @@
   (:local-nicknames
    (:json :cl-json))
   (:shadow :path :macro-name)
+  (:use :software-evolution-library/components/copy)
   (:import-from :shlex)
   (:export :parse-compilation-database
            :normalize-flags
@@ -100,31 +101,34 @@ Then, if the argument is a directory, it is made absolute.")
 ;;; This lets us pretend they are uniform by lazily computing any
 ;;; missing values.
 
-(defclass compilation-database ()
-  ((command-objects
-    :type list
-    :initarg :command-objects
-    :reader command-objects
-    :documentation "List of command objects.")
-   (path
-    :type (or pathname null)
-    :initarg :path
-    :reader disk-path
-    :documentation "On-disk path of compilation database (optional).")
-   (size
-    :type (integer 0 *)
-    :initarg :size
-    :reader size
-    :documentation "Length of entry list.")
-   (file-command-objects
-    :type hash-table
-    :documentation "Map from each file to its command objects."
-    :reader file-command-objects))
-  (:documentation "A JSON compilation database.
+(eval-always
+  (defclass compilation-database ()
+    ((command-objects
+      :type list
+      :initarg :command-objects
+      :reader command-objects
+      :documentation "List of command objects.")
+     (path
+      :type (or pathname null)
+      :initarg :path
+      :reader disk-path
+      :documentation "On-disk path of compilation database (optional).")
+     (size
+      :type (integer 0 *)
+      :initarg :size
+      :reader size
+      :documentation "Length of entry list.")
+     (file-command-objects
+      :type hash-table
+      :documentation "Map from each file to its command objects."
+      :reader file-command-objects))
+    (:documentation "A JSON compilation database.
 See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
-  (:default-initargs
-   :command-objects nil
-   :path nil))
+    (:default-initargs
+     :command-objects nil
+     :path nil)))
+
+(define-default-copy compilation-database (:around-method t))
 
 (defmethod print-object ((self compilation-database) stream)
   (print-unreadable-object (self stream :type t)
@@ -163,54 +167,57 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
 (defmethod lookup ((self compilation-database) (key pathname))
   (gethash (namestring key) (file-command-objects self)))
 
-(defclass command-object ()
-  ((directory
-    :type string
-    :initarg :directory
-    :reader command-directory
-    :documentation "The working directory.")
-   (file
-    :type string :initarg :file
-    :reader file
-    :reader command-file
-    :documentation "The source file.")
-   (arguments
-    :type (soft-list-of string)
-    :initarg :arguments
-    :reader command-arguments
-    :documentation "The compiler command, as an argv.")
-   (command
-    :type string
-    :initarg :command
-    :reader command-string
-    :documentation "The compile command, as one string.")
-   (output
-    :type string
-    :initarg :output
-    :reader command-output
-    :documentation "The output file.")
-   (flags
-    :type (soft-list-of string)
-    :reader command-flags
-    :documentation "Compiler flags.")
-   (compiler
-    :type string
-    :reader command-compiler
-    :documentation "compiler")
-   (preprocessor-definitions
-    :type macro-alist
-    :reader command-preproc-defs
-    :documentation "Preprocessor definition alist.")
-   (header-dirs
-    :type header-dirs
-    :reader command-header-dirs)
-   (isysroot
-    :type (or null string)
-    :reader command-isysroot))
-  (:documentation "Entry in a compiler database")
-  (:default-initargs
-   :directory (required-argument :directory)
-   :file (required-argument :file)))
+(eval-always
+  (defclass command-object ()
+    ((directory
+      :type string
+      :initarg :directory
+      :reader command-directory
+      :documentation "The working directory.")
+     (file
+      :type string :initarg :file
+      :reader file
+      :reader command-file
+      :documentation "The source file.")
+     (arguments
+      :type (soft-list-of string)
+      :initarg :arguments
+      :reader command-arguments
+      :documentation "The compiler command, as an argv.")
+     (command
+      :type string
+      :initarg :command
+      :reader command-string
+      :documentation "The compile command, as one string.")
+     (output
+      :type string
+      :initarg :output
+      :reader command-output
+      :documentation "The output file.")
+     (flags
+      :type (soft-list-of string)
+      :reader command-flags
+      :documentation "Compiler flags.")
+     (compiler
+      :type string
+      :reader command-compiler
+      :documentation "compiler")
+     (preprocessor-definitions
+      :type macro-alist
+      :reader command-preproc-defs
+      :documentation "Preprocessor definition alist.")
+     (header-dirs
+      :type header-dirs
+      :reader command-header-dirs)
+     (isysroot
+      :type (or null string)
+      :reader command-isysroot))
+    (:documentation "Entry in a compiler database")
+    (:default-initargs
+     :directory (required-argument :directory)
+     :file (required-argument :file))))
+
+(define-default-copy command-object ())
 
 (defmethod print-object ((self command-object) stream)
   (print-unreadable-object (self stream :type t)
