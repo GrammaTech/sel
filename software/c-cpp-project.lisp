@@ -307,6 +307,8 @@ a standard include)."
           (finally
            (return
              ;; NOTE: add header files which haven't been reached to the end.
+             ;;       Anything added here will not have any guarantees on whether
+             ;;       it's in the correct order.
              (reverse
               (append (unused-files evolve-files)
                       ordered-files)))))))))
