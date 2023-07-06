@@ -19,7 +19,10 @@
 (in-readtable :curry-compose-reader-macros)
 
 (defparameter *cpp-extensions*
-  '("h" "cpp" "cp" "cc" "cxx")
+  '("h" "hpp" "cpp" "cp" "cc" "cxx"
+    ;; Module unit extensions. Visual Studio uses .ixx, Clang
+    ;; uses the extensions ending with -m.
+    "ixx" "cppm" "ccm" "cxxm" "c++m")
   "List of extensions we will consider for evolving.")
 
 (define-software cpp-project (c/cpp-project)

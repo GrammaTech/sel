@@ -41,7 +41,10 @@
   "Names of operators that can occur in operator_name ASTs.")
 
 (define-language-alias-mappings
-    cpp ("c plus plus" "c++" "c-plus-plus" "cc" "cp" "cpp" "cxx" "hpp"))
+    cpp ("c plus plus" "c++" "c-plus-plus" "cc" "cp" "cpp" "cxx" "hpp"
+         ;; Module unit extensions. Visual Studio uses .ixx, Clang
+         ;; uses the extensions ending with -m.
+         "ixx" "cppm" "ccm" "cxxm" "c++m"))
 
 (defgeneric strip-template-arguments (template)
   (:documentation "Strip template arguments (in angle brackets) from STRING.")
