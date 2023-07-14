@@ -224,7 +224,7 @@ pub unsafe fn auto() -> MmapChoice {
   ;; expressions, this is the way rustfmt likes it.
   (check-patch-whitespace "Type { x: 1, y: 2 };")
   (check-patch-whitespace "struct Type<T> { }")
-  (check-patch-whitespace "#[derive (Clone)]
+  (check-patch-whitespace "#[derive(Clone)]
 struct MyType<T> { x: T, y: T }")
   (check-patch-whitespace "impl<T> Foo<T> {}")
   (check-patch-whitespace "Point::<f32>::new();")
@@ -233,4 +233,5 @@ struct MyType<T> { x: T, y: T }")
   (check-patch-whitespace "for i in 0..=n {}")
   (check-patch-whitespace "fn myfn(&self) {}")
   (check-patch-whitespace "fn myfn(&mut x<'_>) {}")
-  (check-patch-whitespace "let raw = &mut x as *mut i32;"))
+  (check-patch-whitespace "let raw = &mut x as *mut i32;")
+  (check-patch-whitespace "#[allow(unused_imports)]"))

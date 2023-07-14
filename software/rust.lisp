@@ -203,6 +203,15 @@ around generic-type-with-turbofish being aliased to generic-type."
 (defmethod whitespace-between ((s rustfmt-style) (x rust-attribute-item) (y rust-struct-item))
   #.(fmt "~%"))
 
+(defmethod whitespace-between ((s rustfmt-style) (x rust-mod-item) (y rust-use-declaration))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between/parent ((parent rust-attribute)
+                                      (s rustfmt-style)
+                                      (x rust-identifier)
+                                      (y rust-token-tree))
+  "")
+
 (defmethod whitespace-between/parent ((parent rust-ast)
                                       (s rustfmt-style)
                                       (x (eql :|let|))
