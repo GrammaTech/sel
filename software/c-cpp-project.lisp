@@ -309,7 +309,7 @@ should already have been computed as part of their compilation units."
   ;; Enables the use of the `@' macro directly against projects.
   (lookup (project-directory obj) key))
 
-(defmethod symbol-table :around ((ast c/cpp-translation-unit) &optional in)
+(defmethod symbol-table :context ((ast c/cpp-translation-unit) &optional in)
   (let ((root (attrs-root*)))
     (or (and-let* (((typep root 'c/cpp-project))
                    ((compilation-database root))
