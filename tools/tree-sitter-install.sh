@@ -28,7 +28,7 @@ pins[python]=24b530c
 pins[bash]=275effd
 pins[c]=f357890
 pins[commonlisp]=c7e8149
-pins[cpp]=0b6d0eb
+pins[cpp]=2f3d62d
 pins[css]=a03f1d2
 pins[go]=aeb2f33
 pins[html]=29f53d8
@@ -50,6 +50,7 @@ pins[typescript/tsx]=${pins[typescript]}
 declare -A repos
 repos[commonlisp]=https://github.com/theHamsta/tree-sitter-commonlisp.git
 repos[yaml]=https://github.com/ikatyang/tree-sitter-yaml.git
+repos[cpp]=https://github.com/alfaix/tree-sitter-cpp.git
 
 cd "$WORKDIR"
 
