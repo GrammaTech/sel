@@ -25,7 +25,7 @@
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers
                 :qualified-name-variants)
-  (:import-from :sel/software/cpp-project
+  (:import-from :software-evolution-library/software/cpp-project
                 :find-module
                 :relative-module-defaults)
   (:local-nicknames (:project :software-evolution-library/software/project)
@@ -1910,6 +1910,79 @@ class Y;"
                              :test #'source-text=)
                   "Template defines ~a but got ~a:~%~a"
                   types param-types template-string))))))
+
+(deftest test-filter-exports ()
+  (mvlet* ((cpp
+            (from-string 'cpp "export module foo;
+struct private_type {};
+export struct public_type {};
+
+int private_fun(int x, int y) { return x + y; };
+export int public_fun(int x, int y) { return x + y; };"))
+           (symtab exports-map
+            (with-attr-table cpp
+              (let* ((symtab (symbol-table (genome cpp) (empty-map))))
+                (values symtab (sel/sw/ts::filter-exports symtab))))))
+    (is (@ (@ symtab :function) "public_fun"))
+    (is (@ (@ exports-map :function) "public_fun"))
+
+    (is (@ (@ symtab :function) "private_fun"))
+    (is (not (@ (@ exports-map :function) "private_fun")))
+
+    (is (@ (@ symtab :type) "private_type"))
+    (is (not (@ (@ exports-map :type) "private_type")))
+
+    (is (@ (@ symtab :type) "public_type"))
+    (is (@ (@ exports-map :type) "public_type"))))
+
+(deftest test-filter-exports/recursive ()
+  (let ((project
+         (inline-project 'cpp-project
+                         '(("main.cc"
+                            "import module;
+int main () {
+  M::say_hello();
+}
+")
+                           ("m.cppm"
+                            "export module m;
+export import :interface_part;
+import :implementation_part;")
+                           ("")
+                           )
+                         )
+         )))
+  )
+
+(deftest test-symbol-table-union/exports ()
+  (let* ((pub-fun1 (cpp* "export int pub_fun1() {}"))
+         (pub-fun2 (cpp* "export int pub_fun2() {}"))
+         (priv-fun1 (cpp* "int priv_fun1() {}"))
+         (priv-fun2 (cpp* "int priv_fun2() {}"))
+         (union
+          (symbol-table-union
+           (make 'cpp-ast)
+           (fset:map
+            (:function
+             (fset:map ("pub_fun1" pub-fun1)
+                       ("priv_fun1" priv-fun1)))
+            (:export
+              (fset:map
+               (:function
+                (fset:map ("pub_fun1" pub-fun1))))))
+           (fset:map
+            (:function
+             (fset:map ("pub_fun2" pub-fun2)
+                       ("priv_fun2" priv-fun2)))
+            (:export
+              (fset:map
+               (:function
+                (fset:map ("pub_fun2" pub-fun2)))))))))
+    (assert (equal? (@ union :export)
+                    (fset:map
+                     (:function
+                      (fset:map ("pub_fun1" pub-fun1)
+                                ("pub_fun2" pub-fun2))))))))
 
 
 ;;; Conversion tests

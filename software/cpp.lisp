@@ -1649,3 +1649,54 @@ available to use at any point in a C++ AST.")
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)
               :source-text-fun #'qualify-declared-ast-name))))) ; #+:TREE-SITTER-CPP
+
+(defun exported-from? (file ast)
+  (and (ancestor-of-p (attrs-root*) ast file)
+       (exported? ast)))
+
+(def-attr-fun exported? ()
+  (:method ((ast t)) nil)
+  (:method :around ((ast t))
+    (or (and (find-if (of-type 'cpp-export-specifier)
+                      (direct-children ast))
+             t)
+        (call-next-method)))
+  (:method ((ast cpp-ast))
+    (let ((enclosing (find-enclosing-declaration
+                      'declaration-ast
+                      (attrs-root*)
+                      ast)))
+      (if (eql enclosing ast)
+          (call-next-method)
+          (exported? enclosing))))
+  (:method ((ast cpp-init-declarator))
+    (exported? (find-enclosing 'cpp-declaration (attrs-root*) ast))))
+
+(defmethod symbol-table-union ((root cpp-ast) table-1 table-2 &key &allow-other-keys)
+  "Recursively union the maps under the :export key, if there are any."
+  (let* ((exports1 (@ table-1 :export))
+         (exports2 (@ table-2 :export)))
+    (if (nor exports1 exports2) (call-next-method)
+        (let ((union
+               (call-next-method root
+                                 (less table-1 :export)
+                                 (less table-2 :export))))
+          (with union
+                :export
+                (if (and exports1 exports2)
+                    (symbol-table-union root exports1 exports2)
+                    (or exports1 exports2)))))))
+
+(defmethod outer-defs ((ast cpp-ast))
+  (let ((outer-defs (call-next-method)))
+    (if (exported? ast)
+        (with outer-defs :export outer-defs))))
+
+(defmethod outer-defs ((ast cpp-module-declaration))
+  (let* ((symtab (module-symbol-table (cpp-module-name ast)))
+         (exports (@ symtab :export)))
+    (if (exported? ast)
+        ;; Conserve the exports.
+        (with exports :export exports)
+        ;; Drop the exports key.
+        (@ symtab :export))))

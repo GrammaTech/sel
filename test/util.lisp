@@ -7,6 +7,7 @@
         :stefil+
         :software-evolution-library/software/parseable
         :software-evolution-library/software/tree-sitter
+        :software-evolution-library/software/project
         :functional-trees/attrs)
   (:export :test
            :+etc-dir+
