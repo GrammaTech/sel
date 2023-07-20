@@ -566,6 +566,7 @@ for the language.")
         c-enum-tag-specifier
         c-union-tag-specifier))
       (:cpp
+       (:compound-ast cpp-export-block)
        (:definition-ast cpp-class-specifier cpp-namespace-definition)
        (:type-declaration-ast cpp-class-specifier cpp-alias-declaration cpp-type-parameter-declaration)
        (:composite-type-ast cpp-class-specifier)
