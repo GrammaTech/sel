@@ -1911,49 +1911,6 @@ class Y;"
                   "Template defines ~a but got ~a:~%~a"
                   types param-types template-string))))))
 
-(deftest test-filter-exports ()
-  (mvlet* ((cpp
-            (from-string 'cpp "export module foo;
-struct private_type {};
-export struct public_type {};
-
-int private_fun(int x, int y) { return x + y; };
-export int public_fun(int x, int y) { return x + y; };"))
-           (symtab exports-map
-            (with-attr-table cpp
-              (let* ((symtab (symbol-table (genome cpp) (empty-map))))
-                (values symtab (sel/sw/ts::filter-exports symtab))))))
-    (is (@ (@ symtab :function) "public_fun"))
-    (is (@ (@ exports-map :function) "public_fun"))
-
-    (is (@ (@ symtab :function) "private_fun"))
-    (is (not (@ (@ exports-map :function) "private_fun")))
-
-    (is (@ (@ symtab :type) "private_type"))
-    (is (not (@ (@ exports-map :type) "private_type")))
-
-    (is (@ (@ symtab :type) "public_type"))
-    (is (@ (@ exports-map :type) "public_type"))))
-
-(deftest test-filter-exports/recursive ()
-  (let ((project
-         (inline-project 'cpp-project
-                         '(("main.cc"
-                            "import module;
-int main () {
-  M::say_hello();
-}
-")
-                           ("m.cppm"
-                            "export module m;
-export import :interface_part;
-import :implementation_part;")
-                           ("")
-                           )
-                         )
-         )))
-  )
-
 (deftest test-symbol-table-union/exports ()
   (let* ((pub-fun1 (cpp* "export int pub_fun1() {}"))
          (pub-fun2 (cpp* "export int pub_fun2() {}"))
@@ -1983,6 +1940,44 @@ import :implementation_part;")
                      (:function
                       (fset:map ("pub_fun1" pub-fun1)
                                 ("pub_fun2" pub-fun2))))))))
+
+(deftest test-filter-exports ()
+  (mvlet* ((cpp
+            (from-string 'cpp "export module foo;
+struct private_type {};
+export struct public_type {};
+
+int private_fun(int x, int y) { return x + y; };
+export int public_fun(int x, int y) { return x + y; };"))
+           (symtab
+            (with-attr-table cpp
+              (symbol-table (genome cpp) (empty-map)))))
+    (is (@ (@ symtab :function) "public_fun"))
+    (is (not (@ (@ symtab :function) "private_fun")))
+    (is (not (@ (@ symtab :type) "private_type")))
+    (is (@ (@ symtab :type) "public_type"))))
+
+(deftest test-filter-exports/fragment ()
+  (let ((cpp (from-string 'cpp "module;
+export module b;
+export void say_hello() { std::cout << \"Hello\" << std::endl; }
+void say_goodbye() { std::cout << \"Goodbye\" << std::endl; }
+")))
+    (with-attr-table cpp
+      (let ((symtab (symbol-table (genome cpp))))
+        (is (@ (@ symtab :function) "say_hello"))
+        (is (not (@ (@ symtab :function) "say_goodbye")))))))
+
+(deftest test-filter-exports/namespace ()
+  (let ((cpp (from-string 'cpp "module;
+export module b;
+namespace b {
+  export void say_hello() { std::cout << \"Hello\" << std::endl; }
+}")))
+    (with-attr-table cpp
+      (let ((symtab (symbol-table (find-if (of-type 'cpp-function-definition) (genome cpp)))))
+        (sel/sw/ts::outer-defs (find-if (of-type 'cpp-function-definition) (genome cpp)))
+        (is (@ (@ symtab :function) "b::say_hello"))))))
 
 
 ;;; Conversion tests

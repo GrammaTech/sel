@@ -566,7 +566,21 @@ for the language.")
         c-enum-tag-specifier
         c-union-tag-specifier))
       (:cpp
-       (:compound-ast cpp-export-block)
+       (:compound-ast cpp-declaration-list)
+       (:cpp-exportable-ast
+        cpp-function-definition
+        cpp-declaration
+        cpp-type-definition
+        cpp-linkage-specification
+        cpp-enum-specifier
+        cpp-struct-specifier
+        cpp-union-specifier
+        cpp-class-specifier
+        cpp-module-declaration
+        cpp-import-declaration
+        cpp-namespace-alias-definition
+        cpp-using-declaration
+        cpp-alias-declaration)
        (:definition-ast cpp-class-specifier cpp-namespace-definition)
        (:type-declaration-ast cpp-class-specifier cpp-alias-declaration cpp-type-parameter-declaration)
        (:composite-type-ast cpp-class-specifier)
@@ -580,7 +594,10 @@ for the language.")
         cpp-qualified-identifier
         cpp-type-identifier
         cpp-primitive-type
-        cpp-operator-name)
+        cpp-operator-name
+        cpp-module-name
+        cpp-module-qualified-name
+        cpp-module-partition)
        (:catch-ast cpp-catch-clause)
        (:loop-ast cpp-for-range-loop)
        (:parameter-ast

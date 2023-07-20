@@ -506,3 +506,14 @@ int main () {
         ;; (is (not (ft/attrs::reachable? new-project hpp-file)))
         (compare-projects project new-project
                           :changed '("my_class.cc" "my_class.h" "my_program.cc"))))))
+
+(deftest test-recursive-exports ()
+  (let ((cpp (from-file 'cpp-project
+                        (make-pathname
+                         :directory (append1 +etc-dir+
+                                             "cpp-reexport")))))
+    (with-attr-table cpp
+      (let* ((main (is (aget "main.cc" (evolve-files cpp) :test #'equal)))
+             (symtab (symbol-table (genome main))))
+        (is (@ (@ symtab :function) "main"))
+        (is (@ (@ symtab :function) "b::say_hello"))))))

@@ -1587,6 +1587,17 @@ available to use at any point in a C++ AST.")
 
 (defmethod multi-declaration-keys ((root cpp-ast)) +cpp-multi-declaration-keys+)
 
+(defmethod symbol-table ((ast cpp-ast) &optional in)
+  (if (scope-ast-p ast)
+      (propagate-exports-up (propagate-declarations-down ast in)
+                            in)
+      (call-next-method)))
+
+(defun propagate-exports-up (scope-final in)
+  (let ((new-exports (@ scope-final :export)))
+    (if (no new-exports) in
+        (with in :export new-exports))))
+
 (defmethod symbol-table ((node cpp-namespace-definition) &optional in)
   (propagate-declarations-down node in))
 
@@ -1650,53 +1661,52 @@ available to use at any point in a C++ AST.")
               (group-by-namespace declarations namespaces)
               :source-text-fun #'qualify-declared-ast-name))))) ; #+:TREE-SITTER-CPP
 
-(defun exported-from? (file ast)
-  (and (ancestor-of-p (attrs-root*) ast file)
-       (exported? ast)))
+(defmethod symbol-table ((file cpp-translation-unit) &optional in)
+  (let ((symtab (call-next-method))
+        (module-decl (module? file)))
+    (if (no module-decl) symtab
+        (if (exported? module-decl)
+            (if-let (export (@ symtab :export))
+              (with export :export export)
+              (error "No exports from exported module"))
+            in))))
 
-(def-attr-fun exported? ()
-  (:method ((ast t)) nil)
-  (:method :around ((ast t))
-    (or (and (find-if (of-type 'cpp-export-specifier)
-                      (direct-children ast))
-             t)
-        (call-next-method)))
-  (:method ((ast cpp-ast))
-    (let ((enclosing (find-enclosing-declaration
-                      'declaration-ast
-                      (attrs-root*)
-                      ast)))
-      (if (eql enclosing ast)
-          (call-next-method)
-          (exported? enclosing))))
-  (:method ((ast cpp-init-declarator))
-    (exported? (find-enclosing 'cpp-declaration (attrs-root*) ast))))
+(defun module? (ast)
+  (find-if (of-type 'cpp-module-declaration)
+           (children ast)))
+
+(defun exported? (ast)
+  (or (find-if (of-type 'cpp-export-specifier)
+               (direct-children ast))
+      (let ((parent
+              (find-if-not (of-type 'cpp-declaration-list)
+                           (get-parent-asts* (attrs-root*) ast))))
+        (or (typep parent 'cpp-export-block)
+            ;; TODO In `export namespace A { namespace B { C } }, is
+            ;; C exported?
+            (and (typep parent 'cpp-namespace-definition)
+                 (exported? parent))))))
 
 (defmethod symbol-table-union ((root cpp-ast) table-1 table-2 &key &allow-other-keys)
   "Recursively union the maps under the :export key, if there are any."
   (let* ((exports1 (@ table-1 :export))
          (exports2 (@ table-2 :export)))
     (if (nor exports1 exports2) (call-next-method)
-        (let ((union
-               (call-next-method root
-                                 (less table-1 :export)
-                                 (less table-2 :export))))
-          (with union
-                :export
-                (if (and exports1 exports2)
-                    (symbol-table-union root exports1 exports2)
-                    (or exports1 exports2)))))))
+        (with (call-next-method root
+                                (less table-1 :export)
+                                (less table-2 :export))
+              :export
+              (if (and exports1 exports2)
+                  (symbol-table-union root exports1 exports2)
+                  (or exports1 exports2))))))
 
-(defmethod outer-defs ((ast cpp-ast))
-  (let ((outer-defs (call-next-method)))
-    (if (exported? ast)
-        (with outer-defs :export outer-defs))))
+(defun handle-exports (ast outer-defs)
+  (if (exported? ast)
+      (if (empty? outer-defs) outer-defs
+          (if (@ outer-defs :export)
+              (error "Already has exports")
+              (with outer-defs :export outer-defs)))
+      outer-defs))
 
-(defmethod outer-defs ((ast cpp-module-declaration))
-  (let* ((symtab (module-symbol-table (cpp-module-name ast)))
-         (exports (@ symtab :export)))
-    (if (exported? ast)
-        ;; Conserve the exports.
-        (with exports :export exports)
-        ;; Drop the exports key.
-        (@ symtab :export))))
+(defmethod outer-defs :around ((ast cpp-exportable-ast))
+  (handle-exports ast (call-next-method)))

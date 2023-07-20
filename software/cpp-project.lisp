@@ -14,6 +14,8 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/c-cpp-project
         :software-evolution-library/software/directory)
+  (:import-from :software-evolution-library/software/tree-sitter
+                :symbol-table :exported?)
   (:export :cpp-project))
 (in-package :software-evolution-library/software/cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -106,5 +108,31 @@ partition."
 (defun find-project-module (project defaults)
   "Find a module that satisfies DEFAULTS in PROJECT."
   (cdr (find-module defaults (evolve-files project) :key #'car)))
+
+(defmethod symbol-table ((ast cpp-import-declaration) &optional in)
+  (if-let* ((imported-name (source-text (cpp-name ast)))
+            (project (attrs-root*))
+            (file-ast (find-enclosing 'file-ast project ast))
+            (base-path (full-pathname file-ast))
+            (importing-name
+             (if-let* ((decl (find-if (of-type 'cpp-module-declaration) file-ast))
+                       ;; TODO cpp-name slot
+                       (name-ast
+                        (find-if (of-type 'cpp-module-qualified-name) (children decl))))
+               (source-text name-ast)
+               ""))
+            (defaults
+             (relative-module-defaults base-path
+                                       importing-name imported-name))
+            (module-software (find-project-module project defaults))
+            (symtab (symbol-table
+                     (genome module-software)
+                     (empty-map))))
+    (if-let ((exports (@ symtab :export)))
+      (if (exported? ast)
+          (symbol-table-union ast in (with exports :export exports))
+          (symbol-table-union ast in exports))
+      (error "No exports from imported module"))
+    (call-next-method)))
 
 ) ; #+:TREE-SITTER-CPP
