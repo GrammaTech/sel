@@ -1588,6 +1588,8 @@ available to use at any point in a C++ AST.")
 (defmethod multi-declaration-keys ((root cpp-ast)) +cpp-multi-declaration-keys+)
 
 (defmethod symbol-table ((ast cpp-ast) &optional in)
+  ;; This shadows the handling of scope ASTs in the default method for
+  ;; functional-tree-ast.
   (if (scope-ast-p ast)
       (propagate-exports-up (propagate-declarations-down ast in)
                             in)
@@ -1662,6 +1664,7 @@ available to use at any point in a C++ AST.")
               :source-text-fun #'qualify-declared-ast-name))))) ; #+:TREE-SITTER-CPP
 
 (defmethod symbol-table ((file cpp-translation-unit) &optional in)
+  "If this a module, only expose exports."
   (let ((symtab (call-next-method))
         (module-decl (module? file)))
     (if (no module-decl) symtab
@@ -1672,10 +1675,13 @@ available to use at any point in a C++ AST.")
             in))))
 
 (defun module? (ast)
+  "If AST is a module, return its module declaration."
   (find-if (of-type 'cpp-module-declaration)
            (children ast)))
 
 (defun exported? (ast)
+  "Is AST exported? It's exported if it has an export specifier, or is
+within an export block or an exported namespace."
   (or (find-if (of-type 'cpp-export-specifier)
                (direct-children ast))
       (let ((parent
@@ -1701,6 +1707,7 @@ available to use at any point in a C++ AST.")
                   (or exports1 exports2))))))
 
 (defun handle-exports (ast outer-defs)
+  "Conditionally the outer definitions of AST as exports."
   (if (exported? ast)
       (if (empty? outer-defs) outer-defs
           (if (@ outer-defs :export)
