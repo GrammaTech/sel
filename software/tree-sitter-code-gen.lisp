@@ -566,7 +566,6 @@ for the language.")
         c-enum-tag-specifier
         c-union-tag-specifier))
       (:cpp
-       (:compound-ast cpp-declaration-list)
        (:cpp-exportable-ast
         cpp-function-definition
         cpp-declaration
@@ -676,6 +675,7 @@ for the language.")
        (:c/cpp-conditional-expression c-conditional-expression cpp-conditional-expression)
        (:c/cpp-continue-statement c-continue-statement cpp-continue-statement)
        (:c/cpp-declaration c-declaration cpp-declaration)
+       (:c/cpp-declaration-list c-declaration-list cpp-declaration-list)
        (:c/cpp-declarator c--declarator cpp--declarator)
        (:c/cpp-do-statement c-do-statement cpp-do-statement)
        (:c/cpp-empty-statement c-empty-statement cpp-empty-statement)
@@ -1140,6 +1140,7 @@ definitions.")
        (c/cpp-comment comment-ast)
        (c/cpp-compound-statement compound-ast)
        (c/cpp-declaration statement-ast variable-declaration-ast)
+       (c/cpp-declaration-list compound-ast)
        (c/cpp-do-statement loop-ast)
        (c/cpp--expression expression-ast)
        (c/cpp-expression-statement expression-statement-ast)
