@@ -1674,10 +1674,84 @@ available to use at any point in a C++ AST.")
               (error "No exports from exported module"))
             in))))
 
+;;; Model the kinds of module units as a class hierarchy.
+
+(defgeneric module-unit-full-name (module))
+
+(defclass module-unit ()
+  ((declaration :initarg :declaration :type ast :reader module-unit-declaration)
+   (module-name :type string :initarg :module-name :reader module-unit-module-name))
+  (:documentation "A translation unit with a module declaration.")
+  (:metaclass abstract-class))
+
+(defmethod module-unit-full-name ((m module-unit))
+  (module-unit-module-name m))
+
+(defmethod print-object ((self module-unit) stream)
+  (print-unreadable-object (self stream :type t)
+    (format stream "~a" (module-unit-full-name self))))
+
+(defclass module-interface-unit (module-unit)
+  ()
+  (:documentation "An exported module unit.")
+  (:metaclass abstract-class))
+
+(defclass implementation-unit (module-unit)
+  ()
+  (:metaclass abstract-class))
+
+(defclass module-partition-unit (module-unit)
+  ((partition-name :type string :initarg :partition-name :reader module-unit-partition-name))
+  (:metaclass abstract-class))
+
+(defmethod module-unit-full-name ((p module-partition-unit))
+  (fmt "~a:~a"
+       (module-unit-module-name p)
+       (module-unit-partition-name p)))
+
+(defclass primary-module-interface-unit (module-interface-unit)
+  ()
+  (:documentation "Module interface unit that is not a partition unit."))
+
+(defclass anonymous-implementation-unit (implementation-unit)
+  ()
+  (:documentation "A module implementation unit that is not a partition."))
+
+(defclass module-partition-interface-unit (module-partition-unit module-interface-unit)
+  ())
+
+(defclass module-partition-implementation-unit (module-partition-unit module-interface-unit)
+  ())
+
 (defun module? (ast)
-  "If AST is a module, return its module declaration."
-  (find-if (of-type 'cpp-module-declaration)
-           (children ast)))
+  "If AST is a module, return its classification."
+  (when-let (decl
+             (find-if (of-type 'cpp-module-declaration)
+                      (children (genome ast))))
+    (classify-module-declaration decl)))
+
+(defun classify-module-declaration (decl)
+  (let* ((exported? (find-if (of-type 'cpp-export-specifier) (direct-children decl)))
+         (name-ast (find-if (of-type 'cpp-module-qualified-name) decl))
+         (name (source-text name-ast))
+         (partition-name-ast
+          (find-if (of-type 'cpp-module-partition) decl))
+         (partition-name
+          (source-text partition-name-ast))
+         (partition? (string^= ":" partition-name))
+         (class (eif partition?
+                     (eif exported?
+                          (find-class 'module-partition-interface-unit)
+                          (find-class 'module-partition-implementation-unit))
+                     (eif exported?
+                          (find-class 'primary-module-interface-unit)
+                          (find-class 'anonymous-implementation-unit)))))
+    (multiple-value-call #'make class
+      :declaration decl
+      :module-name name
+      (if partition?
+          (values :partition-name (drop-prefix ":" partition-name))
+          (values)))))
 
 (defun exported? (ast)
   "Is AST exported? It's exported if it has an export specifier, or is

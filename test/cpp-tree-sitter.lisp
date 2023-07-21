@@ -1980,6 +1980,27 @@ namespace b {
         (is (@ (@ symtab :function) "b::say_hello"))))))
 
 
+;;; Module tests
+
+(deftest test-classify-module ()
+  (let ((m (module? (from-string 'cpp "export module foo;"))))
+    (is (typep m 'primary-module-interface-unit))
+    (is (equal "foo" (module-unit-full-name m))))
+  (let ((m (module? (from-string 'cpp "module foo;"))))
+    (is (typep m 'anonymous-implementation-unit))
+    (is (equal "foo" (module-unit-full-name m))))
+  (let ((m (module? (from-string 'cpp "export module foo:bar;"))))
+    (is (typep m 'module-partition-interface-unit))
+    (is (equal "foo" (module-unit-module-name m)))
+    (is (equal "bar" (module-unit-partition-name m)))
+    (is (equal "foo:bar" (module-unit-full-name m))))
+  (let ((m (module? (from-string 'cpp "module foo:bar;"))))
+    (is (typep m 'module-partition-implementation-unit))
+    (is (equal "foo" (module-unit-module-name m)))
+    (is (equal "bar" (module-unit-partition-name m)))
+    (is (equal "foo:bar" (module-unit-full-name m)))))
+
+
 ;;; Conversion tests
 
 (deftest id-conversions ()

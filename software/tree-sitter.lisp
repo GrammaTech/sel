@@ -406,6 +406,7 @@
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
   (:import-from :functional-trees :map-children)
   (:import-from :trivial-garbage :make-weak-hash-table)
+  (:import-from :abstract-classes :abstract-class)
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:import-from :cl-tree-sitter :register-language)
         (values))
@@ -662,7 +663,22 @@
            ;; Blotting
            :*use-blotting*
            :blot-out-ranges
-           :blot-out)
+           :blot-out
+           ;; C++ module classifications
+           :module?
+           :module-unit
+           :module-unit-full-name
+           :module-unit-module-name
+           :module-unit-partition-name
+           :module-unit-declaration
+           :module-interface-unit
+           :module-implementation-unit
+           :implementation-unit
+           :module-partition-unit
+           :primary-module-interface-unit
+           :anonymous-implementation-unit
+           :module-partition-interface-unit
+           :module-partition-implementation-unit)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)))
