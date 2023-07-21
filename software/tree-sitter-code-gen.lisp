@@ -3278,7 +3278,9 @@ cover every terminal symbol, only the ones that aren't named.")
 
   (defgeneric convert-name (language name-string)
     (:method (language name-string)
-      (substitute #\- #\_  (string-upcase (string name-string))))
+      (substitute-if #\-
+                     (op (find _ "_ "))
+                     (string-upcase (string name-string))))
     (:method ((language (eql :rust)) name-string)
       (if (equal "_" (string name-string))
           name-string
