@@ -664,8 +664,9 @@
            :*use-blotting*
            :blot-out-ranges
            :blot-out
-           ;; C++ module classifications
+           ;; C++ modules
            :module?
+           :exported?
            :module-unit
            :module-unit-full-name
            :module-unit-module-name
