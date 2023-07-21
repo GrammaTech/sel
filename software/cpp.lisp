@@ -1661,7 +1661,7 @@ available to use at any point in a C++ AST.")
     (convert 'fset:map
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)
-              :source-text-fun #'qualify-declared-ast-name))))) ; #+:TREE-SITTER-CPP
+              :source-text-fun #'qualify-declared-ast-name))))
 
 (defmethod symbol-table ((file cpp-translation-unit) &optional in)
   "If this a module, only expose exports."
@@ -1717,3 +1717,5 @@ within an export block or an exported namespace."
 
 (defmethod outer-defs :around ((ast cpp-exportable-ast))
   (handle-exports ast (call-next-method)))
+
+) ; #+:TREE-SITTER-CPP
