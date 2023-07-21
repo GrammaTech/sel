@@ -876,6 +876,15 @@ templated definition's field table."
        (cpp-declaration-list (direct-children children))))
      (outer-declarations-merge children))))
 
+(defmethod outer-defs ((ast cpp-namespace-definition))
+  ;; Needed to conserve exports.
+  (match ast
+    ((cpp-namespace-definition
+      (cpp-body
+       (cpp-declaration-list (direct-children children))))
+     (reduce (op (symbol-table-union ast _ _))
+             (mapcar #'outer-defs children)))))
+
 (defun const-field-declaration? (field-decl fn)
   "Is FN declared const in FIELD-DECL?"
   (match field-decl
@@ -1663,16 +1672,8 @@ available to use at any point in a C++ AST.")
               (group-by-namespace declarations namespaces)
               :source-text-fun #'qualify-declared-ast-name))))
 
-(defmethod symbol-table ((file cpp-translation-unit) &optional in)
-  "If this a module, only expose exports."
-  (let ((symtab (call-next-method))
-        (module-decl (module? file)))
-    (if (no module-decl) symtab
-        (if (exported? module-decl)
-            (if-let (export (@ symtab :export))
-              (with export :export export)
-              (error "No exports from exported module"))
-            in))))
+
+;;; Modules
 
 ;;; Model the kinds of module units as a class hierarchy.
 

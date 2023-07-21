@@ -516,4 +516,5 @@ int main () {
       (let* ((main (is (aget "main.cc" (evolve-files cpp) :test #'equal)))
              (symtab (symbol-table (genome main))))
         (is (@ (@ symtab :function) "main"))
-        (is (@ (@ symtab :function) "b::say_hello"))))))
+        (is (@ (@ symtab :function) "b::say_hello"))
+        (is (not (@ (@ symtab :function) "b::say_goodbye")))))))

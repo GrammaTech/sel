@@ -1951,7 +1951,7 @@ int private_fun(int x, int y) { return x + y; };
 export int public_fun(int x, int y) { return x + y; };"))
            (symtab
             (with-attr-table cpp
-              (symbol-table (genome cpp) (empty-map)))))
+              (@ (symbol-table (genome cpp) (empty-map)) :export))))
     (is (@ (@ symtab :function) "public_fun"))
     (is (not (@ (@ symtab :function) "private_fun")))
     (is (not (@ (@ symtab :type) "private_type")))
@@ -1964,7 +1964,7 @@ export void say_hello() { std::cout << \"Hello\" << std::endl; }
 void say_goodbye() { std::cout << \"Goodbye\" << std::endl; }
 ")))
     (with-attr-table cpp
-      (let ((symtab (symbol-table (genome cpp))))
+      (let ((symtab (@ (symbol-table (genome cpp)) :export)))
         (is (@ (@ symtab :function) "say_hello"))
         (is (not (@ (@ symtab :function) "say_goodbye")))))))
 
@@ -1973,11 +1973,12 @@ void say_goodbye() { std::cout << \"Goodbye\" << std::endl; }
 export module b;
 namespace b {
   export void say_hello() { std::cout << \"Hello\" << std::endl; }
+  void say_goodbye() { std::cout << \"Hello\" << std::endl; }
 }")))
     (with-attr-table cpp
-      (let ((symtab (symbol-table (find-if (of-type 'cpp-function-definition) (genome cpp)))))
-        (sel/sw/ts::outer-defs (find-if (of-type 'cpp-function-definition) (genome cpp)))
-        (is (@ (@ symtab :function) "b::say_hello"))))))
+      (let ((symtab (@ (symbol-table (genome cpp)) :export)))
+        (is (@ (@ symtab :function) "b::say_hello"))
+        (is (not (@ (@ symtab :function) "b::say_goodbye")))))))
 
 
 ;;; Module tests

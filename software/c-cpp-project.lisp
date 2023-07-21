@@ -32,7 +32,8 @@
            :project-include-tree
            :who-includes?
            :file-include-tree
-           :find-include))
+           :find-include
+           :*header-extensions*))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)

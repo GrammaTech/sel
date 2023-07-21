@@ -23,6 +23,7 @@
            :entries
            :contents
            :full-pathname
+           :enclosing-file-pathname
            :get-path
            :evolve-files
            :evolve-files-ref
@@ -71,6 +72,10 @@
              :documentation "Contents of the file.")
    (child-slots :initform '(contents) :allocation :class))
   (:documentation "FT Node to hold a file entry."))
+
+(defun enclosing-file-pathname (ast &key (root (attrs-root*)))
+  "Get the pathname of the enclosing file."
+  (full-pathname (find-enclosing 'file-ast root ast)))
 
 (defmethod compdb-project:command-object ((obj directory-project) (file file-ast))
   (compdb-project:command-object obj (full-pathname file)))

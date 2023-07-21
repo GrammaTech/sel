@@ -25,8 +25,13 @@
     ;; uses the extensions ending with -m.
     "ixx" "cppm" "ccm" "cxxm" "c++m"))
 
+(defparameter *cpp-implementation-extensions*
+  '("cpp" "cp" "cc" "cxx"))
+
 (defparameter *cpp-extensions*
-  `("h" "hpp" "cpp" "cp" "cc" "cxx" ,@*cpp-module-extensions*)
+  (append *header-extensions*
+          *cpp-implementation-extensions*
+          *cpp-module-extensions*)
   "List of extensions we will consider for evolving.")
 
 (define-software cpp-project (c/cpp-project)
@@ -83,17 +88,24 @@ partition."
                    :defaults importing-path
                    :type nil)))
 
-(defun find-relative-module (defaults)
+(defun find-relative-module (defaults &key (interface t))
   "Find an imported module based on DEFAULTS."
   (some (lambda (type)
           (file-exists-p
            (make-pathname :defaults defaults
                           :type type)))
-        *cpp-module-extensions*))
+        (if interface
+            *cpp-module-extensions*
+            *cpp-implementation-extensions*)))
 
-(defun find-module (defaults list &key (key #'identity))
+(defun find-module (defaults list &key (key #'identity) (interface t))
   "Find a module based on DEFAULTS in LIST, a list of pathname designators."
-  (let ((target-name (pathname-name defaults)))
+  (let ((target-name (pathname-name defaults))
+        (extensions
+         ;; Implementation units do not use module extensions.
+         (if interface
+             *cpp-module-extensions*
+             *cpp-implementation-extensions*)))
     (block nil
       (with-item-key-function (key)
         (dolist (item list)
@@ -101,38 +113,76 @@ partition."
             (when (and (equal (pathname-name path)
                               target-name)
                        (member (pathname-type path)
-                               *cpp-module-extensions*
+                               extensions
                                :test #'equal))
               (return item))))))))
 
-(defun find-project-module (project defaults)
+(defun find-project-module (project defaults &key (interface t))
   "Find a module that satisfies DEFAULTS in PROJECT."
-  (cdr (find-module defaults (evolve-files project) :key #'car)))
+  (cdr (find-module defaults (evolve-files project)
+                    :key #'car
+                    :interface interface)))
+
+(defun get-surrounding-module (ast)
+  (when-let* ((project (attrs-root*))
+              (file-ast (find-enclosing 'file-ast project ast))
+              (unit (find-if (of-type 'cpp-translation-unit) file-ast)))
+    (module? unit)))
+
+(defmethod symbol-table ((ast cpp-module-declaration) &optional in)
+  "Anonymous implementation units implicitly import the primary module
+interface unit."
+  (let ((module (module? ast)))
+    (if (typep module 'anonymous-implementation-unit)
+        (let* ((defaults
+                (relative-module-defaults
+                 (enclosing-file-pathname ast)
+                 (module-unit-full-name module)
+                 (module-unit-full-name (module? ast))))
+               (module
+                (find-project-module (attrs-root*) defaults))
+               (symbol-table
+                (symbol-table (genome module) (empty-map))))
+          (symbol-table-union ast in (@ symbol-table :exports)))
+        (call-next-method))))
+
+(defun import-symbol-table (ast in)
+  (when-let* ((imported-name (source-text (cpp-name ast)))
+              (project (attrs-root*))
+              (base-path (enclosing-file-pathname ast)))
+    (let* ((module (get-surrounding-module ast))
+           (importing-name
+            (if module (module-unit-full-name module) ""))
+           (partition? (string^= ":" imported-name))
+           (exported? (exported? ast))
+           (defaults
+            (relative-module-defaults base-path importing-name imported-name))
+           (imported-module-software
+            (find-project-module project defaults
+                                 :interface
+                                 (or (not partition?)
+                                     (and partition? (not exported?)))))
+           (symtab
+            (symbol-table (genome imported-module-software)
+                          (empty-map))))
+      (when partition? (assert module))
+      (cond
+        ;; A re-exported partition. We can see all definitions.
+        ((and partition? exported?)
+         (symbol-table-union ast in symtab))
+        ;; An implementation partition. We can see all definitions.
+        (partition?
+         (symbol-table-union ast in (less symtab :export)))
+        ;; A non-partition reexport.
+        (exported?
+         (when-let ((exports (@ symtab :export)))
+           (if (exported? ast)
+               (symbol-table-union ast in (with exports :export exports))
+               (symbol-table-union ast in exports))))
+        (t (@ symtab :export))))))
 
 (defmethod symbol-table ((ast cpp-import-declaration) &optional in)
-  (if-let* ((imported-name (source-text (cpp-name ast)))
-            (project (attrs-root*))
-            (file-ast (find-enclosing 'file-ast project ast))
-            (base-path (full-pathname file-ast))
-            (importing-name
-             (if-let* ((decl (find-if (of-type 'cpp-module-declaration) file-ast))
-                       ;; TODO cpp-name slot
-                       (name-ast
-                        (find-if (of-type 'cpp-module-qualified-name) (children decl))))
-               (source-text name-ast)
-               ""))
-            (defaults
-             (relative-module-defaults base-path
-                                       importing-name imported-name))
-            (module-software (find-project-module project defaults))
-            (symtab (symbol-table
-                     (genome module-software)
-                     (empty-map))))
-    (if-let ((exports (@ symtab :export)))
-      (if (exported? ast)
-          (symbol-table-union ast in (with exports :export exports))
-          (symbol-table-union ast in exports))
-      (error "No exports from imported module"))
-    (call-next-method)))
+  (or (import-symbol-table ast in)
+      (call-next-method)))
 
 ) ; #+:TREE-SITTER-CPP
