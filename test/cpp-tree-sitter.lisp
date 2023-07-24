@@ -1755,6 +1755,13 @@ different orders."
                                         nil
                                         "BasicPlane.Figures")))))
 
+(deftest test-relative-partition-defaults ()
+  (is (equal "BasicPlane.Figures-Point"
+             (pathname-name
+              (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.ixx"
+                                        "BasicPlane.Figures:Rectangle"
+                                        ":Point")))))
+
 (deftest test-relative-module-defaults/partition ()
   (is (equal "BasicPlane.Figures-Rectangle"
              (pathname-name

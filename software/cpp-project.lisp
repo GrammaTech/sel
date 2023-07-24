@@ -82,7 +82,11 @@ partition."
               (progn
                 (unless importing-name
                   (error "Cannot import a module partition directly"))
-                (string+ importing-name "-" (drop-prefix ":" imported-name)))
+                (string+
+                 ;; Drop any trailing partition.
+                 (take-until (eqls #\:) importing-name)
+                 "-"
+                 (drop-prefix ":" imported-name)))
               imported-name)))
     (make-pathname :name file-name
                    :defaults importing-path
