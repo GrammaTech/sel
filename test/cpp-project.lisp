@@ -510,10 +510,10 @@ int main () {
 (deftest test-recursive-exports ()
   (let ((cpp (from-file 'cpp-project
                         (make-pathname
-                         :directory (append1 +etc-dir+
-                                             "cpp-reexport")))))
+                         :directory (append +etc-dir+
+                                            '("module-examples" "cpp-reexport"))))))
     (with-attr-table cpp
-      (let* ((main (is (aget "main.cc" (evolve-files cpp) :test #'equal)))
+      (let* ((main (is (evolve-files-ref cpp "main.cc")))
              (symtab (symbol-table (genome main))))
         (is (@ (@ symtab :function) "main"))
         (is (@ (@ symtab :function) "b::say_hello"))
