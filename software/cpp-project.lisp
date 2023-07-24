@@ -81,7 +81,7 @@ partition."
   (let* ((file-name
           (cond ((string^= ":" imported-name)
                  (unless importing-name
-                   (error "Cannot import a module partition directly"))
+                   (error "Cannot import a module partition outside a module"))
                  (string+
                   ;; Drop any trailing partition.
                   (take-until (eqls #\:) importing-name)
