@@ -15,6 +15,9 @@
    :software-evolution-library/software/project
    :software-evolution-library/software/c-cpp-project
    :software-evolution-library/software/cpp-project)
+  (:import-from :software-evolution-library/software/cpp-project
+                :find-module
+                :relative-module-defaults)
   (:local-nicknames
    (:dir :software-evolution-library/software/directory))
   #-windows (:shadowing-import-from :osicat
@@ -155,6 +158,63 @@ make_config(const std::string& path_prefix,
       (find-enclosing-declaration 'function-declaration-ast
                                   cpp
                                   (stmt-with-text cpp "make_config")))))
+
+
+
+;;; Module resolution tests
+
+#+tree-sitter-cpp
+(deftest test-relative-module-defaults ()
+  (is (equal "BasicPlane.Figures"
+             (pathname-name
+              (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
+                                        nil
+                                        "BasicPlane.Figures")))))
+
+#+tree-sitter-cpp
+(deftest test-relative-partition-defaults ()
+  (is (equal "BasicPlane.Figures-Point"
+             (pathname-name
+              (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.ixx"
+                                        "BasicPlane.Figures:Rectangle"
+                                        ":Point")))))
+
+#+tree-sitter-cpp
+(deftest test-relative-module-defaults/partition ()
+  (is (equal "BasicPlane.Figures-Rectangle"
+             (pathname-name
+              (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
+                                        "BasicPlane.Figures"
+                                        ":Rectangle")))))
+
+#+tree-sitter-cpp
+(deftest test-relative-module-defaults/implicit ()
+  (is (equal "BasicPlane.Figures-Rectangle"
+             (pathname-name
+              (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.cpp"
+                                        "BasicPlane.Figures:Rectangle"
+                                        "BasicPlane.Figures:Rectangle")))))
+
+#+tree-sitter-cpp
+(deftest test-find-module ()
+  (is (equal :figures
+             (cdr
+              (find-module (relative-module-defaults
+                            #p"main.cpp" nil "BasicPlane.Figures")
+                           '(("somewhere/BasicPlane.Figures.cppm" . :figures))
+                           :key #'car)))))
+
+#+tree-sitter-cpp
+(deftest test-find-module-partition ()
+  (is (equal :rectangle
+             (cdr
+              (find-module (relative-module-defaults
+                            #p"BasicPlane\\.Figures.cpp"
+                            "BasicPlane.Figures"
+                            "BasicPlane.Figures-Rectangle")
+                           '(("somewhere/BasicPlane.Figures.cppm" . :figures)
+                             ("somewhere/BasicPlane.Figures-Rectangle.cppm" . :rectangle))
+                           :key #'car)))))
 
 
 ;;; Symbol Table

@@ -16,6 +16,7 @@
         :software-evolution-library/software/directory)
   (:import-from :software-evolution-library/software/tree-sitter
                 :symbol-table :exported?)
+  (:intern :relative-module-defaults :find-module)
   (:export :cpp-project))
 (in-package :software-evolution-library/software/cpp-project)
 (in-readtable :curry-compose-reader-macros)
