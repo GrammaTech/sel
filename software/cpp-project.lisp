@@ -182,7 +182,8 @@ interface unit."
         (t (@ symtab :export))))))
 
 (defmethod symbol-table ((ast cpp-import-declaration) &optional in)
-  (or (import-symbol-table ast in)
-      (call-next-method)))
+  (if-let (symtab (import-symbol-table ast in))
+    (symbol-table-union ast in symtab)
+    (call-next-method)))
 
 ) ; #+:TREE-SITTER-CPP

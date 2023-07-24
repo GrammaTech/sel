@@ -1911,6 +1911,9 @@ class Y;"
                   "Template defines ~a but got ~a:~%~a"
                   types param-types template-string))))))
 
+
+;;; Module tests
+
 (deftest test-symbol-table-union/exports ()
   (let* ((pub-fun1 (cpp* "export int pub_fun1() {}"))
          (pub-fun2 (cpp* "export int pub_fun2() {}"))
@@ -1979,9 +1982,6 @@ namespace b {
       (let ((symtab (@ (symbol-table (genome cpp)) :export)))
         (is (@ (@ symtab :function) "b::say_hello"))
         (is (not (@ (@ symtab :function) "b::say_goodbye")))))))
-
-
-;;; Module tests
 
 (deftest test-classify-module ()
   (let ((m (module? (from-string 'cpp "export module foo;"))))

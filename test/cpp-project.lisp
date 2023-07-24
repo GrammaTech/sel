@@ -518,3 +518,16 @@ int main () {
         (is (@ (@ symtab :function) "main"))
         (is (@ (@ symtab :function) "b::say_hello"))
         (is (not (@ (@ symtab :function) "b::say_goodbye")))))))
+
+(deftest test-module-example-1 ()
+  (let ((cpp (from-file 'cpp-project
+                        (make-pathname
+                         :directory (append +etc-dir+
+                                            '("module-examples" "ms-basic-example"))))))
+    (is (length= 2 (evolve-files cpp)))
+    (with-attr-table cpp
+      (let* ((file (is (evolve-files-ref cpp "MyProgram.cpp")))
+             (symtab (symbol-table (stmt-with-text file "Example_NS::f()"))))
+        (is (> (size (@ symtab :function)) 2))
+        (is (typep (only-elt (@ (@ symtab :function) "Example_NS::f")) 'cpp-ast))
+        symtab))))
