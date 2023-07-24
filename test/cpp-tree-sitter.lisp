@@ -1210,6 +1210,9 @@ public:
   (is (typep (cpp-operator (cpp* "x|y")) 'c/cpp-\|))
   (is (typep (cpp-operator (cpp* "x||y")) 'c/cpp-\|\|)))
 
+(deftest test-parse-module-qualified-name ()
+  (finishes (genome (from-string 'cpp "import x.y;"))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.

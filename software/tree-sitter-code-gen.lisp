@@ -1538,7 +1538,20 @@ are ignored by templates, whereas named ones are preserved.")
          ((:TYPE . "SYMBOL") (:NAME . "type_forward_declaration"))
          ((:TYPE . "SYMBOL") (:NAME . "macro_forward_declaration")))))
       (:cpp
-       ;; These are specific to C++.
+       (:MODULE-QUALIFIED-NAME
+        ;; The default rule is left-recursive. Make it right-recursive
+        ;; instead.
+        (:TYPE . "SEQ")
+        (:MEMBERS
+         ((:TYPE . "ALIAS") (:CONTENT (:TYPE . "SYMBOL") (:NAME . "identifier"))
+          (:NAMED . T) (:VALUE . "module_name"))
+         ((:TYPE . "REPEAT")
+          (:CONTENT (:TYPE . "SEQ")
+           (:MEMBERS
+            ((:TYPE . "STRING") (:VALUE . "."))
+            ((:TYPE . "ALIAS")
+             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "identifier")) (:NAMED . T)
+             (:VALUE . "module_name")))))))
        (:REFERENCE-DECLARATOR
         (:TYPE . "PREC_DYNAMIC") (:VALUE . 1)
         (:CONTENT (:TYPE . "PREC_RIGHT") (:VALUE . 0)
