@@ -161,11 +161,15 @@ interface unit."
            (exported? (exported? ast))
            (defaults
             (relative-module-defaults base-path importing-name imported-name))
+           (interface?
+            (or (not partition?)
+                (and partition? (not exported?))))
            (imported-module-software
-            (find-project-module project defaults
-                                 :interface
-                                 (or (not partition?)
-                                     (and partition? (not exported?)))))
+            ;; Unclear if it is supposed to be possible to import an
+            ;; implementation unit without a module extension.
+            (or (find-project-module project defaults :interface t)
+                (and (not interface?)
+                     (find-project-module project defaults :interface nil))))
            (symtab
             (symbol-table (genome imported-module-software)
                           (empty-map))))

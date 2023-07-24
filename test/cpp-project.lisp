@@ -519,7 +519,7 @@ int main () {
         (is (@ (@ symtab :function) "b::say_hello"))
         (is (not (@ (@ symtab :function) "b::say_goodbye")))))))
 
-(deftest test-module-example-1 ()
+(deftest test-ms-module-example-1 ()
   (let ((cpp (from-file 'cpp-project
                         (make-pathname
                          :directory (append +etc-dir+
@@ -531,3 +531,13 @@ int main () {
         (is (> (size (@ symtab :function)) 2))
         (is (typep (only-elt (@ (@ symtab :function) "Example_NS::f")) 'cpp-ast))
         symtab))))
+
+(deftest test-ms-module-example-2 ()
+  (let* ((cpp (from-file 'cpp-project
+                         (make-pathname
+                          :directory (append +etc-dir+
+                                             '("module-examples" "ms-basic-plane-example")))))
+         (main (evolve-files-ref cpp "main.cpp")))
+    (with-attr-table cpp
+      (is (typep (get-declaration-ast :type (stmt-with-text (genome main) "Rectangle"))
+                 'cpp-struct-specifier)))))
