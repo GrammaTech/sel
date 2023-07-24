@@ -284,11 +284,17 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
 (defmethod less :around ((project directory-project) (old ast) &optional val)
   "When updating the genome, update the evolve files too."
   (declare (ignore val))
-  (if-let* ((old-file (find-enclosing 'file-ast project old))
-            (result (call-next-method))
-            (changed-file (lookup result (ast-path project old-file))))
-    (sync-changed-file! result project changed-file)
-    (call-next-method)))
+  (let ((old-file (find-enclosing 'file-ast project old))
+        (result (call-next-method)))
+    (if old-file
+        (handler-bind ((#+ccl error
+                        #+sbcl sb-kernel:index-too-large-error
+                        (lambda (c)
+                          (declare (ignore c))
+                          (return-from less result))))
+          (sync-changed-file!
+           result project (lookup result (ast-path project old-file))))
+        result)))
 
 (defmethod insert :around ((project directory-project) (path t) (value ast))
   "When updating the genome, update the evolve files too."
