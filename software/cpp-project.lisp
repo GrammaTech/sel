@@ -125,7 +125,7 @@ partition."
   (cdr (find-module defaults (evolve-files project)
                     :key #'car)))
 
-(defun get-surrounding-module (ast)
+(defun get-enclosing-module (ast)
   (when-let* ((project (attrs-root*))
               (file-ast (find-enclosing 'file-ast project ast))
               (unit (find-if (of-type 'cpp-translation-unit) file-ast)))
@@ -154,7 +154,7 @@ interface unit."
   (when-let* ((imported-name (source-text (cpp-name ast)))
               (project (attrs-root*))
               (base-path (enclosing-file-pathname ast)))
-    (let* ((module (get-surrounding-module ast))
+    (let* ((module (get-enclosing-module ast))
            (importing-name
             (if module (module-unit-full-name module) ""))
            (partition? (string^= ":" imported-name))
