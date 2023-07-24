@@ -141,7 +141,12 @@ partition."
                (module-unit-full-name (module? ast))))
              (module
               (find-project-module (attrs-root*) defaults)))
-        (symbol-table (genome module) (empty-map))))))
+        ;; A module partition implementation unit should (at least it
+        ;; does in Visual Studio) implicitly import the corresponding
+        ;; module partition interface unit, but only if there is one.
+        (unless (eql (genome module)
+                     (find-enclosing 'root-ast (attrs-root*) ast))
+          (symbol-table (genome module) (empty-map)))))))
 
 (defmethod symbol-table ((ast cpp-module-declaration) &optional in)
   "Anonymous implementation units implicitly import the primary module
