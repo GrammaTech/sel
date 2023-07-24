@@ -536,8 +536,22 @@ int main () {
   (let* ((cpp (from-file 'cpp-project
                          (make-pathname
                           :directory (append +etc-dir+
-                                             '("module-examples" "ms-basic-plane-example")))))
-         (main (evolve-files-ref cpp "main.cpp")))
+                                             '("module-examples" "ms-basic-plane-example"))))))
     (with-attr-table cpp
-      (is (typep (get-declaration-ast :type (stmt-with-text (genome main) "Rectangle"))
-                 'cpp-struct-specifier)))))
+      (let ((main (is (evolve-files-ref cpp "main.cpp"))))
+        (is (typep (get-declaration-ast :type (stmt-with-text (genome main) "Rectangle"))
+                   'cpp-struct-specifier)))
+      (let* ((impl-file (is (evolve-files-ref cpp "BasicPlane.Figures-Rectangle.cpp")))
+             (type-ast (find-if (op (and (source-text= _1 "Rectangle")
+                                         (typep _1 'cpp-type-identifier)))
+                                impl-file)))
+        (is (typep (get-declaration-ast :type type-ast) 'cpp-struct-specifier))))))
+
+(deftest test-multi-file-simple ()
+  (let* ((cpp (from-file 'cpp-project
+                         (make-pathname
+                          :directory (append +etc-dir+
+                                             '("module-examples" "multi-file-simple")))))
+         (main (evolve-files-ref cpp "main.cc")))
+    (with-attr-table cpp
+      (get-declaration-ast :type (stmt-with-text (genome main) "A")))))

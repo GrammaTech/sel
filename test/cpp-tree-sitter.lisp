@@ -1769,6 +1769,13 @@ different orders."
                                         "BasicPlane.Figures"
                                         ":Rectangle")))))
 
+(deftest test-relative-module-defaults/implicit ()
+  (is (equal "BasicPlane.Figures-Rectangle"
+             (pathname-name
+              (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.cpp"
+                                        "BasicPlane.Figures:Rectangle"
+                                        "BasicPlane.Figures:Rectangle")))))
+
 (deftest test-find-module ()
   (is (equal :figures
              (cdr
@@ -2009,7 +2016,12 @@ namespace b {
     (is (typep m 'module-partition-implementation-unit))
     (is (equal "foo" (module-unit-module-name m)))
     (is (equal "bar" (module-unit-partition-name m)))
-    (is (equal "foo:bar" (module-unit-full-name m)))))
+    (is (equal "foo:bar" (module-unit-full-name m))))
+  (let ((m (module? (from-string 'cpp "module foo.bar:quux;"))))
+    (is (typep m 'module-partition-implementation-unit))
+    (is (equal "foo.bar" (module-unit-module-name m)))
+    (is (equal "quux" (module-unit-partition-name m)))
+    (is (equal "foo.bar:quux" (module-unit-full-name m)))))
 
 
 ;;; Conversion tests

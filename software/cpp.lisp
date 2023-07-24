@@ -1721,14 +1721,14 @@ available to use at any point in a C++ AST.")
 (defclass module-partition-interface-unit (module-partition-unit module-interface-unit)
   ())
 
-(defclass module-partition-implementation-unit (module-partition-unit module-interface-unit)
+(defclass module-partition-implementation-unit (module-partition-unit implementation-unit)
   ())
 
 (defun module? (ast)
   "If AST is a module, return its classification."
   (when-let (decl
              (find-if (of-type 'cpp-module-declaration)
-                      (children (genome ast))))
+                      (genome ast)))
     (classify-module-declaration decl)))
 
 (defun classify-module-declaration (decl)

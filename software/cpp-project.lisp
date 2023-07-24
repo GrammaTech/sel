@@ -78,16 +78,18 @@ partition."
            ((or string null) importing-name)
            (string imported-name))
   (let* ((file-name
-          (if (string^= ":" imported-name)
-              (progn
-                (unless importing-name
-                  (error "Cannot import a module partition directly"))
-                (string+
-                 ;; Drop any trailing partition.
-                 (take-until (eqls #\:) importing-name)
-                 "-"
-                 (drop-prefix ":" imported-name)))
-              imported-name)))
+          (cond ((string^= ":" imported-name)
+                 (unless importing-name
+                   (error "Cannot import a module partition directly"))
+                 (string+
+                  ;; Drop any trailing partition.
+                  (take-until (eqls #\:) importing-name)
+                  "-"
+                  (drop-prefix ":" imported-name)))
+                ;; Implicit import from a module partition implementation.
+                ((find #\: imported-name)
+                 (substitute #\- #\: imported-name))
+                (t imported-name))))
     (make-pathname :name file-name
                    :defaults importing-path
                    :type nil)))
@@ -102,14 +104,10 @@ partition."
             *cpp-module-extensions*
             *cpp-implementation-extensions*)))
 
-(defun find-module (defaults list &key (key #'identity) (interface t))
+(defun find-module (defaults list &key (key #'identity))
   "Find a module based on DEFAULTS in LIST, a list of pathname designators."
   (let ((target-name (pathname-name defaults))
-        (extensions
-         ;; Implementation units do not use module extensions.
-         (if interface
-             *cpp-module-extensions*
-             *cpp-implementation-extensions*)))
+        (extensions *cpp-module-extensions*))
     (block nil
       (with-item-key-function (key)
         (dolist (item list)
@@ -121,11 +119,10 @@ partition."
                                :test #'equal))
               (return item))))))))
 
-(defun find-project-module (project defaults &key (interface t))
+(defun find-project-module (project defaults)
   "Find a module that satisfies DEFAULTS in PROJECT."
   (cdr (find-module defaults (evolve-files project)
-                    :key #'car
-                    :interface interface)))
+                    :key #'car)))
 
 (defun get-surrounding-module (ast)
   (when-let* ((project (attrs-root*))
@@ -133,22 +130,24 @@ partition."
               (unit (find-if (of-type 'cpp-translation-unit) file-ast)))
     (module? unit)))
 
+(defun module-declaration-symbol-table (ast)
+  (when-let (module (module? ast))
+    (when (typep module 'implementation-unit)
+      (let* ((defaults
+              (relative-module-defaults
+               (enclosing-file-pathname ast)
+               (module-unit-full-name module)
+               (module-unit-full-name (module? ast))))
+             (module
+              (find-project-module (attrs-root*) defaults)))
+        (symbol-table (genome module) (empty-map))))))
+
 (defmethod symbol-table ((ast cpp-module-declaration) &optional in)
   "Anonymous implementation units implicitly import the primary module
 interface unit."
-  (let ((module (module? ast)))
-    (if (typep module 'anonymous-implementation-unit)
-        (let* ((defaults
-                (relative-module-defaults
-                 (enclosing-file-pathname ast)
-                 (module-unit-full-name module)
-                 (module-unit-full-name (module? ast))))
-               (module
-                (find-project-module (attrs-root*) defaults))
-               (symbol-table
-                (symbol-table (genome module) (empty-map))))
-          (symbol-table-union ast in (@ symbol-table :exports)))
-        (call-next-method))))
+  (if-let (symtab (module-declaration-symbol-table ast))
+    (symbol-table-union ast in (@ symtab :export))
+    (call-next-method)))
 
 (defun import-symbol-table (ast in)
   (when-let* ((imported-name (source-text (cpp-name ast)))
@@ -161,15 +160,8 @@ interface unit."
            (exported? (exported? ast))
            (defaults
             (relative-module-defaults base-path importing-name imported-name))
-           (interface?
-            (or (not partition?)
-                (and partition? (not exported?))))
            (imported-module-software
-            ;; Unclear if it is supposed to be possible to import an
-            ;; implementation unit without a module extension.
-            (or (find-project-module project defaults :interface t)
-                (and (not interface?)
-                     (find-project-module project defaults :interface nil))))
+            (find-project-module project defaults))
            (symtab
             (symbol-table (genome imported-module-software)
                           (empty-map))))
