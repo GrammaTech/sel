@@ -1692,7 +1692,12 @@ available to use at any point in a C++ AST.")
   (print-unreadable-object (self stream :type t)
     (format stream "~a" (module-unit-full-name self))))
 
-(defclass module-interface-unit (module-unit)
+(defclass importable-module-unit (module-unit)
+  ()
+  (:documentation "A module unit that can be imported.")
+  (:metaclass abstract-class))
+
+(defclass module-interface-unit (importable-module-unit)
   ()
   (:documentation "An exported module unit.")
   (:metaclass abstract-class))
@@ -1702,7 +1707,10 @@ available to use at any point in a C++ AST.")
   (:metaclass abstract-class))
 
 (defclass module-partition-unit (module-unit)
-  ((partition-name :type string :initarg :partition-name :reader module-unit-partition-name))
+  ((partition-name
+    :type string
+    :initarg :partition-name
+    :reader module-unit-partition-name))
   (:metaclass abstract-class))
 
 (defmethod module-unit-full-name ((p module-partition-unit))
@@ -1718,10 +1726,12 @@ available to use at any point in a C++ AST.")
   ()
   (:documentation "A module implementation unit that is not a partition."))
 
-(defclass module-partition-interface-unit (module-partition-unit module-interface-unit)
+(defclass module-partition-interface-unit
+    (module-partition-unit module-interface-unit)
   ())
 
-(defclass module-partition-implementation-unit (module-partition-unit implementation-unit)
+(defclass module-partition-implementation-unit
+    (importable-module-unit module-partition-unit implementation-unit)
   ())
 
 (defun module? (ast)
