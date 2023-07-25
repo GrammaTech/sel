@@ -607,6 +607,16 @@ int main () {
                                 impl-file)))
         (is (typep (get-declaration-ast :type type-ast) 'cpp-struct-specifier))))))
 
+(deftest test-ms-module-example-2/clang ()
+  (let* ((cpp (from-file 'cpp-project
+                         (make-pathname
+                          :directory (append +etc-dir+
+                                             '("module-examples" "clang-basic-plane-example"))))))
+    (with-attr-table cpp
+      (let ((main (is (evolve-files-ref cpp "main.cpp"))))
+        (is (typep (get-declaration-ast :type (stmt-with-text (genome main) "Rectangle"))
+                   'cpp-struct-specifier))))))
+
 (deftest test-multi-file-simple ()
   (let* ((cpp (from-file 'cpp-project
                          (make-pathname
