@@ -3,6 +3,7 @@
 *.fasl
 *.lx64fsl
 *.o
+main
 *.a
 *.dll
 *.dylib
