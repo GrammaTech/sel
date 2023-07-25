@@ -1694,7 +1694,7 @@ available to use at any point in a C++ AST.")
 
 (defclass importable-module-unit (module-unit)
   ()
-  (:documentation "A module unit that can be imported.")
+  (:documentation "A module unit that can be imported (by clang).")
   (:metaclass abstract-class))
 
 (defclass module-interface-unit (importable-module-unit)
@@ -1765,7 +1765,9 @@ available to use at any point in a C++ AST.")
           (values)))))
 
 (defun exported? (ast)
-  "Is AST exported? It's exported if it has an export specifier, or is
+  "Is AST exported?
+
+AST is exported if it has an export specifier, or is
 within an export block or an exported namespace."
   (or (find-if (of-type 'cpp-export-specifier)
                (direct-children ast))
@@ -1773,8 +1775,6 @@ within an export block or an exported namespace."
               (find-if-not (of-type 'cpp-declaration-list)
                            (get-parent-asts* (attrs-root*) ast))))
         (or (typep parent 'cpp-export-block)
-            ;; TODO In `export namespace A { namespace B { C } }, is
-            ;; C exported?
             (and (typep parent 'cpp-namespace-definition)
                  (exported? parent))))))
 

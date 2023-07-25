@@ -568,6 +568,7 @@ int main () {
                           :changed '("my_class.cc" "my_class.h" "my_program.cc"))))))
 
 (deftest test-recursive-exports ()
+  "Test that exports persist through layers of reexports."
   (let ((cpp (from-file 'cpp-project
                         (make-pathname
                          :directory (append +etc-dir+
@@ -580,6 +581,7 @@ int main () {
         (is (not (@ (@ symtab :function) "b::say_goodbye")))))))
 
 (deftest test-ms-module-example-1 ()
+  "Example of modularized code from Visual Studio docs."
   (let ((cpp (from-file 'cpp-project
                         (make-pathname
                          :directory (append +etc-dir+
@@ -593,6 +595,7 @@ int main () {
         symtab))))
 
 (deftest test-ms-module-example-2 ()
+  "Basic plane example from Visual Studio docs."
   (let* ((cpp (from-file 'cpp-project
                          (make-pathname
                           :directory (append +etc-dir+
@@ -608,6 +611,7 @@ int main () {
         (is (typep (get-declaration-ast :type type-ast) 'cpp-struct-specifier))))))
 
 (deftest test-ms-module-example-2/clang ()
+  "Clang-compilable version of basic plane example."
   (let* ((cpp (from-file 'cpp-project
                          (make-pathname
                           :directory (append +etc-dir+

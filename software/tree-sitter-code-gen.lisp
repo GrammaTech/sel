@@ -1538,6 +1538,7 @@ are ignored by templates, whereas named ones are preserved.")
          ((:TYPE . "SYMBOL") (:NAME . "type_forward_declaration"))
          ((:TYPE . "SYMBOL") (:NAME . "macro_forward_declaration")))))
       (:cpp
+       ;; These are specific to C++
        (:MODULE-QUALIFIED-NAME
         ;; The default rule is left-recursive. Make it right-recursive
         ;; instead.

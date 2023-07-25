@@ -16,6 +16,8 @@
         :software-evolution-library/software/directory)
   (:import-from :software-evolution-library/software/tree-sitter
                 :symbol-table :exported?)
+  ;; Make sure these symbols are interned, as they are only defined
+  ;; and used inside a feature guard.
   (:intern :relative-module-defaults :find-module)
   (:export :cpp-project))
 (in-package :software-evolution-library/software/cpp-project)
@@ -96,7 +98,7 @@ partition."
                    :type nil)))
 
 (defun find-relative-module (defaults &key (interface t))
-  "Find an imported module based on DEFAULTS."
+  "Find an imported module on the filesystem based on DEFAULTS."
   (some (lambda (type)
           (file-exists-p
            (make-pathname :defaults defaults
@@ -133,6 +135,16 @@ partition."
 
 (defun module-declaration-symbol-table (ast)
   (when-let (module (module? ast))
+    ;; NB MSVC and Clang seem to differ in how they understand module
+    ;; partition implementation files. For MSVC, it appears a module
+    ;; partition implementation file is to a module partition
+    ;; interface file what a (non-partition) implementation file is to
+    ;; a interface file, and it also implicitly imports the partition
+    ;; interface file. For Clang, through, module partition units are
+    ;; *unique* and *either* interface or implementation files. For
+    ;; now we support the MSVC style by looking for interface files
+    ;; for *all* implementation files, but since they may not exist we
+    ;; need to guard against self-inclusion.
     (when (typep module 'implementation-unit)
       (let* ((defaults
               (relative-module-defaults
@@ -141,16 +153,14 @@ partition."
                (module-unit-full-name (module? ast))))
              (module
               (find-project-module (attrs-root*) defaults)))
-        ;; A module partition implementation unit should (at least it
-        ;; does in Visual Studio) implicitly import the corresponding
-        ;; module partition interface unit, but only if there is one.
         (unless (eql (genome module)
                      (find-enclosing 'root-ast (attrs-root*) ast))
           (symbol-table (genome module) (empty-map)))))))
 
 (defmethod symbol-table ((ast cpp-module-declaration) &optional in)
-  "Anonymous implementation units implicitly import the primary module
-interface unit."
+  "Anonymous implementation units (and possibly module partition
+implementation units) implicitly import the corresponding interface
+unit."
   (if-let (symtab (module-declaration-symbol-table ast))
     (symbol-table-union ast in (@ symtab :export))
     (call-next-method)))
