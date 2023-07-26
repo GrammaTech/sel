@@ -7,8 +7,7 @@ CC = clang++
 %.pcm: %.cppm
 	$(CC) $(CFLAGS) $< --precompile -o $@
 
-main: m.pcm m-interface_part.o m-impl_part.o main.o
-	$(CC) $(CFLAGS) m.pcm -c -o m.o
+main: m.o m-interface_part.o m-impl_part.o main.o
 	$(CC) $(CFLAGS) *.o -o main
 
 main.o: main.cc
