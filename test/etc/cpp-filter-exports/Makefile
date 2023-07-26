@@ -1,7 +1,7 @@
 CFLAGS = -std=c++20 -fprebuilt-module-path=.
 CC = clang++
 
-%_part.o: %_part.pcm
+%.o: %.pcm
 	$(CC) $(CFLAGS) $< -c -o $@
 
 %.pcm: %.cppm
