@@ -80,19 +80,19 @@ partition."
   (declare (pathname importing-path)
            ((or string null) importing-name)
            (string imported-name))
-  (let* ((file-name
-          (cond ((string^= ":" imported-name)
-                 (unless importing-name
-                   (error "Cannot import a module partition outside a module"))
-                 (string+
-                  ;; Drop any trailing partition.
-                  (take-until (eqls #\:) importing-name)
-                  "-"
-                  (drop-prefix ":" imported-name)))
-                ;; Implicit import from a module partition implementation.
-                ((find #\: imported-name)
-                 (substitute #\- #\: imported-name))
-                (t imported-name))))
+  (let ((file-name
+         (cond ((string^= ":" imported-name)
+                (unless importing-name
+                  (error "Cannot import a module partition outside a module"))
+                (string+
+                 ;; Drop any trailing partition.
+                 (take-until (eqls #\:) importing-name)
+                 "-"
+                 (drop-prefix ":" imported-name)))
+               ;; Implicit import from a module partition implementation.
+               ((find #\: imported-name)
+                (substitute #\- #\: imported-name))
+               (t imported-name))))
     (make-pathname :name file-name
                    :defaults importing-path
                    :type nil)))
