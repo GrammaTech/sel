@@ -8,7 +8,7 @@ CC = clang++
 	$(CC) $(CFLAGS) $< --precompile -o $@
 
 main: m.o m-interface_part.o m-impl_part.o main.o
-	$(CC) $(CFLAGS) *.o -o main
+	$(CC) $(CFLAGS) $^ -o main
 
 main.o: main.cc
 	$(CC) $(CFLAGS) main.cc -c -o main.o
