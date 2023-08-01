@@ -156,7 +156,7 @@ partition."
                (module-unit-full-name (module? ast))))
              (module
               (find-project-module (attrs-root*) defaults)))
-        (update-header-graph (attrs-root*) module)
+        (update-dependency-graph (attrs-root*) module)
         (unless (eql (genome module)
                      (find-enclosing 'root-ast (attrs-root*) ast))
           (let ((*dependency-stack* (cons module *dependency-stack*)))
@@ -184,7 +184,7 @@ unit."
            (imported-module-software
             (find-project-module project defaults)))
       (when partition? (assert module))
-      (update-header-graph (attrs-root*) imported-module-software)
+      (update-dependency-graph (attrs-root*) imported-module-software)
       (let* ((*dependency-stack*
               (cons imported-module-software *dependency-stack*))
              (symtab

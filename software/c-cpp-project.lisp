@@ -39,7 +39,7 @@
            :including-files
            :find-enclosing-software
            :*dependency-stack*
-           :update-header-graph))
+           :update-dependency-graph))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -754,7 +754,7 @@ inference.  Used to prevent circular attr propagation.")
       (pathname-relativize (project-dir project)
                            path)))
 
-(defun update-header-graph (project includee)
+(defun update-dependency-graph (project includee)
   (let ((includee-path (relativize project (original-path includee)))
         (includer (car *dependency-stack*)))
     (when includer
@@ -788,10 +788,10 @@ include files in all directories of the project."
                ((member software *dependency-stack*)
                 ;; Just returning nil might still result in a global
                 ;; search. We found the header, we just can't use it.
-                (update-header-graph project software)
+                (update-dependency-graph project software)
                 (error 'circular-inclusion :header software))
                (t
-                (update-header-graph project software)
+                (update-dependency-graph project software)
                 (let ((*dependency-stack* (cons software *dependency-stack*)))
                   (symbol-table* software in))))))
     (let* ((file (find-enclosing '(or file-ast synthetic-header)
