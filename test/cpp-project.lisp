@@ -596,19 +596,12 @@ int main () {
                          :directory (append +etc-dir+
                                             '("module-examples" "cpp-reexport"))))))
     (with-attr-table cpp
-      (is (equal '(("main.cc"
+      (is (equal (project-dependency-tree cpp :entry-points (list "main.cc"))
+                 '(("main.cc"
                     ("a.cppm"
                      ("b.cppm"
                       (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
-                       (:|ios| (:|iosfwd|))))))
-                   ("b.cppm"
-                    (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
-                     (:|ios| (:|iosfwd|))))
-                   ("a.cppm"
-                    ("b.cppm"
-                     (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
-                      (:|ios| (:|iosfwd|))))))
-                 (project-dependency-tree cpp))))))
+                       (:|ios| (:|iosfwd|))))))))))))
 
 (deftest test-ms-module-example-1 ()
   "Example of modularized code from Visual Studio docs."
@@ -631,11 +624,10 @@ int main () {
                                             '("module-examples"
                                               "ms-basic-example"))))))
     (with-attr-table cpp
-      (is (equal (project-dependency-tree cpp)
+      (is (equal (project-dependency-tree cpp :entry-points '("MyProgram.cpp"))
                  '(("MyProgram.cpp" ("Example.ixx")
                     (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
-                     (:|ios| (:|iosfwd|))))
-                   ("Example.ixx")))))))
+                     (:|ios| (:|iosfwd|))))))))))
 
 (deftest test-ms-module-example-2 ()
   "Basic plane example from Visual Studio docs."
@@ -661,24 +653,21 @@ int main () {
                                              '("module-examples"
                                                "ms-basic-plane-example"))))))
     (with-attr-table cpp
-      (is (equal (project-dependency-tree cpp)
-                 '(("main.cpp"
-                    ("BasicPlane.Figures.ixx"
-                     ("BasicPlane.Figures-Rectangle.ixx"
-                      ("BasicPlane.Figures-Point.ixx"))
-                     ("BasicPlane.Figures-Point.ixx"))
-                    (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
-                     (:|ios| (:|iosfwd|))))
-                   ("BasicPlane.Figures.ixx"
-                    ("BasicPlane.Figures-Rectangle.ixx"
-                     ("BasicPlane.Figures-Point.ixx"))
-                    ("BasicPlane.Figures-Point.ixx"))
-                   ("BasicPlane.Figures-Rectangle.ixx"
-                    ("BasicPlane.Figures-Point.ixx"))
-                   ("BasicPlane.Figures-Rectangle.cpp"
-                    ("BasicPlane.Figures-Rectangle.ixx"
-                     ("BasicPlane.Figures-Point.ixx")))
-                   ("BasicPlane.Figures-Point.ixx")))))))
+      (is (equal
+           (project-dependency-tree
+            cpp
+            :entry-points '("main.cpp"
+                            "BasicPlane.Figures-Rectangle.cpp"))
+           '(("main.cpp"
+              ("BasicPlane.Figures.ixx"
+               ("BasicPlane.Figures-Rectangle.ixx"
+                ("BasicPlane.Figures-Point.ixx"))
+               ("BasicPlane.Figures-Point.ixx"))
+              (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
+               (:|ios| (:|iosfwd|))))
+             ("BasicPlane.Figures-Rectangle.cpp"
+              ("BasicPlane.Figures-Rectangle.ixx"
+               ("BasicPlane.Figures-Point.ixx")))))))))
 
 (deftest test-ms-module-example-2/clang ()
   "Clang-compilable version of basic plane example."
@@ -699,21 +688,14 @@ int main () {
                                              '("module-examples"
                                                "clang-basic-plane-example"))))))
     (with-attr-table cpp
-      (is (equal (project-dependency-tree cpp)
+      (is (equal (project-dependency-tree cpp :entry-points '("main.cpp"))
                  '(("main.cpp"
                     ("BasicPlane.Figures.cppm"
                      ("BasicPlane.Figures-Rectangle.cppm"
                       ("BasicPlane.Figures-Point.cppm"))
                      ("BasicPlane.Figures-Point.cppm"))
                     (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
-                     (:|ios| (:|iosfwd|))))
-                   ("BasicPlane.Figures.cppm"
-                    ("BasicPlane.Figures-Rectangle.cppm"
-                     ("BasicPlane.Figures-Point.cppm"))
-                    ("BasicPlane.Figures-Point.cppm"))
-                   ("BasicPlane.Figures-Rectangle.cppm"
-                    ("BasicPlane.Figures-Point.cppm"))
-                   ("BasicPlane.Figures-Point.cppm")))))))
+                     (:|ios| (:|iosfwd|))))))))))
 
 (deftest test-multi-file-simple ()
   (let* ((cpp (from-file 'cpp-project
@@ -745,23 +727,20 @@ int main () {
                                              '("module-examples"
                                                "multi-file-simple"))))))
     (with-attr-table cpp
-      (is (equal (project-dependency-tree cpp)
+      (is (equal (project-dependency-tree cpp :entry-points (list "main.cc"))
+                 ;; "Circular" dependencies are due to MSVC behavior
+                 ;; for module self-inclusion.
                  '(("main.cc"
-                    #3=("a.cppm"
-                        ("a-impl_part.cppm"
-                         #1=("b.cppm"
-                             #2=("b-impl_part.cppm" ("b-interface_part.cppm")
-                                 (:CIRCLE "b-impl_part.cppm")
-                                 (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
-                                   (:|ios| (:|iosfwd|))))
-                             ("b-interface_part.cppm"))
-                         ("a-interface_part.cppm") (:CIRCLE "a-impl_part.cppm"))
-                        ("a-interface_part.cppm")))
-                   #1#
-                   ("b-interface_part.cppm")
-                   #2#
-                   #3#
-                   ("a-interface_part.cppm")
-                   ("a-impl_part.cppm"
-                    #1#
-                    ("a-interface_part.cppm") (:CIRCLE "a-impl_part.cppm"))))))))
+                    ("a.cppm"
+                     ("a-impl_part.cppm"
+                      ("b.cppm"
+                       ("b-impl_part.cppm"
+                        ("b-interface_part.cppm")
+                        (:circle "b-impl_part.cppm")
+                        (:|iostream| (:|streambuf|) (:|ostream|)
+                          (:|istream|)
+                          (:|ios| (:|iosfwd|))))
+                       ("b-interface_part.cppm"))
+                      ("a-interface_part.cppm")
+                      (:circle "a-impl_part.cppm"))
+                     ("a-interface_part.cppm")))))))))

@@ -188,7 +188,7 @@ For development."
 (deftype dependency-tree-entry ()
   '(cons dependency-tree-path list))
 
-(defun project-dependency-tree (project &key allow-headers)
+(defun project-dependency-tree (project &key allow-headers entry-points)
   "Dump the header graph of PROJECT as a cons tree.
 The top level is a list of entries. Entries have the form (FILE .
 INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
@@ -196,6 +196,7 @@ INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
 
 In each entry, FILE is either a string (for a file) or a keyword (for
 a standard include)."
+  (declare ((soft-list-of string) entry-points))
   (assure dependency-tree
     (let* ((genome (genome project))
            (included-headers (included-headers genome))
@@ -216,9 +217,10 @@ a standard include)."
                               (mapcar (op (rec _ seen))
                                       (gethash path included-headers))))))))
         (mapcar (op (rec _ nil))
-                (if allow-headers
-                    files
-                    (remove-if #'header-file? files)))))))
+                (or entry-points
+                    (if allow-headers
+                        files
+                        (remove-if #'header-file? files))))))))
 
 (defgeneric file-dependency-tree (project file)
   (:documentation "Return the tree of includes rooted at FILE in PROJECT.")
