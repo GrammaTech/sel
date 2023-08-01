@@ -274,11 +274,11 @@ symbol table of the file including it."
           (is (lookup-type target-symbol-table "N::my_class"))
           (is (lookup-type return-symbol-table "N::my_class")))))))
 
-(deftest cpp-project-include-tree-1 ()
+(deftest cpp-project-dependency-tree-1 ()
   "Check computed include tree for a project."
   (with-fixture cpp-relative-include-symbol-table-project
     (with-attr-table *project*
-      (is (equal (project-include-tree *project*)
+      (is (equal (project-dependency-tree *project*)
                  '(("my_program.cc" ("my_class.h"))
                    ("my_class.cc"
                     (:|iostream|
@@ -291,9 +291,9 @@ symbol table of the file including it."
                      (who-includes? *project* "my_class.h")
                      :test #'equal))
       (is (equal '(("my_class.h"))
-                 (file-include-tree *project* "my_program.cc"))))))
+                 (file-dependency-tree *project* "my_program.cc"))))))
 
-(deftest cpp-project-include-tree-2 ()
+(deftest cpp-project-dependency-tree-2 ()
   "Ensure we get the same results for local files from system and program headers.
 
 I.e. `#include \"x\"` and `#include <x>` should get the same results
@@ -310,9 +310,9 @@ for non-system headers (assuming they're on the path)."
                                       :text (source-text (cpp-path ast))))))))
                    *project*)))
       (is (equal (with-attr-table *project*
-                   (project-include-tree *project*))
+                   (project-dependency-tree *project*))
                  (with-attr-table project2
-                   (project-include-tree project2)))))))
+                   (project-dependency-tree project2)))))))
 
 (deftest cpp-project-symbol-table-3 ()
   "Check that we handle the case where a header is added that was not
@@ -488,7 +488,7 @@ the correct binding."
               (:|stdio.h|)
               ("include.h"
                (:circle "include.h"))))
-           (project-include-tree project))))))
+           (project-dependency-tree project))))))
 
 (deftest cpp-test-std-id ()
   "Test that we can look up a symbol defined in a transitively included
@@ -588,7 +588,7 @@ int main () {
         (is (@ (@ symtab :function) "main"))
         (is (@ (@ symtab :function) "b::say_hello"))
         (is (not (@ (@ symtab :function) "b::say_goodbye"))))
-      (project-include-tree cpp))))
+      (project-dependency-tree cpp))))
 
 (deftest test-recursive-exports/dependencies ()
   (let ((cpp (from-file 'cpp-project
@@ -608,7 +608,7 @@ int main () {
                     ("b.cppm"
                      (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
                       (:|ios| (:|iosfwd|))))))
-                 (project-include-tree cpp))))))
+                 (project-dependency-tree cpp))))))
 
 (deftest test-ms-module-example-1 ()
   "Example of modularized code from Visual Studio docs."
@@ -631,7 +631,7 @@ int main () {
                                             '("module-examples"
                                               "ms-basic-example"))))))
     (with-attr-table cpp
-      (is (equal (project-include-tree cpp)
+      (is (equal (project-dependency-tree cpp)
                  '(("MyProgram.cpp" ("Example.ixx")
                     (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
                      (:|ios| (:|iosfwd|))))
@@ -661,7 +661,7 @@ int main () {
                                              '("module-examples"
                                                "ms-basic-plane-example"))))))
     (with-attr-table cpp
-      (is (equal (project-include-tree cpp)
+      (is (equal (project-dependency-tree cpp)
                  '(("main.cpp"
                     ("BasicPlane.Figures.ixx"
                      ("BasicPlane.Figures-Rectangle.ixx"
@@ -699,7 +699,7 @@ int main () {
                                              '("module-examples"
                                                "clang-basic-plane-example"))))))
     (with-attr-table cpp
-      (is (equal (project-include-tree cpp)
+      (is (equal (project-dependency-tree cpp)
                  '(("main.cpp"
                     ("BasicPlane.Figures.cppm"
                      ("BasicPlane.Figures-Rectangle.cppm"
@@ -745,7 +745,7 @@ int main () {
                                              '("module-examples"
                                                "multi-file-simple"))))))
     (with-attr-table cpp
-      (is (equal (project-include-tree cpp)
+      (is (equal (project-dependency-tree cpp)
                  '(("main.cc"
                     #3=("a.cppm"
                         ("a-impl_part.cppm"

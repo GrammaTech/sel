@@ -243,7 +243,7 @@
              (find-include-files *project* f1c include-ast))
            (list f1h)))
       (with-attr-table *project*
-        (is (equal (project-include-tree *project*)
+        (is (equal (project-dependency-tree *project*)
                    '(("lib/f1.c"
                       ("lib/f1.h"))
                      ("f1.c"
@@ -267,7 +267,7 @@
       (is (occurs-if (op (and (symbolp _1)
                               (not (keywordp _1))
                               (string^= "doesnt-exist" _1)))
-                     (project-include-tree *project*))))))
+                     (project-dependency-tree *project*))))))
 
 
 ;;; Symbol Table

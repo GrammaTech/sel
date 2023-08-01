@@ -29,9 +29,9 @@
            :file-preproc-defs
            :get-implicit-header
            :command-implicit-header
-           :project-include-tree
+           :project-dependency-tree
            :who-includes?
-           :file-include-tree
+           :file-dependency-tree
            :find-include
            :*header-extensions*
            :evolve-files/dependency-order
@@ -171,13 +171,16 @@ For development."
               :implicit-headers-table (dict)))
   (values))
 
-(deftype include-tree ()
-  '(soft-list-of include-tree-entry))
+(deftype dependency-tree ()
+  '(soft-list-of dependency-tree-entry))
 
-(deftype include-tree-entry ()
-  '(cons (or string keyword) list))
+(deftype uninterned-symbol ()
+  '(and symbol (not (satisfies symbol-package))))
 
-(defun project-include-tree (project &key allow-headers)
+(deftype dependency-tree-entry ()
+  '(cons (or string keyword uninterned-symbol) list))
+
+(defun project-dependency-tree (project &key allow-headers)
   "Dump the header graph of PROJECT as a cons tree.
 The top level is a list of entries. Entries have the form (FILE .
 INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
@@ -185,7 +188,7 @@ INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
 
 In each entry, FILE is either a string (for a file) or a keyword (for
 a standard include)."
-  (assure include-tree
+  (assure dependency-tree
     (let* ((genome (genome project))
            (included-headers (included-headers genome))
            (files (mapcar #'car (evolve-files project)))
@@ -209,22 +212,22 @@ a standard include)."
                     files
                     (remove-if #'header-file? files)))))))
 
-(defgeneric file-include-tree (project file)
+(defgeneric file-dependency-tree (project file)
   (:documentation "Return the tree of includes rooted at FILE in PROJECT.")
   (:method ((project t) (file software))
-    (file-include-tree project
+    (file-dependency-tree project
                        (pathname-relativize (project-dir project)
                                             (original-path file))))
   (:method ((project t) (file file-ast))
-    (file-include-tree project
+    (file-dependency-tree project
                        (namestring (full-pathname file))))
   (:method ((project t) (file ast))
     (if-let (enclosing (find-enclosing 'file-ast project file))
-      (file-include-tree project enclosing)
+      (file-dependency-tree project enclosing)
       (error "No enclosing file for ~a in ~a" file project)))
   (:method ((project t) (file string))
     (aget file
-          (project-include-tree project)
+          (project-dependency-tree project)
           :test #'equal)))
 
 (defun who-includes? (project header)
@@ -254,7 +257,7 @@ a standard include)."
                    (stable-sort items sort-function))))
 
 (defun include-tree-compilation-database-order
-    (project &key (include-tree (project-include-tree project :allow-headers t))
+    (project &key (include-tree (project-dependency-tree project :allow-headers t))
                (comp-db (compilation-database project)))
   (labels ((relativized-path (project command-object)
              "Relative the path of COMMAND-OBJECT to PROJECT's path."
@@ -285,7 +288,7 @@ a standard include)."
       (finally (return (reverse result))))))
 
 (defun evolve-files/dependency-order
-    (project &key (include-tree (project-include-tree project :allow-headers t)))
+    (project &key (include-tree (project-dependency-tree project :allow-headers t)))
   "Return the evolve-files of PROJECT sorted in dependency order."
   (labels ((unused-files (table &key (used-flag :visited))
              (iter
