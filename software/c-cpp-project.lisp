@@ -174,11 +174,19 @@ For development."
 (deftype dependency-tree ()
   '(soft-list-of dependency-tree-entry))
 
+(eval-always
+ (defun symbol-package? (x)
+   (and (symbolp x)
+        (symbol-package x))))
+
 (deftype uninterned-symbol ()
-  '(and symbol (not (satisfies symbol-package))))
+  '(and symbol (not (satisfies symbol-package?))))
+
+(deftype dependency-tree-path ()
+  '(or string keyword uninterned-symbol))
 
 (deftype dependency-tree-entry ()
-  '(cons (or string keyword uninterned-symbol) list))
+  '(cons dependency-tree-path list))
 
 (defun project-dependency-tree (project &key allow-headers)
   "Dump the header graph of PROJECT as a cons tree.
@@ -746,18 +754,25 @@ inference.  Used to prevent circular attr propagation.")
           (make-unknown-header* include-ast)))))
 
 (defun find-enclosing-software (project ast &key file-ast)
-  (let ((file-ast
-         (or file-ast
-             (find-enclosing '(or file-ast synthetic-header)
-                             project ast))))
+  "Get the software object in PROJECT that contains AST."
+  (when-let ((file-ast
+              (or file-ast
+                  (find-enclosing '(or file-ast synthetic-header)
+                                  project ast))))
     (evolve-files-ref project (namestring (full-pathname file-ast)))))
 
 (defun relativize (project path)
-  (if (symbolp path) path
-      (pathname-relativize (project-dir project)
-                           path)))
+  "Relative PATH relative to the root of PROJECT.
+If PATH is a symbol, it is left unchanged."
+  (assure dependency-tree-path
+    (etypecase-of (or pathname dependency-tree-path) path
+      ((or keyword uninterned-symbol) path)
+      ((or pathname string)
+       (pathname-relativize (project-dir project) path)))))
 
 (defun update-dependency-graph (project includee)
+  "Record dependencies and dependents for INCLUDEE based on the current
+value of `*dependency-stack*'."
   (let ((includee-path (relativize project (original-path includee)))
         (includer (car *dependency-stack*)))
     (when includer
