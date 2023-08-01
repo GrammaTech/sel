@@ -5,7 +5,6 @@
    :sel/sw/compdb-project)
   (:use :gt/full
         :software-evolution-library
-        :software-evolution-library/components/copy
         :software-evolution-library/components/compilation-database
         :software-evolution-library/components/file
         :software-evolution-library/software/simple

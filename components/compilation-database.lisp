@@ -5,7 +5,6 @@
   (:local-nicknames
    (:json :cl-json))
   (:shadow :path :macro-name)
-  (:use :software-evolution-library/components/copy)
   (:import-from :shlex)
   (:export :parse-compilation-database
            :normalize-flags
