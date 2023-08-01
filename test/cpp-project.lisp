@@ -587,7 +587,28 @@ int main () {
              (symtab (symbol-table (genome main))))
         (is (@ (@ symtab :function) "main"))
         (is (@ (@ symtab :function) "b::say_hello"))
-        (is (not (@ (@ symtab :function) "b::say_goodbye")))))))
+        (is (not (@ (@ symtab :function) "b::say_goodbye"))))
+      (project-include-tree cpp))))
+
+(deftest test-recursive-exports/dependencies ()
+  (let ((cpp (from-file 'cpp-project
+                        (make-pathname
+                         :directory (append +etc-dir+
+                                            '("module-examples" "cpp-reexport"))))))
+    (with-attr-table cpp
+      (is (equal '(("main.cc"
+                    ("a.cppm"
+                     ("b.cppm"
+                      (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
+                       (:|ios| (:|iosfwd|))))))
+                   ("b.cppm"
+                    (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
+                     (:|ios| (:|iosfwd|))))
+                   ("a.cppm"
+                    ("b.cppm"
+                     (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
+                      (:|ios| (:|iosfwd|))))))
+                 (project-include-tree cpp))))))
 
 (deftest test-ms-module-example-1 ()
   "Example of modularized code from Visual Studio docs."
@@ -603,12 +624,26 @@ int main () {
         (is (typep (only-elt (@ (@ symtab :function) "Example_NS::f")) 'cpp-ast))
         symtab))))
 
+(deftest test-ms-module-example-1/dependencies ()
+  (let ((cpp (from-file 'cpp-project
+                        (make-pathname
+                         :directory (append +etc-dir+
+                                            '("module-examples"
+                                              "ms-basic-example"))))))
+    (with-attr-table cpp
+      (is (equal (project-include-tree cpp)
+                 '(("MyProgram.cpp" ("Example.ixx")
+                    (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
+                     (:|ios| (:|iosfwd|))))
+                   ("Example.ixx")))))))
+
 (deftest test-ms-module-example-2 ()
   "Basic plane example from Visual Studio docs."
   (let* ((cpp (from-file 'cpp-project
                          (make-pathname
                           :directory (append +etc-dir+
-                                             '("module-examples" "ms-basic-plane-example"))))))
+                                             '("module-examples"
+                                               "ms-basic-plane-example"))))))
     (with-attr-table cpp
       (let ((main (is (evolve-files-ref cpp "main.cpp"))))
         (is (typep (get-declaration-ast :type (stmt-with-text (genome main) "Rectangle"))
@@ -618,6 +653,32 @@ int main () {
                                          (typep _1 'cpp-type-identifier)))
                                 impl-file)))
         (is (typep (get-declaration-ast :type type-ast) 'cpp-struct-specifier))))))
+
+(deftest test-ms-module-example-2/dependencies ()
+  (let* ((cpp (from-file 'cpp-project
+                         (make-pathname
+                          :directory (append +etc-dir+
+                                             '("module-examples"
+                                               "ms-basic-plane-example"))))))
+    (with-attr-table cpp
+      (is (equal (project-include-tree cpp)
+                 '(("main.cpp"
+                    ("BasicPlane.Figures.ixx"
+                     ("BasicPlane.Figures-Rectangle.ixx"
+                      ("BasicPlane.Figures-Point.ixx"))
+                     ("BasicPlane.Figures-Point.ixx"))
+                    (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
+                     (:|ios| (:|iosfwd|))))
+                   ("BasicPlane.Figures.ixx"
+                    ("BasicPlane.Figures-Rectangle.ixx"
+                     ("BasicPlane.Figures-Point.ixx"))
+                    ("BasicPlane.Figures-Point.ixx"))
+                   ("BasicPlane.Figures-Rectangle.ixx"
+                    ("BasicPlane.Figures-Point.ixx"))
+                   ("BasicPlane.Figures-Rectangle.cpp"
+                    ("BasicPlane.Figures-Rectangle.ixx"
+                     ("BasicPlane.Figures-Point.ixx")))
+                   ("BasicPlane.Figures-Point.ixx")))))))
 
 (deftest test-ms-module-example-2/clang ()
   "Clang-compilable version of basic plane example."
@@ -630,11 +691,36 @@ int main () {
         (is (typep (get-declaration-ast :type (stmt-with-text (genome main) "Rectangle"))
                    'cpp-struct-specifier))))))
 
+(deftest test-ms-module-example-2/clang/dependencies ()
+  "Clang-compilable version of basic plane example."
+  (let* ((cpp (from-file 'cpp-project
+                         (make-pathname
+                          :directory (append +etc-dir+
+                                             '("module-examples"
+                                               "clang-basic-plane-example"))))))
+    (with-attr-table cpp
+      (is (equal (project-include-tree cpp)
+                 '(("main.cpp"
+                    ("BasicPlane.Figures.cppm"
+                     ("BasicPlane.Figures-Rectangle.cppm"
+                      ("BasicPlane.Figures-Point.cppm"))
+                     ("BasicPlane.Figures-Point.cppm"))
+                    (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
+                     (:|ios| (:|iosfwd|))))
+                   ("BasicPlane.Figures.cppm"
+                    ("BasicPlane.Figures-Rectangle.cppm"
+                     ("BasicPlane.Figures-Point.cppm"))
+                    ("BasicPlane.Figures-Point.cppm"))
+                   ("BasicPlane.Figures-Rectangle.cppm"
+                    ("BasicPlane.Figures-Point.cppm"))
+                   ("BasicPlane.Figures-Point.cppm")))))))
+
 (deftest test-multi-file-simple ()
   (let* ((cpp (from-file 'cpp-project
                          (make-pathname
                           :directory (append +etc-dir+
-                                             '("module-examples" "multi-file-simple")))))
+                                             '("module-examples"
+                                               "multi-file-simple")))))
          (main (evolve-files-ref cpp "main.cc")))
     (with-attr-table cpp
       (get-declaration-ast :type (stmt-with-text (genome main) "A")))))
@@ -651,3 +737,31 @@ int main () {
 
         (is (equal '("a.h" "b.h" "f.h" "g.h" "main.cc")
                    (mapcar #'car evolve-files/dependency-order)))))))
+
+(deftest test-multi-file-simple/dependencies ()
+  (let* ((cpp (from-file 'cpp-project
+                         (make-pathname
+                          :directory (append +etc-dir+
+                                             '("module-examples"
+                                               "multi-file-simple"))))))
+    (with-attr-table cpp
+      (is (equal (project-include-tree cpp)
+                 '(("main.cc"
+                    #3=("a.cppm"
+                        ("a-impl_part.cppm"
+                         #1=("b.cppm"
+                             #2=("b-impl_part.cppm" ("b-interface_part.cppm")
+                                 (:CIRCLE "b-impl_part.cppm")
+                                 (:|iostream| (:|streambuf|) (:|ostream|) (:|istream|)
+                                   (:|ios| (:|iosfwd|))))
+                             ("b-interface_part.cppm"))
+                         ("a-interface_part.cppm") (:CIRCLE "a-impl_part.cppm"))
+                        ("a-interface_part.cppm")))
+                   #1#
+                   ("b-interface_part.cppm")
+                   #2#
+                   #3#
+                   ("a-interface_part.cppm")
+                   ("a-impl_part.cppm"
+                    #1#
+                    ("a-interface_part.cppm") (:CIRCLE "a-impl_part.cppm"))))))))

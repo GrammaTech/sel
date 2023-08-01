@@ -123,9 +123,12 @@ object (e.g., the original program).")
     (or (and only-paths (not (included only-paths)))
         (included ignore-paths))))
 
-(defun evolve-files-ref (software path)
-  "Lookup PATH in the evolve-files of SOFTWARE."
-  (aget path (evolve-files software) :test #'equal))
+(defgeneric evolve-files-ref (software path)
+  (:documentation "Lookup PATH in the evolve-files of SOFTWARE.")
+  (:method (software (path string))
+    (aget path (evolve-files software) :test #'equal))
+  (:method (software (path pathname))
+    (evolve-files-ref software (namestring path))))
 
 (defun walk-evolve-files (project fn)
   "Call FN on the path and software of each evolve-file in PROJECT."

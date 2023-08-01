@@ -146,16 +146,21 @@ partition."
     ;; for *all* implementation files, but since they may not exist we
     ;; need to guard against self-inclusion.
     (when (typep module 'implementation-unit)
-      (let* ((defaults
+      (let* ((*include-file-stack*
+              (or *include-file-stack*
+                  (list (find-enclosing-software (attrs-root*) ast))))
+             (defaults
               (relative-module-defaults
                (enclosing-file-pathname ast)
                (module-unit-full-name module)
                (module-unit-full-name (module? ast))))
              (module
               (find-project-module (attrs-root*) defaults)))
+        (update-header-graph (attrs-root*) module)
         (unless (eql (genome module)
                      (find-enclosing 'root-ast (attrs-root*) ast))
-          (symbol-table (genome module) (empty-map)))))))
+          (let ((*include-file-stack* (cons module *include-file-stack*)))
+            (symbol-table (genome module) (empty-map))))))))
 
 (defmethod symbol-table ((ast cpp-module-declaration) &optional in)
   "Anonymous implementation units (and possibly module partition
@@ -177,29 +182,36 @@ unit."
            (defaults
             (relative-module-defaults base-path importing-name imported-name))
            (imported-module-software
-            (find-project-module project defaults))
-           (symtab
-            (symbol-table (genome imported-module-software)
-                          (empty-map))))
+            (find-project-module project defaults)))
       (when partition? (assert module))
-      (cond
-        ;; A re-exported partition. We can see all definitions.
-        ((and partition? exported?)
-         (symbol-table-union ast in symtab))
-        ;; An implementation partition. We can see all definitions.
-        (partition?
-         (symbol-table-union ast in (less symtab :export)))
-        ;; A non-partition reexport.
-        (exported?
-         (when-let ((exports (@ symtab :export)))
-           (if (exported? ast)
-               (symbol-table-union ast in (with exports :export exports))
-               (symbol-table-union ast in exports))))
-        (t (@ symtab :export))))))
+      (update-header-graph (attrs-root*) imported-module-software)
+      (let* ((*include-file-stack*
+              (cons imported-module-software *include-file-stack*))
+             (symtab
+              (symbol-table (genome imported-module-software)
+                            (empty-map))))
+        (cond
+          ;; A re-exported partition. We can see all definitions.
+          ((and partition? exported?)
+           (symbol-table-union ast in symtab))
+          ;; An implementation partition. We can see all definitions.
+          (partition?
+           (symbol-table-union ast in (less symtab :export)))
+          ;; A non-partition reexport.
+          (exported?
+           (when-let ((exports (@ symtab :export)))
+             (if (exported? ast)
+                 (symbol-table-union ast in (with exports :export exports))
+                 (symbol-table-union ast in exports))))
+          (t (@ symtab :export)))))))
 
 (defmethod symbol-table ((ast cpp-import-declaration) &optional in)
-  (if-let (symtab (import-symbol-table ast in))
-    (symbol-table-union ast in symtab)
-    (call-next-method)))
+  (let ((*include-file-stack*
+         (or *include-file-stack*
+             (list
+              (find-enclosing-software (attrs-root*) ast)))))
+    (if-let (symtab (import-symbol-table ast in))
+      (symbol-table-union ast in symtab)
+      (call-next-method))))
 
 ) ; #+:TREE-SITTER-CPP

@@ -34,7 +34,12 @@
            :file-include-tree
            :find-include
            :*header-extensions*
-           :evolve-files/dependency-order))
+           :evolve-files/dependency-order
+           :included-headers
+           :including-files
+           :find-enclosing-software
+           :*include-file-stack*
+           :update-header-graph))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -183,17 +188,22 @@ a standard include)."
   (assure include-tree
     (let* ((genome (genome project))
            (included-headers (included-headers genome))
-           (files (mapcar #'car (evolve-files project))))
+           (files (mapcar #'car (evolve-files project)))
+           (intern-table (dict)))
       ;; Populate the symbol table, recording header dependencies as a
       ;; side effect.
       (symbol-table project)
-      (labels ((rec (path seen)
+      (labels ((intern-leaf (leaf)
+                 "Intern duplicated subtrees (common with modules)."
+                 (ensure-gethash leaf intern-table leaf))
+               (rec (path seen)
                  (if (find path seen :test #'equal)
                      (list :circle path)
                      (let ((seen (cons path seen)))
-                       (cons path
-                             (mapcar (op (rec _ seen))
-                                     (href included-headers path)))))))
+                       (intern-leaf
+                        (cons path
+                              (mapcar (op (rec _ seen))
+                                      (gethash path included-headers))))))))
         (mapcar (op (rec _ nil))
                 (if allow-headers
                     files
@@ -732,6 +742,32 @@ inference.  Used to prevent circular attr propagation.")
           (and global (find-include :global))
           (make-unknown-header* include-ast)))))
 
+(defun find-enclosing-software (project ast &key file-ast)
+  (let ((file-ast
+         (or file-ast
+             (find-enclosing '(or file-ast synthetic-header)
+                             project ast))))
+    (evolve-files-ref project (namestring (full-pathname file-ast)))))
+
+(defun relativize (project path)
+  (if (symbolp path) path
+      (pathname-relativize (project-dir project)
+                           path)))
+
+(defun update-header-graph (project includee)
+  (let ((includee-path (relativize project (original-path includee)))
+        (includer (car *include-file-stack*)))
+    (when includer
+      (let ((includer-path (relativize project (original-path includer))))
+        (pushnew includee-path
+                 (href (included-headers (genome project))
+                       includer-path)
+                 :test #'equal)
+        (pushnew includer-path
+                 (href (including-files (genome project))
+                       includee-path)
+                 :test #'equal)))))
+
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
                                          (global *global-search-for-include-files*))
@@ -745,23 +781,6 @@ include files in all directories of the project."
           (source-text include-ast))
   (labels ((symbol-table* (header in)
              (symbol-table (genome header) in))
-           (relativize (path)
-             (if (symbolp path) path
-                 (pathname-relativize (project-dir project)
-                                      path)))
-           (update-header-graph (includee)
-             (let ((includee-path (relativize (original-path includee)))
-                   (includer (car *include-file-stack*)))
-               (when includer
-                 (let ((includer-path (relativize (original-path includer))))
-                   (pushnew includee-path
-                            (href (included-headers (genome project))
-                                  includer-path)
-                            :test #'equal)
-                   (pushnew includer-path
-                            (href (including-files (genome project))
-                                  includee-path)
-                            :test #'equal)))))
            (safe-symbol-table (software)
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond
@@ -769,10 +788,10 @@ include files in all directories of the project."
                ((member software *include-file-stack*)
                 ;; Just returning nil might still result in a global
                 ;; search. We found the header, we just can't use it.
-                (update-header-graph software)
+                (update-header-graph project software)
                 (error 'circular-inclusion :header software))
                (t
-                (update-header-graph software)
+                (update-header-graph project software)
                 (let ((*include-file-stack* (cons software *include-file-stack*)))
                   (symbol-table* software in))))))
     (let* ((file (find-enclosing '(or file-ast synthetic-header)
@@ -780,10 +799,9 @@ include files in all directories of the project."
            (*include-file-stack*
             ;; Initialize the stack with a top-level file, if needed.
             (or *include-file-stack*
-                (and-let* ((file)
-                           (sw (aget (namestring (full-pathname file))
-                                     (evolve-files project)
-                                     :test #'equal)))
+                (when-let (sw
+                           (find-enclosing-software project include-ast
+                                                    :file-ast file))
                   (list sw))))
            (*header-dirs*
             (or (file-header-dirs project include-ast :file file)
