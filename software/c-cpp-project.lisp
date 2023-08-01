@@ -38,7 +38,7 @@
            :included-headers
            :including-files
            :find-enclosing-software
-           :*include-file-stack*
+           :*dependency-stack*
            :update-header-graph))
 
 (in-package :software-evolution-library/software/c-cpp-project)
@@ -687,15 +687,15 @@ the including file."
    table-1 table-2
    :allow-multiple (multi-declaration-keys root)))
 
-(defparameter *include-file-stack* nil
+(defparameter *dependency-stack* nil
   "Stack of include file names currently being processed during type
 inference.  Used to prevent circular attr propagation.")
 
 (define-condition circular-inclusion (error)
   ((header :initarg :header :reader header)
-   (stack :initarg :stack :reader include-file-stack))
+   (stack :initarg :stack :reader dependency-stack))
   (:default-initargs
-   :stack *include-file-stack*)
+   :stack *dependency-stack*)
   (:report (lambda (c s)
              (with-slots (header) c
                (format s "Circular inclusion of ~a" header)))))
@@ -756,7 +756,7 @@ inference.  Used to prevent circular attr propagation.")
 
 (defun update-header-graph (project includee)
   (let ((includee-path (relativize project (original-path includee)))
-        (includer (car *include-file-stack*)))
+        (includer (car *dependency-stack*)))
     (when includer
       (let ((includer-path (relativize project (original-path includer))))
         (pushnew includee-path
@@ -785,20 +785,20 @@ include files in all directories of the project."
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond
                ((null software) nil)
-               ((member software *include-file-stack*)
+               ((member software *dependency-stack*)
                 ;; Just returning nil might still result in a global
                 ;; search. We found the header, we just can't use it.
                 (update-header-graph project software)
                 (error 'circular-inclusion :header software))
                (t
                 (update-header-graph project software)
-                (let ((*include-file-stack* (cons software *include-file-stack*)))
+                (let ((*dependency-stack* (cons software *dependency-stack*)))
                   (symbol-table* software in))))))
     (let* ((file (find-enclosing '(or file-ast synthetic-header)
                                  project include-ast))
-           (*include-file-stack*
+           (*dependency-stack*
             ;; Initialize the stack with a top-level file, if needed.
-            (or *include-file-stack*
+            (or *dependency-stack*
                 (when-let (sw
                            (find-enclosing-software project include-ast
                                                     :file-ast file))

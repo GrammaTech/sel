@@ -146,8 +146,8 @@ partition."
     ;; for *all* implementation files, but since they may not exist we
     ;; need to guard against self-inclusion.
     (when (typep module 'implementation-unit)
-      (let* ((*include-file-stack*
-              (or *include-file-stack*
+      (let* ((*dependency-stack*
+              (or *dependency-stack*
                   (list (find-enclosing-software (attrs-root*) ast))))
              (defaults
               (relative-module-defaults
@@ -159,7 +159,7 @@ partition."
         (update-header-graph (attrs-root*) module)
         (unless (eql (genome module)
                      (find-enclosing 'root-ast (attrs-root*) ast))
-          (let ((*include-file-stack* (cons module *include-file-stack*)))
+          (let ((*dependency-stack* (cons module *dependency-stack*)))
             (symbol-table (genome module) (empty-map))))))))
 
 (defmethod symbol-table ((ast cpp-module-declaration) &optional in)
@@ -185,8 +185,8 @@ unit."
             (find-project-module project defaults)))
       (when partition? (assert module))
       (update-header-graph (attrs-root*) imported-module-software)
-      (let* ((*include-file-stack*
-              (cons imported-module-software *include-file-stack*))
+      (let* ((*dependency-stack*
+              (cons imported-module-software *dependency-stack*))
              (symtab
               (symbol-table (genome imported-module-software)
                             (empty-map))))
@@ -206,8 +206,8 @@ unit."
           (t (@ symtab :export)))))))
 
 (defmethod symbol-table ((ast cpp-import-declaration) &optional in)
-  (let ((*include-file-stack*
-         (or *include-file-stack*
+  (let ((*dependency-stack*
+         (or *dependency-stack*
              (list
               (find-enclosing-software (attrs-root*) ast)))))
     (if-let (symtab (import-symbol-table ast in))
