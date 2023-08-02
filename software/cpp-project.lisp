@@ -167,7 +167,9 @@ partition."
 implementation units) implicitly import the corresponding interface
 unit."
   (if-let (symtab (module-declaration-symbol-table ast))
-    (symbol-table-union ast in (@ symtab :export))
+    (if-let (exports (@ symtab :export))
+      (symbol-table-union ast in (@ symtab :export))
+      in)
     (call-next-method)))
 
 (defun import-symbol-table (ast in)
