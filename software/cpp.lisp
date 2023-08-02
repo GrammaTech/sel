@@ -1489,7 +1489,8 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   cpp-type-descriptor :>
   cpp-template-type :|::|
   cpp-identifier cpp-template-argument-list
-  cpp-template-function cpp-argument-list)
+  cpp-template-function cpp-argument-list
+  :|:| cpp-module-name)
 
 (defmethod whitespace-between/parent ((parent cpp-namespace-definition)
                                       (style c-style-indentation)

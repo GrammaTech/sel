@@ -1989,4 +1989,5 @@ namespace b {
     (is (equal cpp (source-text (patch-whitespace ast :prettify t))))))
 
 (deftest test-cpp-patch-whitespace ()
-  (check-patch-whitespace "static_cast<double>(x + y);"))
+  (check-patch-whitespace "static_cast<double>(x + y);")
+  (check-patch-whitespace "import :foo;"))
