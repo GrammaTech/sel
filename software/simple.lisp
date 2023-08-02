@@ -64,6 +64,13 @@
              :collect (list (cons :code line)))))
   simple)
 
+(defmethod from-string ((simple simple) string)
+  (setf (genome simple)
+        (with-input-from-string (in string)
+          (loop :for line := (read-line in nil) :while line
+                :collect (list (cons :code line)))))
+  simple)
+
 (defmethod to-file ((simple simple) file)
   (with-open-file (out file :direction :output :if-exists :supersede)
     (genome-string simple out)))

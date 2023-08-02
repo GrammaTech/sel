@@ -64,6 +64,7 @@
         :software-evolution-library/test/selection
         :software-evolution-library/test/serapi
         :software-evolution-library/test/sexp
+        :software-evolution-library/test/simple
         :software-evolution-library/test/style-features
         :software-evolution-library/test/task-runner
         :software-evolution-library/test/template
