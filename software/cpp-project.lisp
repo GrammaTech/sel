@@ -168,8 +168,11 @@ implementation units) implicitly import the corresponding interface
 unit."
   (if-let (symtab (module-declaration-symbol-table ast))
     (if-let (exports (@ symtab :export))
-      (symbol-table-union ast in (@ symtab :export))
-      in)
+      (prog1 (symbol-table-union ast in (@ symtab :export))
+        ;; Propagate the symbol table to the children (module
+        ;; identifiers).
+        (call-next-method))
+      (call-next-method))
     (call-next-method)))
 
 (defun import-symbol-table (ast in)
@@ -213,7 +216,8 @@ unit."
              (list
               (find-enclosing-software (attrs-root*) ast)))))
     (if-let (symtab (import-symbol-table ast in))
-      (symbol-table-union ast in symtab)
+      (prog1 (symbol-table-union ast in symtab)
+        (call-next-method))
       (call-next-method))))
 
 ) ; #+:TREE-SITTER-CPP
