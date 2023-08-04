@@ -5,6 +5,7 @@
         :cl-store
         :bordeaux-threads
         :software-evolution-library
+        :software-evolution-library/software/simple
         :software-evolution-library/components/file
         :software-evolution-library/utility/range
         :software-evolution-library/utility/limit-stream)
@@ -666,7 +667,13 @@ optionally writing to STREAM.")
             (apply #'source-text ast args))
           (children ast)))
   (:method ((software parseable) &rest args &key)
-    (apply #'source-text (genome software) args)))
+    (apply #'source-text (genome software) args))
+  (:method ((software simple) &rest args &key stream)
+    (if (no stream)
+        (genome-string software)
+        (apply #'source-text
+               (genome-string software)
+               args))))
 
 (defun source-text-take (n ast)
   "Take (at most) N characters from the source text of AST in constant

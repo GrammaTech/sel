@@ -6,7 +6,8 @@
     :software-evolution-library/test/util
     :stefil+
     :software-evolution-library
-    :software-evolution-library/software/simple)
+    :software-evolution-library/software/simple
+    :software-evolution-library/software/parseable)
   (:export :test-simple))
 
 (in-package :software-evolution-library/test/simple)
@@ -16,3 +17,7 @@
 (deftest simple-from-string ()
   (is (typep (from-string 'simple "simple-text")
              'simple)))
+
+(deftest simple-source-text ()
+  (is (equal (source-text (from-string 'simple "simple-text"))
+             (fmt "simple-text~%"))))
