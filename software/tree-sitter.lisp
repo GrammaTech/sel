@@ -679,7 +679,8 @@
            :primary-module-interface-unit
            :anonymous-implementation-unit
            :module-partition-interface-unit
-           :module-partition-implementation-unit)
+           :module-partition-implementation-unit
+           :public? :private? :protected?)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)))

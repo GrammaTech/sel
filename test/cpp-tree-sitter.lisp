@@ -1019,6 +1019,24 @@ Distance::Unit y;")))
     (is (typep cpp 'cpp-lambda-expression))
     (is (null (function-parameters cpp)))))
 
+(deftest test-access ()
+  (let ((cpp (from-string 'cpp "class X { int priv; public: int pub; };")))
+    (with-attr-table cpp
+      (is (equal '(nil t)
+                 (mapcar #'public?
+                         (collect-if (of-type 'cpp-field-declaration) cpp))))))
+  (let ((cpp (from-string 'cpp "struct X { int pub; private: int priv; };")))
+    (with-attr-table cpp
+      (is (equal '(t nil)
+                 (mapcar #'public?
+                         (collect-if (of-type 'cpp-field-declaration) cpp))))))
+  (let ((cpp (from-string 'cpp "namespace name { int x = 1; }")))
+    (with-attr-table cpp
+      (is (public? (find-if (of-type 'cpp-declaration) cpp)))))
+  (let ((cpp (from-string 'cpp "namespace { int x = 1; }")))
+    (with-attr-table cpp
+      (is (not (public? (find-if (of-type 'cpp-declaration) cpp)))))))
+
 
 ;;; Parsing tests
 

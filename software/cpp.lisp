@@ -668,6 +668,15 @@ to look it up as `x::z' or just `z'."
     (otherwise
      (call-next-method))))
 
+(defmethod get-declaration-ids ((type (eql :function))
+                                (fn cpp-function-definition))
+  (let ((name (definition-name-ast fn)))
+    (if (typep name 'cpp-qualified-identifier)
+        (if-let (class (friend-function-class fn))
+          (lookup-in-field-table class :function (cpp-name name))
+          (call-next-method))
+        (call-next-method))))
+
 (defmethod get-declaration-ids ((type (eql :type)) (ast cpp-template-type))
   (get-declaration-ids type (cpp-name ast)))
 
@@ -852,6 +861,71 @@ to look it up as `x::z' or just `z'."
   (let* ((types (template-parameter-types ast)))
     (values types
             (mapcar (constantly :type) types))))
+
+(deftype member-access ()
+  '(member :public :private :protected))
+
+(defgeneric static-member-access (ast)
+  (:documentation "If AST changes the member access, return the new member access.")
+  (:method-combination standard/context)
+  (:method :context ((ast cpp-ast))
+    (assure (or null member-access)
+      (call-next-method)))
+  (:method ((ast cpp-namespace-definition))
+    (if (cpp-name ast)
+        :public
+        :private))
+  (:method ((ast cpp-access-specifier))
+    (etypecase (cpp-keyword ast)
+      (cpp-public :public)
+      (cpp-private :private)
+      (cpp-protected :protected)))
+  (:method ((ast cpp-struct-specifier))
+    :public)
+  (:method ((ast cpp-class-specifier))
+    :private)
+  (:method ((ast cpp-union-specifier))
+    :public)
+  (:method ((ast t))
+    nil))
+
+(def-attr-fun member-access (in)
+  (:documentation "Compute the member access of an AST.
+Returns one of `:public', `:private', `:protected'.
+
+Member access can be inherited from a parent (`class' vs. `struct') or
+from a prior sibling \(`public:', `private:', `protected:').")
+  (:method :context ((ast cpp-ast) &optional in)
+    (declare (ignore in))
+    (assure member-access
+      (call-next-method)))
+  (:method ((software software) &optional in)
+    (member-access (genome software) in)
+    in)
+  (:method ((ast ast) &optional in)
+    (dolist (child (children ast))
+      (member-access child in))
+    in)
+  (:method ((node cpp-ast) &optional in)
+    ;; Member access can be determined by the parent or by a preceding
+    ;; sibling.
+    (lret ((result (or (static-member-access node) in)))
+      (reduce (lambda (in next)
+                (member-access next in))
+              (children node)
+              :initial-value result))))
+
+(defmethod attr-missing ((fn-name (eql 'member-access)) node)
+  (member-access (genome (attrs-root*)) :public))
+
+(defun public? (ast)
+  (eql :public (member-access ast)))
+
+(defun private? (ast)
+  (eql :private (member-access ast)))
+
+(defun protected? (ast)
+  (eql :protected (member-access ast)))
 
 (defmethod field-table ((typedef cpp-type-definition))
   "Given a typedef for a template type, recursively resolve the
