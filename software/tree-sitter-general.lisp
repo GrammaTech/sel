@@ -931,12 +931,19 @@ Every element in the list has the following form:
   nil)
 
 (defgeneric resolve-overloads (type ast &optional overloads)
+  (:method-combination standard/context)
   (:documentation "Resolve the overloads in OVERLOADS.
 
 This function should only be called when there are two or more
 overloads to resolve.")
+  (:method :context ((type t) (ast t) &optional overloads)
+    (if (no (rest overloads))
+        (first overloads)
+        (or (find-if (op (ancestor-of-p (attrs-root*) ast _))
+                     overloads)
+            (call-next-method))))
   (:method :before ((type t) (ast t) &optional overloads)
-    (assert (and (listp overloads) (rest overloads))))
+    (assert (and (listp overloads) overloads)))
   (:method (type (ast call-ast) &optional overloads)
     (resolve-overloads type (call-function ast) overloads))
   (:method ((type t) ast &optional overloads)

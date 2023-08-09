@@ -670,6 +670,7 @@ to look it up as `x::z' or just `z'."
 
 (defmethod get-declaration-ids ((type (eql :function))
                                 (fn cpp-function-definition))
+  "Get the field declaration of an external function definition."
   (let ((name (definition-name-ast fn)))
     (if (typep name 'cpp-qualified-identifier)
         (if-let (class (friend-function-class fn))

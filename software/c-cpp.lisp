@@ -414,6 +414,16 @@ pointer declarations which are nested on themselves."
 (defmethod get-declaration-ids :around (type (ast c/cpp-type-descriptor))
   (get-declaration-ids type (c/cpp-type ast)))
 
+(defmethod get-declaration-ids ((type (eql :function))
+                                (ast c/cpp-function-definition))
+  "Get the declaration for a C/C++ function definition."
+  (find-in-symbol-table ast type (definition-name-ast ast)))
+
+(defmethod resolve-overloads ((type (eql :function))
+                              (ast c/cpp-function-definition)
+                              &optional overloads)
+  (resolve-overloads type ast (remove ast overloads)))
+
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
 

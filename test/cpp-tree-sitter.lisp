@@ -1037,6 +1037,17 @@ Distance::Unit y;")))
     (with-attr-table cpp
       (is (not (public? (find-if (of-type 'cpp-declaration) cpp)))))))
 
+(deftest test-function-declaration-lookup-from-function ()
+  (let* ((cpp (from-string 'cpp "int myadd (int x, int y);
+int myadd(int x, int y) {
+  return x + y;
+}
+int sum = myadd(2, 2);"))
+         (decl (is (find-if (of-type 'cpp-declaration) cpp)))
+         (defn (is (find-if (of-type 'cpp-function-definition) cpp))))
+    (with-attr-table cpp
+      (is (eql (get-declaration-ast :function defn) decl)))))
+
 
 ;;; Parsing tests
 

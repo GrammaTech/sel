@@ -556,6 +556,17 @@ void f(fp_t p) { p->x; p->y; }
       (let ((id (find-if (op (source-text= "x" _)) c)))
         (is (source-text= "int" (infer-type id)))))))
 
+(deftest test-function-declaration-lookup-from-function ()
+  (let* ((cpp (from-string 'c "int myadd (int x, int y);
+int myadd(int x, int y) {
+  return x + y;
+}
+int sum = myadd(2, 2);"))
+         (decl (is (find-if (of-type 'c-declaration) cpp)))
+         (defn (is (find-if (of-type 'c-function-definition) cpp))))
+    (with-attr-table cpp
+      (is (eql (get-declaration-ast :function defn) decl)))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
