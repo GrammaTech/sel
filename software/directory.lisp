@@ -448,6 +448,12 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
 (defmethod convert ((to-type (eql 'list)) (obj directory-project) &rest more)
   (apply 'convert to-type (genome obj) more))
 
+(defmethod patch-whitespace ((ast file-ast) &key prettify)
+  (copy ast
+        :contents
+        (mapcar (op (patch-whitespace _ :prettify prettify))
+                (contents ast))))
+
 
 ;;; Attrs
 (defmacro define-attr-methods (attr-name (&rest optional-args)
