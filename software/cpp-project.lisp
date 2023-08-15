@@ -175,7 +175,7 @@ unit."
       (call-next-method))
     (call-next-method)))
 
-(defun import-symbol-table (ast in)
+(defun module-import-symbol-table (ast in)
   (when-let* ((imported-name (source-text (cpp-name ast)))
               (project (attrs-root*))
               (base-path (enclosing-file-pathname ast)))
@@ -209,6 +209,29 @@ unit."
                  (symbol-table-union ast in (with exports :export exports))
                  (symbol-table-union ast in exports))))
           (t (@ symtab :export)))))))
+
+(defun header-unit-import-symbol-table (ast in)
+  (let* ((symtab
+          (find-symbol-table-from-include
+           (attrs-root*)
+           ast
+           :in in
+           :global nil
+           :header-dirs '(:stdinc)))
+         ;; Macro definitions from the header are not exposed.
+         (symtab (less symtab :macro))
+         (exported? (exported? ast)))
+    (if exported?
+        (with symtab :export symtab)
+        symtab)))
+
+(defun import-symbol-table (ast in)
+  (when-let* ((imported-name (source-text (cpp-name ast))))
+    (if (scan "^<.*>$" imported-name)
+        ;; Handle a header unit import.
+        (header-unit-import-symbol-table ast in)
+        ;; Handle a module import.
+        (module-import-symbol-table ast in))))
 
 (defmethod symbol-table ((ast cpp-import-declaration) &optional in)
   (let ((*dependency-stack*

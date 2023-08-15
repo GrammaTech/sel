@@ -39,7 +39,8 @@
            :including-files
            :find-enclosing-software
            :*dependency-stack*
-           :update-dependency-graph))
+           :update-dependency-graph
+           :find-symbol-table-from-include))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -720,6 +721,9 @@ inference.  Used to prevent circular attr propagation.")
      path-ast)
     ((c/cpp-preproc-include
       (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
+     path-ast)
+    ((cpp-import-declaration
+      (cpp-name (and path-ast (c/cpp-system-lib-string))))
      path-ast)))
 
 (defun find-include (project file header-dirs include-ast
@@ -790,7 +794,8 @@ value of `*dependency-stack*'."
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
-                                         (global *global-search-for-include-files*))
+                                         (global *global-search-for-include-files*)
+                                         (header-dirs nil header-dirs-supplied?))
   "Find the symbol table in PROJECT for the include file
 included by INCLUDE-AST.  IN is the symbol table before entry
 to the include-ast.  If GLOBAL is true, search for non-system
@@ -824,12 +829,15 @@ include files in all directories of the project."
                                                     :file-ast file))
                   (list sw))))
            (*header-dirs*
-            (or (file-header-dirs project include-ast :file file)
-                *header-dirs*
-                *default-header-dirs*)))
+            (if header-dirs-supplied?
+                header-dirs
+                (or (file-header-dirs project include-ast :file file)
+                    *header-dirs*
+                    *default-header-dirs*))))
       (handler-case
           (ematch include-ast
-            ((c/cpp-preproc-include)
+            ((or (c/cpp-preproc-include)
+                 (cpp-import-declaration))
              (safe-symbol-table
               (find-include project file *header-dirs*
                             include-ast))))

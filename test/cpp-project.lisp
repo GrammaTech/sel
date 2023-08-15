@@ -744,3 +744,14 @@ int main () {
                       ("a-interface_part.cppm")
                       (:circle "a-impl_part.cppm"))
                      ("a-interface_part.cppm")))))))))
+
+(deftest test-header-unit ()
+  (let ((cpp
+         (from-file 'cpp-project
+                    (make-pathname
+                     :directory
+                     (append1 +etc-dir+
+                              "cpp-header-unit")))))
+    (with-attr-table cpp
+      (is (get-declaration-ast :variable (stmt-with-text cpp "std::cout")))
+      (is (get-declaration-ast :variable (stmt-with-text cpp "std::endl"))))))
