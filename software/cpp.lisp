@@ -1872,7 +1872,12 @@ within an export block or an exported namespace."
                       (cpp-name ns))
                      ((list* (cpp-declaration-list)
                              (and ns (cpp-namespace-definition)) _)
-                      (directly-exported? ns))))))
+                      (directly-exported? ns))
+                     ((list* (cpp-field-declaration-list)
+                             (and class
+                                  (or (cpp-class-specifier) (cpp-struct-specifier))) _)
+                      (and (public? decl)
+                           (exported? class)))))))
            (exported-from-declaration? (ast)
              (when-let* ((decl-type (relevant-declaration-type ast))
                          (decl (get-declaration-ast decl-type ast)))

@@ -1094,6 +1094,30 @@ export {
       (is (exported? (find-if (of-type 'cpp-function-definition)
                               cpp))))))
 
+(deftest test-exported-from-export-over-class-public ()
+  (let ((cpp (from-string 'cpp "
+export {
+  struct A {
+    void print();
+  };
+}
+")))
+    (with-attr-table cpp
+      (is (exported? (is (find-if (of-type 'cpp-field-declaration)
+                                  cpp)))))))
+
+(deftest test-not-exported-from-export-over-class-private ()
+  (let ((cpp (from-string 'cpp "
+export {
+  class A {
+    void print();
+  };
+}
+")))
+    (with-attr-table cpp
+      (is (not (exported? (is (find-if (of-type 'cpp-field-declaration)
+                                       cpp))))))))
+
 (deftest test-not-exported-from-export-over-anonymous-namespace ()
   (let ((cpp (from-string 'cpp "
 export {

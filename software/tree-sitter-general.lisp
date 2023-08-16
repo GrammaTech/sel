@@ -1007,6 +1007,8 @@ a declaration AST, return AST unchanged."
        (adjoin ast (collect-decls ast)))
       ((:method (function-declaration-ast))
        (adjoin ast (collect-decls ast)))
+      (((type keyword) (declaration-ast))
+       (list ast))
       ((nil _)
        (error "Not a namespace: ~a" type))
       (((type symbol) _)
