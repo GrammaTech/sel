@@ -1689,6 +1689,9 @@ available to use at any point in a C++ AST.")
 (defmethod symbol-table ((node cpp-namespace-definition) &optional in)
   (propagate-declarations-down node in))
 
+(defmethod symbol-table ((node cpp-export-block) &optional in)
+  (propagate-declarations-down node in))
+
 (defmethod qualify-declared-ast-name :around ((ast cpp-ast))
   ;; Strip template parameters for lookup.
   (strip-template-arguments (call-next-method)))

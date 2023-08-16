@@ -1962,6 +1962,22 @@ class Y;"
                   "Template defines ~a but got ~a:~%~a"
                   types param-types template-string))))))
 
+(deftest test-export-block-symbol-table ()
+  (let ((cpp (from-string 'cpp "module;
+
+export module cram_a:interface_part;
+export {
+    class A {
+      public :
+        int x, y;
+        A (int, int);
+        void print ();
+    };
+}
+")))
+    (with-attr-table cpp
+      (is (not (empty? (symbol-table (genome cpp))))))))
+
 
 ;;; Module tests
 
