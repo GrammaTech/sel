@@ -36,6 +36,7 @@
 (defun get-context-for (ast)
   "Return a keyword giving the context for AST."
   (etypecase ast
+    (c/cpp-primitive-type :type)
     ((or c/cpp-identifier c/cpp-type-identifier cpp-qualified-identifier)
      (cond ((get-declaration-id :tag ast)
             :type)
