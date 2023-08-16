@@ -1048,6 +1048,64 @@ int sum = myadd(2, 2);"))
     (with-attr-table cpp
       (is (eql (get-declaration-ast :function defn) decl)))))
 
+(deftest test-exported-from-declaration ()
+  (let ((cpp (from-string 'cpp "
+export int fun1();
+int fun2();
+int fun1() { return 1; };
+int fun2() { return 2; };
+int fun3() { return 3; };
+")))
+    (with-attr-table cpp
+      (let ((fns (collect-if (of-type 'cpp-function-definition)
+                             (genome cpp))))
+        (is (length= fns 3))
+        (is (exported? (first fns)))
+        (is (not (exported? (second fns))))
+        (is (not (exported? (third fns))))))))
+
+(deftest test-exported-from-block ()
+  (let ((cpp (from-string 'cpp "
+export {
+  int fun1() { return 1; };
+}")))
+    (with-attr-table cpp
+      (is (exported? (find-if (of-type 'cpp-function-definition)
+                              cpp))))))
+
+(deftest test-exported-from-namespace ()
+  (let ((cpp (from-string 'cpp "
+export namespace ns {
+  int fun1() { return 1; };
+}")))
+    (with-attr-table cpp
+      (is (exported? (find-if (of-type 'cpp-function-definition)
+                              cpp))))))
+
+(deftest test-exported-from-export-over-namespace ()
+  (let ((cpp (from-string 'cpp "
+export {
+  namespace ns {
+    int fun1() { return 1; };
+  }
+}
+")))
+    (with-attr-table cpp
+      (is (exported? (find-if (of-type 'cpp-function-definition)
+                              cpp))))))
+
+(deftest test-not-exported-from-export-over-anonymous-namespace ()
+  (let ((cpp (from-string 'cpp "
+export {
+  namespace {
+    int fun1() { return 1; };
+  }
+}
+")))
+    (with-attr-table cpp
+      (is (not (exported? (find-if (of-type 'cpp-function-definition)
+                                   cpp)))))))
+
 
 ;;; Parsing tests
 

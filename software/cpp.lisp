@@ -1841,19 +1841,50 @@ available to use at any point in a C++ AST.")
           (values :partition-name (drop-prefix ":" partition-name))
           (values)))))
 
-(defun exported? (ast)
+(defun exported? (ast &key (check-decls t))
   "Is AST exported?
 
 AST is exported if it has an export specifier, or is
 within an export block or an exported namespace."
-  (or (find-if (of-type 'cpp-export-specifier)
-               (direct-children ast))
-      (let ((parent
-              (find-if-not (of-type 'cpp-declaration-list)
-                           (get-parent-asts* (attrs-root*) ast))))
-        (or (typep parent 'cpp-export-block)
-            (and (typep parent 'cpp-namespace-definition)
-                 (exported? parent))))))
+  (labels ((directly-exported? (ast)
+             (find-if (of-type 'cpp-export-specifier)
+                      (direct-children ast)))
+           (exported-from-parents? (ast)
+             (when-let ((decl (find-enclosing 'declaration-ast (attrs-root*) ast)))
+               (or (directly-exported? ast)
+                   (match (get-parent-asts* (attrs-root*) ast)
+                     ((list* (cpp-declaration-list)
+                             (cpp-export-block) _)
+                      t)
+                     ((list* (cpp-declaration-list)
+                             (and (cpp-namespace-definition)
+                                  (not (satisfies cpp-name)))
+                             _)
+                      nil)
+                     ((list* (cpp-declaration-list)
+                             (and ns (cpp-namespace-definition))
+                             (cpp-declaration-list)
+                             (cpp-export-block)
+                             _)
+                      (cpp-name ns))
+                     ((list* (cpp-declaration-list)
+                             (and ns (cpp-namespace-definition)) _)
+                      (directly-exported? ns))))))
+           (exported-from-declaration? (ast)
+             (when-let* ((decl-type (relevant-declaration-type ast))
+                         (decl (get-declaration-ast decl-type ast)))
+               (unless (eql decl ast)
+                 (cond ((typep decl 'cpp-declaration)
+                        ;; The declaration is exported.
+                        (exported? decl))
+                       ((typep decl 'cpp-field-declaration)
+                        (and (public? decl)
+                             (exported? (find-enclosing 'class-ast (attrs-root*)
+                                                        decl)))))))))
+    (or (directly-exported? ast)
+        (exported-from-parents? ast)
+        (when check-decls
+          (exported-from-declaration? ast)))))
 
 (defmethod symbol-table-union ((root cpp-ast) table-1 table-2 &key &allow-other-keys)
   "Recursively union the maps under the :export key, if there are any."
@@ -1869,8 +1900,8 @@ within an export block or an exported namespace."
                   (or exports1 exports2))))))
 
 (defun handle-exports (ast outer-defs)
-  "Conditionally the outer definitions of AST as exports."
-  (if (exported? ast)
+  "Conditionally mark the outer definitions of AST as exports."
+  (if (exported? ast :check-decls nil)
       (if (empty? outer-defs) outer-defs
           (if (@ outer-defs :export)
               (error "Already has exports")
