@@ -449,10 +449,23 @@ for the language.")
         (rust-operator :reader operator :initarg :operator)
         (rust-left :initarg :lhs :reader lhs)
         (rust-right :initarg :rhs :reader rhs))
+       (rust-const-item
+        (rust-name :reader definition-name-ast))
        (rust-binary-expression
         (rust-left :initarg :lhs :reader lhs)
         (rust-operator :initarg :operator :reader operator)
         (rust-right :initarg :rhs :reader rhs))
+       (rust-call-expression
+        (rust-function :reader call-function :initarg :function)
+        (rust-arguments :reader call-arguments :initarg :arguments))
+       (rust-enum-item
+        (rust-name :reader definition-name-ast))
+       (rust-for-expression
+        (rust-body :reader body :initarg :body))
+       (rust-function-item
+        (rust-name :reader function-name :reader definition-name-ast)
+        (rust-parameters :reader function-parameters)
+        (rust-body :reader function-body))
        (rust-if-expression
         (rust-condition :initarg :condition :reader condition)
         (rust-consequence :initarg :consequence :reader consequence)
@@ -460,21 +473,24 @@ for the language.")
        (rust-let-declaration
         (rust-pattern :initarg :lhs :reader lhs)
         (rust-value :initarg :rhs :reader rhs))
-       (rust-function-item
-        (rust-name :reader function-name :reader definition-name-ast)
-        (rust-parameters :reader function-parameters)
-        (rust-body :reader function-body))
-       (rust-call-expression
-        (rust-function :reader call-function :initarg :function)
-        (rust-arguments :reader call-arguments :initarg :arguments))
+       (rust-loop-expression
+        (rust-body :reader body :initarg :body))
+       (rust-mod-item
+        (rust-name :reader definition-name-ast))
        (rust-parameter
         (rust-type :reader parameter-type))
        (rust-range-expression
         (rust-operator :reader operator :initarg :operator))
-       (rust-for-expression
-        (rust-body :reader body :initarg :body))
-       (rust-loop-expression
-        (rust-body :reader body :initarg :body))
+       (rust-static-item
+        (rust-name :reader definition-name-ast))
+       (rust-struct-item
+        (rust-name :reader definition-name-ast))
+       (rust-trait-item
+        (rust-name :reader definition-name-ast))
+       (rust-type-item
+        (rust-name :reader definition-name-ast))
+       (rust-union-item
+        (rust-name :reader definition-name-ast))
        (rust-while-expression
         (rust-body :reader body :initarg :body))
        (rust-while-let-expression
@@ -955,9 +971,21 @@ for the language.")
        (:call-ast rust-call-expression)
        (:comment-ast rust-line-comment rust-block-comment)
        (:compound-ast rust-block rust-declaration-list)
+       (:definition-ast
+        rust-const-item
+        rest-enum-item
+        rust-function-item
+        rust-mod-item
+        rust-static-item
+        rust-struct-item
+        rust-trait-item
+        rust-type-item
+        rust-union-item)
        (:expression-ast rust--expression)
        (:float-ast rust-float-literal)
-       (:function-declaration-ast rust-function-item)
+       (:function-declaration-ast
+        rust-function-item
+        rust-function-signature-item)
        (:identifier-ast
         rust-field-identifier
         rust-identifier
@@ -978,7 +1006,11 @@ for the language.")
        (:string-ast rust-string-literal)
        (:subscript-ast rust-index-expression)
        (:type-ast rust--type)
-       (:type-declaration-ast rust-struct-item)
+       (:type-declaration-ast
+        rust-enum-item
+        rust-struct-item
+        rust-type-item
+        rust-union-item)
        (:type-identifier-ast rust-type-identifier)
        (:unary-ast rust-unary-expression)
        (:variable-declaration-ast rust-let-declaration))
