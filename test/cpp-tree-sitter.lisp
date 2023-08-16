@@ -2019,4 +2019,5 @@ namespace b {
 
 (deftest test-cpp-patch-whitespace ()
   (check-patch-whitespace "static_cast<double>(x + y);")
-  (check-patch-whitespace "import :foo;"))
+  (check-patch-whitespace "import :foo;")
+  (check-patch-whitespace "std::cout << x;"))

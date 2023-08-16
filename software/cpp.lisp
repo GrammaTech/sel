@@ -1559,6 +1559,7 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   cpp-namespace-identifier :|::|
   :|::| cpp-qualified-identifier
   :|::| cpp-type-identifier
+  :|::| cpp-identifier
   cpp-type-identifier cpp-template-argument-list
   :< cpp-type-descriptor
   cpp-type-descriptor :>
