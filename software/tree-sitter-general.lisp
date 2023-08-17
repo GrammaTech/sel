@@ -3975,16 +3975,15 @@ by MULTI-DECLARATION-KEYS."
      table-1 table-2
      :allow-multiple (multi-declaration-keys root))))
 
-(defun propagate-declarations-down
-    (ast in &aux (root (attrs-root *attrs*)))
+(defun propagate-declarations-down (ast in)
   "Propagate the symbol table declarations down through AST's children."
   (reduce (lambda (in2 child)
             (symbol-table-union
-             root
+             ast
              (symbol-table child in2)
              (outer-defs child)))
           (children ast)
-          :initial-value (symbol-table-union root in (inner-defs ast))))
+          :initial-value (symbol-table-union ast in (inner-defs ast))))
 
 (def-attr-fun symbol-table (in)
   "Compute the symbol table at this node."
@@ -3997,7 +3996,7 @@ by MULTI-DECLARATION-KEYS."
       ((scope-ast-p node)
        (propagate-declarations-down node in)
        in)
-      (t (mapc (op (symbol-table _ (symbol-table-union (attrs-root *attrs*)
+      (t (mapc (op (symbol-table _ (symbol-table-union node
                                                        in
                                                        (inner-defs node))))
                (children node))
@@ -4122,7 +4121,7 @@ with debug settings it can be traced."
 
 (defun outer-and-inner-defs (ast)
   (symbol-table-union
-   (attrs-root*)
+   ast
    (outer-defs ast)
    (inner-defs ast)))
 

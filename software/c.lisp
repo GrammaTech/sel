@@ -482,7 +482,7 @@ the outer-defs for NODE are returned instead."
         ((typep type '(or c-struct-tag-specifier c-enum-tag-specifier
                        c-union-tag-specifier))
          ;; TODO: find the definition and add it in.
-         (symbol-table-union (attrs-root*) return-value (outer-defs type)))
+         (symbol-table-union node return-value (outer-defs type)))
         (t return-value))))
 
 

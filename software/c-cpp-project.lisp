@@ -428,7 +428,7 @@ should already have been computed as part of their compilation units."
                    (file (find-enclosing 'file-ast root ast))
                    (implicit-header (get-implicit-header root file)))
           (let ((augmented-table
-                  (symbol-table-union root
+                 (symbol-table-union ast
                                       in
                                       (implicit-header-symbol-table implicit-header))))
             (call-next-method ast augmented-table)))
@@ -696,11 +696,6 @@ the including file."
              (with-slots (include-ast) c
                (format s "Not found: ~a" (source-text include-ast))))))
 
-(defmethod symbol-table-union ((root c/cpp-project) table-1 table-2 &key)
-  (multi-map-symbol-table-union
-   table-1 table-2
-   :allow-multiple (multi-declaration-keys root)))
-
 (defparameter *dependency-stack* nil
   "Stack of include file names currently being processed during type
 inference.  Used to prevent circular attr propagation.")
@@ -848,7 +843,7 @@ include files in all directories of the project."
   (let ((root (attrs-root *attrs*)))
     (if (typep root 'directory-project)
         (if-let (st (find-symbol-table-from-include root node :in in))
-          (symbol-table-union root in st)
+          (symbol-table-union node in st)
           (call-next-method))
         (call-next-method))))
 
