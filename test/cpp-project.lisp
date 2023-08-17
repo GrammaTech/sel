@@ -755,3 +755,16 @@ int main () {
     (with-attr-table cpp
       (is (get-declaration-ast :variable (stmt-with-text cpp "std::cout")))
       (is (get-declaration-ast :variable (stmt-with-text cpp "std::endl"))))))
+
+(deftest test-interface-part-export-block ()
+  (let ((cpp (from-file 'cpp-project
+                        (make-pathname
+                         :directory
+                         (append +etc-dir+
+                                 '("module-examples"
+                                   "interface-part-example"))))))
+    (with-attr-table cpp
+      (let ((fn (find-if (of-type 'cpp-function-definition)
+                         (dir:evolve-files-ref cpp "B-impl_part.cppm"))))
+        (is (typep (get-declaration-ast :function fn)
+                   'cpp-declaration))))))
