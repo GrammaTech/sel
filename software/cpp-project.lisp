@@ -168,7 +168,7 @@ implementation units) implicitly import the corresponding interface
 unit."
   (if-let (symtab (module-declaration-symbol-table ast))
     (if-let (exports (@ symtab :export))
-      (prog1 (symbol-table-union ast in (@ symtab :export))
+      (prog1 (symbol-table-union ast in exports)
         ;; Propagate the symbol table to the children (module
         ;; identifiers).
         (call-next-method))
@@ -179,7 +179,7 @@ unit."
   (symbol-table (genome imported-module-software)
                 (empty-map)))
 
-(defun module-import-symbol-table (ast in)
+(defun module-import-symbol-table (ast)
   (when-let* ((imported-name (source-text (cpp-name ast)))
               (project (attrs-root*))
               (base-path (enclosing-file-pathname ast)))
@@ -199,50 +199,49 @@ unit."
              (symtab
               (module-software-symbol-table imported-module-software)))
         (cond
+          ((no symtab) nil)
           ;; A re-exported partition. We can see all definitions.
           ((and partition? exported?)
-           (symbol-table-union ast in symtab))
-          ;; An implementation partition. We can see all definitions.
+           symtab)
+          ;; An implementation partition. We can see all definitions,
+          ;; but don't re-export.
           (partition?
-           (symbol-table-union ast in (less symtab :export)))
+           (less symtab :export))
           ;; A non-partition reexport.
           (exported?
-           (if-let ((exports (@ symtab :export)))
-             (symbol-table-union ast in (with exports :export exports))
-             in))
-          (t (symbol-table-union ast in (@ symtab :export))))))))
+           (when-let ((exports (@ symtab :export)))
+             (with exports :export exports)))
+          (t (@ symtab :export)))))))
 
-(defun header-unit-import-symbol-table (ast in)
-  (let* ((symtab
-          (find-symbol-table-from-include
-           (attrs-root*)
-           ast
-           :in in
-           :global nil
-           :header-dirs '(:stdinc)))
-         ;; Macro definitions from the header are not exposed.
-         (symtab (less symtab :macro))
-         (exported? (exported? ast)))
-    (if exported?
-        (symbol-table-union ast in (with symtab :export symtab))
-        (symbol-table-union ast in symtab))))
+(defun header-unit-import-symbol-table (ast)
+  (when-let* ((symtab
+               (find-symbol-table-from-include
+                (attrs-root*)
+                ast
+                :global nil
+                :header-dirs '(:stdinc)))
+              ;; Macro definitions from the header are not exposed.
+              (symtab (less symtab :macro)))
+    (if (exported? ast)
+        (with symtab :export symtab)
+        symtab)))
 
-(defun import-symbol-table (ast in)
+(defun import-symbol-table (ast)
   (when-let* ((imported-name (source-text (cpp-name ast))))
     (if (scan "^<.*>$" imported-name)
         ;; Handle a header unit import.
-        (header-unit-import-symbol-table ast in)
+        (header-unit-import-symbol-table ast)
         ;; Handle a module import.
-        (module-import-symbol-table ast in))))
+        (module-import-symbol-table ast))))
 
 (defmethod symbol-table ((ast cpp-import-declaration) &optional in)
   (let ((*dependency-stack*
          (or *dependency-stack*
              (list
               (find-enclosing-software (attrs-root*) ast)))))
-    (if-let (symtab (import-symbol-table ast in))
-      (prog1 symtab
-        (call-next-method ast symtab))
+    (if-let (symtab (import-symbol-table ast))
+      (prog1 (symbol-table-union ast in symtab)
+        (call-next-method))
       (call-next-method))))
 
 ) ; #+:TREE-SITTER-CPP

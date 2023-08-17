@@ -756,8 +756,17 @@ to look it up as `x::z' or just `z'."
     (otherwise
      (call-next-method))))
 
-(defmethod scope-ast-p ((ast cpp-namespace-definition)) t)
-(defmethod scope-ast-p ((ast cpp-declaration-list)) t)
+(defmethod scope-ast-p ((ast cpp-namespace-definition))
+  "Namespace definitions are not (lexical) scopes."
+  nil)
+(defmethod scope-ast-p ((ast cpp-export-block))
+  "Export blocks are not scopes."
+  nil)
+(defmethod scope-ast-p ((ast cpp-declaration-list))
+  (match (get-parent-ast (attrs-root*) ast)
+    ((cpp-namespace-definition) nil)
+    ((cpp-export-block) nil)
+    (otherwise (call-next-method))))
 
 (def +unnamed-namespace-ast+
   (make 'cpp-ast)
@@ -951,14 +960,18 @@ templated definition's field table."
        (cpp-declaration-list (direct-children children))))
      (outer-declarations-merge children))))
 
-(defmethod outer-defs ((ast cpp-namespace-definition))
-  ;; Needed to conserve exports.
-  (match ast
-    ((cpp-namespace-definition
-      (cpp-body
-       (cpp-declaration-list (direct-children children))))
+(defun conserve-outer-def-exports (ast)
+  (match (cpp-body ast)
+    ((cpp-declaration-list (direct-children children))
      (reduce (op (symbol-table-union ast _ _))
-             (mapcar #'outer-defs children)))))
+             (mapcar #'outer-defs children)
+             :initial-value (empty-map)))))
+
+(defmethod outer-defs ((ast cpp-namespace-definition))
+  (conserve-outer-def-exports ast))
+
+(defmethod outer-defs ((ast cpp-export-block))
+  (conserve-outer-def-exports ast))
 
 (defun const-field-declaration? (field-decl fn)
   "Is FN declared const in FIELD-DECL?"
@@ -1677,11 +1690,12 @@ available to use at any point in a C++ AST.")
   ;; This shadows the handling of scope ASTs in the default method for
   ;; functional-tree-ast.
   (if (scope-ast-p ast)
-      (propagate-exports-up (propagate-declarations-down ast in)
+      (propagate-exports-up ast (propagate-declarations-down ast in)
                             in)
       (call-next-method)))
 
-(defun propagate-exports-up (scope-final in)
+(defun propagate-exports-up (ast scope-final in)
+  (declare (ignore ast))
   (let ((new-exports (@ scope-final :export)))
     (if (no new-exports) in
         (with in :export new-exports))))
