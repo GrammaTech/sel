@@ -175,6 +175,10 @@ unit."
       (call-next-method))
     (call-next-method)))
 
+(defun module-software-symbol-table (imported-module-software)
+  (symbol-table (genome imported-module-software)
+                (empty-map)))
+
 (defun module-import-symbol-table (ast in)
   (when-let* ((imported-name (source-text (cpp-name ast)))
               (project (attrs-root*))
@@ -193,8 +197,7 @@ unit."
       (let* ((*dependency-stack*
               (cons imported-module-software *dependency-stack*))
              (symtab
-              (symbol-table (genome imported-module-software)
-                            (empty-map))))
+              (module-software-symbol-table imported-module-software)))
         (cond
           ;; A re-exported partition. We can see all definitions.
           ((and partition? exported?)
@@ -204,11 +207,10 @@ unit."
            (symbol-table-union ast in (less symtab :export)))
           ;; A non-partition reexport.
           (exported?
-           (when-let ((exports (@ symtab :export)))
-             (if (exported? ast)
-                 (symbol-table-union ast in (with exports :export exports))
-                 (symbol-table-union ast in exports))))
-          (t (@ symtab :export)))))))
+           (if-let ((exports (@ symtab :export)))
+             (symbol-table-union ast in (with exports :export exports))
+             in))
+          (t (symbol-table-union ast in (@ symtab :export))))))))
 
 (defun header-unit-import-symbol-table (ast in)
   (let* ((symtab
@@ -222,8 +224,8 @@ unit."
          (symtab (less symtab :macro))
          (exported? (exported? ast)))
     (if exported?
-        (with symtab :export symtab)
-        symtab)))
+        (symbol-table-union ast in (with symtab :export symtab))
+        (symbol-table-union ast in symtab))))
 
 (defun import-symbol-table (ast in)
   (when-let* ((imported-name (source-text (cpp-name ast))))
@@ -239,8 +241,8 @@ unit."
              (list
               (find-enclosing-software (attrs-root*) ast)))))
     (if-let (symtab (import-symbol-table ast in))
-      (prog1 (symbol-table-union ast in symtab)
-        (call-next-method))
+      (prog1 symtab
+        (call-next-method ast symtab))
       (call-next-method))))
 
 ) ; #+:TREE-SITTER-CPP
