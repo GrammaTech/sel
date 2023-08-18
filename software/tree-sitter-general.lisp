@@ -1031,6 +1031,8 @@ a declaration AST, return AST unchanged."
     (find-in-symbol-table ast type ast))
   (:method ((type (eql :method)) ast)
     (find-in-symbol-table ast type ast))
+  (:method ((type (eql :namespace)) ast)
+    (find-in-symbol-table ast type ast))
   (:method :around ((type t) (ast call-ast))
     (get-declaration-ids type (call-function ast)))
   (:method ((type symbol) ast)

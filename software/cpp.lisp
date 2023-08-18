@@ -1861,37 +1861,40 @@ available to use at any point in a C++ AST.")
 (defun exported? (ast &key (check-decls t))
   "Is AST exported?
 
-AST is exported if it has an export specifier, or is
-within an export block or an exported namespace."
+AST is exported if:
+- It has an export specifier.
+- It is defined in an export block.
+- It is defined in a namespace that satisfies `exported?'.
+- It is defined as public in a class that satisfies `exported?'.
+- It is a definition and its declaration satisfies
+  one of the above."
   (labels ((directly-exported? (ast)
              (find-if (of-type 'cpp-export-specifier)
                       (direct-children ast)))
            (exported-from-parents? (ast)
              (when-let ((decl (find-enclosing 'declaration-ast (attrs-root*) ast)))
-               (or (directly-exported? ast)
-                   (match (get-parent-asts* (attrs-root*) ast)
-                     ((list* (cpp-declaration-list)
-                             (cpp-export-block) _)
-                      t)
-                     ((list* (cpp-declaration-list)
-                             (and (cpp-namespace-definition)
-                                  (not (satisfies cpp-name)))
-                             _)
-                      nil)
-                     ((list* (cpp-declaration-list)
-                             (and ns (cpp-namespace-definition))
-                             (cpp-declaration-list)
-                             (cpp-export-block)
-                             _)
-                      (cpp-name ns))
-                     ((list* (cpp-declaration-list)
-                             (and ns (cpp-namespace-definition)) _)
-                      (directly-exported? ns))
-                     ((list* (cpp-field-declaration-list)
-                             (and class
-                                  (or (cpp-class-specifier) (cpp-struct-specifier))) _)
-                      (and (public? decl)
-                           (exported? class)))))))
+               (match (get-parent-asts* (attrs-root*) ast)
+                 ;; Export block.
+                 ((list* (cpp-declaration-list)
+                         (cpp-export-block) _)
+                  t)
+                 ;; Unnamed namespace.
+                 ((list* (cpp-declaration-list)
+                         (and (cpp-namespace-definition)
+                              (not (satisfies cpp-name)))
+                         _)
+                  nil)
+                 ;; Exported namespace.
+                 ((list* (cpp-declaration-list)
+                         (and ns (cpp-namespace-definition)) _)
+                  (exported? ns))
+                 ;; Exported class.
+                 ((list* (cpp-field-declaration-list)
+                         (and class
+                              ;; Struct, class, enum, union, etc.
+                              (c/cpp-classoid-specifier)) _)
+                  (and (public? decl)
+                       (exported? class))))))
            (exported-from-declaration? (ast)
              (when-let* ((decl-type (relevant-declaration-type ast))
                          (decl (get-declaration-ast decl-type ast)))
@@ -1901,12 +1904,14 @@ within an export block or an exported namespace."
                         (exported? decl))
                        ((typep decl 'cpp-field-declaration)
                         (and (public? decl)
-                             (exported? (find-enclosing 'class-ast (attrs-root*)
-                                                        decl)))))))))
+                             (exported?
+                              (find-enclosing 'c/cpp-classoid-specifier
+                                              (attrs-root*)
+                                              decl)))))))))
     (or (directly-exported? ast)
         (exported-from-parents? ast)
-        (when check-decls
-          (exported-from-declaration? ast)))))
+        (and check-decls
+             (exported-from-declaration? ast)))))
 
 (defmethod symbol-table-union ((root cpp-ast) table-1 table-2 &key &allow-other-keys)
   "Recursively union the maps under the :export key, if there are any."
