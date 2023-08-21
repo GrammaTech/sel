@@ -17,7 +17,8 @@
    :software-evolution-library/software/cpp-project)
   (:import-from :software-evolution-library/software/cpp-project
                 :find-module
-                :relative-module-defaults)
+                :relative-module-defaults
+                :restrict-map)
   (:local-nicknames
    (:dir :software-evolution-library/software/directory))
   #-windows (:shadowing-import-from :osicat
@@ -224,6 +225,20 @@ make_config(const std::string& path_prefix,
                            '(("somewhere/BasicPlane.Figures.cppm" . :figures)
                              ("somewhere/BasicPlane.Figures-Rectangle.cppm" . :rectangle))
                            :key #'car)))))
+
+(deftest test-restrict-map ()
+  (is (equal?
+       (restrict-map (fset:map (:x 1) (:y 2))
+                     (fset:map (:x 2)))
+       (fset:map (:x 1))))
+  (is (equal?
+       (restrict-map (fset:map (:x (fset:map (:y 1) (:z 2))))
+                     (fset:map (:x (fset:map (:y 2)))))
+       (fset:map (:x (fset:map (:y 1))))))
+  (is (equal?
+       (restrict-map (fset:map (:x (fset:map (:y 1) (:z 2))))
+                     (fset:map (:x 1)))
+       (fset:map (:x (fset:map (:y 1) (:z 2)))))))
 
 
 ;;; Symbol Table
@@ -768,3 +783,17 @@ int main () {
                          (dir:evolve-files-ref cpp "B-impl_part.cppm"))))
         (is (typep (get-declaration-ast :function fn)
                    'cpp-declaration))))))
+
+(deftest test-impl-module-definitions-visible-in-symbol-table ()
+  (let ((cpp (from-file 'cpp-project
+                        (make-pathname
+                         :directory
+                         (append +etc-dir+
+                                 '("module-examples"
+                                   "impl-files-symtab"))))))
+    (with-attr-table cpp
+      (let* ((call
+              (find-if (of-type 'call-ast)
+                       (dir:evolve-files-ref cpp "main.cc")))
+             (fn (call-function call)))
+        (is (length= 2 (get-declaration-asts :function fn)))))))

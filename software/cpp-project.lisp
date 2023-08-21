@@ -50,6 +50,16 @@
 (defmethod collect-evolve-files ((project cpp-project))
   (collect-evolve-files* project :extensions *cpp-extensions*))
 
+(defun restrict-map (base-map filter-map)
+  "Remove keys from BASE-MAP not present in FILTER-MAP, recursively.
+Like `fset:restrict', but recursive."
+  (map-intersection base-map filter-map
+                    (lambda (val1 val2)
+                      (if (and (typep val1 'fset:map)
+                               (typep val2 'fset:map))
+                          (restrict-map val1 val2)
+                          val1))))
+
 #+:TREE-SITTER-CPP
 (progn
 
@@ -176,8 +186,20 @@ unit."
     (call-next-method)))
 
 (defun module-software-symbol-table (imported-module-software)
+  "The raw symbol table returned from the module software."
   (symbol-table (genome imported-module-software)
                 (empty-map)))
+
+(defun augment-interface-exports (ast symtab)
+  "Insert new definitions into the interface exports."
+  (if-let (interface-exports (@ symtab :interface-export))
+    (if-let (exports (@ symtab :export))
+      (error "Exports from an implementation unit: ~a" exports)
+      (let* ((symtab (less symtab :interface-export))
+             (restricted (restrict-map symtab interface-exports)))
+        (with symtab :export
+              (symbol-table-union ast interface-exports restricted))))
+    symtab))
 
 (defun module-import-symbol-table (ast)
   (when-let* ((imported-name (source-text (cpp-name ast)))
@@ -191,7 +213,8 @@ unit."
            (defaults
             (relative-module-defaults base-path importing-name imported-name))
            (imported-module-software
-            (find-project-module project defaults)))
+            (find-project-module project defaults))
+           (imported-module (module? (genome imported-module-software))))
       (when partition? (assert module))
       (update-dependency-graph (attrs-root*) imported-module-software)
       (let* ((*dependency-stack*
@@ -203,10 +226,21 @@ unit."
           ;; A re-exported partition. We can see all definitions.
           ((and partition? exported?)
            symtab)
-          ;; An implementation partition. We can see all definitions,
-          ;; but don't re-export.
+          ;; Importing an interface partition into an implementation
+          ;; partition. We need to save the exports to add definitions
+          ;; to them later.
+          ((and partition?
+                (typep module 'module-partition-implementation-unit)
+                (typep imported-module 'module-partition-interface-unit))
+           ;; Save the export key in an interface-export key.
+           (with (less symtab :export)
+                 :interface-export
+                 (@ symtab :export)))
+          ;; Importing an implementation partition. We can see all
+          ;; definitions, but don't re-export.
           (partition?
-           (less symtab :export))
+           ;; Insert new definitions into the inherited exports.
+           (augment-interface-exports ast symtab))
           ;; A non-partition reexport.
           (exported?
            (when-let ((exports (@ symtab :export)))
