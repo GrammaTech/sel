@@ -1409,7 +1409,7 @@ return whether they are equal.")
 
 (def-attr-fun alias-set ()
   "Get the declarations \(as identifiers, as in `get-declaration-id')
-   of variables in SOFTWARE that are aliases \(pointers or referenes)
+   of variables in SOFTWARE that are aliases \(pointers or references)
    for PLAIN-VAR.")
 
 
