@@ -231,7 +231,7 @@ a standard include)."
                                             (original-path file))))
   (:method ((project t) (file file-ast))
     (file-dependency-tree project
-                       (namestring (full-pathname file))))
+                          (namestring (full-pathname file))))
   (:method ((project t) (file ast))
     (if-let (enclosing (find-enclosing 'file-ast project file))
       (file-dependency-tree project enclosing)
@@ -771,21 +771,30 @@ If PATH is a symbol, it is left unchanged."
       ((or pathname string)
        (pathname-relativize (project-dir project) path)))))
 
+(defun get-includer ()
+  (car *dependency-stack*))
+
 (defun update-dependency-graph (project includee)
   "Record dependencies and dependents for INCLUDEE based on the current
 value of `*dependency-stack*'."
   (let ((includee-path (relativize project (original-path includee)))
-        (includer (car *dependency-stack*)))
+        (includer (get-includer)))
     (when includer
       (let ((includer-path (relativize project (original-path includer))))
-        (pushnew includee-path
-                 (href (included-headers (genome project))
-                       includer-path)
-                 :test #'equal)
-        (pushnew includer-path
-                 (href (including-files (genome project))
-                       includee-path)
-                 :test #'equal)))))
+        (record-inclusion project includer-path includee-path)))))
+
+(defun record-inclusion (project includer-path includee-path)
+  "Return two values: who INCLUDER-PATH includes, and who INCLUDEE-PATH
+is included by."
+  (values
+   (pushnew includee-path
+            (href (included-headers (genome project))
+                  includer-path)
+            :test #'equal)
+   (pushnew includer-path
+            (href (including-files (genome project))
+                  includee-path)
+            :test #'equal)))
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
