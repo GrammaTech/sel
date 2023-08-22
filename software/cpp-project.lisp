@@ -193,12 +193,11 @@ unit."
 (defun augment-interface-exports (ast symtab)
   "Insert new definitions into the interface exports."
   (if-let (interface-exports (@ symtab :interface-export))
-    (if-let (exports (@ symtab :export))
-      (error "Exports from an implementation unit: ~a" exports)
-      (let* ((symtab (less symtab :interface-export))
-             (restricted (restrict-map symtab interface-exports)))
-        (with symtab :export
-              (symbol-table-union ast interface-exports restricted))))
+    ;; TODO Exporting from an implementation unit should be an error.
+    (let* ((symtab (less symtab :interface-export))
+           (restricted (restrict-map symtab interface-exports)))
+      (with symtab :export
+            (symbol-table-union ast interface-exports restricted)))
     symtab))
 
 (defun module-import-symbol-table (ast)
