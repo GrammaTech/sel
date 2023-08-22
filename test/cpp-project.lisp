@@ -751,13 +751,11 @@ int main () {
                       ("b.cppm"
                        ("b-impl_part.cppm"
                         ("b-interface_part.cppm")
-                        (:circle "b-impl_part.cppm")
                         (:|iostream| (:|streambuf|) (:|ostream|)
                           (:|istream|)
                           (:|ios| (:|iosfwd|))))
                        ("b-interface_part.cppm"))
-                      ("a-interface_part.cppm")
-                      (:circle "a-impl_part.cppm"))
+                      ("a-interface_part.cppm"))
                      ("a-interface_part.cppm")))))))))
 
 (deftest test-header-unit ()

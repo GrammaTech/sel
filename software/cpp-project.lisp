@@ -166,9 +166,9 @@ partition."
                (module-unit-full-name (module? ast))))
              (module
               (find-project-module (attrs-root*) defaults)))
-        (update-dependency-graph (attrs-root*) module)
         (unless (eql (genome module)
                      (find-enclosing 'root-ast (attrs-root*) ast))
+          (update-dependency-graph (attrs-root*) module)
           (let ((*dependency-stack* (cons module *dependency-stack*)))
             (symbol-table (genome module) (empty-map))))))))
 
