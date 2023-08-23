@@ -612,7 +612,8 @@ for the language.")
         cpp-operator-name
         cpp-module-name
         cpp-module-qualified-name
-        cpp-module-partition)
+        cpp-module-partition
+        cpp-nested-namespace-specifier)
        (:catch-ast cpp-catch-clause)
        (:loop-ast cpp-for-range-loop)
        (:parameter-ast

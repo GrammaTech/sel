@@ -687,6 +687,12 @@ to look it up as `x::z' or just `z'."
 (defmethod relevant-declaration-type ((ast cpp-preproc-function-def))
   'macro-declaration-ast)
 
+(defmethod relevant-declaration-type ((ast cpp-namespace-identifier))
+  'namespace-declaration-ast)
+
+(defmethod relevant-declaration-type ((ast cpp-nested-namespace-specifier))
+  'namespace-declaration-ast)
+
 (defmethod call-name ((ast cpp-call-expression))
   "If the call function is a template function, extract just the name of the template function without its arguments."
   (source-text
