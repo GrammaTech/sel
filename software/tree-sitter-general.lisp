@@ -1056,9 +1056,9 @@ a declaration AST, return AST unchanged."
 (def-attr-fun relevant-declaration-type ()
   "Return the type of declaration we should look for.
 
-That is, based on AST's context, figure out whether we should be
-looking for a `variable-declaration-ast', `function-declaration-ast',
-or `type-declaration-ast'.
+That is, based on AST's context, figure out what kinds of declaration
+AST we should be looking for \(such as a `variable-declaration-ast',
+`function-declaration-ast', or `type-declaration-ast').
 
 If the value is `nil' it is because the AST is not one for which a
 declaration makes sense."
@@ -4088,7 +4088,7 @@ by MULTI-DECLARATION-KEYS."
   (:documentation "Qualify the name of AST.
 This is used both when adding ASTs to the symbol table and when
 looking them up.")
-  (:method ((ast ast))
+  (:method ((ast identifier-ast))
     (or (declarator-name ast)
         (source-text ast))))
 

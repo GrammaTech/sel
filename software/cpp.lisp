@@ -1901,7 +1901,9 @@ AST is exported if:
                  ;; Exported namespace.
                  ((list* (cpp-declaration-list)
                          (and ns (cpp-namespace-definition)) _)
-                  (exported? ns))
+                  ;; Pass :check-decls nil to prevent circularity
+                  ;; during attribute computation.
+                  (exported? ns :check-decls nil))
                  ;; Exported class.
                  ((list* (cpp-field-declaration-list)
                          (and class
