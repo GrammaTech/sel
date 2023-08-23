@@ -1579,7 +1579,15 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   cpp-template-type :|::|
   cpp-identifier cpp-template-argument-list
   cpp-template-function cpp-argument-list
-  :|:| cpp-module-name)
+  :|:| cpp-module-name
+  :|::| cpp-ast
+  cpp-ast :|::|
+  cpp-identifier cpp-.
+  cpp-. cpp-field-identifier
+  cpp-field-expression cpp-argument-list
+  cpp-identifier cpp-initializer-list
+  cpp-identifier cpp-preproc-params
+  cpp-preproc-params cpp-preproc-arg)
 
 (defmethod whitespace-between/parent ((parent cpp-namespace-definition)
                                       (style c-style-indentation)
