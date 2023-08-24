@@ -423,7 +423,11 @@ pointer declarations which are nested on themselves."
 (defmethod resolve-overloads ((type (eql :function))
                               (ast c/cpp-function-definition)
                               &optional overloads)
-  (resolve-overloads type ast (remove ast overloads)))
+  ;; If we're explicitly looking for the declaration of the function
+  ;; we don't want the function itself to be returned.
+  (if (member ast overloads)
+      (resolve-overloads type ast (remove ast overloads))
+      (call-next-method)))
 
 (defmethod get-initialization-ast ((ast c/cpp-pointer-expression))
   (get-initialization-ast (c/cpp-argument ast)))
