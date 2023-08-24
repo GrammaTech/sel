@@ -4090,13 +4090,17 @@ This is used both when adding ASTs to the symbol table and when
 looking them up.")
   (:method ((ast identifier-ast))
     (or (declarator-name ast)
-        (source-text ast))))
+        (source-text ast)))
+  (:method ((ast alternative-ast))
+    (source-text ast)))
 
 (defgeneric qualify-declared-ast-names (ast)
   (:documentation "Generate qualified names for AST.
 This is used when looking up symbols in the symbol table.")
   (:method ((ast ast))
-    (list (qualify-declared-ast-name ast))))
+    (list (qualify-declared-ast-name ast)))
+  (:method ((ast alternative-ast))
+    (mappend #'qualify-declared-ast-names (children ast))))
 
 (defsubst symbol-table-lookup (symbol-table query)
   "Lookup QUERY in SYMBOL-TABLE.
