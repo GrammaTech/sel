@@ -296,6 +296,19 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
            result project (lookup result (ast-path project old-file))))
         result)))
 
+(defmethod less ((project directory-project) (path string) &optional val)
+  "Allow removing project files by name."
+  (declare (ignore val))
+  (if-let (ast (lookup project path))
+    (copy (less project ast)
+          :evolve-files
+          (remove-if (op (equal (car _) path))
+                     (evolve-files project))
+          :other-files
+          (remove-if (op (equal (car _) path))
+                     (other-files project)))
+    project))
+
 (defmethod insert :around ((project directory-project) (path t) (value ast))
   "When updating the genome, update the evolve files too."
   (if-let* ((old-file (find-enclosing 'file-ast project (lookup project path)))
