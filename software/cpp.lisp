@@ -1593,7 +1593,8 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   cpp-field-expression cpp-argument-list
   cpp-identifier cpp-initializer-list
   cpp-identifier cpp-preproc-params
-  cpp-preproc-params cpp-preproc-arg)
+  cpp-preproc-params cpp-preproc-arg
+  cpp-module-qualified-name cpp-module-partition)
 
 (defmethod whitespace-between/parent ((parent cpp-namespace-definition)
                                       (style c-style-indentation)

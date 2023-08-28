@@ -2122,4 +2122,5 @@ namespace b {
   (check-patch-whitespace "std::vector<Point> result;")
   (check-patch-whitespace "pts.clear();")
   (check-patch-whitespace "Point p1{0.0, 0.0};")
-  (check-patch-whitespace (fmt "#define IDENTITY(x) x~%")))
+  (check-patch-whitespace (fmt "#define IDENTITY(x) x~%"))
+  (check-patch-whitespace "export module mymod:part;"))
