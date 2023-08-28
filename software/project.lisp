@@ -137,7 +137,7 @@ object (e.g., the original program).")
           (fn k v))))
 
 (defun (setf evolve-files-ref) (value software path)
-  "Make PATH pointer to VALUE in SOFTWARE."
+  "Make PATH point to VALUE in SOFTWARE."
   (check-type value software)
   ;; Update without mutating in case of shared structure with other
   ;; projects.

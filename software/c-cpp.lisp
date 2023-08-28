@@ -1159,6 +1159,13 @@ Should return `:failure' in the base case.")
                                       (ast2 c/cpp-preproc-include))
   "")
 
+;;; Override the method for adjoining statements in a compound AST.
+(defmethod whitespace-between/parent :around ((parent c/cpp-ast)
+                                              (style c-style-indentation)
+                                              (ast1 c/cpp-ast)
+                                              (ast2 c/cpp-empty-statement))
+  "")
+
 (defmethod format-genome ((obj c/cpp) &key)
   (clang-format obj))
 

@@ -2123,4 +2123,6 @@ namespace b {
   (check-patch-whitespace "pts.clear();")
   (check-patch-whitespace "Point p1{0.0, 0.0};")
   (check-patch-whitespace (fmt "#define IDENTITY(x) x~%"))
-  (check-patch-whitespace "export module mymod:part;"))
+  (check-patch-whitespace "export module mymod:part;")
+  (check-patch-whitespace "struct foo {};")
+  )
