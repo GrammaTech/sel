@@ -756,11 +756,14 @@ inference.  Used to prevent circular attr propagation.")
 
 (defun find-enclosing-software (project ast &key file-ast)
   "Get the software object in PROJECT that contains AST."
-  (when-let ((file-ast
+  (when-let ((enclosing
               (or file-ast
                   (find-enclosing '(or file-ast synthetic-header)
                                   project ast))))
-    (evolve-files-ref project (namestring (full-pathname file-ast)))))
+    (typecase enclosing
+      (file-ast
+       (evolve-files-ref project (namestring (full-pathname enclosing))))
+      (synthetic-header enclosing))))
 
 (defun relativize (project path)
   "Relative PATH relative to the root of PROJECT.
