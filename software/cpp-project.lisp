@@ -212,7 +212,8 @@ unit."
            (defaults
             (relative-module-defaults base-path importing-name imported-name))
            (imported-module-software
-            (find-project-module project defaults))
+            (or (find-project-module project defaults)
+                (error "Could not find module with defaults ~a" defaults)))
            (imported-module (module? (genome imported-module-software))))
       (when partition? (assert module))
       (update-dependency-graph (attrs-root*) imported-module-software)
