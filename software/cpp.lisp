@@ -74,6 +74,9 @@
   "List variants under which to look up QNAME.
 For example, for a qualified name like `x::y::z', we might also want
 to look it up as `x::z' or just `z'."
+  (unless (search "::" qname)
+    (return-from qualified-name-variants
+      (list qname)))
   (let ((parts (split "::" qname)))
     (if (single parts) parts
         (multiple-value-bind (namespaces name)
