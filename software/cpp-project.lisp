@@ -190,11 +190,17 @@ unit."
   (symbol-table (genome imported-module-software)
                 (empty-map)))
 
-(defun augment-interface-exports (ast symtab)
-  "Insert new definitions into the interface exports."
+(defun augment-exported-declarations-with-definitions (ast symtab)
+  "Merge definitions of external declarations from SYMTAB into exports.
+
+The goal is add definitions of previously declared functions into the
+symbol table, even if those definitions are not explicitly exported.
+
+If SYMTAB does not have interface exports, return it unchanged."
   (if-let (interface-exports (@ symtab :interface-export))
-    ;; TODO Exporting from an implementation unit should be an error.
+    ;; TODO Should exporting from an implementation unit be an error?
     (let* ((symtab (less symtab :interface-export))
+           ;; Remove any keys from SYMTAB not present in the interface.
            (restricted (restrict-map symtab interface-exports)))
       (with symtab :export
             (symbol-table-union ast interface-exports restricted)))
@@ -240,7 +246,7 @@ unit."
           ;; definitions, but don't re-export.
           (partition?
            ;; Insert new definitions into the inherited exports.
-           (augment-interface-exports ast symtab))
+           (augment-exported-declarations-with-definitions ast symtab))
           ;; A non-partition reexport.
           (exported?
            (when-let ((exports (@ symtab :export)))
