@@ -1871,12 +1871,15 @@ This can be set to modify the behavior of #'source-text and #'convert")
             parents
             :initial-value (or (indent-adjustment ast) 0))))
 
-(defmethod copy :around ((ast indentation) &key &allow-other-keys)
+(defmethod copy :around ((ast indentation)
+                         &key (indent-children (indent-children ast))
+                           (indent-adjustment (indent-adjustment ast))
+                         &allow-other-keys)
   ;; TODO: these are also being copied to the annotations slot
   ;;       in another specializer.
   (let ((copy (call-next-method)))
-    (setf (indent-children copy) (indent-children ast)
-          (indent-adjustment copy) (indent-adjustment ast))
+    (setf (indent-children copy) indent-children
+          (indent-adjustment copy) indent-adjustment)
     copy))
 
 (defmethod tree-copy :around ((ast indentation))
