@@ -2125,4 +2125,7 @@ namespace b {
   (check-patch-whitespace (fmt "#define IDENTITY(x) x~%"))
   (check-patch-whitespace "export module mymod:part;")
   (check-patch-whitespace "struct foo {};")
-  )
+  (check-patch-whitespace "i++;")
+  (check-patch-whitespace "++i;")
+  (check-patch-whitespace "i--;")
+  (check-patch-whitespace "--i;"))
