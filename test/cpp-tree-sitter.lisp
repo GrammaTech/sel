@@ -2128,4 +2128,6 @@ namespace b {
   (check-patch-whitespace "i++;")
   (check-patch-whitespace "++i;")
   (check-patch-whitespace "i--;")
-  (check-patch-whitespace "--i;"))
+  (check-patch-whitespace "--i;")
+  (check-patch-whitespace "x.y;")
+  (check-patch-whitespace "x->y;"))
