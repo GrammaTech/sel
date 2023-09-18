@@ -2139,4 +2139,6 @@ namespace b {
   (check-patch-whitespace "-x;")
   (check-patch-whitespace "x - y;")
   (check-patch-whitespace "~x;")
-  (check-patch-whitespace "!x;"))
+  (check-patch-whitespace "!x;")
+  (check-patch-whitespace "this->x;")
+  (check-patch-whitespace "this.x;"))
