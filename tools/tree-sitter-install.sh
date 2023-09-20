@@ -93,16 +93,17 @@ for language in "${languages[@]}";do
     (
         cd "tree-sitter-${language}/src";
         pin_repo ${pins[$language]};
+        # NB Pass -I. when compiling to use the local tree_sitter/parser.h.
         if test -f "scanner.cc"; then
-            ${CXX} -fPIC scanner.cc -c -lstdc++;
-            ${CC} -std=c99 -fPIC parser.c -c;
+            ${CXX} -I. -fPIC scanner.cc -c -lstdc++;
+            ${CC} -I. -std=c99 -fPIC parser.c -c;
             ${CXX} -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         elif test -f "scanner.c"; then
-            ${CC} -std=c99 -fPIC scanner.c -c;
-            ${CC} -std=c99 -fPIC parser.c -c;
+            ${CC} -I. -std=c99 -fPIC scanner.c -c;
+            ${CC} -I. -std=c99 -fPIC parser.c -c;
             ${CC} -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         else
-            ${CC} -std=c99 -fPIC parser.c -c;
+            ${CC} -I. -std=c99 -fPIC parser.c -c;
             ${CC} -shared parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
         fi;
         mkdir -p "${PREFIX}/share/tree-sitter/${language}/";
