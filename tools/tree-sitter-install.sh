@@ -50,7 +50,7 @@ pins[typescript/tsx]=${pins[typescript]}
 declare -A repos
 repos[commonlisp]=https://github.com/theHamsta/tree-sitter-commonlisp.git
 repos[yaml]=https://github.com/ikatyang/tree-sitter-yaml.git
-repos[cpp]=https://github.com/alfaix/tree-sitter-cpp.git
+repos[cpp]=https://github.com/ruricolist/tree-sitter-cpp.git
 
 cd "$WORKDIR"
 
