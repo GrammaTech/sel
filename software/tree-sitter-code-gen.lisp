@@ -351,10 +351,13 @@ for the language.")
         (cpp-function :reader call-function :initarg :function)
         (cpp-arguments :reader call-arguments :initarg :arguments))
        (cpp-while-statement
+        (cpp-condition :reader condition :initarg :condition)
         (cpp-body :reader body :initarg :body))
        (cpp-do-statement
+        (cpp-condition :reader condition :initarg :condition)
         (cpp-body :reader body :initarg :body))
        (cpp-for-statement
+        (cpp-condition :reader condition :initarg :condition)
         (cpp-body :reader body :initarg :body))
        (cpp-for-range-loop
         (cpp-body :reader body :initarg :body))
