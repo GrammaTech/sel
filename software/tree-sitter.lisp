@@ -500,7 +500,10 @@
            :control-flow-ast
            :if-ast
            :while-ast
+           :for-loop-ast
            :loop-ast
+           :continue-ast
+           :break-ast
            :class-ast
            :scope-ast-p
            :function-ast

@@ -315,6 +315,7 @@ for the language.")
        (c-while-statement
         (c-body :reader body :initarg :body))
        (c-do-statement
+        (c-condition :reader condition :initarg :condition)
         (c-body :reader body :initarg :body))
        (c-for-statement
         (c-body :reader body :initarg :body))
@@ -495,6 +496,7 @@ for the language.")
        (rust-union-item
         (rust-name :reader definition-name-ast))
        (rust-while-expression
+        (rust-condition :reader condition :initarg :condition)
         (rust-body :reader body :initarg :body))
        (rust-while-let-expression
         (rust-body :reader body :initarg :body)))
@@ -619,7 +621,7 @@ for the language.")
         cpp-nested-namespace-specifier
         cpp-this)
        (:catch-ast cpp-catch-clause)
-       (:loop-ast cpp-for-range-loop)
+       (:for-loop-ast cpp-for-range-loop)
        (:parameter-ast
         cpp-optional-parameter-declaration
         cpp-optional-type-parameter-declaration
@@ -789,7 +791,7 @@ for the language.")
        (:function-declaration-ast
         golang-function-declaration golang-method-declaration)
        (:identifier-ast golang-identifier golang-field-identifier)
-       (:loop-ast golang-for-statement)
+       (:for-loop-ast golang-for-statement)
        (:string-ast )
        (:type-ast golang-qualified-type golang-pointer-type golang-struct-type
         golang-interface-type golang-array-type golang-slice-type
@@ -816,8 +818,7 @@ for the language.")
         java-hex-integer-literal java-octal-integer-literal
         java-binary-integer-literal java-decimal-floating-point-literal
         java-hex-floating-point-literal null-literal)
-       (:loop-ast java-for-statement java-while-statement java-do-statement
-        java-enhanced-for-statement)
+       (:loop-ast java-do-statement)
        (:parenthesized-expression-ast java-parenthesized-expression)
        (:return-ast java-return-statement)
        (:root-ast java-program)
@@ -828,7 +829,8 @@ for the language.")
        (:unary-ast java-unary-expression)
        (:variable-declaration-ast java-local-variable-declaration
         java-variable-declarator)
-       (:while-ast java-while-statement))
+       (:while-ast java-while-statement)
+       (:for-loop-ast java-for-statement java-enhanced-for-statement))
       (:javascript
        (:root-ast javascript-program)
        (:comment-ast javascript-comment)
@@ -837,6 +839,7 @@ for the language.")
         javascript-switch-statement javascript-try-statement)
        (:if-ast javascript-if-statement)
        (:while-ast javascript-while-statement)
+       (:for-loop-ast javascript-for-statement)
        (:expression-ast javascript--expression)
        (:parenthesized-expression-ast javascript-parenthesized-expression)
        (:compound-ast javascript-statement-block)
@@ -854,9 +857,7 @@ for the language.")
        (:subscript-ast javascript-subscript-expression)
        (:float-ast javascript-number)
        (:string-ast javascript-string)
-       (:loop-ast
-        javascript-for-statement javascript-do-statement
-        javascript-while-statement)
+       (:loop-ast javascript-do-statement)
        (:statement-ast javascript--statement javascript-statement)
        (:expression-statement-ast javascript-expression-statement)
        (:call-ast javascript-call-expression)
@@ -941,6 +942,7 @@ for the language.")
         python-generator-expression python-dictionary-comprehension)
        (:if-ast python-if-statement)
        (:while-ast python-while-statement)
+       (:for-loop-ast python-for-statement python-for-in-clause)
        (:expression-ast python-expression)
        (:parenthesized-expression-ast python-parenthesized-expression)
        (:function-declaration-ast python-function-definition)
@@ -954,8 +956,6 @@ for the language.")
        (:integer-ast python-integer)
        (:float-ast python-float)
        (:string-ast python-string)
-       (:loop-ast
-        python-while-statement python-for-statement python-for-in-clause)
        (:statement-ast python--compound-statement python--simple-statement)
        (:expression-statement-ast python-expression-statement)
        (:compound-ast python-block)
@@ -997,11 +997,11 @@ for the language.")
         rust-identifier
         rust-primitive-type)
        (:integer-ast rust-integer-literal)
-       (:loop-ast
-        rust-for-expression
-        rust-loop-expression
-        rust-while-expression
-        rust-while-let-expression)
+       (:while-ast rust-while-expression rust-while-let-expression)
+       (:for-loop-ast rust-for-expression)
+       (:loop-ast rust-loop-expression)
+       (:continue-ast rust-continue-expression)
+       (:break-ast rust-break-expression)
        (:namespace-declaration-ast rust-mod-item)
        (:parameter-ast rust-parameter rust-self-parameter)
        (:parameters-ast rust-parameters)
@@ -1170,6 +1170,7 @@ definitions.")
        (c/cpp-argument-list arguments-ast)
        (c/cpp-assignment-expression assignment-ast)
        (c/cpp-binary-expression binary-ast)
+       (c/cpp-break-statement break-ast)
        (c/cpp-call-expression call-ast)
        (c/cpp-case-statement control-flow-ast)
        (c/cpp-char-literal char-ast)
@@ -1177,6 +1178,7 @@ definitions.")
        (c/cpp-comma-expression expression-ast)
        (c/cpp-comment comment-ast)
        (c/cpp-compound-statement compound-ast)
+       (c/cpp-continue-statement continue-ast)
        (c/cpp-declaration statement-ast variable-declaration-ast)
        (c/cpp-declaration-list compound-ast)
        (c/cpp-do-statement loop-ast)
@@ -1220,7 +1222,8 @@ definitions.")
        (c/cpp-update-expression assignment-ast)
        (c/cpp-unary-expression unary-ast)
        (c/cpp-union-specifier composite-type-ast definition-ast type-declaration-ast)
-       (c/cpp-while-statement loop-ast while-ast)))
+       (c/cpp-while-statement while-ast)
+       (c/cpp-for-statement for-loop-ast)))
     "Specifies superclasses for mixin ASTs.")
 
   ;; TODO: it may make sense to have a way to 'rebind' a subclass when
@@ -3173,11 +3176,20 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass if-ast (control-flow-ast conditional-ast) ()
     (:documentation "Mix-in for AST classes that are ifs."))
 
-  (defclass while-ast (control-flow-ast conditional-ast) ()
+ (defclass loop-ast (control-flow-ast) ()
+   (:documentation "Mix-in for AST classes that are loops."))
+
+ (defclass continue-ast () ()
+   (:documentation "Mix-in for an AST that continues (skips) a loop."))
+
+ (defclass break-ast () ()
+   (:documentation "Mix-in for an AST that breaks (exits) a loop."))
+
+ (defclass while-ast (loop-ast conditional-ast) ()
     (:documentation "Mix-in for AST classes that are whiles."))
 
- (defclass loop-ast (control-flow-ast) ()
-    (:documentation "Mix-in for AST classes that are loops."))
+ (defclass for-loop-ast (loop-ast conditional-ast) ()
+   (:documentation "Mix-in for AST classes that are whiles."))
 
  (defclass declaration-ast (ast) ()
    (:documentation "Mixin for AST classes that declare/define something."))
