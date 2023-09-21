@@ -138,6 +138,8 @@ Nested lists are not allowed as template arguments:~%~a"
               (t (error "~a does not occur in template" kw))))
       (out value))))
 
+(-> parse-ast-template/keywords (t t t)
+    (values string list list list &optional))
 (defun parse-ast-template/keywords (template class args)
   (assert (or (null args) (keywordp (first args))))
   (nest
