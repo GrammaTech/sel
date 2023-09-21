@@ -155,6 +155,7 @@ around generic-type-with-turbofish being aliased to generic-type."
   (make 'rustfmt-style))
 
 (define-empty-whitespace-methods (:style rustfmt-style)
+  rust-ast :|;|
   :|.| rust-ast
   rust-ast :|.|
   rust-ast rust-arguments
@@ -279,6 +280,13 @@ around generic-type-with-turbofish being aliased to generic-type."
                                       (s rustfmt-style)
                                       (x rust-ast)
                                       (y |RUST-..=|))
+  "")
+
+;;; Override default method.
+(defmethod whitespace-between/parent :around ((parent rust-ast)
+                                              (s rustfmt-style)
+                                              (x rust-expression-statement)
+                                              (y rust-empty-statement))
   "")
 
 ) ; #+:TREE-SITTER-RUST
