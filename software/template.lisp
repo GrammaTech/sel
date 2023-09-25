@@ -221,6 +221,14 @@ Nested lists are not allowed as template arguments:~%~a"
                            :tolerant (macroexpand-1 '%tolerant env)))))
   call)
 
+(defun valid-ast-path (root ast)
+  (lret ((path (ast-path root ast)))
+    (assert (notany #'internal-ast? path))))
+
+(defun internal-ast? (step)
+  (and (symbolp step)
+       (string*= 'internal-asts step)))
+
 (defun ast-template (template class &rest args)
   "Create an AST of CLASS from TEMPLATE usings ARGS.
 
@@ -330,7 +338,7 @@ with `@') can also be used as Trivia patterns for destructuring.
            (iter (for p in placeholders)
                  (for targets = (placeholder-targets p ast))
                  (collect
-                  (cons p (mapcar (op (ast-path ast _)) targets))))))
+                  (cons p (mapcar (op (valid-ast-path ast _)) targets))))))
      (setf (before-text ast) leading-whitespace))
    (labels ((placeholder-paths (placeholder)
               (assocdr placeholder placeholder-paths :test #'equal))
