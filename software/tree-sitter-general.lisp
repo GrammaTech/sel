@@ -601,8 +601,7 @@ argument destructuring (e.g. ECMAScript).")
   (:method ((otherwise t)) nil)
   (:method ((ast call-ast))
     (member (call-name ast) no-return-function-names :test #'string=))
-  (:method ((ast return-ast)) t)
-  (:method ((ast goto-ast)) t)
+  (:method ((ast jump-ast)) t)
   (:method ((ast compound-ast))
     (no-fallthrough (lastcar (children ast)))))
 
@@ -1411,6 +1410,18 @@ return whether they are equal.")
   "Get the declarations \(as identifiers, as in `get-declaration-id')
    of variables in SOFTWARE that are aliases \(pointers or references)
    for PLAIN-VAR.")
+
+(def-attr-fun control-flow-target ()
+  (:documentation "Get the node that AST continues/breaks/returns from.")
+  (:method :around ((ast t))
+    (or (call-next-method)
+        (error "No control flow target for ~a" ast)))
+  (:method ((ast continue-ast))
+    (find-enclosing (of-type 'continuable-ast) (attrs-root*) ast))
+  (:method ((ast break-ast))
+    (find-enclosing (of-type 'breakable-ast) (attrs-root*) ast))
+  (:method ((ast return-ast))
+    (find-enclosing (of-type 'returnable-ast) (attrs-root*) ast)))
 
 
 ;;;; Structured text

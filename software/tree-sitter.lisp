@@ -500,10 +500,12 @@
            :control-flow-ast
            :if-ast
            :while-ast
-           :for-loop-ast
+           :for-ast
            :loop-ast
            :continue-ast
+           :continuable-ast
            :break-ast
+           :breakable-ast
            :class-ast
            :scope-ast-p
            :function-ast
@@ -531,6 +533,8 @@
            :boolean-false-ast
            :unary-ast
            :binary-ast
+           :jump-ast
+           :break-ast
            :return-ast
            :goto-ast
            :terminal-symbol
@@ -613,6 +617,7 @@
            :contains-error-ast-p
            :aliasee
            :alias-set
+           :control-flow-target
            :c-functions
            :c
            :cpp

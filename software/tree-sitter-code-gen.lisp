@@ -621,7 +621,7 @@ for the language.")
         cpp-nested-namespace-specifier
         cpp-this)
        (:catch-ast cpp-catch-clause)
-       (:for-loop-ast cpp-for-range-loop)
+       (:for-ast cpp-for-range-loop)
        (:parameter-ast
         cpp-optional-parameter-declaration
         cpp-optional-type-parameter-declaration
@@ -631,7 +631,8 @@ for the language.")
         cpp-variadic-type-parameter-declaration)
        (:parameters-ast cpp-template-parameter-list)
        (:type-ast cpp-template-type)
-       (:lambda-ast cpp-lambda-expression))
+       (:lambda-ast cpp-lambda-expression)
+       (:returnable-ast cpp-lambda-expression))
       ((:c :cpp)
        (:c/cpp-+ c-+ cpp-+)
        (:c/cpp-- c-- cpp--)
@@ -791,7 +792,7 @@ for the language.")
        (:function-declaration-ast
         golang-function-declaration golang-method-declaration)
        (:identifier-ast golang-identifier golang-field-identifier)
-       (:for-loop-ast golang-for-statement)
+       (:for-ast golang-for-statement)
        (:string-ast )
        (:type-ast golang-qualified-type golang-pointer-type golang-struct-type
         golang-interface-type golang-array-type golang-slice-type
@@ -830,7 +831,8 @@ for the language.")
        (:variable-declaration-ast java-local-variable-declaration
         java-variable-declarator)
        (:while-ast java-while-statement)
-       (:for-loop-ast java-for-statement java-enhanced-for-statement))
+       (:do-ast java-do-statement)
+       (:for-ast java-for-statement java-enhanced-for-statement))
       (:javascript
        (:root-ast javascript-program)
        (:comment-ast javascript-comment)
@@ -839,7 +841,7 @@ for the language.")
         javascript-switch-statement javascript-try-statement)
        (:if-ast javascript-if-statement)
        (:while-ast javascript-while-statement)
-       (:for-loop-ast javascript-for-statement)
+       (:for-ast javascript-for-statement)
        (:expression-ast javascript--expression)
        (:parenthesized-expression-ast javascript-parenthesized-expression)
        (:compound-ast javascript-statement-block)
@@ -857,7 +859,7 @@ for the language.")
        (:subscript-ast javascript-subscript-expression)
        (:float-ast javascript-number)
        (:string-ast javascript-string)
-       (:loop-ast javascript-do-statement)
+       (:do-ast javascript-do-statement)
        (:statement-ast javascript--statement javascript-statement)
        (:expression-statement-ast javascript-expression-statement)
        (:call-ast javascript-call-expression)
@@ -942,7 +944,7 @@ for the language.")
         python-generator-expression python-dictionary-comprehension)
        (:if-ast python-if-statement)
        (:while-ast python-while-statement)
-       (:for-loop-ast python-for-statement python-for-in-clause)
+       (:for-ast python-for-statement python-for-in-clause)
        (:expression-ast python-expression)
        (:parenthesized-expression-ast python-parenthesized-expression)
        (:function-declaration-ast python-function-definition)
@@ -998,7 +1000,7 @@ for the language.")
         rust-primitive-type)
        (:integer-ast rust-integer-literal)
        (:while-ast rust-while-expression rust-while-let-expression)
-       (:for-loop-ast rust-for-expression)
+       (:for-ast rust-for-expression)
        (:loop-ast rust-loop-expression)
        (:continue-ast rust-continue-expression)
        (:break-ast rust-break-expression)
@@ -1154,7 +1156,16 @@ for the language.")
         typescript-tsx-predefined-type)
        (:return-ast
         typescript-ts-return-statement
-        typescript-tsx-return-statement)))
+        typescript-tsx-return-statement)
+       (:while-ast
+        typescript-ts-while-statement
+        typescript-tsx-while-statement)
+       (:do-ast
+         typescript-ts-do-statement
+         typescript-tsx-do-statement)
+       (:for-ast
+        typescript-ts-for-statement
+        typescript-tsx-for-statement)))
     "Specifies which classes should inherit from which mixins.
 An alist from a language (or list of languages) to an alist of mixins
 and tree-sitter AST classes that should inherit from them.
@@ -1181,7 +1192,7 @@ definitions.")
        (c/cpp-continue-statement continue-ast)
        (c/cpp-declaration statement-ast variable-declaration-ast)
        (c/cpp-declaration-list compound-ast)
-       (c/cpp-do-statement loop-ast)
+       (c/cpp-do-statement do-ast)
        (c/cpp--expression expression-ast)
        (c/cpp-expression-statement expression-statement-ast)
        (c/cpp-enum-specifier definition-ast type-declaration-ast)
@@ -1191,8 +1202,8 @@ definitions.")
        (c/cpp-field-expression field-ast)
        (c/cpp-field-declaration definition-ast)
        (c/cpp-field-identifier identifier-ast)
-       (c/cpp-function-definition definition-ast function-declaration-ast statement-ast)
-       (c/cpp-for-statement loop-ast)
+       (c/cpp-function-definition definition-ast function-declaration-ast statement-ast returnable-ast)
+       (c/cpp-for-statement for-ast)
        (c/cpp-goto-statement goto-ast)
        (c/cpp-identifier identifier-ast)
        (c/cpp-if-statement if-ast)
@@ -1222,8 +1233,7 @@ definitions.")
        (c/cpp-update-expression assignment-ast)
        (c/cpp-unary-expression unary-ast)
        (c/cpp-union-specifier composite-type-ast definition-ast type-declaration-ast)
-       (c/cpp-while-statement while-ast)
-       (c/cpp-for-statement for-loop-ast)))
+       (c/cpp-while-statement while-ast)))
     "Specifies superclasses for mixin ASTs.")
 
   ;; TODO: it may make sense to have a way to 'rebind' a subclass when
@@ -3179,17 +3189,35 @@ Superclass of every generated LANGUAGE-comment class."))
  (defclass loop-ast (control-flow-ast) ()
    (:documentation "Mix-in for AST classes that are loops."))
 
- (defclass continue-ast () ()
+ (defclass jump-ast () ()
+   (:documentation "Mixin for ASTs that are implicit gotos."))
+
+ (defclass continue-ast (jump-ast) ()
    (:documentation "Mix-in for an AST that continues (skips) a loop."))
 
- (defclass break-ast () ()
+ (defclass continuable-ast (control-flow-ast) ()
+   (:documentation "A control flow AST that supports continue."))
+
+ (defclass break-ast (jump-ast) ()
    (:documentation "Mix-in for an AST that breaks (exits) a loop."))
 
- (defclass while-ast (loop-ast conditional-ast) ()
-    (:documentation "Mix-in for AST classes that are whiles."))
+ (defclass breakable-ast (control-flow-ast) ()
+   (:documentation "A control flow AST that supports break."))
 
- (defclass for-loop-ast (loop-ast conditional-ast) ()
-   (:documentation "Mix-in for AST classes that are whiles."))
+ (defclass returnable-ast (control-flow-ast) ()
+   (:documentation "An AST that supports return."))
+
+ (defclass while-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
+   (:documentation "Mix-in for AST classes that are whiles.
+A while statement is expected to support continue and break."))
+
+ (defclass do-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
+   (:documentation "Mix-in for AST classes that are do-while loops.
+A do-while statement is expected to support continue and break."))
+
+ (defclass for-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
+   (:documentation "Mix-in for AST classes that are for loops.
+A for while is expected to support continue and break."))
 
  (defclass declaration-ast (ast) ()
    (:documentation "Mixin for AST classes that declare/define something."))
@@ -3314,11 +3342,11 @@ not declarations)."))
   (defclass binary-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are binary expressions."))
 
-  (defclass return-ast (statement-ast) ()
+ (defclass return-ast (statement-ast jump-ast) ()
     (:documentation "Mix-in for AST classes that are return statements."))
 
-  (defclass goto-ast (statement-ast) ()
-    (:documentation "Mix-in for AST classes that are goto statements."))
+ (defclass goto-ast (jump-ast statement-ast) ()
+   (:documentation "Mix-in for AST classes that are explicit goto statements."))
 
   (defclass catch-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are error catch clauses."))
