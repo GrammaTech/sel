@@ -110,6 +110,9 @@ typed wildcards, CL-PPCRE string wildcards, tildes for semantically
 similar matches, and elipses for matching series of ASTs."
   (assert (boundp '*annotation-number*))
   (match ast
+    ;; Treat $_ as instructions to ignore an AST.
+    ((ast :text #.(string+ +metavariable-prefix+ "_"))
+     '_)
     ((ast :text (ppcre
                  #.(string+ "^"
                             +metavariable-prefix+

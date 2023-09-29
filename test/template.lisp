@@ -319,5 +319,17 @@ def $READ_NAME():
       (is (member expr instances))
       (is (notevery (eqls expr) instances)))))
 
+(deftest test-template-ignore-single-underscore ()
+  (is (source-text= "x"
+                    (is (match (cpp "int x = 1;")
+                          ((cpp "$_ $VAR = 1;" :var var)
+                           var))))))
+
+(deftest test-template-ignore-multiple-underscores ()
+  (is (source-text= "x"
+                    (is (match (cpp "int x = 1;")
+                          ((cpp "$_ $VAR = $_;" :var var)
+                           var))))))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
