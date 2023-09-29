@@ -63,6 +63,14 @@ Generic so a different syntax can be used per-language.")
       (assert (scan "^@?[A-Z0-9_]+$" name) () "Invalid metavariable: ~a" name)
       (if (string^= "@" name) name (fmt "$~a" name)))))
 
+(defgeneric template-extract-metavariables (ast string)
+  (:documentation "Extract metavariables from STRING.")
+  (:method ((ast t) (string string))
+    (multiple-value-bind (whole-match substring-array)
+        (ppcre:scan-to-strings "([$@][A-Z0-9_]+)" string)
+      (declare (ignore whole-match))
+      (coerce substring-array 'list))))
+
 (defgeneric template-subtree (ast thing)
   (:documentation "Convert THING into a subtree.")
   (:method (ast (x integer))
@@ -169,18 +177,22 @@ Nested lists are not allowed as template arguments:~%~a"
    ;; Wrap the tables with convenience accessors.
    (labels ((name-placeholder (name)
               (rassocar name temp-subs :test #'string=))))
-   (values
-    ;; Substitute the parseable placeholders for the original names so
-    ;; the AST parses correctly.
-    (reduce (lambda (template name)
-              (string-replace-all (template-metavariable dummy name)
-                                  template
-                                  (name-placeholder name)))
-            ;; Replace the metavariables in descending order of length
-            ;; (in case one is a prefix of another).
-            (sort names #'length> :key #'string)
-            :initial-value template)
-    names placeholders subtrees)))
+   (let ((parseable-string
+          ;; Substitute the parseable placeholders for the original names so
+          ;; the AST parses correctly.
+          (reduce (lambda (template name)
+                    (string-replace-all (template-metavariable dummy name)
+                                        template
+                                        (name-placeholder name)))
+                  ;; Replace the metavariables in descending order of length
+                  ;; (in case one is a prefix of another).
+                  (sort names #'length> :key #'string)
+                  :initial-value template))))
+   (if-let (unbound
+            (remove-if (op (scan "^[$@]?_$" _))
+                       (template-extract-metavariables dummy parseable-string)))
+     (error "Template contains unbound metavariables: ~a ~a" template unbound))
+   (values parseable-string names placeholders subtrees)))
 
 (defun check-ast-template (template class kwargs &key (tolerant *tolerant*))
   "Compile-time validity checking for templates."

@@ -339,5 +339,14 @@ def $READ_NAME():
     (is (equal '("fn" "x") (args-match? (cpp* "fn(x, x)"))))
     (is (null (args-match? (cpp* "fn(x, y)"))))))
 
+(deftest test-detect-unbound-positional-metavariables ()
+  (signals error
+    (eval '(match (python "fn(x,x)")
+            ((python "$1($2, $2)") t))))
+  (signals error
+    (eval '(match (python "fn(x,x)")
+            ((python "$FN($ARG, $ARG)" :fn fn) t))))
+  )
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
