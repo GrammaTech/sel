@@ -348,5 +348,9 @@ def $READ_NAME():
             ((python "$FN($ARG, $ARG)" :fn fn) t))))
   )
 
+(deftest test-only-ignored-variables ()
+  (is (match (cpp* "container.begin()")
+        ((cpp* "$_.begin()") t))))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)

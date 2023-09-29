@@ -173,7 +173,9 @@ Nested lists are not allowed as template arguments:~%~a"
           (subtrees (mapcar #'cdr subs))
           (placeholders
            (mapcar (op (template-placeholder* dummy _)) names))
-          (temp-subs (pairlis placeholders names))))
+          (temp-subs
+           (cons '("_" . "_")
+                 (pairlis placeholders names)))))
    ;; Wrap the tables with convenience accessors.
    (labels ((name-placeholder (name)
               (rassocar name temp-subs :test #'string=))))
@@ -186,7 +188,7 @@ Nested lists are not allowed as template arguments:~%~a"
                                         (name-placeholder name)))
                   ;; Replace the metavariables in descending order of length
                   ;; (in case one is a prefix of another).
-                  (sort names #'length> :key #'string)
+                  (append1 (sort names #'length> :key #'string) "_")
                   :initial-value template))))
    (if-let (unbound
             (remove-if (op (scan "^[$@]?_$" _))
@@ -552,6 +554,8 @@ they are not \"the same\", the match fails)."
            ;; If the same name occurs more than once in the pattern,
            ;; ignore all but the first occurrence.
            (tree
+            ;; TODO It should be an error to try to unify on an
+            ;; ignored variable (bound to _).
             (map-tree
              (let ((name-counts (make-hash-table)))
                (lambda (node)
