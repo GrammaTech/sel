@@ -145,10 +145,11 @@ similar matches, and elipses for matching series of ASTs."
            (slot-names
              (mapcar 'slot-definition-name
                      (class-slots (class-of ast))))
-           (class-name (class-name (class-of ast))))
+           (class-name (class-name (class-of ast)))
+           (slots-excluded-table (set-hash-table *slots-excluded*)))
        (push class-name result)
        (dolist (slot-name slot-names)
-         (unless (or (member slot-name *slots-excluded*)
+         (unless (or (gethash slot-name slots-excluded-table)
                      (string*= '-internal-asts- slot-name))
            (let ((val (slot-value ast slot-name)))
              (push (make-keyword slot-name) result)
