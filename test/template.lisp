@@ -331,5 +331,13 @@ def $READ_NAME():
                           ((cpp "$_ $VAR = $_;" :var var)
                            var))))))
 
+(deftest test-templates-unify ()
+  (flet ((args-match? (ast)
+           (match ast
+             ((cpp* "$FN($ARG, $ARG)" :fn fn :arg arg)
+              (mapcar #'source-text (list fn arg))))))
+    (is (equal '("fn" "x") (args-match? (cpp* "fn(x, x)"))))
+    (is (null (args-match? (cpp* "fn(x, y)"))))))
+
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)

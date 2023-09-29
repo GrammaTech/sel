@@ -12,6 +12,20 @@
 
 (define-symbol-macro %tolerant nil)
 
+(defgeneric asts-unify? (ast1 ast2)
+  (:documentation "Can AST1 and AST2 be unified?")
+  (:method :around (ast1 ast2)
+    (and (eq (class-of ast1) (class-of ast2))
+         (call-next-method)))
+  (:method ((ast1 identifier-ast)
+            (ast2 identifier-ast))
+    (equal (text ast1) (text ast2)))
+  (:method ((ast1 terminal-symbol)
+            (ast2 terminal-symbol))
+    (equal (text ast1) (text ast2)))
+  (:method ((ast1 ast) (ast2 ast))
+    (equal? ast1 ast2)))
+
 (defgeneric template-placeholder (ast name)
   (:documentation "Generate a placeholder for NAME.
 
@@ -289,7 +303,20 @@ with `@') can also be used as Trivia patterns for destructuring.
       ((python \"$1 = $2\" var (python \"$X + $Y\" :x x :y y))
        (list x y)))
     => (#<python-identifier \"x\"> #<python-integer \"2\">
-        #<python-integer \"2\">)"
+        #<python-integer \"2\">)
+
+Note that multiple instances of the same variable unify:
+
+    (match (python \"fn(x,x)\")
+      ((python \"$FN($ARG, $ARG)\" :fn fn :arg arg)
+       t))
+    => T
+
+    (match (python \"fn(x,y)\")
+      ((python \"$FN($ARG, $ARG)\" :fn fn :arg arg)
+      t))
+    => NIL
+"
   (nest
    ;; Build tables between names, placeholders, and subtrees.
    (mvlet* ((template names placeholders subtrees
@@ -469,7 +496,10 @@ You probably don't want to use this pattern directly; supported
 languages allow you to use a pattern with the same name as shorthand:
 
     (match x ((python \"$ID = 1\" :id \"x\") ...))
-    ≡ (match x ((ast-template \"$ID = 1\" 'python-ast :id \"x\") ...))"
+    ≡ (match x ((ast-template \"$ID = 1\" 'python-ast :id \"x\") ...))
+
+Note that multiple metavariables with the same name are unified \(if
+they are not \"the same\", the match fails)."
   (check-ast-template template class args)
   (mvlet* ((*slots-excluded*
             ;; Ignore before and after text when matching.
@@ -506,6 +536,7 @@ languages allow you to use a pattern with the same name as shorthand:
                               :test #'equal))
                    node))
              pattern))
+           (gensyms-table (make-hash-table))
            ;; If the same name occurs more than once in the pattern,
            ;; ignore all but the first occurrence.
            (tree
@@ -517,13 +548,23 @@ languages allow you to use a pattern with the same name as shorthand:
                           (member node names :test #'string=))
                      (let ((count (incf (gethash node name-counts 0))))
                        (if (> count 1)
-                           '_
-                         node))
+                           (lret ((temp (string-gensym node)))
+                             (push temp (gethash node gensyms-table)))
+                           node))
                      node)))
              tree
-             :traversal :inorder)))
+             :traversal :inorder))
+           (tree (sublis '((ellipsis-match . _)) tree)))
     (declare (ignore placeholders template))
-    (sublis '((ellipsis-match . _)) tree)))
+    (if (= 0 (hash-table-count gensyms-table))
+        tree
+        ;; Unify arguments with the same name.
+        `(guard ,tree
+                (and
+                 ,@(with-collector (collect)
+                     (do-hash-table (k vs gensyms-table)
+                       (dolist (v vs)
+                         (collect `(asts-unify? ,k ,v))))))))))
 
 (defpattern ast-template* (template class &rest args)
   "Like `ast-template', but tolerant."
