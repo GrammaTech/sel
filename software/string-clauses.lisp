@@ -148,7 +148,8 @@ similar matches, and elipses for matching series of ASTs."
            (class-name (class-name (class-of ast))))
        (push class-name result)
        (dolist (slot-name slot-names)
-         (unless (member slot-name *slots-excluded*)
+         (unless (or (member slot-name *slots-excluded*)
+                     (string*= '-internal-asts- slot-name))
            (let ((val (slot-value ast slot-name)))
              (push (make-keyword slot-name) result)
              (cond                    ; These are the main rules.
