@@ -184,6 +184,11 @@ pub unsafe fn auto() -> MmapChoice {
 
 ;;; Parsing tests.
 
+(deftest test-rust-unary-expression ()
+  (let ((rust (rust* "-a")))
+    (is (eql (operator rust) :-))
+    (is (typep (argument rust) 'rust-identifier))))
+
 
 ;;; Whitespace tests.
 

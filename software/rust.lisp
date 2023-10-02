@@ -66,9 +66,10 @@ field."
 
 (defmethod transform-parse-tree
     ((language (eql ':rust)) (class (eql 'rust-unary-expression)) parse-tree &key)
-  "Store the operators of unary expressions in their own field."
+  "Store the operator and argument of a unary expression in their own fields."
   (with-modify-parse-tree (parse-tree)
-    ((:- :* :!) (label-as :operator))))
+    ((:- :* :!) (label-as :operator))
+    (t (label-as :argument))))
 
 (defmethod transform-parse-tree
     ((language (eql ':rust)) (class (eql 'rust-block)) parse-tree &key
@@ -100,13 +101,11 @@ returns something or not."
 
 (defmethod transform-parse-tree
     ((language (eql ':rust)) (class (eql 'rust-self-parameter)) parse-tree &key)
-  "Store the operators of unary expressions in their own field."
   (with-modify-parse-tree (parse-tree)
     ((:&) (label-as :borrow))))
 
 (defmethod transform-parse-tree
     ((language (eql ':rust)) (class (eql 'rust-closure-expression)) parse-tree &key)
-  "Store the operators of unary expressions in their own field."
   (with-modify-parse-tree (parse-tree)
     ((:move) (label-as :move))))
 

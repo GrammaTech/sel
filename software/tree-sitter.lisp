@@ -578,6 +578,7 @@
            :assignee
            :assignees
            :operator
+           :argument
            :control-flow-condition
            :end-of-parameter-list
            :field-names

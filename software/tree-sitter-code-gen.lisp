@@ -253,7 +253,7 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
        (rust-reference-expression (:mutable-specifier))
        (rust-reference-type (:mutable-specifier))
        (rust-parameter (:mutable-specifier))
-       (rust-unary-expression (:operator))
+       (rust-unary-expression (:operator) (:argument))
        (rust-generic-type (:turbofish-operator))
        (rust-generic-type-with-turbofish (:turbofish-operator))
        (rust-range-expression (:operator)))
@@ -337,6 +337,9 @@ for the language.")
         (c-left :reader lhs :initarg :lhs)
         (c-operator :reader operator :initarg :operator)
         (c-right :reader rhs :initarg :rhs))
+       (c-unary-expression
+        (c-operator :reader operator :initarg :operator)
+        (c-argument :reader argument :initarg :argument))
        (c-comma-expression
         (c-left :reader lhs :initarg :lhs)
         (c-right :reader rhs :initarg :rhs)))
@@ -379,6 +382,9 @@ for the language.")
         (cpp-left :reader lhs :initarg :lhs)
         (cpp-operator :reader operator :initarg :operator)
         (cpp-right :reader rhs :initarg :rhs))
+       (cpp-unary-expression
+        (cpp-operator :reader operator :initarg :operator)
+        (cpp-argument :reader argument :initarg :argument))
        (cpp-template-declaration
         (cpp-parameters :reader function-parameters))
        (cpp-comma-expression
@@ -431,6 +437,9 @@ for the language.")
         (python-left :initarg :lhs :reader lhs)
         (python-right :initarg :rhs :reader rhs)
         (python-operator :initarg :operator :reader operator))
+       (python-unary-operator
+        (python-operator :initarg :operator :reader operator)
+        (python-argument :initarg :argument :reader argument))
        (python-boolean-operator
         (python-left :initarg :lhs :reader lhs)
         (python-right :initarg :rhs :reader rhs)
@@ -459,6 +468,9 @@ for the language.")
         (rust-left :initarg :lhs :reader lhs)
         (rust-operator :initarg :operator :reader operator)
         (rust-right :initarg :rhs :reader rhs))
+       (rust-unary-expression
+        (rust-operator :initarg :operator :reader operator)
+        (rust-argument :initarg :argument :reader argument))
        (rust-call-expression
         (rust-function :reader call-function :initarg :function)
         (rust-arguments :reader call-arguments :initarg :arguments))
@@ -2513,7 +2525,10 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "-"))
            ((:TYPE . "STRING") (:VALUE . "*"))
            ((:TYPE . "STRING") (:VALUE . "!"))))
-         :as "operator"))
+         :as "operator")
+        (:label
+         ((:TYPE . "SYMBOL") (:NAME . "_expression"))
+         :as "argument"))
        (:self-parameter
         (:label
          ((:TYPE . "STRING") (:VALUE . "&"))
