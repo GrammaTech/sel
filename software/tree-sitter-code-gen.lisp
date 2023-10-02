@@ -340,6 +340,9 @@ for the language.")
        (c-unary-expression
         (c-operator :reader operator :initarg :operator)
         (c-argument :reader argument :initarg :argument))
+       (c-pointer-expression
+        (c-operator :reader operator :initarg :operator)
+        (c-argument :reader argument :initarg :argument))
        (c-field-expression
         (c-operator :initarg :operator :reader operator)
         (c-argument :initarg :argument :reader argument))
@@ -386,6 +389,9 @@ for the language.")
         (cpp-operator :reader operator :initarg :operator)
         (cpp-right :reader rhs :initarg :rhs))
        (cpp-unary-expression
+        (cpp-operator :reader operator :initarg :operator)
+        (cpp-argument :reader argument :initarg :argument))
+       (cpp-pointer-expression
         (cpp-operator :reader operator :initarg :operator)
         (cpp-argument :reader argument :initarg :argument))
        (cpp-field-expression
