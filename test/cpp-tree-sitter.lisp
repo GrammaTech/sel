@@ -1664,6 +1664,14 @@ parenthesized expressions or binary expressions."
    :result-type 'cpp-cast-expression
    :unexpected-type '(or cpp-binary-expression cpp-parenthesized-expression)))
 
+(deftest cpp-contextualize-call-expression-1 ()
+  "Contextualize-ast turns a call expression into a cast expression."
+  (contextualization-check
+   "struct Type{};
+(Type)(*var());"
+   'cpp-call-expression
+   :result-type 'cpp-cast-expression))
+
 (deftest cpp-contextualize-binary-expression-2 ()
   "Contextualize-ast maintains the source representation of a binary expression
 when it is contextualized."

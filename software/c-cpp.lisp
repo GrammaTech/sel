@@ -51,27 +51,41 @@
   "Converts BINARY-EXPRESSION into its corresponding cast expression."
   ;; NOTE: unary -> + and -
   ;;       pointer-expression -> * and &
-  (let ((identifier (car (direct-children (c/cpp-left ast))))
-        (operator (c/cpp-operator ast)))
+  (let* ((identifier (car (direct-children (c/cpp-left ast))))
+         (operator (c/cpp-operator ast))
+         (argument (c/cpp-right ast)))
+    (make-cast-expression ast-type
+                          ast
+                          identifier
+                          operator
+                          argument)))
+
+(defun make-cast-expression (to-type ast type operator argument
+                             &key parenthesize-value)
+  (let ((value
+         `((:class . ,(if (typep operator '(or c/cpp-+ c/cpp--))
+                          :unary-expression
+                          :pointer-expression))
+           (:argument . ,argument)
+           (:operator . ,operator))))
     (convert
-     ast-type
+     to-type
      `((:class . :cast-expression)
        (:type
         (:class . :type-descriptor)
         (:type
          (:class . :type-identifier)
-         (:text . ,(text identifier)))
-        ,@(preserve-properties identifier))
+         (:text . ,(text type)))
+        ,@(preserve-properties type))
        (:value
-        (:class . ,(if (typep operator '(or c/cpp-+ c/cpp--))
-                       :unary-expression
-                       :pointer-expression))
-        (:argument . ,(c/cpp-right ast))
-        (:operator . ,operator))
+        ,@(if parenthesize-value
+              `((:class . :parenthesized-expression)
+                (:children ,value))
+              value))
        ,@(preserve-properties ast)))))
 
 (defmethod contextualize-ast ((software c/cpp)
-                              (ast c/cpp-binary-expression)
+                              (ast c/cpp-ast)
                               &key ast-type
                                 (parents (get-parent-asts* software ast))
                               &allow-other-keys)
@@ -98,6 +112,30 @@
         (or (c/cpp-*) (c/cpp--) (c/cpp-+) (c/cpp-&)))
        (when (eql (get-context-for identifier) :type)
          (binary-expression->cast-expression ast-type ast))))))
+
+(defmethod contextualize-ast ((root c/cpp-ast)
+                              (ast c/cpp-call-expression)
+                              &key ast-type parents
+                              &allow-other-keys)
+  (declare (ignore parents))
+  (match ast
+    ((c/cpp-call-expression
+      (c/cpp-function
+       (c/cpp-parenthesized-expression
+        (children (list type))))
+      (c/cpp-arguments
+       (c/cpp-argument-list
+        (children
+         (list
+          (c/cpp-pointer-expression
+           (c/cpp-operator (and operator (c/cpp-*)))
+           (c/cpp-argument argument)))))))
+     (make-cast-expression ast-type
+                           ast
+                           type
+                           operator
+                           argument
+                           :parenthesize-value t))))
 
 
 ;;; Symbol Table
