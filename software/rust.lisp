@@ -144,6 +144,31 @@ around generic-type-with-turbofish being aliased to generic-type."
                     &key)
   (convert-terminal to id))
 
+(defmethod convert ((to (eql 'integer))
+                    (ast rust-integer-literal)
+                    &key)
+  (parse-integer (text ast) :junk-allowed t))
+
+(defmethod convert ((to (eql 'float))
+                    (ast rust-float-literal) &key)
+  (match (text ast)
+    ((ppcre "(.*)f32$" text)
+     (parse-float text :type 'single-float))
+    ((or (ppcre "(.*)f64$" text) text)
+     (parse-float text :type 'double-float))))
+
+(defmethod convert ((to (eql 'rust-ast))
+                    (value single-float) &key)
+  (make 'rust-float-literal :text (fmt "~df32" value)))
+
+(defmethod convert ((to (eql 'rust-ast))
+                    (value double-float) &key)
+  (make 'rust-float-literal :text (fmt "~df64" value)))
+
+(defmethod convert ((to (eql 'rust-ast))
+                    (value integer) &key)
+  (make 'rust-integer-literal :text (fmt "~a" value)))
+
 
 ;;; Whitespace.
 

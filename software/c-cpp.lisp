@@ -1110,6 +1110,18 @@ Should return `:failure' in the base case.")
                       (occurs-as-arg? ast target))
               (collect ast))))))
 
+(defmethod convert ((to-type (eql 'integer))
+                    (ast c/cpp-number-literal) &key)
+  (parse-integer (text ast)))
+
+(defmethod convert ((to-type (eql 'float))
+                    (ast c/cpp-number-literal) &key)
+  (parse-float (text ast)))
+
+(defmethod convert ((to-type (eql 'number))
+                    (ast c/cpp-number-literal) &key)
+  (parse-number (text ast)))
+
 
 ;;; Fset
 

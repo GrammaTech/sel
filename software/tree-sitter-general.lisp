@@ -1247,6 +1247,24 @@ If ALIAS is non-nil, resolve aliases during the search.")
                                :key (op (get-decl _)))
                    (collect ast)))))))))
 
+(defmethod convert ((to-type (eql 'integer))
+                    (ast integer-ast) &key)
+  (parse-integer (text ast)))
+
+(defmethod convert ((to-type (eql 'number))
+                    (ast integer-ast) &key)
+  (convert 'integer ast))
+
+(defmethod convert ((to-type (eql 'float))
+                    (ast float-ast)
+                    &key (type 'double-float))
+  (parse-float (text ast) :type type))
+
+(defmethod convert ((to-type (eql 'number))
+                    (ast float-ast)
+                    &rest args &key)
+  (apply #'convert 'float ast args))
+
 
 ;;;; Cross-language generics and methods
 (defgeneric end-of-parameter-list (software node)
