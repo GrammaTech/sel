@@ -9,7 +9,8 @@
         :software-evolution-library/software/cpp
         :software-evolution-library/software/rust
         :software-evolution-library/test/util
-        :stefil+))
+        :stefil+)
+  (:local-nicknames (:attrs :functional-trees/attrs)))
 (in-package :software-evolution-library/test/template)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-templates "tree-sitter representations."
@@ -333,9 +334,10 @@ def $READ_NAME():
 
 (deftest test-templates-unify ()
   (flet ((args-match? (ast)
-           (match ast
-             ((cpp* "$FN($ARG, $ARG)" :fn fn :arg arg)
-              (mapcar #'source-text (list fn arg))))))
+           (attrs:with-attr-table ast
+             (match ast
+               ((cpp* "$FN($ARG, $ARG)" :fn fn :arg arg)
+                (mapcar #'source-text (list fn arg)))))))
     (is (equal '("fn" "x") (args-match? (cpp* "fn(x, x)"))))
     (is (null (args-match? (cpp* "fn(x, y)"))))))
 
@@ -351,6 +353,18 @@ def $READ_NAME():
 (deftest test-only-ignored-variables ()
   (is (match (cpp* "container.begin()")
         ((cpp* "$_.begin()") t))))
+
+(deftest test-unify-aliases ()
+  (let* ((cpp (sel:from-string 'cpp (fmt "~
+int p1 = 0;
+int& r = p1;
+int* p = &r;
+fun(r, p);")))
+         (ast (find-if (of-type 'cpp-call-expression) cpp)))
+    (attrs:with-attr-table cpp
+      (is (match ast
+            ((cpp* "$_($ARG, $ARG)" :arg arg)
+             arg))))))
 
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)

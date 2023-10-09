@@ -13,13 +13,17 @@
 (define-symbol-macro %tolerant nil)
 
 (defgeneric asts-unify? (ast1 ast2)
-  (:documentation "Can AST1 and AST2 be unified?")
+  (:documentation "Can AST1 and AST2 be unified?
+
+AST1 and AST2 are \"the same\" structurally,
+or if they share the same storage.")
   (:method :around (ast1 ast2)
     (and (eq (class-of ast1) (class-of ast2))
          (call-next-method)))
   (:method ((ast1 identifier-ast)
             (ast2 identifier-ast))
-    (equal (text ast1) (text ast2)))
+    (or (equal (text ast1) (text ast2))
+        (same-place-p ast1 ast2)))
   (:method ((ast1 terminal-symbol)
             (ast2 terminal-symbol))
     (equal (text ast1) (text ast2)))
