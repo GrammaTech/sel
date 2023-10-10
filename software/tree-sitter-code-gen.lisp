@@ -348,7 +348,12 @@ for the language.")
         (c-argument :initarg :argument :reader argument))
        (c-comma-expression
         (c-left :reader lhs :initarg :lhs)
-        (c-right :reader rhs :initarg :rhs)))
+        (c-right :reader rhs :initarg :rhs))
+       (c-switch-statement
+        (c-body :reader body :initarg :body)
+        (c-condition :reader condition :initarg :condition))
+       (c-case-statement
+        (c-statements :reader body :initarg :body)))
       (:cpp
        (cpp-init-declarator
         (cpp-declarator :initarg :lhs :reader lhs)
@@ -401,7 +406,12 @@ for the language.")
         (cpp-parameters :reader function-parameters))
        (cpp-comma-expression
         (cpp-left :reader lhs :initarg :lhs)
-        (cpp-right :reader rhs :initarg :rhs)))
+        (cpp-right :reader rhs :initarg :rhs))
+       (cpp-switch-statement
+        (cpp-body :reader body :initarg :body)
+        (cpp-condition :reader condition :initarg :condition))
+       (cpp-case-statement
+        (cpp-statements :reader body :initarg :body)))
       (:golang
        (golang-const-spec
         (golang-name :reader definition-name-ast))
@@ -1207,7 +1217,7 @@ definitions.")
        (c/cpp-binary-expression binary-ast)
        (c/cpp-break-statement break-ast)
        (c/cpp-call-expression call-ast)
-       (c/cpp-case-statement control-flow-ast)
+       (c/cpp-case-statement breakable-ast)
        (c/cpp-char-literal char-ast)
        (c/cpp-conditional-expression if-ast)
        (c/cpp-comma-expression expression-ast)
