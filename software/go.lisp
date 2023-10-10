@@ -32,9 +32,6 @@
 (defmethod function-parameters ((ast golang-method-declaration))
   (direct-children (golang-parameters ast)))
 
-(defmethod call-arguments ((ast golang-call-expression))
-  (direct-children (golang-arguments ast)))
-
 (defmethod no-fallthrough ((ast golang-break-statement)) t)
 (defmethod no-fallthrough ((ast golang-continue-statement)) t)
 (defmethod no-fallthrough ((ast golang-goto-statement)) t)

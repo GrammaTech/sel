@@ -146,6 +146,10 @@ comments with /* and */, etc."))
 
 See `c-like-syntax' for more discussion of what \"C-like\" means."))
 
+  (defclass ltr-eval-ast ()
+    ()
+    (:documentation "Mix-in class for ASTs in languages that use left-to-right evaluation order."))
+
   (defclass normal-scope-ast ()
     ()
     (:documentation "Mixin for ASTs whose languages use \"normal scope\"."))
@@ -167,12 +171,13 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
   (defparameter *tree-sitter-base-ast-superclasses*
     '((:c c/cpp-ast c-like-syntax-ast normal-scope-ast)
       (:cpp c/cpp-ast c-like-syntax-ast normal-scope-ast)
+      (:cl ltr-eval-ast)
       (:golang c-like-syntax-ast normal-scope-ast)
-      (:java c-like-syntax-ast)
-      (:javascript ecma-ast c-like-syntax-ast normal-scope-ast)
-      (:rust c-like-syntax-ast normal-scope-ast)
-      (:typescript-ts typescript-ast c-like-syntax-ast)
-      (:typescript-tsx typescript-ast c-like-syntax-ast))
+      (:java c-like-syntax-ast ltr-eval-ast)
+      (:javascript ecma-ast c-like-syntax-ast normal-scope-ast ltr-eval-ast)
+      (:rust c-like-syntax-ast normal-scope-ast ltr-eval-ast)
+      (:typescript-ts typescript-ast c-like-syntax-ast ltr-eval-ast)
+      (:typescript-tsx typescript-ast c-like-syntax-ast ltr-eval-ast))
     "Alist of superclasses for the base class of a language (e.g.
     `python-ast').")
 
@@ -311,7 +316,7 @@ for the language.")
         (c-right :initarg :rhs :reader rhs))
        (c-call-expression
         (c-function :reader call-function :initarg :function)
-        (c-arguments :reader call-arguments :initarg :arguments))
+        (c-arguments :reader call-arguments-ast :initarg :arguments))
        (c-while-statement
         (c-body :reader body :initarg :body))
        (c-do-statement
@@ -364,7 +369,7 @@ for the language.")
         (cpp-right :initarg :rhs :reader rhs))
        (cpp-call-expression
         (cpp-function :reader call-function :initarg :function)
-        (cpp-arguments :reader call-arguments :initarg :arguments))
+        (cpp-arguments :reader call-arguments-ast :initarg :arguments))
        (cpp-while-statement
         (cpp-condition :reader condition :initarg :condition)
         (cpp-body :reader body :initarg :body))
@@ -413,6 +418,8 @@ for the language.")
        (cpp-case-statement
         (cpp-statements :reader body :initarg :body)))
       (:golang
+       (golang-call-expression
+        (golang-arguments :reader call-arguments-ast :initarg :arguments))
        (golang-const-spec
         (golang-name :reader definition-name-ast))
        (golang-function-declaration
@@ -426,7 +433,7 @@ for the language.")
         (java-body :reader function-body))
        (java-method-invocation
         (java-name :reader call-function)
-        (java-arguments :reader call-arguments)))
+        (java-arguments :reader call-arguments-ast :initarg :arguments)))
       (:javascript
        (javascript-switch-case
         (javascript-body :reader body))
@@ -448,7 +455,7 @@ for the language.")
       (:python
        (python-call
         (python-function :reader call-function)
-        (python-arguments :reader call-arguments))
+        (python-arguments :reader call-arguments-ast :initarg :arguments))
        (python-assignment
         (python-left :initarg :lhs :reader lhs)
         (python-right :initarg :rhs :reader rhs))
@@ -495,7 +502,7 @@ for the language.")
         (rust-argument :initarg :argument :reader argument))
        (rust-call-expression
         (rust-function :reader call-function :initarg :function)
-        (rust-arguments :reader call-arguments :initarg :arguments))
+        (rust-arguments :reader call-arguments-ast :initarg :arguments))
        (rust-enum-item
         (rust-name :reader definition-name-ast))
        (rust-for-expression
@@ -821,8 +828,7 @@ for the language.")
        (:declaration-ast golang-field-declaration golang-type-declaration)
        (:definition-ast
         ;; TODO: Everything here also declaration?
-        golang-type-declaration
-        )
+        golang-type-declaration)
        (:function-declaration-ast
         golang-function-declaration golang-method-declaration)
        (:identifier-ast golang-identifier golang-field-identifier)
@@ -1592,8 +1598,7 @@ are ignored by templates, whereas named ones are preserved.")
                 (:CONTENT
                  (:TYPE . "SYMBOL")
                  (:NAME . "enumerator_list")))
-               ((:type . "BLANK")))
-              )))
+               ((:type . "BLANK"))))))
            ((:TYPE . "FIELD")
             (:NAME . "body")
             (:CONTENT (:TYPE . "SYMBOL") (:NAME . "enumerator_list")))))))

@@ -586,6 +586,7 @@
            :function-name
            :identifiers
            :call-arguments
+           :call-arguments-ast
            :function-parameters
            :parameter-type
            :parameter-name
@@ -618,7 +619,9 @@
            :contains-error-ast-p
            :aliasee
            :alias-set
-           :control-flow-target
+           :entry-control-flow
+           :exit-control-flow
+           :normal-exit-control-flow
            :c-functions
            :c
            :cpp

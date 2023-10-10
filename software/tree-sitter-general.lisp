@@ -552,7 +552,12 @@ should be rebound.")
   (:documentation "Return the arguments of AST.")
   (:method-combination standard/context)
   (:method :context ((ast t))
-    (ensure-children (call-next-method))))
+    (ensure-children (call-next-method)))
+  (:method ((ast t))
+    (call-arguments-ast ast)))
+
+(defgeneric call-arguments-ast (ast)
+  (:documentation "Return the arguments of AST."))
 
 (defgeneric function-parameters (ast)
   (:documentation "Return the parameters of AST.")
@@ -1456,17 +1461,88 @@ return whether they are equal.")
       (when-let (value (constant-fold (argument ast)))
         (- value)))))
 
-(def-attr-fun control-flow-target ()
-  (:documentation "Get the node that AST continues/breaks/returns from.")
-  (:method :around ((ast t))
-    (or (call-next-method)
-        (error "No control flow target for ~a" ast)))
+(def-attr-fun exit-control-flow ()
+  (:documentation "Nodes AST might transfer control to on exit.")
+  (:method :context ((ast ast))
+    (let ((defaults (remove nil (ensure-list (call-next-method)))))
+      (nub
+       ;; TODO Drop the defaults if we can determine they are
+       ;; unreachable.
+       (append defaults
+               (remove ast
+                       (remove-if (op () (ancestor-of-p (attrs-root*) _ ast))
+                                  (mappend #'exit-control-flow
+                                           (children ast))))))))
+  (:method ((ast arguments-ast))
+    (get-parent-ast (attrs-root*) ast))
+  (:method ((ast statement-ast))
+    (or (find-following 'statement-ast (attrs-root*) ast)
+        (get-parent-ast (attrs-root*) ast)))
+  (:method ((ast expression-ast))
+    (when-let (parent (get-parent-ast (attrs-root*) ast))
+      (let ((child-exprs (filter (of-type 'expression-ast) (children parent))))
+        (econd
+         ((and (typep parent 'call-ast)
+               (eql ast (call-function parent)))
+          (call-arguments-ast parent))
+         ((single child-exprs) (list parent))
+         ((typep parent 'ltr-eval-ast)
+          (second (member ast child-exprs)))
+         (t
+          (remove ast child-exprs))))))
+  (:method ((ast terminal-symbol))
+    (find-enclosing 'expression-ast (attrs-root*) ast))
+  (:method ((ast literal-ast))
+    (find-enclosing 'expression-ast (attrs-root*) ast))
+  (:method ((ast identifier-ast))
+    (find-enclosing 'expression-ast (attrs-root*) ast))
+  (:method :around ((ast loop-ast))
+    (list ast (call-next-method)))
   (:method ((ast continue-ast))
     (find-enclosing (of-type 'continuable-ast) (attrs-root*) ast))
   (:method ((ast break-ast))
     (find-enclosing (of-type 'breakable-ast) (attrs-root*) ast))
   (:method ((ast return-ast))
     (find-enclosing (of-type 'returnable-ast) (attrs-root*) ast)))
+
+(defun first-subexpression (ast)
+  "Return the first subexpression of AST."
+  (find-if
+   (lambda (ast2)
+     (and (typep ast2 'expression-ast)
+          (not (eql ast2 ast))))
+   ast))
+
+(def-attr-fun entry-control-flow ()
+  (:documentation "Nodes AST might transfer control to on entry.
+
+That is, if AST is a basic block, then its control flow target is the first
+node in the block.")
+  (:method :context ((ast ast))
+    (remove nil (ensure-list (call-next-method))))
+  (:method :around ((ast compound-ast))
+    (first (children ast)))
+  (:method ((ast statement-ast))
+    (etypecase ast
+      (ltr-eval-ast (first-subexpression ast))
+      (t (filter (of-type 'expression-ast) (children ast)))))
+  (:method ((ast call-ast))
+    (call-function ast))
+  (:method ((ast identifier-ast))
+    nil)
+  (:method ((ast literal-ast))
+    nil)
+  (:method ((ast expression-ast))
+    (etypecase ast
+      (ltr-eval-ast (first-subexpression ast))
+      (t (filter (of-type 'expression-ast) (children ast)))))
+  ;; TODO Add arguments ast? Top-down?
+  (:method ((ast arguments-ast))
+    (typecase ast
+      (ltr-eval-ast (first-subexpression ast))
+      (t (filter (of-type 'expression-ast) (children ast)))))
+  (:method ((ast conditional-ast))
+    (list (condition ast))))
 
 
 ;;;; Structured text
