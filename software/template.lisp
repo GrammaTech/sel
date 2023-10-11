@@ -201,8 +201,8 @@ Nested lists are not allowed as template arguments:~%~a"
    (if-let (unbound
             (remove-if (op (scan "^[$@]?_$" _))
                        (template-extract-metavariables dummy parseable-string)))
-     (error "Template contains unbound metavariables: ~a ~a" template unbound))
-   (values parseable-string names placeholders subtrees)))
+     (error "Template contains unbound metavariables: ~a ~a" template unbound)
+     (values parseable-string names placeholders subtrees))))
 
 (defun check-ast-template (template class kwargs &key (tolerant *tolerant*))
   "Compile-time validity checking for templates."
