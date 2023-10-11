@@ -3220,7 +3220,7 @@ Superclass of every generated LANGUAGE-comment class."))
    (:documentation "Mixin for ASTs that are implicit gotos."))
 
  (defclass continue-ast (jump-ast) ()
-   (:documentation "Mix-in for an AST that continues (skips) a loop."))
+   (:documentation "Mix-in for an AST that skips an iteration of a loop."))
 
  (defclass continuable-ast (control-flow-ast) ()
    (:documentation "A control flow AST that supports continue."))
