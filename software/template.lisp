@@ -22,6 +22,10 @@ or if they share the same storage.")
          (call-next-method)))
   (:method ((ast1 identifier-ast)
             (ast2 identifier-ast))
+    ;; `same-place-p' invokes `same-variable-p', which checks that
+    ;; variables have the same declaration. However we also want
+    ;; unification to be usable on source code fragments without
+    ;; declarations.
     (or (equal (text ast1) (text ast2))
         (same-place-p ast1 ast2)))
   (:method ((ast1 terminal-symbol)
