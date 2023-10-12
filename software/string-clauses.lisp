@@ -38,15 +38,20 @@
 (defconst +metavariable-prefix+
   "string_clause_metavar_")
 
+(defconst +safe-ellipsis+
+  (string+ +metavariable-prefix+ "ssr_ellipsis"))
+
 (defvar-unbound *annotation-number*
   "Used to generate unique identifiers for annotation slots.")
 
 (defgeneric ellipsis-match-p (node result)
-  (:method ((node t) (result t)) nil)
+  (:method ((node t) result) nil)
+  (:method ((node identifier-ast) (result list))
+    (source-text= node +safe-ellipsis+))
   (:method ((node parse-error-ast) (result list))
-    (equal (source-text node) "..."))
+    (source-text= node "..."))
   (:method ((node error-variation-point) (result list))
-    (equal (source-text node) "...")))
+    (source-text= node "...")))
 
 (defgeneric ast-for-match (language string &key software context tolerant)
   (:method :around (language string &key software context tolerant)
@@ -282,5 +287,7 @@ different surface syntax for languages that use sigils (Bash, Perl).")
           string
           (regex-replace-all "\\$([_A-Z0-9]+)"
                              string
-                             #.(string+ +metavariable-prefix+ "\\1")))
+                             #.(string+ +metavariable-prefix+ "\\1"))
+          string
+          (string-replace-all "..." string +safe-ellipsis+))
     string))
