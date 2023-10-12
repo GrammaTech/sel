@@ -169,6 +169,16 @@ around generic-type-with-turbofish being aliased to generic-type."
                     (value integer) &key)
   (make 'rust-integer-literal :text (fmt "~a" value)))
 
+(defmethod constant-fold ((ast rust-block))
+  (match ast
+    ((rust-block
+      (children
+       (list
+        (rust-implicit-return-expression
+         (children
+          (list expr))))))
+     (constant-fold expr))))
+
 
 ;;; Whitespace.
 

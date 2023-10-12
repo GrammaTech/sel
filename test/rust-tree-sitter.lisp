@@ -20,6 +20,14 @@
 
 ;;; Utility
 
+(deftest constant-fold-rust ()
+  (is (eql 2 (constant-fold (rust* "2"))))
+  (is (eql 4 (constant-fold (rust* "2 + 2"))))
+  (is (eql 4 (constant-fold (rust* "2 + { 2 }"))))
+  (is (eql 5 (constant-fold (rust* "(2+2)+1"))))
+  (is (eql 5 (constant-fold (rust* "{ 2+2 }+1"))))
+  (is (eql 7 (constant-fold (rust* "2*3+1")))))
+
 
 ;;; Round Trip Tests
 (deftest rust-can-round-trip-_-pattern ()
