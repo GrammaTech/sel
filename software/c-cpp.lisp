@@ -1123,12 +1123,12 @@ Should return `:failure' in the base case.")
   (parse-number (text ast)))
 
 (defmethod entry-control-flow ((switch-ast c/cpp-switch-statement))
-  (body switch-ast))
+  (children (body switch-ast)))
 
-(defmethod entry-control-flow ((cast-ast c/cpp-case-statement))
-  (body cast-ast))
+(defmethod entry-control-flow ((case-ast c/cpp-case-statement))
+  (body case-ast))
 
-(defmethod exit-control-flow ((case-ast c/cpp-case-statement))
+(defmethod exit-control-flow :around ((case-ast c/cpp-case-statement))
   (let* ((root (attrs-root*))
          (switch-ast
           (find-enclosing 'c/cpp-switch-statement root case-ast)))
@@ -1137,10 +1137,10 @@ Should return `:failure' in the base case.")
               (iter (for ast in-tree (body case-ast))
                     (finding ast such-that
                              (and (typep ast 'break-ast)
-                                  (member case-ast
+                                  (member switch-ast
                                           (exit-control-flow ast))))))
        switch-ast
-       (or (find-following 'c/cpp-case-statement root case-ast)
+       (or (next-sibling case-ast 'c/cpp-case-statement)
            switch-ast)))))
 
 (defmethod exit-control-flow ((ast cpp-conditional-expression))

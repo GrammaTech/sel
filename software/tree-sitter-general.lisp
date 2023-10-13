@@ -1498,21 +1498,44 @@ return whether they are equal.")
         (- value)))))
 
 (def-attr-fun exit-control-flow ()
-  (:documentation "Nodes AST might transfer control to on exit.")
-  (:method :context ((ast ast))
-    (let ((defaults (remove nil (ensure-list (call-next-method)))))
-      (nub
-       ;; TODO Drop the defaults if we can determine they are
-       ;; unreachable.
-       (append defaults
-               (remove ast
-                       (remove-if (op () (ancestor-of-p (attrs-root*) _ ast))
-                                  (mappend #'exit-control-flow
-                                           (children ast))))))))
+  (:documentation "Nodes AST might transfer control to on exit.
+Note that the result will be coerced to a list with `ensure-list', so
+each method does not need to return a list.")
+  (:method :context ((root ast) &aux (attrs-root (attrs-root*)))
+    "Follow the CFG from ROOT to handle nonlocal exits."
+    (labels ((walk-cfg (entry-points final-exits visited)
+               "Follow CFG edges in the control flow subgraph from ENTRY-POINTS,
+                appending exits from the subgraph to FINAL-EXITS."
+               (let* ((entry-points
+                       (remove-if (lambda (entry-point)
+                                    (> 1 (incf (gethash entry-point visited 0))))
+                                  entry-points))
+                      (exits (mappend #'exit-control-flow entry-points))
+                      (context-exits
+                       (filter (op (or (eql root _1)
+                                       (ancestor-of-p attrs-root _1 root)))
+                               exits))
+                      (local-exits
+                       (stable-set-difference exits context-exits)))
+                 (qappend final-exits context-exits)
+                 (mapc (op (walk-cfg _ final-exits visited))
+                       local-exits)))
+             (final-exits (entry-points)
+               (let ((final-exits (queue))
+                     (visited (make-hash-table)))
+                 (walk-cfg entry-points final-exits visited)
+                 (nub (qlist final-exits)))))
+      (let ((defaults (remove nil (ensure-list (call-next-method))))
+            (entry-points (entry-control-flow root)))
+        (if (no entry-points) defaults
+            (let ((final-exits (final-exits entry-points)))
+              ;; If control flow returns to the root of the subgraph,
+              ;; add its exits.
+              (flatten (substitute defaults root final-exits)))))))
   (:method ((ast arguments-ast))
     (get-parent-ast (attrs-root*) ast))
   (:method ((ast statement-ast))
-    (or (find-following 'statement-ast (attrs-root*) ast)
+    (or (next-sibling ast 'statement-ast)
         (get-parent-ast (attrs-root*) ast)))
   (:method ((ast expression-ast))
     (when-let (parent (get-parent-ast (attrs-root*) ast))
@@ -1521,7 +1544,7 @@ return whether they are equal.")
          ((and (typep parent 'call-ast)
                (eql ast (call-function parent)))
           (call-arguments-ast parent))
-         ((single child-exprs) (list parent))
+         ((single child-exprs) parent)
          ((typep parent 'ltr-eval-ast)
           (second (member ast child-exprs)))
          (t
@@ -1532,13 +1555,15 @@ return whether they are equal.")
     (find-enclosing 'expression-ast (attrs-root*) ast))
   (:method ((ast identifier-ast))
     (find-enclosing 'expression-ast (attrs-root*) ast))
+  ;; These are :around methods to override the statement-ast method
+  ;; for languages where continue/break/return are statements.
   (:method :around ((ast loop-ast))
     (list ast (call-next-method)))
-  (:method ((ast continue-ast))
+  (:method :around ((ast continue-ast))
     (find-enclosing (of-type 'continuable-ast) (attrs-root*) ast))
-  (:method ((ast break-ast))
+  (:method :around ((ast break-ast))
     (find-enclosing (of-type 'breakable-ast) (attrs-root*) ast))
-  (:method ((ast return-ast))
+  (:method :around ((ast return-ast))
     (find-enclosing (of-type 'returnable-ast) (attrs-root*) ast)))
 
 (defun first-subexpression (ast)
