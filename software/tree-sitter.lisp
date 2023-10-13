@@ -693,7 +693,9 @@
            :module-partition-interface-unit
            :module-partition-implementation-unit
            :public? :private? :protected?
-           :constant-fold)
+           :constant-fold
+           :next-sibling
+           :prev-sibling)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)))

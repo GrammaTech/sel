@@ -761,6 +761,42 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
        (drop-until (eqls ast))
        (sorted-children parent)))))
 
+(define-compiler-macro next-sibling (&whole call ast &optional test)
+  (match test
+    ((list 'quote _)
+     `(next-sibling ,ast (of-type ,test)))
+    (otherwise call)))
+
+(-> next-sibling (ast &optional t) (or null ast))
+(defun next-sibling (ast &optional test)
+  (when-let* ((parent (get-parent-ast (attrs-root*) ast))
+              (tail (member ast (children parent))))
+    (etypecase test
+      (null
+       (find-if (of-type 'ast) (rest tail)))
+      (function
+       (find-if test (rest tail)))
+      (symbol
+       (find-if (of-type test) (rest tail))))))
+
+(define-compiler-macro prev-sibling (&whole call ast &optional test)
+  (match test
+    ((list 'quote _)
+     `(prev-sibling ,ast (of-type ,test)))
+    (otherwise call)))
+
+(-> prev-sibling (ast &optional t) (or null ast))
+(defun prev-sibling (ast &optional test)
+  (when-let* ((parent (get-parent-ast (attrs-root*) ast))
+              (tail (member ast (reverse (children parent)))))
+    (etypecase test
+      (null
+       (find-if (of-type 'ast) (rest tail)))
+      (function
+       (find-if test (rest tail)))
+      (symbol
+       (find-if (of-type test) (rest tail))))))
+
 (defgeneric comments-for (obj ast)
   (:documentation "Return the comments for AST in OBJ.")
   (:method ((software tree-sitter) (ast tree-sitter-ast))
