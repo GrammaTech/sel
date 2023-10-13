@@ -23,6 +23,7 @@
 (deftest constant-fold-rust ()
   (is (eql 2 (constant-fold (rust* "2"))))
   (is (eql 4 (constant-fold (rust* "2 + 2"))))
+  (is (null (constant-fold (rust* "2 + x"))))
   (is (eql 4 (constant-fold (rust* "2 + { 2 }"))))
   (is (eql 5 (constant-fold (rust* "(2+2)+1"))))
   (is (eql 5 (constant-fold (rust* "{ 2+2 }+1"))))

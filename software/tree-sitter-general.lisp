@@ -1431,6 +1431,8 @@ return whether they are equal.")
 
 (defgeneric constant-fold (ast)
   (:documentation "Constant-fold AST into a Lisp value.")
+  (:method ((ast t))
+    nil)
   (:method ((ast number-ast))
     (convert 'number ast))
   (:method ((ast parenthesized-expression-ast))
