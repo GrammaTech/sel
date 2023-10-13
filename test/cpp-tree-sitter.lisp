@@ -2150,4 +2150,5 @@ namespace b {
   (check-patch-whitespace "!x;")
   (check-patch-whitespace "this->x;")
   (check-patch-whitespace "this.x;")
-  (check-patch-whitespace "{};"))
+  (check-patch-whitespace "{};")
+  (check-patch-whitespace (fmt "switch (1) {~%~4tdefault:~%~8tbreak;~%}")))

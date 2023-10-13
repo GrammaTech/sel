@@ -1257,6 +1257,16 @@ Should return `:failure' in the base case.")
 (defmethod format-genome ((obj c/cpp) &key)
   (clang-format obj))
 
+(Defmethod whitespace-between/parent ((parent c/cpp-case-statement)
+                                      (style c-style-indentation)
+                                      (ast1 (eql :|:|))
+                                      (ast2 c/cpp-ast))
+  #.(string #\Newline))
+
+(defmethod get-style-indentation
+    ((style c-style-indentation) software (ast c/cpp-case-statement) &key)
+  t)
+
 
 ;;; System headers
 (-> system-header-names (c/cpp) (values list &optional))
