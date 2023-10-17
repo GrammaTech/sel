@@ -46,6 +46,11 @@
                           "test/etc/cpp-fragments/trim_front.cc")))))
   (:teardown (nix *soft*)))
 
+(def +test-data-dir+
+  (asdf:system-relative-pathname
+   :software-evolution-library
+   "test/etc/"))
+
 
 ;;; Analysis tests
 
@@ -1129,6 +1134,82 @@ export {
     (with-attr-table cpp
       (is (not (exported? (find-if (of-type 'cpp-function-definition)
                                    cpp)))))))
+
+(deftest test-switch-control-flow-1 ()
+  (let* ((file (path-join +test-data-dir+ "cpp-switch/switch1.cc"))
+         (cpp (from-file 'cpp file)))
+    (with-attr-table cpp
+      (let* ((switch (find-if (of-type 'cpp-switch-statement) cpp))
+             (cases (children (body switch))))
+        (is (equal cases (entry-control-flow switch)))
+        (destructuring-bind (case-0 case-2 case-4
+                             case-1 case-3 case-5
+                             case-minus-1 default)
+            cases
+          (is (equal (exit-control-flow case-0)
+                     (list case-2)))
+          (is (equal (exit-control-flow case-2)
+                     (list case-4)))
+          (is (equal (exit-control-flow case-4)
+                     (list switch)))
+          (is (equal (exit-control-flow case-1)
+                     (list case-3)))
+          (is (equal (exit-control-flow case-3)
+                     (list case-5)))
+          (is (equal (exit-control-flow case-5)
+                     (list switch)))
+          (is (equal (exit-control-flow case-minus-1)
+                     (list switch)))
+          (is (equal (exit-control-flow default)
+                     (list switch))))))))
+
+(deftest test-switch-control-flow-2 ()
+  (let* ((file (path-join +test-data-dir+ "cpp-switch/switch2.cc"))
+         (cpp (from-file 'cpp file)))
+    (with-attr-table cpp
+      (let* ((switch (find-if (of-type 'cpp-switch-statement) cpp))
+             (cases (children (body switch))))
+        (is (equal cases (entry-control-flow switch)))
+        (is (equal (exit-control-flow (only-elt cases))
+                   (list switch)))))))
+
+(deftest test-switch-control-flow-3 ()
+  (let* ((file (path-join +test-data-dir+ "cpp-switch/switch3.cc"))
+         (cpp (from-file 'cpp file)))
+    (with-attr-table cpp
+      (let* ((switch (find-if (of-type 'cpp-switch-statement) cpp))
+             (fun (find-if (of-type 'cpp-function-definition) cpp))
+             (cases (children (body switch))))
+        (is (equal cases (entry-control-flow switch)))
+        (destructuring-bind (case-0
+                             case-1
+                             default)
+            cases
+          (is (equal (exit-control-flow case-0)
+                     (list switch)))
+          (is (equal (exit-control-flow case-1)
+                     (list fun)))
+          (is (equal (exit-control-flow default)
+                     (list switch))))))))
+
+(deftest test-switch-control-flow-4 ()
+  (let* ((file (path-join +test-data-dir+ "cpp-switch/switch4.cc"))
+         (cpp (from-file 'cpp file)))
+    (with-attr-table cpp
+      (let* ((switch (find-if (of-type 'cpp-switch-statement) cpp))
+             (fun (find-if (of-type 'cpp-function-definition) cpp))
+             (cases (children (body switch))))
+        (is (equal cases (entry-control-flow switch)))
+        (destructuring-bind (default
+                             case-0
+                             case-1)
+            cases
+          (is (equal (exit-control-flow default)
+                     (list case-0)))
+          (is (equal (exit-control-flow case-0)
+                     (list switch)))
+          (is (equal (exit-control-flow case-1)
+                     (list fun))))))))
 
 
 ;;; Parsing tests

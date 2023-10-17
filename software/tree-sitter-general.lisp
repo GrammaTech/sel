@@ -12,7 +12,6 @@
 
 
 ;;; General
-
 (defmethod pruned-rule ((ast t)) nil)
 (defmethod slot-usage ((ast t)) nil)
 
@@ -1506,23 +1505,26 @@ each method does not need to return a list.")
     (labels ((walk-cfg (entry-points final-exits visited)
                "Follow CFG edges in the control flow subgraph from ENTRY-POINTS,
                 appending exits from the subgraph to FINAL-EXITS."
-               (let* ((entry-points
-                       (remove-if (lambda (entry-point)
-                                    (> 1 (incf (gethash entry-point visited 0))))
-                                  entry-points))
-                      (exits (mappend #'exit-control-flow entry-points))
-                      (context-exits
-                       (filter (op (or (eql root _1)
-                                       (ancestor-of-p attrs-root _1 root)))
-                               exits))
-                      (local-exits
-                       (stable-set-difference exits context-exits)))
+               (assert (notany (op (ancestor-of-p attrs-root root _))
+                               entry-points))
+               ;; NB While attributes are implicitly cached, we still
+               ;; need to track which ones have been seen to avoid
+               ;; infinite loops between siblings in languages without
+               ;; left-to-right evaluation order.
+               (mvlet* ((entry-points
+                         (remove-if (op (contains? visited _))
+                                    (ensure-list entry-points)))
+                        (exits (mappend #'exit-control-flow entry-points))
+                        (context-exits local-exits
+                         (partition (op (member _1 (get-parent-asts attrs-root root)))
+                                    exits)))
                  (qappend final-exits context-exits)
-                 (mapc (op (walk-cfg _ final-exits visited))
-                       local-exits)))
+                 (let ((visited (union visited (convert 'fset:set local-exits))))
+                   (mapc (op (walk-cfg _ final-exits visited))
+                         local-exits))))
              (final-exits (entry-points)
                (let ((final-exits (queue))
-                     (visited (make-hash-table)))
+                     (visited (empty-set)))
                  (walk-cfg entry-points final-exits visited)
                  (nub (qlist final-exits)))))
       (let ((defaults (remove nil (ensure-list (call-next-method))))
@@ -1553,18 +1555,16 @@ each method does not need to return a list.")
     (find-enclosing 'expression-ast (attrs-root*) ast))
   (:method ((ast literal-ast))
     (find-enclosing 'expression-ast (attrs-root*) ast))
-  (:method ((ast identifier-ast))
+  (:method ((ast identifier-expression-ast))
     (find-enclosing 'expression-ast (attrs-root*) ast))
-  ;; These are :around methods to override the statement-ast method
-  ;; for languages where continue/break/return are statements.
-  (:method :around ((ast loop-ast))
+  (:method ((ast loop-ast))
     (list ast (call-next-method)))
-  (:method :around ((ast continue-ast))
-    (find-enclosing (of-type 'continuable-ast) (attrs-root*) ast))
-  (:method :around ((ast break-ast))
-    (find-enclosing (of-type 'breakable-ast) (attrs-root*) ast))
-  (:method :around ((ast return-ast))
-    (find-enclosing (of-type 'returnable-ast) (attrs-root*) ast)))
+  (:method ((ast continue-ast))
+    (list (find-enclosing (of-type 'continuable-ast) (attrs-root*) ast)))
+  (:method ((ast break-ast))
+    (list (find-enclosing (of-type 'breakable-ast) (attrs-root*) ast)))
+  (:method ((ast return-ast))
+    (list (find-enclosing (of-type 'returnable-ast) (attrs-root*) ast))))
 
 (defun first-subexpression (ast)
   "Return the first subexpression of AST."
@@ -1589,7 +1589,7 @@ node in the block.")
       (t (filter (of-type 'expression-ast) (children ast)))))
   (:method ((ast call-ast))
     (call-function ast))
-  (:method ((ast identifier-ast))
+  (:method ((ast identifier-expression-ast))
     nil)
   (:method ((ast literal-ast))
     nil)
@@ -1603,7 +1603,9 @@ node in the block.")
       (ltr-eval-ast (first-subexpression ast))
       (t (filter (of-type 'expression-ast) (children ast)))))
   (:method ((ast conditional-ast))
-    (list (condition ast))))
+    (list (condition ast)))
+  (:method :around ((ast assignment-ast))
+    (rhs ast)))
 
 
 ;;;; Structured text

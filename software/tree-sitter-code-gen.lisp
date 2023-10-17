@@ -662,7 +662,7 @@ for the language.")
         cpp-nested-namespace-specifier
         cpp-this)
        (:catch-ast cpp-catch-clause)
-       (:for-ast cpp-for-range-loop)
+       (:for-statement-ast cpp-for-range-loop)
        (:parameter-ast
         cpp-optional-parameter-declaration
         cpp-optional-type-parameter-declaration
@@ -819,7 +819,7 @@ for the language.")
         cl-sym-lit cl-syn-quoting-lit cl-unquote-splicing-lit cl-unquoting-lit
         cl-var-quoting-lit cl-vec-lit)
        (:string-ast cl-str-lit)
-       (:loop-ast cl-loop-macro)
+       (:loop-expression-ast cl-loop-macro)
        (:number-ast cl-num-lit cl-complex-num-lit cl-imaginary))
       (:golang
        (:root-ast golang-source-file)
@@ -832,7 +832,7 @@ for the language.")
        (:function-declaration-ast
         golang-function-declaration golang-method-declaration)
        (:identifier-ast golang-identifier golang-field-identifier)
-       (:for-ast golang-for-statement)
+       (:for-statement-ast golang-for-statement)
        (:string-ast )
        (:type-ast golang-qualified-type golang-pointer-type golang-struct-type
         golang-interface-type golang-array-type golang-slice-type
@@ -853,15 +853,14 @@ for the language.")
        (:expression-ast java-expression)
        (:field-asst java-field-access)
        (:identifier-ast java-identifier)
-       (:if-ast java-if-statement)
+       (:if-statement-ast java-if-statement)
        (:lambda-ast java-lambda-expression)
        (:literal-ast java-class-literal java-decimal-integer-literal
         java-hex-integer-literal java-octal-integer-literal
         java-binary-integer-literal java-decimal-floating-point-literal
         java-hex-floating-point-literal null-literal)
-       (:loop-ast java-do-statement)
        (:parenthesized-expression-ast java-parenthesized-expression)
-       (:return-ast java-return-statement)
+       (:return-statement-ast java-return-statement)
        (:root-ast java-program)
        (:statement-ast java-statement)
        (:string-ast java-string-literal)
@@ -870,18 +869,18 @@ for the language.")
        (:unary-ast java-unary-expression)
        (:variable-declaration-ast java-local-variable-declaration
         java-variable-declarator)
-       (:while-ast java-while-statement)
-       (:do-ast java-do-statement)
-       (:for-ast java-for-statement java-enhanced-for-statement))
+       (:while-statement-ast java-while-statement)
+       (:do-statement-ast java-do-statement)
+       (:for-statement-ast java-for-statement java-enhanced-for-statement))
       (:javascript
        (:root-ast javascript-program)
        (:comment-ast javascript-comment)
        (:class-ast javascript-class-declaration)
        (:control-flow-ast
         javascript-switch-statement javascript-try-statement)
-       (:if-ast javascript-if-statement)
-       (:while-ast javascript-while-statement)
-       (:for-ast javascript-for-statement)
+       (:if-statement-ast javascript-if-statement)
+       (:while-statement-ast javascript-while-statement)
+       (:for-statement-ast javascript-for-statement)
        (:expression-ast javascript--expression)
        (:parenthesized-expression-ast javascript-parenthesized-expression)
        (:compound-ast javascript-statement-block)
@@ -899,14 +898,14 @@ for the language.")
        (:subscript-ast javascript-subscript-expression)
        (:float-ast javascript-number)
        (:string-ast javascript-string)
-       (:do-ast javascript-do-statement)
+       (:do-statement-ast javascript-do-statement)
        (:statement-ast javascript--statement javascript-statement)
        (:expression-statement-ast javascript-expression-statement)
        (:call-ast javascript-call-expression)
        (:arguments-ast javascript-arguments)
        (:unary-ast javascript-unary-expression)
        (:binary-ast javascript-binary-expression)
-       (:return-ast javascript-return-statement)
+       (:return-statement-ast javascript-return-statement)
        (:catch-ast javascript-catch-clause))
       ((:javascript :typescript-ts :typescript-tsx)
        (:ecma-comment
@@ -982,9 +981,9 @@ for the language.")
         python-try-statement python-conditional-expression
         python-list-comprehension python-set-comprehension
         python-generator-expression python-dictionary-comprehension)
-       (:if-ast python-if-statement)
-       (:while-ast python-while-statement)
-       (:for-ast python-for-statement python-for-in-clause)
+       (:if-statement-ast python-if-statement)
+       (:while-statement-ast python-while-statement)
+       (:for-statement-ast python-for-statement python-for-in-clause)
        (:expression-ast python-expression)
        (:parenthesized-expression-ast python-parenthesized-expression)
        (:function-declaration-ast python-function-definition)
@@ -1005,7 +1004,7 @@ for the language.")
        (:arguments-ast python-argument-list)
        (:unary-ast python-unary-operator python-not-operator)
        (:binary-ast python-binary-operator python-boolean-operator)
-       (:return-ast python-return-statement)
+       (:return-statement-ast python-return-statement)
        (:variable-declaration-ast python-assignment python-keyword-argument)
        (:parameter-ast python-parameter)
        (:assignment-ast python-assignment python-augmented-assignment)
@@ -1039,16 +1038,16 @@ for the language.")
         rust-identifier
         rust-primitive-type)
        (:integer-ast rust-integer-literal)
-       (:while-ast rust-while-expression rust-while-let-expression)
-       (:for-ast rust-for-expression)
-       (:loop-ast rust-loop-expression)
-       (:continue-ast rust-continue-expression)
-       (:break-ast rust-break-expression)
+       (:while-expression-ast rust-while-expression rust-while-let-expression)
+       (:for-expression-ast rust-for-expression)
+       (:loop-expression-ast rust-loop-expression)
+       (:continue-expression-ast rust-continue-expression)
+       (:break-expression-ast rust-break-expression)
        (:namespace-declaration-ast rust-mod-item)
        (:parameter-ast rust-parameter rust-self-parameter)
        (:parameters-ast rust-parameters)
        (:parenthesized-expression-ast rust-parenthesized-expression)
-       (:return-ast rust-return-expression rust-implicit-return-expression)
+       (:return-expression-ast rust-return-expression rust-implicit-return-expression)
        (:root-ast rust-source-file)
        (:statement-ast rust--declaration-statement rust-expression-statement)
        (:string-ast rust-string-literal)
@@ -1194,16 +1193,16 @@ for the language.")
        (:typescript-predefined-type
         typescript-ts-predefined-type
         typescript-tsx-predefined-type)
-       (:return-ast
+       (:return-statement-ast
         typescript-ts-return-statement
         typescript-tsx-return-statement)
-       (:while-ast
+       (:while-statement-ast
         typescript-ts-while-statement
         typescript-tsx-while-statement)
-       (:do-ast
+       (:do-statement-ast
          typescript-ts-do-statement
          typescript-tsx-do-statement)
-       (:for-ast
+       (:for-statement-ast
         typescript-ts-for-statement
         typescript-tsx-for-statement)))
     "Specifies which classes should inherit from which mixins.
@@ -1221,19 +1220,22 @@ definitions.")
        (c/cpp-argument-list arguments-ast)
        (c/cpp-assignment-expression assignment-ast)
        (c/cpp-binary-expression binary-ast)
-       (c/cpp-break-statement break-ast)
+       (c/cpp-break-statement break-statement-ast)
        (c/cpp-call-expression call-ast)
+       (c/cpp-case-statement statement-ast)
+       (c/cpp-cast-expression expression-ast)
        (c/cpp-char-literal char-ast)
-       (c/cpp-conditional-expression if-ast)
+       (c/cpp-conditional-expression if-expression-ast)
        (c/cpp-comma-expression expression-ast)
        (c/cpp-comment comment-ast)
        (c/cpp-compound-statement compound-ast)
-       (c/cpp-continue-statement continue-ast)
+       (c/cpp-continue-statement continue-statement-ast)
        (c/cpp-declaration statement-ast variable-declaration-ast)
        (c/cpp-declaration-list compound-ast)
-       (c/cpp-do-statement do-ast)
+       (c/cpp-do-statement do-statement-ast)
        (c/cpp--expression expression-ast)
        (c/cpp-expression-statement expression-statement-ast)
+       (c/cpp-empty-statement statement-ast)
        (c/cpp-enum-specifier definition-ast type-declaration-ast)
        (c/cpp-enumerator variable-declaration-ast)
        (c/cpp-error parse-error-ast)
@@ -1242,10 +1244,10 @@ definitions.")
        (c/cpp-field-declaration definition-ast)
        (c/cpp-field-identifier identifier-ast)
        (c/cpp-function-definition definition-ast function-declaration-ast statement-ast returnable-ast)
-       (c/cpp-for-statement for-ast)
-       (c/cpp-goto-statement goto-ast)
+       (c/cpp-for-statement for-statement-ast)
+       (c/cpp-goto-statement goto-statement-ast)
        (c/cpp-identifier identifier-ast)
-       (c/cpp-if-statement if-ast)
+       (c/cpp-if-statement if-statement-ast)
        (c/cpp-init-declarator variable-initialization-ast)
        (c/cpp-macro-forward-declaration macro-declaration-ast)
        (c/cpp-number-literal number-ast)
@@ -1256,13 +1258,14 @@ definitions.")
        (c/cpp-preproc-def definition-ast macro-declaration-ast)
        (c/cpp-preproc-function-def definition-ast macro-declaration-ast)
        (c/cpp-primitive-type type-ast)
-       (c/cpp-return-statement return-ast)
+       (c/cpp-return-statement return-statement-ast)
        (c/cpp--statement statement-ast)
        (c/cpp-sized-type-specifier type-ast)
+       (c/cpp-sizeof-expresssion expression)
        (c/cpp-string-literal string-ast)
        (c/cpp-struct-specifier composite-type-ast definition-ast type-declaration-ast)
        (c/cpp-subscript-expression subscript-ast)
-       (c/cpp-switch-statement breakable-ast)
+       (c/cpp-switch-statement breakable-ast statement-ast)
        (c/cpp-translation-unit root-ast)
        (c/cpp-true boolean-true-ast)
        (c/cpp-type-forward-declaration type-declaration-ast)
@@ -1272,7 +1275,7 @@ definitions.")
        (c/cpp-update-expression assignment-ast)
        (c/cpp-unary-expression unary-ast)
        (c/cpp-union-specifier composite-type-ast definition-ast type-declaration-ast)
-       (c/cpp-while-statement while-ast)))
+       (c/cpp-while-statement while-statement-ast)))
     "Specifies superclasses for mixin ASTs.")
 
   ;; TODO: it may make sense to have a way to 'rebind' a subclass when
@@ -3227,7 +3230,19 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass if-ast (control-flow-ast conditional-ast) ()
     (:documentation "Mix-in for AST classes that are ifs."))
 
+ (defclass if-expression-ast (if-ast expression-ast) ()
+   (:documentation "Mix-in for conditional expressions."))
+
+ (defclass if-statement-ast (if-ast statement-ast) ()
+   (:documentation "Mix-in for if statements."))
+
  (defclass loop-ast (control-flow-ast) ()
+   (:documentation "Mix-in for AST classes that are loops."))
+
+ (defclass loop-expression-ast (loop-ast expression-ast) ()
+   (:documentation "Mix-in for AST classes that are loops."))
+
+ (defclass loop-statement-ast (loop-ast statement-ast) ()
    (:documentation "Mix-in for AST classes that are loops."))
 
  (defclass jump-ast () ()
@@ -3236,10 +3251,22 @@ Superclass of every generated LANGUAGE-comment class."))
  (defclass continue-ast (jump-ast) ()
    (:documentation "Mix-in for an AST that skips an iteration of a loop."))
 
+ (defclass continue-expression-ast (continue-ast expression-ast) ()
+   (:documentation "Mix-in for an expression that skips an iteration of a loop."))
+
+ (defclass continue-statement-ast (continue-ast statement-ast) ()
+   (:documentation "Mix-in for a statement that skips an iteration of a loop."))
+
  (defclass continuable-ast (control-flow-ast) ()
    (:documentation "A control flow AST that supports continue."))
 
  (defclass break-ast (jump-ast) ()
+   (:documentation "Mix-in for an AST that breaks (exits) a loop."))
+
+ (defclass break-expression-ast (break-ast expression-ast) ()
+   (:documentation "Mix-in for an AST that breaks (exits) a loop."))
+
+ (defclass break-statement-ast (break-ast statement-ast) ()
    (:documentation "Mix-in for an AST that breaks (exits) a loop."))
 
  (defclass breakable-ast (control-flow-ast) ()
@@ -3252,13 +3279,28 @@ Superclass of every generated LANGUAGE-comment class."))
    (:documentation "Mix-in for AST classes that are whiles.
 A while statement is expected to support continue and break."))
 
+ (defclass while-expression-ast (while-ast loop-expression-ast) ()
+   (:documentation "Mix-in for while expressions."))
+
+ (defclass while-statement-ast (while-ast loop-statement-ast) ()
+   (:documentation "Mix-in for while statements."))
+
  (defclass do-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
    (:documentation "Mix-in for AST classes that are do-while loops.
 A do-while statement is expected to support continue and break."))
 
+ (defclass do-statement-ast (do-ast loop-statement-ast) ()
+   (:documentation "Mix-in for do-while statements."))
+
  (defclass for-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
    (:documentation "Mix-in for AST classes that are for loops.
 A for while is expected to support continue and break."))
+
+ (defclass for-expression-ast (for-ast loop-expression-ast) ()
+   (:documentation "Mix-in for for expressions."))
+
+ (defclass for-statement-ast (for-ast loop-statement-ast) ()
+   (:documentation "Mix-in for for statements."))
 
  (defclass declaration-ast (ast) ()
    (:documentation "Mixin for AST classes that declare/define something."))
@@ -3329,10 +3371,10 @@ not declarations)."))
  (defclass variable-initialization-ast (variable-declaration-ast) ()
    (:documentation "Mix-in for AST classes that are variable initializers."))
 
- (defclass assignment-ast (ast) ()
-   (:documentation "Mix-in for AST classes that are assignments."))
+ (defclass assignment-ast (expression-ast) ()
+   (:documentation "Mix-in for AST classes that are assignment expressions."))
 
-  (defclass identifier-ast (ast) ()
+ (defclass identifier-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
 
  (defclass type-ast (ast) ()
@@ -3341,10 +3383,10 @@ not declarations)."))
  (defclass type-identifier-ast (identifier-ast type-ast) ()
    (:documentation "Mix-in for AST classes that are type identifiers \(when they are distinct)."))
 
-  (defclass subscript-ast (ast) ()
+ (defclass subscript-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are subscripts."))
 
-  (defclass literal-ast (ast) ()
+ (defclass literal-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are literals."))
 
   (defclass boolean-ast (literal-ast) ()
@@ -3383,13 +3425,19 @@ not declarations)."))
   (defclass binary-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are binary expressions."))
 
- (defclass return-ast (statement-ast jump-ast) ()
+ (defclass return-ast (jump-ast) ()
+   (:documentation "Mix-in for AST classes that are returns."))
+
+ (defclass return-expression-ast (return-ast expression-ast) ()
+   (:documentation "Mix-in for AST classes that are return statements."))
+
+ (defclass return-statement-ast (return-ast statement-ast) ()
     (:documentation "Mix-in for AST classes that are return statements."))
 
- (defclass goto-ast (jump-ast statement-ast) ()
+ (defclass goto-statement-ast (jump-ast statement-ast) ()
    (:documentation "Mix-in for AST classes that are explicit goto statements."))
 
-  (defclass catch-ast (statement-ast) ()
+ (defclass catch-ast (ast) ()
     (:documentation "Mix-in for AST classes that are error catch clauses."))
 
  (defclass operator-ast (ast) ()

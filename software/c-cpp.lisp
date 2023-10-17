@@ -1122,13 +1122,16 @@ Should return `:failure' in the base case.")
                     (ast c/cpp-number-literal) &key)
   (parse-number (text ast)))
 
+;;; NB These are around methods to override statement-ast and
+;;; expression-ast methods.
+
 (defmethod entry-control-flow ((switch-ast c/cpp-switch-statement))
   (children (body switch-ast)))
 
 (defmethod entry-control-flow ((case-ast c/cpp-case-statement))
   (body case-ast))
 
-(defmethod exit-control-flow :around ((case-ast c/cpp-case-statement))
+(defmethod exit-control-flow ((case-ast c/cpp-case-statement))
   (let* ((root (attrs-root*))
          (switch-ast
           (find-enclosing 'c/cpp-switch-statement root case-ast)))
@@ -1143,7 +1146,7 @@ Should return `:failure' in the base case.")
        (or (next-sibling case-ast 'c/cpp-case-statement)
            switch-ast)))))
 
-(defmethod exit-control-flow ((ast cpp-conditional-expression))
+(defmethod exit-control-flow ((ast c/cpp-conditional-expression))
   (remove ast (children (find-enclosing 'conditional-ast (attrs-root*) ast))))
 
 
