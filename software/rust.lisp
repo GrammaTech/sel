@@ -232,13 +232,24 @@ around generic-type-with-turbofish being aliased to generic-type."
 (defmethod whitespace-between ((s rustfmt-style) (x (eql :|}|)) (y rust-ast))
   " ")
 
-(defmethod whitespace-between ((s rustfmt-style) (x rust-function-item) (y rust-function-item))
+(defmethod whitespace-between ((s rustfmt-style)
+                               (x rust-function-item)
+                               (y rust-function-item))
   #.(fmt "~2%"))
 
-(defmethod whitespace-between ((s rustfmt-style) (x rust-attribute-item) (y rust-struct-item))
+(defmethod whitespace-between ((s rustfmt-style)
+                               (x rust-attribute-item)
+                               (y rust-struct-item))
   #.(fmt "~%"))
 
-(defmethod whitespace-between ((s rustfmt-style) (x rust-mod-item) (y rust-use-declaration))
+(defmethod whitespace-between ((s rustfmt-style)
+                               (x rust-mod-item)
+                               (y rust-use-declaration))
+  #.(fmt "~%"))
+
+(defmethod whitespace-between ((s rustfmt-style)
+                               (x statement-ast)
+                               (y rust-implicit-return-expression))
   #.(fmt "~%"))
 
 (defmethod whitespace-between/parent ((parent rust-attribute)
@@ -322,5 +333,15 @@ around generic-type-with-turbofish being aliased to generic-type."
                                               (x rust-expression-statement)
                                               (y rust-empty-statement))
   "")
+
+(defmethod whitespace-between/parent :around ((parent rust-block)
+                                              (s rustfmt-style)
+                                              (x rust-implicit-return-expression)
+                                              (y (eql :|}|)))
+  (match (children parent)
+    ((list (eql x))
+     " ")
+    (otherwise
+     #.(string #\Newline))))
 
 ) ; #+:TREE-SITTER-RUST

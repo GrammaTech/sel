@@ -249,4 +249,7 @@ struct MyType<T> { x: T, y: T }")
   (check-patch-whitespace "fn myfn(&mut x<'_>) {}")
   (check-patch-whitespace "let raw = &mut x as *mut i32;")
   (check-patch-whitespace "#[allow(unused_imports)]")
-  (check-patch-whitespace "{};"))
+  (check-patch-whitespace "{};")
+  ;; Don't add newlines around a single expression.
+  (check-patch-whitespace "{ x }")
+  (check-patch-whitespace (fmt "{~%~4tx();~%~4ty~%}")))
