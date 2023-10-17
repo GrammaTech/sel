@@ -651,16 +651,19 @@ for the language.")
         cpp-optional-parameter-declaration
         cpp-variadic-parameter-declaration)
        (:variable-initialization-ast cpp-optional-parameter-declaration)
-       (:identifier-ast cpp-namespace-identifier
-        cpp-qualified-identifier
-        cpp-type-identifier
-        cpp-primitive-type
+       (:identifier-ast
+        cpp-namespace-identifier
         cpp-operator-name
         cpp-module-name
         cpp-module-qualified-name
         cpp-module-partition
-        cpp-nested-namespace-specifier
-        cpp-this)
+        cpp-nested-namespace-specifier)
+       (:identifier-expression-ast
+        cpp-this
+        cpp-qualified-identifier)
+       (:type-identifier-ast
+        cpp-type-identifier
+        cpp-primitive-type)
        (:catch-ast cpp-catch-clause)
        (:for-statement-ast cpp-for-range-loop)
        (:parameter-ast
@@ -831,7 +834,8 @@ for the language.")
         golang-type-declaration)
        (:function-declaration-ast
         golang-function-declaration golang-method-declaration)
-       (:identifier-ast golang-identifier golang-field-identifier)
+       (:identifier-ast golang-field-identifier)
+       (:identifier-expression-ast golang-identifier)
        (:for-statement-ast golang-for-statement)
        (:string-ast )
        (:type-ast golang-qualified-type golang-pointer-type golang-struct-type
@@ -852,7 +856,7 @@ for the language.")
        (:control-flow-ast java-switch-expression java-try-statement)
        (:expression-ast java-expression)
        (:field-asst java-field-access)
-       (:identifier-ast java-identifier)
+       (:identifier-expression-ast java-identifier)
        (:if-statement-ast java-if-statement)
        (:lambda-ast java-lambda-expression)
        (:literal-ast java-class-literal java-decimal-integer-literal
@@ -891,9 +895,11 @@ for the language.")
        (:parameters-ast javascript-formal-parameters)
        (:variable-declaration-ast javascript-variable-declaration-ast)
        (:identifier-ast
-        javascript-identifier javascript-property-identifier
+        javascript-property-identifier
         javascript-shorthand-property-identifier
         javascript-shorthand-property-identifier-pattern)
+       (:identifier-expression-ast
+        javascript-identifier)
        (:field-ast javascript-member-expression)
        (:subscript-ast javascript-subscript-expression)
        (:float-ast javascript-number)
@@ -990,7 +996,7 @@ for the language.")
        (:parameters-ast python-parameters python-lambda-parameters)
        (:boolean-true-ast python-true)
        (:boolean-false-ast python-false)
-       (:identifier-ast python-identifier)
+       (:identifier-expression-ast python-identifier)
        (:field-ast python-attribute)
        (:subscript-ast python-subscript)
        (:lambda-ast python-lambda)
@@ -1033,10 +1039,8 @@ for the language.")
        (:function-declaration-ast
         rust-function-item
         rust-function-signature-item)
-       (:identifier-ast
-        rust-field-identifier
-        rust-identifier
-        rust-primitive-type)
+       (:identifier-ast rust-field-identifier)
+       (:identifier-expression-ast rust-identifier)
        (:integer-ast rust-integer-literal)
        (:while-expression-ast rust-while-expression rust-while-let-expression)
        (:for-expression-ast rust-for-expression)
@@ -1058,7 +1062,7 @@ for the language.")
         rust-struct-item
         rust-type-item
         rust-union-item)
-       (:type-identifier-ast rust-type-identifier)
+       (:type-identifier-ast rust-type-identifier rust-primitive-type)
        (:unary-ast rust-unary-expression)
        (:variable-declaration-ast rust-let-declaration))
       ((:typescript-ts :typescript-tsx)
@@ -1083,6 +1087,9 @@ for the language.")
         typescript-tsx-shorthand-property-identifier
         typescript-ts-shorthand-property-identifier-pattern
         typescript-tsx-shorthand-property-identifier-pattern)
+       (:identifier-expression-ast
+        typescript-ts-identifier
+        typescript-tsx-identifier)
        (:call-ast
         typescript-ts-call-expression
         typescript-tsx-call-expression)
@@ -1246,7 +1253,7 @@ definitions.")
        (c/cpp-function-definition definition-ast function-declaration-ast statement-ast returnable-ast)
        (c/cpp-for-statement for-statement-ast)
        (c/cpp-goto-statement goto-statement-ast)
-       (c/cpp-identifier identifier-ast)
+       (c/cpp-identifier identifier-expression-ast)
        (c/cpp-if-statement if-statement-ast)
        (c/cpp-init-declarator variable-initialization-ast)
        (c/cpp-macro-forward-declaration macro-declaration-ast)
@@ -3374,8 +3381,11 @@ not declarations)."))
  (defclass assignment-ast (expression-ast) ()
    (:documentation "Mix-in for AST classes that are assignment expressions."))
 
- (defclass identifier-ast (expression-ast) ()
+ (defclass identifier-ast (ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
+
+ (defclass identifier-expression-ast (identifier-ast expression-ast) ()
+   (:documentation "Mix-in for AST classes that are identifiers."))
 
  (defclass type-ast (ast) ()
    (:documentation "Mixin for AST classes that designate types."))
