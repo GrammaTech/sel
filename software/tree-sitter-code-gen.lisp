@@ -2518,6 +2518,30 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "mutable_specifier"))
            ((:TYPE . "BLANK"))))
          :as "mutable_specifier"))
+       (:match-arm
+        (:replace
+         (:MEMBERS
+          ((:TYPE . "SEQ")
+           (:MEMBERS
+            ((:TYPE . "FIELD") (:NAME . "value")
+                               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
+            ((:TYPE . "STRING") (:VALUE . ","))))
+          ((:TYPE . "FIELD") (:NAME . "value")
+           (:CONTENT (:TYPE . "PREC") (:VALUE . 1)
+                     (:CONTENT (:TYPE . "SYMBOL")
+                               (:NAME . "_expression_ending_with_block")))))
+         :with
+         ;; Put the block case first to avoid generating extra commas.
+         (:MEMBERS
+          ((:TYPE . "FIELD") (:NAME . "value")
+           (:CONTENT (:TYPE . "PREC") (:VALUE . 1)
+                     (:CONTENT (:TYPE . "SYMBOL")
+                               (:NAME . "_expression_ending_with_block"))))
+          ((:TYPE . "SEQ")
+           (:MEMBERS
+            ((:TYPE . "FIELD") (:NAME . "value")
+                               (:CONTENT (:TYPE . "SYMBOL") (:NAME . "_expression")))
+            ((:TYPE . "STRING") (:VALUE . ",")))))))
        (:parameter
         (:label
          ((:TYPE . "CHOICE")

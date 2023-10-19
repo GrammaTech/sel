@@ -37,6 +37,15 @@
     (is (equal (source-text (convert 'rust-ast source))
                source))))
 
+(deftest rust-can-round-trip-match ()
+  (let ((file
+         (asdf:system-relative-pathname
+          :software-evolution-library
+          #p"test/etc/rust/match.rs")))
+    (is (equal (read-file-into-string file)
+               (source-text
+                (from-file 'rust file))))))
+
 
 ;;; Rule Substitution Tests
 (deftest rust-match-block-rule-substitution ()
