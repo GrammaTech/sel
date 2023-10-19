@@ -1172,6 +1172,7 @@ Should return `:failure' in the base case.")
 
 (define-empty-whitespace-methods (:style c-style-indentation)
   c/cpp-ast :|;|
+  c/cpp-ast :|:|
   c/cpp-ast c/cpp-++
   c/cpp-++ c/cpp-ast
   c/cpp-ast c/cpp---
