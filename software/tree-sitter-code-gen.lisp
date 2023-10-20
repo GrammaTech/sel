@@ -3276,7 +3276,7 @@ Superclass of every generated LANGUAGE-comment class."))
  (defclass loop-statement-ast (loop-ast statement-ast) ()
    (:documentation "Mix-in for AST classes that are loops."))
 
- (defclass jump-ast () ()
+ (defclass jump-ast (ast) ()
    (:documentation "Mixin for ASTs that are implicit gotos."))
 
  (defclass continue-ast (jump-ast) ()
