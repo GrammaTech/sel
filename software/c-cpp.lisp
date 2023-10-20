@@ -1131,6 +1131,12 @@ Should return `:failure' in the base case.")
 (defmethod entry-control-flow ((case-ast c/cpp-case-statement))
   (body case-ast))
 
+(defmethod entry-control-flow ((ast c/cpp-init-declarator))
+  (list (lhs ast) (rhs ast)))
+
+(defmethod entry-control-flow :around ((ast c/cpp-update-expression))
+  (assignee ast))
+
 (defmethod ltr-eval-ast-p ((binary-ast c/cpp-binary-expression))
   (member (operator binary-ast) '(:&& #.(make-keyword "||"))))
 
@@ -1151,6 +1157,16 @@ Should return `:failure' in the base case.")
 
 (defmethod exit-control-flow ((ast c/cpp-conditional-expression))
   (remove ast (children (find-enclosing 'conditional-ast (attrs-root*) ast))))
+
+(defmethod exit-control-flow ((ast c/cpp-init-declarator))
+  (when-let (parent (get-parent-ast (attrs-root*) ast))
+    (let ((child-exprs (filter (of-type 'c/cpp-init-declarator)
+                               (children parent))))
+      (econd
+       ((no child-exprs) parent)
+       ((single child-exprs) parent)
+       ((second (member ast child-exprs)))
+       (t parent)))))
 
 
 ;;; Fset

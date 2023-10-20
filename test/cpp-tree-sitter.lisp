@@ -1172,6 +1172,16 @@ export {
         (is (equal (exit-control-flow (rhs cpp))
                    (list cpp)))))))
 
+(deftest test-declaration-control-flow ()
+  (let ((cpp (cpp* "int x = a++, y = a++")))
+    (destructuring-bind (type decl1 decl2) (children cpp)
+      (declare (ignore type))
+      (with-attr-table cpp
+        (is (equal (exit-control-flow decl1)
+                   (list decl2)))
+        (is (equal (exit-control-flow decl2)
+                   (list cpp)))))))
+
 (deftest test-comma-control-flow ()
   (let* ((cpp (cpp* "x(), y()")))
     (with-attr-table cpp
