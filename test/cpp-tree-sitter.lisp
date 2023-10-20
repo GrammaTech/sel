@@ -1135,6 +1135,51 @@ export {
       (is (not (exported? (find-if (of-type 'cpp-function-definition)
                                    cpp)))))))
 
+(deftest test-argument-control-flow ()
+  (let ((cpp (cpp* "fn(1, \"2\", 3)")))
+    (with-attr-table cpp
+      (ematch cpp
+        ((cpp-call-expression
+          (cpp-function fn)
+          (cpp-arguments
+           (and arglist
+                (cpp-argument-list
+                 (children args)))))
+         (is (equal (entry-control-flow cpp) (list fn)))
+         (is (equal (exit-control-flow fn) (list arglist)))
+         (is (set-equal (entry-control-flow arglist) args)))))))
+
+(deftest test-binary-control-flow ()
+  (let ((cpp (cpp* "x+y")))
+    (with-attr-table cpp
+      (is (set-equal (entry-control-flow cpp)
+                     (list (lhs cpp) (rhs cpp))))
+      (is (equal (exit-control-flow (lhs cpp))
+                 (list (rhs cpp))))
+      (is (equal (exit-control-flow (rhs cpp))
+                 (list (lhs cpp)))))))
+
+(deftest test-comma-control-flow ()
+  (let* ((cpp (cpp* "x(), y()")))
+    (with-attr-table cpp
+      ;; (is (equal (entry-control-flow cpp) (list (lhs cpp))))
+      (is (equal (exit-control-flow (lhs cpp)) (list (rhs cpp)))))))
+
+(deftest test-loop-control-flow ()
+  (let* ((cpp (cpp* "{ while (1) {} }")))
+    (with-attr-table cpp
+      (let ((while-ast (is (find-if (of-type 'while-ast) cpp))))
+        (is (set-equal (exit-control-flow while-ast)
+                       (list while-ast cpp)))))))
+
+(deftest test-simple-compound-control-flow ()
+  (let* ((cpp (cpp* "{ x(); y(); }")))
+    (with-attr-table cpp
+      (destructuring-bind (s1 s2) (children cpp)
+        (is (equal (entry-control-flow cpp) (list s1)))
+        (is (equal (exit-control-flow s1) (list s2)))
+        (is (equal (exit-control-flow s2) (list cpp)))))))
+
 (deftest test-switch-control-flow-1 ()
   (let* ((file (path-join +test-data-dir+ "cpp-switch/switch1.cc"))
          (cpp (from-file 'cpp file)))

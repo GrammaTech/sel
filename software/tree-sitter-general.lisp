@@ -1536,6 +1536,7 @@ each method does not need to return a list.")
               (or (flatten (substitute defaults root final-exits))
                   defaults))))))
   (:method ((ast arguments-ast))
+    ;; TODO This is where we would take control flow to the function.
     (get-parent-ast (attrs-root*) ast))
   (:method ((ast statement-ast))
     (or (next-sibling ast 'statement-ast)
