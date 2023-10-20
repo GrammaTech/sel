@@ -664,8 +664,8 @@ int sum = myadd(2, 2);"))
       (destructuring-bind (x y z) (children c)
         (is (equal (entry-control-flow c) (list x)))
         (is (equal (exit-control-flow x) (list y z)))
-        (is (equal (exit-control-flow y) (list z)))
-        (is (equal (exit-control-flow z) (list y)))))))
+        (is (equal (exit-control-flow y) (list c)))
+        (is (equal (exit-control-flow z) (list c)))))))
 
 
 ;;; Tests

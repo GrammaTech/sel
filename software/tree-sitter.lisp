@@ -494,6 +494,7 @@
            :definition-ast
            :statement-ast
            :expression-ast
+           :subexpression-ast
            :parenthesized-expression-ast
            :compound-ast
            :conditional-ast
@@ -622,6 +623,7 @@
            :alias-set
            :entry-control-flow
            :exit-control-flow
+           :subexpression-exit-control-flow
            :normal-exit-control-flow
            :c-functions
            :c

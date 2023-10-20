@@ -1265,7 +1265,7 @@ definitions.")
        (c/cpp-goto-statement goto-statement-ast)
        (c/cpp-identifier identifier-expression-ast)
        (c/cpp-if-statement if-statement-ast)
-       (c/cpp-init-declarator variable-initialization-ast)
+       (c/cpp-init-declarator variable-initialization-ast subexpression-ast)
        (c/cpp-macro-forward-declaration macro-declaration-ast)
        (c/cpp-number-literal number-ast)
        (c/cpp-parameter-declaration parameter-ast variable-declaration-ast)
@@ -3242,13 +3242,17 @@ Superclass of every generated LANGUAGE-comment class."))
  (defclass root-ast (ast subroot) ()
     (:documentation "Mix-in for AST classes which are roots."))
 
+ (defclass subexpression-ast (ast) ()
+   (:documentation "A node that can be part of a control flow graph.
+This consists of at least expressions."))
+
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
 
  (defclass expression-statement-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are expression statements."))
 
-  (defclass expression-ast (ast) ()
+ (defclass expression-ast (subexpression-ast) ()
     (:documentation "Mix-in for AST classes that are expressions."))
 
  (defclass parenthesized-expression-ast (expression-ast) ()
@@ -3460,7 +3464,7 @@ not declarations)."))
   (defclass call-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are calls."))
 
-  (defclass arguments-ast (ast) ()
+ (defclass arguments-ast (subexpression-ast) ()
     (:documentation "Mix-in for AST classes that are lists of arguments."))
 
   (defclass unary-ast (expression-ast) ()
