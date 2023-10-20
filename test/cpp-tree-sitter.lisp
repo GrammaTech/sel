@@ -1182,6 +1182,14 @@ export {
         (is (equal (exit-control-flow decl2)
                    (list cpp)))))))
 
+(deftest test-<<-control-flow ()
+  (let ((cpp (cpp* "std::cout << x << std::endl")))
+    (with-attr-table cpp
+      (is (equal (exit-control-flow (lhs cpp))
+                 (list (rhs cpp))))
+      (is (equal (exit-control-flow (rhs cpp))
+                 (list cpp))))))
+
 (deftest test-comma-control-flow ()
   (let* ((cpp (cpp* "x(), y()")))
     (with-attr-table cpp
