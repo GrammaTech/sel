@@ -327,14 +327,10 @@ for the language.")
        (c-for-statement
         (c-body :reader body :initarg :body))
        (c-if-statement
-        ;; TODO Is it worth shadowing `cl:condition'? `test' would
-        ;; also cause package conflicts with test frameworks.
         (c-condition :initarg :condition :reader condition)
         (c-consequence :initarg :consequence :reader consequence)
         (c-alternative :initarg :alternative :reader alternative))
        (c-conditional-expression
-        ;; TODO Is it worth shadowing `cl:condition'? `test' would
-        ;; also cause package conflicts with test frameworks.
         (c-condition :initarg :condition :reader condition)
         (c-consequence :initarg :consequence :reader consequence)
         (c-alternative :initarg :alternative :reader alternative))
@@ -644,6 +640,18 @@ for the language.")
         cpp-namespace-alias-definition
         cpp-using-declaration
         cpp-alias-declaration)
+       (:ltr-eval-ast
+        ;; Per C++11.
+        cpp-call-expression
+        cpp-field-expression
+        cpp-subscript-expression
+        cpp-initializer-list
+        ;; Per C++17.
+        cpp-new-expression
+        ;; TODO Also C++17 pointer-to-member-expressions (E1.*E2,
+        ;; E1->*E2) and compound assignment (E1 @= E2) when the parser
+        ;; supports them.
+        )
        (:definition-ast cpp-class-specifier cpp-namespace-definition)
        (:type-declaration-ast cpp-class-specifier cpp-alias-declaration cpp-type-parameter-declaration)
        (:composite-type-ast cpp-class-specifier)

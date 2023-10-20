@@ -567,6 +567,106 @@ int sum = myadd(2, 2);"))
     (with-attr-table cpp
       (is (eql (get-declaration-ast :function defn) decl)))))
 
+(deftest test-argument-control-flow ()
+  "No sequence point in function calls."
+  (let ((c (c* "fn(1, \"2\", 3)")))
+    (with-attr-table c
+      (let* ((fn (call-function c))
+             (arglist (call-arguments-ast c))
+             (args (children arglist)))
+        (is (equal (entry-control-flow c) (list fn arglist)))
+        (is (equal (exit-control-flow fn) (list arglist)))
+        (is (equal (exit-control-flow arglist) (list fn)))
+        (is (set-equal (entry-control-flow arglist) args))))))
+
+(deftest test-<<-control-flow ()
+  "No sequence point in <<."
+  (let ((c (c* "x << y << z")))
+    (with-attr-table c
+      (is (equal (exit-control-flow (lhs c))
+                 (list (rhs c))))
+      (is (equal (exit-control-flow (rhs c))
+                 (list (lhs c)))))))
+
+(deftest test-binary-control-flow ()
+  "No sequence point in basic binary expressions."
+  (let ((c (c* "x+y")))
+    (with-attr-table c
+      (is (set-equal (entry-control-flow c)
+                     (list (lhs c) (rhs c))))
+      (is (equal (exit-control-flow (lhs c))
+                 (list (rhs c))))
+      (is (equal (exit-control-flow (rhs c))
+                 (list (lhs c)))))))
+
+(deftest test-binary-sequence-point-control-flow ()
+  "Sequence point from && and ||."
+  (let ((cs (list
+             (first (children (c* "(x && y)")))
+             (c* "x || y"))))
+    (dolist (c cs)
+      (with-attr-table c
+        (is (set-equal (entry-control-flow c)
+                       (list (lhs c))))
+        (is (equal (exit-control-flow (lhs c))
+                   (list (rhs c))))
+        (is (equal (exit-control-flow (rhs c))
+                   (list c)))))))
+
+(deftest test-declaration-control-flow ()
+  "Sequence point between initializers."
+  (let ((c (c* "int x = a++, y = a++")))
+    (destructuring-bind (type decl1 decl2) (children c)
+      (declare (ignore type))
+      (with-attr-table c
+        (is (equal (exit-control-flow decl1)
+                   (list decl2)))
+        (is (equal (exit-control-flow decl2)
+                   (list c)))))))
+
+(deftest test-comma-control-flow ()
+  "Comma operator introduces sequence point."
+  (let ((c (c* "x(), y()")))
+    (with-attr-table c
+      (is (equal (exit-control-flow (lhs c)) (list (rhs c)))))))
+
+(deftest test-loop-control-flow ()
+  "A loop is in its own exit control flow."
+  (let ((c (c* "{ while (1) {} }")))
+    (with-attr-table c
+      (let ((while-ast (is (find-if (of-type 'while-ast) c))))
+        (is (set-equal (exit-control-flow while-ast)
+                       (list while-ast c)))))))
+
+(deftest test-simple-compound-control-flow ()
+  "Control flow goes from statement to statement, then parent."
+  (let ((c (c* "{ x(); y(); }")))
+    (with-attr-table c
+      (destructuring-bind (s1 s2) (children c)
+        (is (equal (entry-control-flow c) (list s1)))
+        (is (equal (exit-control-flow s1) (list s2)))
+        (is (equal (exit-control-flow s2) (list c)))))))
+
+(deftest test-if-control-flow ()
+  "An if statement's control flow goes to both branches."
+  (let ((c (c* "if (x) { y } else { z }")))
+    (with-attr-table c
+      (is (equal (entry-control-flow c)
+                 (list (ts::condition c))))
+      (is (set-equal (exit-control-flow (ts::condition c))
+                     (list (consequence c)
+                           (alternative c)))))))
+
+(deftest test-ternary-control-flow ()
+  "Sequence point after condition of a ternary operator."
+  (let ((c (c* "x ? y : z")))
+    (with-attr-table c
+      (destructuring-bind (x y z) (children c)
+        (is (equal (entry-control-flow c) (list x)))
+        (is (equal (exit-control-flow x) (list y z)))
+        (is (equal (exit-control-flow y) (list z)))
+        (is (equal (exit-control-flow z) (list y)))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

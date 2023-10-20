@@ -1574,23 +1574,9 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
                               :text "&")
         :cpp-type type))
 
-;;; Left-to-right per C++17.
-
-(defmethod ltr-eval-ast-p ((ast cpp-call-expression))
-  t)
-
-(defmethod ltr-eval-ast-p ((ast cpp-field-expression))
-  t)
-
-(defmethod ltr-eval-ast-p ((ast cpp-subscript-expression))
-  t)
-
 (defmethod ltr-eval-ast-p ((ast cpp-binary-expression))
   (or (member (operator ast) '(:<< :>>))
       (call-next-method)))
-
-
-
 
 
 ;;; Whitespace rules

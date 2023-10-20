@@ -1136,80 +1136,24 @@ export {
                                    cpp)))))))
 
 (deftest test-argument-control-flow ()
-  (let ((cpp (cpp* "fn(1, \"2\", 3)")))
+  "Test function is evaluated before arguments."
+  (let ((cpp (cpp* "fn(1, 2, 3)")))
     (with-attr-table cpp
-      (ematch cpp
-        ((cpp-call-expression
-          (cpp-function fn)
-          (cpp-arguments
-           (and arglist
-                (cpp-argument-list
-                 (children args)))))
-         (is (equal (entry-control-flow cpp) (list fn)))
-         (is (equal (exit-control-flow fn) (list arglist)))
-         (is (set-equal (entry-control-flow arglist) args)))))))
-
-(deftest test-binary-control-flow ()
-  (let ((cpp (cpp* "x+y")))
-    (with-attr-table cpp
-      (is (set-equal (entry-control-flow cpp)
-                     (list (lhs cpp) (rhs cpp))))
-      (is (equal (exit-control-flow (lhs cpp))
-                 (list (rhs cpp))))
-      (is (equal (exit-control-flow (rhs cpp))
-                 (list (lhs cpp)))))))
-
-(deftest test-binary-sequence-point-control-flow ()
-  (let ((cpps (list
-               (first (children (cpp* "(x && y)")))
-               (cpp* "x || y"))))
-    (dolist (cpp cpps)
-      (with-attr-table cpp
-        (is (set-equal (entry-control-flow cpp)
-                       (list (lhs cpp))))
-        (is (equal (exit-control-flow (lhs cpp))
-                   (list (rhs cpp))))
-        (is (equal (exit-control-flow (rhs cpp))
-                   (list cpp)))))))
-
-(deftest test-declaration-control-flow ()
-  (let ((cpp (cpp* "int x = a++, y = a++")))
-    (destructuring-bind (type decl1 decl2) (children cpp)
-      (declare (ignore type))
-      (with-attr-table cpp
-        (is (equal (exit-control-flow decl1)
-                   (list decl2)))
-        (is (equal (exit-control-flow decl2)
-                   (list cpp)))))))
+      (let* ((fn (call-function cpp))
+             (arglist (call-arguments-ast cpp))
+             (args (children arglist)))
+        (is (equal (entry-control-flow cpp) (list fn)))
+        (is (set-equal (exit-control-flow fn) (list arglist)))
+        (is (set-equal (entry-control-flow arglist) args))))))
 
 (deftest test-<<-control-flow ()
-  (let ((cpp (cpp* "std::cout << x << std::endl")))
+  "Test << is evaluated left-to-right."
+  (let ((cpp (cpp* "x << y << z")))
     (with-attr-table cpp
       (is (equal (exit-control-flow (lhs cpp))
                  (list (rhs cpp))))
       (is (equal (exit-control-flow (rhs cpp))
                  (list cpp))))))
-
-(deftest test-comma-control-flow ()
-  (let* ((cpp (cpp* "x(), y()")))
-    (with-attr-table cpp
-      ;; (is (equal (entry-control-flow cpp) (list (lhs cpp))))
-      (is (equal (exit-control-flow (lhs cpp)) (list (rhs cpp)))))))
-
-(deftest test-loop-control-flow ()
-  (let* ((cpp (cpp* "{ while (1) {} }")))
-    (with-attr-table cpp
-      (let ((while-ast (is (find-if (of-type 'while-ast) cpp))))
-        (is (set-equal (exit-control-flow while-ast)
-                       (list while-ast cpp)))))))
-
-(deftest test-simple-compound-control-flow ()
-  (let* ((cpp (cpp* "{ x(); y(); }")))
-    (with-attr-table cpp
-      (destructuring-bind (s1 s2) (children cpp)
-        (is (equal (entry-control-flow cpp) (list s1)))
-        (is (equal (exit-control-flow s1) (list s2)))
-        (is (equal (exit-control-flow s2) (list cpp)))))))
 
 (deftest test-switch-control-flow-1 ()
   (let* ((file (path-join +test-data-dir+ "cpp-switch/switch1.cc"))
