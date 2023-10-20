@@ -1159,6 +1159,19 @@ export {
       (is (equal (exit-control-flow (rhs cpp))
                  (list (lhs cpp)))))))
 
+(deftest test-binary-sequence-point-control-flow ()
+  (let ((cpps (list
+               (first (children (cpp* "(x && y)")))
+               (cpp* "x || y"))))
+    (dolist (cpp cpps)
+      (with-attr-table cpp
+        (is (set-equal (entry-control-flow cpp)
+                       (list (lhs cpp))))
+        (is (equal (exit-control-flow (lhs cpp))
+                   (list (rhs cpp))))
+        (is (equal (exit-control-flow (rhs cpp))
+                   (list cpp)))))))
+
 (deftest test-comma-control-flow ()
   (let* ((cpp (cpp* "x(), y()")))
     (with-attr-table cpp

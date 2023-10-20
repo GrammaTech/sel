@@ -1131,6 +1131,9 @@ Should return `:failure' in the base case.")
 (defmethod entry-control-flow ((case-ast c/cpp-case-statement))
   (body case-ast))
 
+(defmethod ltr-eval-ast-p ((binary-ast c/cpp-binary-expression))
+  (member (operator binary-ast) '(:&& #.(make-keyword "||"))))
+
 (defmethod exit-control-flow ((case-ast c/cpp-case-statement))
   (let* ((root (attrs-root*))
          (switch-ast

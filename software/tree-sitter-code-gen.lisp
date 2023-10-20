@@ -148,7 +148,9 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
 
   (defclass ltr-eval-ast ()
     ()
-    (:documentation "Mix-in class for ASTs in languages that use left-to-right evaluation order."))
+    (:documentation "Mix-in class for all ASTs in languages that evaluate
+subexpessions left-to-right. In other languages, for specific ASTs that act
+as sequence points."))
 
   (defclass normal-scope-ast ()
     ()

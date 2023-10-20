@@ -508,6 +508,7 @@
            :breakable-ast
            :class-ast
            :scope-ast-p
+           :ltr-eval-ast-p
            :function-ast
            :parameters-ast
            :declaration-ast
