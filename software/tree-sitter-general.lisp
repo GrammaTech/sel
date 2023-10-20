@@ -1504,7 +1504,8 @@ return whether they are equal.")
 (def-attr-fun exit-control-flow ()
   (:documentation "Nodes AST might transfer control to on exit.
 Note that the result will be coerced to a list with `ensure-list', so
-each method does not need to return a list.")
+each method does not need to return a list. Also, `nil' is
+automatically removed.")
   (:method :context ((root ast) &aux (attrs-root (attrs-root*)))
     "Follow the CFG from ROOT to handle nonlocal exits."
     (labels ((walk-cfg (entry-points final-exits visited)

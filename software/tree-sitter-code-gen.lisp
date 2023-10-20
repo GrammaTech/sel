@@ -149,8 +149,8 @@ See `c-like-syntax' for more discussion of what \"C-like\" means."))
   (defclass ltr-eval-ast ()
     ()
     (:documentation "Mix-in class for all ASTs in languages that evaluate
-subexpessions left-to-right. In other languages, for specific ASTs that act
-as sequence points."))
+subexpessions left-to-right. In other languages, used for specific ASTs that
+act as sequence points."))
 
   (defclass normal-scope-ast ()
     ()

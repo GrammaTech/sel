@@ -1122,9 +1122,6 @@ Should return `:failure' in the base case.")
                     (ast c/cpp-number-literal) &key)
   (parse-number (text ast)))
 
-;;; NB These are around methods to override statement-ast and
-;;; expression-ast methods.
-
 (defmethod entry-control-flow ((switch-ast c/cpp-switch-statement))
   (children (body switch-ast)))
 
@@ -1280,6 +1277,7 @@ Should return `:failure' in the base case.")
 
 (defmethod get-style-indentation
     ((style c-style-indentation) software (ast c/cpp-case-statement) &key)
+  "Indent child statements of case statements."
   t)
 
 
