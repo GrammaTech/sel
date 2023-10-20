@@ -1533,7 +1533,8 @@ each method does not need to return a list.")
             (let ((final-exits (final-exits entry-points)))
               ;; If control flow returns to the root of the subgraph,
               ;; add its exits.
-              (flatten (substitute defaults root final-exits)))))))
+              (or (flatten (substitute defaults root final-exits))
+                  defaults))))))
   (:method ((ast arguments-ast))
     (get-parent-ast (attrs-root*) ast))
   (:method ((ast statement-ast))
