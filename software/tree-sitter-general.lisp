@@ -1521,6 +1521,9 @@ automatically removed.")
                          (remove-if (op (contains? visited _))
                                     (ensure-list entry-points)))
                         (exits (mappend #'exit-control-flow entry-points))
+                        ;; "Context" exits leave the execution context
+                        ;; (either returning to AST or jumping out of
+                        ;; it). Local exits leave AST on the "stack".
                         (context-exits local-exits
                          (partition (op (member _1 (get-parent-asts attrs-root root)))
                                     exits)))
