@@ -1521,16 +1521,16 @@ automatically removed.")
                          (remove-if (op (contains? visited _))
                                     (ensure-list entry-points)))
                         (exits (mappend #'exit-control-flow entry-points))
-                        ;; "Context" exits leave the execution context
+                        ;; "Outer" exits leave the execution context
                         ;; (either returning to AST or jumping out of
-                        ;; it). Local exits leave AST on the "stack".
-                        (context-exits local-exits
+                        ;; it). Inner exits leave AST on the "stack".
+                        (outer-exits inner-exits
                          (partition (op (member _1 (get-parent-asts attrs-root root)))
                                     exits)))
-                 (qappend final-exits context-exits)
-                 (let ((visited (union visited (convert 'fset:set local-exits))))
+                 (qappend final-exits outer-exits)
+                 (let ((visited (union visited (convert 'fset:set inner-exits))))
                    (mapc (op (walk-cfg _ final-exits visited))
-                         local-exits))))
+                         inner-exits))))
              (final-exits (entry-points)
                (let ((final-exits (queue))
                      (visited (empty-set)))
