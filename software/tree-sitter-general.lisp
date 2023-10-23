@@ -1562,6 +1562,11 @@ automatically removed.")
     (list (find-enclosing (of-type 'returnable-ast) (attrs-root*) ast))))
 
 (defgeneric subexpression-exit-control-flow (parent subexpression)
+  (:documentation "Get the exit control flow of SUBEXPRESSION according to PARENT.
+This expresses control flow that is either different based on the
+parent, as within a conditional, or for a \"subexpression\" that is
+not actually an expression, e.g. an initializer in a C/C++
+declaration.")
   (:method ((parent ltr-eval-ast) (sub ast))
     (or (next-sibling sub 'subexpression-ast)
         parent))
