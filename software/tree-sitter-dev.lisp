@@ -1,5 +1,6 @@
 (defpackage :software-evolution-library/software/tree-sitter-dev
   (:use :software-evolution-library/software/tree-sitter)
+  (:import-from :software-evolution-library/software/tree-sitter-code-gen)
   (:import-from :cmd)
   (:import-from :stefil+)
   (:documentation "Load this package for tree-sitter dev and debug tools."))
