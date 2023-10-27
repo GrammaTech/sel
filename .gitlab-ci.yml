@@ -131,6 +131,12 @@ dependent-trace-db:
   except: [schedules]
   trigger: synthesis/trace-db
 
+dependent-cram:
+  stage: deploy
+  only: [master]
+  except: [schedules]
+  trigger: synthesis/cpp-to-rust-assisted-migration
+
 # Use kaniko to build docker image.
 #  https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 #  https://github.com/GoogleContainerTools/kaniko
