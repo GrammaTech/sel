@@ -739,3 +739,17 @@
 
 (define-software tree-sitter (software-indentation parseable) ()
   (:documentation "tree-sitter software representation."))
+
+(defun finalize-tree-sitter-classes ()
+  "Finalize all tree-sitter classes."
+  (dolist (package *tree-sitter-packages*)
+    (do-symbols (sym package)
+      (when (eql (symbol-package sym) package)
+        (when-let (class (find-class sym nil))
+          (ensure-finalized class))))))
+
+;;; There are a lot of tree-sitter classes. Finalizing the classes
+;;; produces notable delays during initial parsing in an image
+;;; including tree-sitter. Make sure the classes are finalized
+;;; *before* the image is dumped.
+(uiop:register-image-dump-hook 'finalize-tree-sitter-classes)
