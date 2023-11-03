@@ -74,3 +74,6 @@ utility/libcxx-src
 
 # Ignore generated tree-sitter code
 .cache
+
+# Python eggs
+.eggs
