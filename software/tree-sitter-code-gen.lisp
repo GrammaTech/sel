@@ -863,7 +863,7 @@ for the language.")
        (:catch-ast java-catch-clause)
        (:class-ast java-class-declaration)
        (:comment-ast java-comment)
-       (:control-flow-ast java-switch-expression java-try-statement)
+       (:control-flow-ast java-try-statement)
        (:expression-ast java-expression)
        (:field-asst java-field-access)
        (:identifier-expression-ast java-identifier)
@@ -877,6 +877,7 @@ for the language.")
        (:return-statement-ast java-return-statement)
        (:root-ast java-program)
        (:statement-ast java-statement)
+       (:switch-expression-ast java-switch-expression)
        (:string-ast java-string-literal)
        (:type-identifier-ast java-type-identifier)
        (:type-ast java-generic-type)
@@ -890,8 +891,7 @@ for the language.")
        (:root-ast javascript-program)
        (:comment-ast javascript-comment)
        (:class-ast javascript-class-declaration)
-       (:control-flow-ast
-        javascript-switch-statement javascript-try-statement)
+       (:control-flow-ast javascript-try-statement)
        (:if-statement-ast javascript-if-statement)
        (:while-statement-ast javascript-while-statement)
        (:for-statement-ast javascript-for-statement)
@@ -988,7 +988,11 @@ for the language.")
        (:semicolon-ast
         javascript-\;
         typescript-ts-\;
-        typescript-tsx-\;))
+        typescript-tsx-\;)
+       (:ecma-switch-statement
+        javascript-switch-statement
+        typescript-ts-switch-statement
+        typescript-tsx-switch-statement))
       (:python
        (:root-ast python-module)
        (:comment-ast python-comment)
@@ -1103,11 +1107,6 @@ for the language.")
        (:call-ast
         typescript-ts-call-expression
         typescript-tsx-call-expression)
-       (:control-flow-ast
-        typescript-ts-switch-statement
-        typescript-tsx-switch-statement
-        typescript-ts-while-statement
-        typescript-tsx-while-statement)
        (:function-declaration-ast
         typescript-ts-function-declaration
         typescript-tsx-function-declaration
@@ -1293,7 +1292,10 @@ definitions.")
        (c/cpp-update-expression assignment-ast)
        (c/cpp-unary-expression unary-ast)
        (c/cpp-union-specifier composite-type-ast definition-ast type-declaration-ast)
-       (c/cpp-while-statement while-statement-ast)))
+       (c/cpp-while-statement while-statement-ast))
+      ((:javascript :typescript-ts :typescript-tsx)
+       (ecma-comment comment-ast)
+       (ecma-switch-statement switch-statement-ast)))
     "Specifies superclasses for mixin ASTs.")
 
   ;; TODO: it may make sense to have a way to 'rebind' a subclass when
@@ -3347,6 +3349,15 @@ A for while is expected to support continue and break."))
 
  (defclass for-statement-ast (for-ast loop-statement-ast) ()
    (:documentation "Mix-in for for statements."))
+
+ (defclass switch-ast (breakable-ast) ()
+   (:documentation "Mix-in for switches."))
+
+ (defclass switch-expression-ast (switch-ast expression-ast) ()
+   (:documentation "Mix-in for switch expression."))
+
+ (defclass switch-statement-ast (switch-ast statement-ast) ()
+   (:documentation "Mix-in for switch statements."))
 
  (defclass declaration-ast (ast) ()
    (:documentation "Mixin for AST classes that declare/define something."))

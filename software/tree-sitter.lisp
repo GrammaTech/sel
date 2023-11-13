@@ -503,6 +503,9 @@
            :while-ast
            :for-ast
            :loop-ast
+           :switch-ast
+           :switch-expression-ast
+           :switch-statement-ast
            :continue-ast
            :continuable-ast
            :break-ast
