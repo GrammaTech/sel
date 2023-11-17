@@ -630,6 +630,7 @@
            :exit-control-flow
            :subexpression-exit-control-flow
            :normal-exit-control-flow
+           :exception-set
            :c-functions
            :c
            :cpp

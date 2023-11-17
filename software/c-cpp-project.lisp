@@ -15,6 +15,8 @@
         :software-evolution-library/software/compilable
         :software-evolution-library/software/directory
         :software-evolution-library/components/file)
+  (:import-from :software-evolution-library/software/tree-sitter
+                :morally-noexcept-parent?)
   (:export :c/cpp-project
            :get-standard-path-header
            :header-name
@@ -453,6 +455,17 @@ the header.")
 (define-node-class c/cpp-system-header (named-synthetic-header)
   ()
   (:documentation "Node for representing synthetic system headers."))
+
+(defparameter *morally-noexcept-headers*
+  (set-hash-table
+   ;; TODO Add all.
+   '("math" "cmath")
+   :test #'equal)
+  "Names of C++ headers to treat as always noexcept.
+This is largely C compatibility headers for C++, which do not throw exceptions.")
+
+(defmethod morally-noexcept-parent? ((self c/cpp-system-header))
+  (gethash (header-name self) *morally-noexcept-headers*))
 
 (define-node-class c/cpp-unknown-header (named-synthetic-header)
   ()

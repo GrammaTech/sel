@@ -93,6 +93,14 @@ to look it up as `x::z' or just `z'."
                   (finally (enq name variants)))
             (qlist variants))))))
 
+(defgeneric morally-noexcept-parent? (ast)
+  (:method ((ast t))
+    nil))
+
+(defgeneric morally-noexcept? (fn)
+  (:method ((ast t))
+    nil))
+
 #+:TREE-SITTER-CPP
 (progn
 
@@ -696,13 +704,6 @@ to look it up as `x::z' or just `z'."
 (defmethod relevant-declaration-type ((ast cpp-nested-namespace-specifier))
   'namespace-declaration-ast)
 
-(defmethod call-name ((ast cpp-call-expression))
-  "If the call function is a template function, extract just the name of the template function without its arguments."
-  (source-text
-   (let ((function (call-function ast)))
-     (if (typep function 'cpp-template-function)
-         (cpp-name function)
-         function))))
 (defmethod call-name ((ast cpp-call-expression))
   "If the call function is a template function, extract just the name of the template function without its arguments."
   (source-text
@@ -1529,23 +1530,32 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
      (explicit-namespace-qualifiers ast)
      (implicit-namespace-qualifiers ast))))
 
-(defgeneric unqualified-name (name)
+(defgeneric unqualified-name (name &key count)
   (:documentation "Remove namespace qualifications from NAME.")
-  (:method ((ast cpp-identifier))
+  (:method ((ast cpp-identifier) &key count)
+    (declare (ignore count))
     ast)
-  (:method ((ast cpp-field-identifier))
+  (:method ((ast cpp-field-identifier) &key count)
+    (declare (ignore count))
     ast)
-  (:method ((ast cpp-namespace-identifier))
+  (:method ((ast cpp-namespace-identifier) &key count)
+    (declare (ignore count))
     ast)
-  (:method ((ast cpp-type-identifier))
+  (:method ((ast cpp-type-identifier) &key count)
+    (declare (ignore count))
     ast)
-  (:method ((ast cpp-template-type))
+  (:method ((ast cpp-template-type) &key count)
+    (declare (ignore count))
     ast)
-  (:method ((ast cpp-qualified-identifier))
-    (declare (optimize (debug 0)))
-    (unqualified-name (cpp-name ast)))
-  (:method ((ast cpp-nested-namespace-specifier))
-    (car (children ast))))
+  (:method ((ast cpp-qualified-identifier) &key (count most-positive-fixnum))
+    (declare (optimize (debug 0))
+             ((and fixnum unsigned-byte) count))
+    (if (zerop count) ast
+        (unqualified-name (cpp-name ast) :count (1- count))))
+  (:method ((ast cpp-nested-namespace-specifier) &key (count most-positive-fixnum))
+    (declare ((and fixnum unsigned-byte) count))
+    (if (zerop count) ast
+        (car (children ast)))))
 
 (defmethod initializer-aliasee ((sw t)
                                 (lhs cpp-reference-declarator)
@@ -1579,6 +1589,77 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
 
 (defmethod ltr-eval-ast-p ((ast cpp-binary-expression))
   (or (member (operator ast) '(:<< :>>))
+      (call-next-method)))
+
+(defparameter *morally-noexcept*
+  (set-hash-table '("next" "begin" "end" "cbegin" "cend") :test #'equal)
+  "List of STL functions that are morally noexcept, Lakos Rule notwithstanding.")
+
+(defmethod morally-noexcept? ((fn-name identifier-ast))
+  (and (equal (namespace fn-name) "std")
+       (or (gethash (source-text (unqualified-name fn-name :count 1))
+                    *morally-noexcept*)
+           (some #'morally-noexcept-parent?
+                 (get-parent-asts* (attrs-root*) fn-name)))))
+
+(defmethod morally-noexcept? ((fn cpp-function-definition))
+  (morally-noexcept? (definition-name-ast fn)))
+
+(defmethod morally-noexcept? ((fn cpp-function-declarator))
+  (morally-noexcept? (declarator-name-ast fn)))
+
+(defmethod morally-noexcept? ((decl cpp-declaration))
+  (morally-noexcept? (cpp-declarator decl)))
+
+(defmethod exception-set ((ast cpp-function-definition))
+  (cond ((find-if (of-type 'cpp-noexcept)
+                  (direct-children (cpp-declarator ast)))
+         ;; NB A noexcept function can contain a throw statement, but it
+         ;; can't escape the function.
+         '(or))
+        ((morally-noexcept? (definition-name-ast ast))
+         '(or))
+        (t (exception-set (cpp-body ast)))))
+
+(defmethod exception-set ((ast cpp-declaration))
+  (match (cpp-declarator ast)
+    ((list (and declarator (cpp-function-declarator)))
+     (cond ((find-if (of-type 'cpp-noexcept)
+                     (direct-children declarator))
+            '(or))
+           ((morally-noexcept? declarator)
+            '(or))
+           (t t)))
+    (otherwise (call-next-method))))
+
+(defun cpp-catch-clause-handled-exception-set (catch-clause)
+  (declare (cpp-catch-clause catch-clause))
+  (or (when-let* ((params (find-if (of-type 'parameters-ast) catch-clause))
+                  (param (first (children params))))
+        (typecase param
+          ;; TODO This should be parsed as a terminal.
+          (cpp-variadic-declaration t)
+          (parameter-ast
+           (list 'or (parameter-type param)))))
+      '(or)))
+
+(defmethod exception-set ((ast cpp-try-statement))
+  (let* ((catch-clause (find-if (of-type 'cpp-catch-clause) ast))
+         (handled-exception-set
+          (cpp-catch-clause-handled-exception-set catch-clause))
+         ;; Filtered exceptions from the try body.
+         (filtered-exceptions
+          (exception-set-difference (exception-set (cpp-body ast))
+                                    handled-exception-set))
+         ;; Rethrows from the catch clause body.
+         (rethrows (exception-set (cpp-body catch-clause))))
+    (exception-set-union filtered-exceptions rethrows)))
+
+(defmethod exception-set ((ast cpp-throw-statement))
+  (if (no (children ast))
+      (cpp-catch-clause-handled-exception-set
+       (or (find-enclosing 'cpp-catch-clause (attrs-root*) ast)
+           (error "No enclosing catch clause for throw without argument")))
       (call-next-method)))
 
 

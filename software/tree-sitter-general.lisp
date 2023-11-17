@@ -1624,6 +1624,74 @@ node in the block.")
   (:method :around ((ast assignment-ast))
     (rhs ast)))
 
+(defun exception-set-union (x y)
+  (econd
+   ((eql x t) t)
+   ((eql y t) t)
+   ((and (eql (car x) 'or)
+         (eql (car y) 'or))
+    (cons 'or (append (cdr x) (cdr y))))))
+
+(defun exception-set-intersection (x y)
+  (econd
+   ((and (eql x t) (eql y t)) t)
+   ((and (eql x t) (listp y))
+    y)
+   ((and (listp x) (eql y t))
+    y)
+   ((and (listp x) (listp y))
+    (cons 'or (intersection x y :test #'source-text=)))))
+
+(defun exception-set-difference (x y)
+  (econd
+   ((and (eql x t) (eql y t))
+    '(or))
+   ((and (eql x t) (listp y))
+    ;; TODO
+    t)
+   ((and (listp x) (eql y t))
+    '(or))
+   ((and (listp x) (listp y))
+    (cons 'or
+          (set-difference
+           (append (rest x) (rest y))
+           (rest (exception-set-intersection x y))
+           :test #'source-text=)))))
+
+(def-attr-fun exception-set ()
+  (:documentation "Return the exception set of an AST.
+The set should be t (if it could throw anything) or a list starting
+with `or' for a specific list of exceptions.")
+  (:method ((ast literal-ast))
+    '(or))
+  (:method ((ast type-ast))
+    '(or))
+  (:method ((ast ast))
+    (if (no (children ast))
+        '(or)
+        (reduce #'exception-set-union
+                (children ast)
+                :key #'exception-set)))
+  (:method ((ast compound-ast))
+    (if (no (children ast))
+        '(or)
+        (reduce #'exception-set-union
+                (children ast)
+                :key #'exception-set)))
+  (:method ((ast throw-ast))
+    ;; TODO Add an infer-exception-type function we can use for C++ to
+    ;; assume functions are constructors?
+    (list 'or (infer-type (first (children ast)))))
+  (:method ((ast call-ast))
+    (reduce #'exception-set-union
+            (append
+             (mapcar #'exception-set (call-arguments ast))
+             (if-let ((fn-defs
+                       (get-declaration-asts :function (call-function ast))))
+               (mapcar #'exception-set fn-defs)
+               ;; If we have no definition, assume it could throw anything.
+               (list t))))))
+
 
 ;;;; Structured text
 ;;; TODO: remove this; it's for debugging.

@@ -1231,6 +1231,76 @@ export {
           (is (equal (exit-control-flow case-1)
                      (list fun))))))))
 
+(deftest test-declaration-noexcept ()
+  "Noexcept is recognized in declarations (not just definitions)."
+  (let ((cpp (cpp* "allocator_type get_allocator() const noexcept;")))
+    (with-attr-table cpp
+      (is (equal '(or) (exception-set cpp)))))
+  ;; T unless declared otherwise.
+  (let ((cpp (cpp* "allocator_type get_allocator() const;")))
+    (with-attr-table cpp
+      (is (equal t (exception-set cpp))))))
+
+(deftest test-exception-set/noexcept ()
+  "A function with noexcept should have an empty exception set, even if it throws."
+  ;; NB The user may mark functions noexcept even if they throw.
+  (let* ((src "void g() noexcept
+{
+    f();      // valid, even if f throws
+    throw 42; // valid, effectively a call to std::terminate
+}")
+         (cpp (from-string 'cpp src)))
+    (with-attr-table cpp
+      (is (exception-set
+           (find-if (of-type 'throw-ast) cpp)))
+      (is (equal '(or)
+                 (exception-set
+                  (find-if (of-type 'function-declaration-ast) cpp)))))))
+
+(deftest test-exception-set/catch ()
+  "Catch all without throw should empty the exception set."
+  (let* ((src "void g()
+{
+    try {
+        f();
+        throw 42;
+    } catch (...) {
+        return;
+    }
+}")
+         (cpp (from-string 'cpp src)))
+    (with-attr-table cpp
+      (is (exception-set
+           (find-if (of-type 'throw-ast) cpp)))
+      (is (equal '(or)
+                 (exception-set
+                  (find-if (of-type 'function-declaration-ast) cpp))))
+      (is (equal '(or)
+                 (exception-set
+                  (find-if (of-type 'cpp-try-statement) cpp)))))))
+
+(deftest test-exception-set/rethrow ()
+  "Rethrowing in the catch clause should leave the exception set unchanged."
+  (let* ((src "void g()
+{
+    try {
+        f();
+        throw 42;
+    } catch (const std::exception& e) {
+        throw;
+    }
+}")
+         (cpp (from-string 'cpp src)))
+    (with-attr-table cpp
+      (is (exception-set
+           (find-if (of-type 'throw-ast) cpp)))
+      (is (eql t
+               (exception-set
+                (find-if (of-type 'function-declaration-ast) cpp))))
+      (is (eql t
+               (exception-set
+                (find-if (of-type 'cpp-try-statement) cpp)))))))
+
 
 ;;; Parsing tests
 
