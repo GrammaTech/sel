@@ -686,7 +686,8 @@ for the language.")
        (:parameters-ast cpp-template-parameter-list)
        (:type-ast cpp-template-type)
        (:lambda-ast cpp-lambda-expression)
-       (:returnable-ast cpp-lambda-expression))
+       (:returnable-ast cpp-lambda-expression)
+       (:throw-statement-ast cpp-throw-statement))
       ((:c :cpp)
        (:c/cpp-+ c-+ cpp-+)
        (:c/cpp-- c-- cpp--)
@@ -879,6 +880,7 @@ for the language.")
        (:statement-ast java-statement)
        (:switch-expression-ast java-switch-expression)
        (:string-ast java-string-literal)
+       (:throw-statement-ast java-throw-statement)
        (:type-identifier-ast java-type-identifier)
        (:type-ast java-generic-type)
        (:unary-ast java-unary-expression)
@@ -992,7 +994,11 @@ for the language.")
        (:ecma-switch-statement
         javascript-switch-statement
         typescript-ts-switch-statement
-        typescript-tsx-switch-statement))
+        typescript-tsx-switch-statement)
+       (:throw-statement-ast
+        javascript-throw-statement
+        typescript-ts-throw-statement
+        typescript-tsx-throw-statement))
       (:python
        (:root-ast python-module)
        (:comment-ast python-comment)
@@ -1028,7 +1034,8 @@ for the language.")
        (:variable-declaration-ast python-assignment python-keyword-argument)
        (:parameter-ast python-parameter)
        (:assignment-ast python-assignment python-augmented-assignment)
-       (:catch-ast python-except-clause))
+       (:catch-ast python-except-clause)
+       (:throw-statement-ast python-raise-statement))
       (:rust
        (:arguments-ast rust-arguments)
        (:assignment-ast
@@ -1282,7 +1289,7 @@ definitions.")
        (c/cpp-string-literal string-ast)
        (c/cpp-struct-specifier composite-type-ast definition-ast type-declaration-ast)
        (c/cpp-subscript-expression subscript-ast)
-       (c/cpp-switch-statement breakable-ast statement-ast)
+       (c/cpp-switch-statement switch-statement-ast)
        (c/cpp-translation-unit root-ast)
        (c/cpp-true boolean-true-ast)
        (c/cpp-type-forward-declaration type-declaration-ast)
@@ -3316,6 +3323,12 @@ This consists of at least expressions."))
 
  (defclass break-statement-ast (break-ast statement-ast) ()
    (:documentation "Mix-in for an AST that breaks (exits) a loop."))
+
+ (defclass throw-ast (ast) ()
+   (:documentation "Mix-in for an AST that throws an error."))
+
+ (defclass throw-statement-ast (throw-ast statement-ast) ()
+   (:documentation "Mix-in for a statement that throws an error."))
 
  (defclass breakable-ast (control-flow-ast) ()
    (:documentation "A control flow AST that supports break."))

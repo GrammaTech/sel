@@ -510,6 +510,8 @@
            :continuable-ast
            :break-ast
            :breakable-ast
+           :throw-ast
+           :throw-statement-ast
            :class-ast
            :scope-ast-p
            :ltr-eval-ast-p
