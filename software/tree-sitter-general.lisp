@@ -1688,7 +1688,12 @@ with `or' for a specific list of exceptions.")
              (mapcar #'exception-set (call-arguments ast))
              (if-let ((fn-defs
                        (get-declaration-asts :function (call-function ast))))
-               (mapcar #'exception-set fn-defs)
+               (mapcar #'exception-set
+                       ;; Don't recurse on the enclosing function.
+                       (remove (find-enclosing 'function-declaration-ast
+                                               (attrs-root*)
+                                               ast)
+                               fn-defs))
                ;; If we have no definition, assume it could throw anything.
                (list t))))))
 
