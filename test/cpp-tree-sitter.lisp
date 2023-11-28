@@ -2111,6 +2111,24 @@ export {
     (with-attr-table cpp
       (is (not (empty? (symbol-table (genome cpp))))))))
 
+(deftest template-outer-declarations ()
+  (let ((cpp (convert 'cpp-ast "template <class InputIterator>  // constexpr in C++17
+  constexpr InputIterator next(InputIterator x,
+typename iterator_traits<InputIterator>::difference_type n = 1);"
+                      :deepest t)))
+    (is (source-text= "next" (only-elt (outer-declarations (genome cpp)))))))
+
+(deftest iterator-namespace-regression ()
+  "Test that we've fixed the bug in the iterator header synopsis."
+  (let ((cpp (from-string 'cpp-project "#include <iterator>
+std::next(x);")))
+    (with-attr-table cpp
+      (let* ((call (find-if (of-type 'call-ast) cpp))
+             (call-fn (call-function call))
+             (decl (get-declaration-ast :function call-fn))
+             (name (is (first (outer-declarations decl)))))
+        (is (equal "std" (namespace name)))))))
+
 
 ;;; Module tests
 

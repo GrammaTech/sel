@@ -1,6 +1,7 @@
 (defpackage :software-evolution-library/utility/include
   (:documentation "Code to regenerate standard library header synopses.")
   (:use :gt/full)
+  (:shadowing-import-from :serapeum :~>)
   (:export :*std-header-dir*
            :std-headers-available-p
            :extract-header-synopsis))
@@ -36,10 +37,12 @@
                         (read-file-into-string file)
                         "/* synopsis ")))
       ((equal (pathname-name file) "iterator")
-       (extract-synopsis-from-string
-        ;; Fix up an unparseable argument by turning hyphens into
-        ;; underscores.
-        (string-replace "a-private-type"
-                        (read-file-into-string file)
-                        "a_private_type")))
+       (~> file
+           read-file-into-string
+           ;; Fix up an unparseable argument by turning hyphens into
+           ;; underscores.
+           (string-replace "a-private-type" _ "a_private_type")
+           ;; Remove extra } that prematurely closes the std namespace.
+           (string-replace "}}" _ "}")
+           extract-synopsis-from-string))
       (t (extract-synopsis-from-string (read-file-into-string file))))))

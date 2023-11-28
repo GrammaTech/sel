@@ -881,6 +881,9 @@ to look it up as `x::z' or just `z'."
     (values types
             (mapcar (constantly :type) types))))
 
+(defmethod outer-declarations ((ast cpp-template-declaration))
+  (outer-declarations-merge (children ast)))
+
 (deftype member-access ()
   '(member :public :private :protected))
 
