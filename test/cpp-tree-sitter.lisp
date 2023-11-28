@@ -2199,6 +2199,17 @@ std::next(x);")))
              (name (is (first (outer-declarations decl)))))
         (is (equal "std" (namespace name)))))))
 
+(deftest test-method-resolution-in-class ()
+  "Methods should be able to see other methods defined later in the same class."
+  (let ((cpp (from-string 'cpp "class myclass {
+  void method_two() { method_one(); }
+
+  void method_one() { do_something(); }
+};")))
+    (with-attr-table cpp
+      (let* ((call (is (find-if (of-type 'call-ast) cpp))))
+        (is (get-declaration-ast :function call))))))
+
 
 ;;; Module tests
 
