@@ -70,12 +70,12 @@
                          (rec (1+ pos) bracket-count acc)
                          (rec (1+ pos) bracket-count (cons char acc)))))))))))
 
-(defun qualified-name-variants (qname)
+(defun qualified-name-lookup-variants (qname)
   "List variants under which to look up QNAME.
 For example, for a qualified name like `x::y::z', we might also want
 to look it up as `x::z' or just `z'."
   (unless (search "::" qname)
-    (return-from qualified-name-variants
+    (return-from qualified-name-lookup-variants
       (list qname)))
   (let ((parts (split "::" qname)))
     (if (single parts) parts
@@ -751,6 +751,10 @@ to look it up as `x::z' or just `z'."
       (cpp-declarator
        (list (and declarator (cpp-function-declarator)))))
      (outer-declarations declarator))
+    ((cpp-field-declaration
+      (cpp-declarator
+       (list (and id (cpp-field-identifier)))))
+     (list id))
     ((access #'extract-nested-class
              (and type (type ast)))
      (outer-declarations type))
@@ -834,6 +838,18 @@ to look it up as `x::z' or just `z'."
     (filter #'extract-nested-class
             (children body))))
 
+(defun static-member? (ast)
+  (match ast
+    ((cpp-field-declaration
+      :cpp-pre-specifiers pre-specifiers)
+     (find-if (op (source-text= "static" _))
+              pre-specifiers))))
+
+(defun static-members (ast)
+  (when-let (body (cpp-body ast))
+    (filter #'static-member?
+            (children body))))
+
 (defun add-nested-class-declarations (ast decls types)
   "Add nested class definitions in AST to DECLS and TYPES."
   (multiple-value-bind (nested-decls nested-types)
@@ -841,21 +857,49 @@ to look it up as `x::z' or just `z'."
     (values (append nested-decls decls)
             (append nested-types types))))
 
+(defun add-cpp-class-outer-declarations (ast decls types)
+  (multiple-value-bind (new-decls new-types)
+      (when-let (body (cpp-body ast))
+        (outer-declarations-merge
+         (filter (op (or (extract-nested-class _1)
+                         (static-member? _1)))
+                 (children body))))
+    (values (append new-decls decls)
+            (append new-types types))))
+
+(defun add-outer-declarations-from-fields (fields decls types)
+  "Add outer declarations from FIELDS to DECLS and TYPES."
+  (multiple-value-bind (new-decls new-types)
+      (outer-declarations-merge fields)
+    (values (append new-decls decls)
+            (append new-types types))))
+
+(defun add-field-declarations/down (ast decls types)
+  "Add appropriate outer field declarations to AST's symbol table."
+  (add-outer-declarations-from-fields (nested-classes ast) decls types))
+
+(defun add-field-declarations/up (ast decls types)
+  "Export appropriate outer field declarations to the symbol table leaving AST."
+  (add-outer-declarations-from-fields
+   (append (nested-classes ast)
+           (static-members ast))
+   decls types))
+
 (defmethod inner-declarations :around ((ast cpp-class-specifier))
   (multiple-value-bind (decls types) (call-next-method)
-    (add-nested-class-declarations ast decls types)))
+    (add-field-declarations/down ast decls types)))
 
 (defmethod outer-declarations :around ((ast cpp-class-specifier))
   (multiple-value-bind (decls types) (call-next-method)
-    (add-nested-class-declarations ast decls types)))
+    (add-field-declarations/up ast decls types)))
 
 (defmethod inner-declarations :around ((ast cpp-struct-specifier))
   (multiple-value-bind (decls types) (call-next-method)
-    (add-nested-class-declarations ast decls types)))
+    (add-field-declarations/down ast decls types)))
 
 (defmethod outer-declarations :around ((ast cpp-struct-specifier))
   (multiple-value-bind (decls types) (call-next-method)
-    (add-nested-class-declarations ast decls types)))
+    (add-field-declarations/up ast decls types)))
 
 (defmethod outer-declarations ((ast cpp-alias-declaration))
   (values (list (cpp-name ast)) '(:type)))
@@ -1855,14 +1899,29 @@ available to use at any point in a C++ AST.")
            (and (string^= "::" source-text)
                 (list :global))
            (butlast parts)))
+         (class-namespace
+          (static-member-name-qualifier declared-ast))
+         (explicit
+          (if class-namespace
+              (cons class-namespace explicit)
+              explicit))
          (combined
           (combine-namespace-qualifiers explicit implicit)))
     (string-join (append1 combined (lastcar parts))
                  "::")))
 
-(defmethod qualify-declared-ast-names ((declared-ast cpp-ast))
+(defun static-member-name-qualifier (ast &key (root (attrs-root*)))
+  "Derive the extra name qualifier for a static member."
+  (and-let* (((typep ast 'cpp-field-identifier))
+             (decl (find-enclosing 'cpp-field-declaration root ast))
+             ((static-member? decl))
+             (class (find-enclosing 'type-declaration-ast root ast))
+             (class-name (definition-name-ast class)))
+    (source-text class-name)))
+
+(defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."
-  (qualified-name-variants (qualify-declared-ast-name declared-ast)))
+  (qualified-name-lookup-variants (qualify-declared-ast-name declared-ast)))
 
 (defmethod qualify-declared-ast-name ((id cpp-type-identifier))
   (or (and-let* ((type (find-enclosing 'type-declaration-ast (attrs-root*) id))

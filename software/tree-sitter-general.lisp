@@ -4379,13 +4379,13 @@ looking them up.")
   (:method ((ast alternative-ast))
     (source-text ast)))
 
-(defgeneric qualify-declared-ast-names (ast)
+(defgeneric qualify-declared-ast-names-for-lookup (ast)
   (:documentation "Generate qualified names for AST.
 This is used when looking up symbols in the symbol table.")
   (:method ((ast ast))
     (list (qualify-declared-ast-name ast)))
   (:method ((ast alternative-ast))
-    (mappend #'qualify-declared-ast-names (children ast))))
+    (mappend #'qualify-declared-ast-names-for-lookup (children ast))))
 
 (defsubst symbol-table-lookup (symbol-table query)
   "Lookup QUERY in SYMBOL-TABLE.
@@ -4399,9 +4399,9 @@ with debug settings it can be traced."
     (let* ((symbol-table (symbol-table ast)))
       (symbol-table-lookup symbol-table query)))
   (:method ((ast ast) (ns null) (query ast))
-    (find-in-symbol-table ast ns (qualify-declared-ast-names query)))
+    (find-in-symbol-table ast ns (qualify-declared-ast-names-for-lookup query)))
   (:method ((ast ast) (ns symbol) (query ast))
-    (find-in-symbol-table ast ns (qualify-declared-ast-names query)))
+    (find-in-symbol-table ast ns (qualify-declared-ast-names-for-lookup query)))
   (:method ((ast ast) (namespace symbol) (query string))
     (when-let* ((symbol-table (symbol-table ast))
                 (ns-table (lookup symbol-table namespace)))

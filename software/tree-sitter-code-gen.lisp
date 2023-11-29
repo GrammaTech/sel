@@ -356,7 +356,11 @@ for the language.")
         (c-body :reader body :initarg :body)
         (c-condition :reader condition :initarg :condition))
        (c-case-statement
-        (c-statements :reader body :initarg :body)))
+        (c-statements :reader body :initarg :body))
+       (c-class-specifier
+        (c-body :reader body :initarg :body))
+       (c-struct-specifier
+        (c-body :reader body :initarg :body)))
       (:cpp
        (cpp-init-declarator
         (cpp-declarator :initarg :lhs :reader lhs)
@@ -414,7 +418,11 @@ for the language.")
         (cpp-body :reader body :initarg :body)
         (cpp-condition :reader condition :initarg :condition))
        (cpp-case-statement
-        (cpp-statements :reader body :initarg :body)))
+        (cpp-statements :reader body :initarg :body))
+       (cpp-class-specifier
+        (cpp-body :reader body :initarg :body))
+       (cpp-struct-specifier
+        (cpp-body :reader body :initarg :body)))
       (:golang
        (golang-call-expression
         (golang-arguments :reader call-arguments-ast :initarg :arguments))

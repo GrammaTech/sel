@@ -24,7 +24,7 @@
                 :strip-template-arguments)
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers
-                :qualified-name-variants)
+                :qualified-name-lookup-variants)
   (:local-nicknames (:project :software-evolution-library/software/project)
                     (:dir :software-evolution-library/software/directory))
   (:export :test-cpp-tree-sitter))
@@ -2073,10 +2073,10 @@ different orders."
                         ("x" (collect-if (op (equal (source-text _) "x"))
                                          root)))))))))))
 
-(deftest test-qualified-name-variants ()
-  (is (equal '("x") (qualified-name-variants "x")))
-  (is (equal '("x::y" "y") (qualified-name-variants "x::y")))
-  (is (equal '("x::y::z" "x::z" "z") (qualified-name-variants "x::y::z"))))
+(deftest test-qualified-name-lookup-variants ()
+  (is (equal '("x") (qualified-name-lookup-variants "x")))
+  (is (equal '("x::y" "y") (qualified-name-lookup-variants "x::y")))
+  (is (equal '("x::y::z" "x::z" "z") (qualified-name-lookup-variants "x::y::z"))))
 
 (deftest cpp-test-nested-namespace-lookup ()
   "Test that we \"inherit\" definitions from the surrounding namespace."
@@ -2219,6 +2219,30 @@ std::next(x);")))
   (let ((cpp (convert 'cpp-ast "static_cast<int>(1.0)" :deepest t)))
     (with-attr-table cpp
       (is (equal '(or) (exception-set cpp))))))
+
+(deftest test-static-members-visible ()
+  (let ((cpp
+         (cpp* "class system_clock {
+public:
+  static const bool is_steady = false; // constexpr in C++14
+  static time_point now() noexcept;
+  static time_t to_time_t(const time_point &__t) noexcept;
+  static time_point from_time_t(time_t __t) noexcept;
+
+  void print_now() {
+      std::cout << now() << std::endl;
+  }
+};
+system_clock::now();
+")))
+    (with-attr-table cpp
+      (is (length= 5
+                   (outer-declarations (find-if (of-type 'cpp-class-specifier) cpp))))
+      ;; Check they are resolve inside and outside the class.
+      (destructuring-bind (call-inside-class call-outside-class)
+          (collect-if (of-type 'call-ast) cpp)
+        (is (get-declaration-ast :function call-inside-class))
+        (is (get-declaration-ast :function call-outside-class))))))
 
 
 ;;; Module tests

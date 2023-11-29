@@ -306,7 +306,7 @@ pointer declarations which are nested on themselves."
     (values nil nil)))
 
 (defmethod inner-declarations ((ast c/cpp-classoid-specifier))
-  ;; Make the type and its members and methods visible inside the type.
+  "Make the type and its members and methods visible inside the type."
   (flet ((sort-map-range (map)
            "Sort the range (values) of a map according to file position."
            (nreverse
