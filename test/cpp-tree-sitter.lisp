@@ -2215,6 +2215,11 @@ std::next(x);")))
     (with-attr-table cpp
       (finishes (exception-set cpp)))))
 
+(deftest test-static-cast-noexcept ()
+  (let ((cpp (convert 'cpp-ast "static_cast<int>(1.0)" :deepest t)))
+    (with-attr-table cpp
+      (is (equal '(or) (exception-set cpp))))))
+
 
 ;;; Module tests
 

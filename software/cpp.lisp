@@ -1592,7 +1592,7 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
       (call-next-method)))
 
 (defparameter *morally-noexcept*
-  (set-hash-table '("next" "begin" "end" "cbegin" "cend") :test #'equal)
+  (set-hash-table '("static_cast" "next" "begin" "end" "cbegin" "cend") :test #'equal)
   "List of STL functions that are morally noexcept, Lakos Rule notwithstanding.")
 
 (defmethod morally-noexcept? ((fn-name identifier-ast))
@@ -1668,6 +1668,16 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
        (or (find-enclosing 'cpp-catch-clause (attrs-root*) ast)
            (error "No enclosing catch clause for throw without argument")))
       (call-next-method)))
+
+(defmethod exception-set ((ast cpp-call-expression))
+  (match ast
+    ((cpp-call-expression
+      :function (cpp-template-function
+                 :cpp-name name))
+     (if (morally-noexcept? name)
+         '(or)
+         (call-next-method)))
+    (otherwise (call-next-method))))
 
 
 ;;; Whitespace rules
