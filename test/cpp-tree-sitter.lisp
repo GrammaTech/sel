@@ -2210,6 +2210,11 @@ std::next(x);")))
       (let* ((call (is (find-if (of-type 'call-ast) cpp))))
         (is (get-declaration-ast :function call))))))
 
+(deftest test-default-methods-clause-exception-set-regression ()
+  (let ((cpp (convert 'cpp-ast "constexpr duration() = default;" :deepest t)))
+    (with-attr-table cpp
+      (finishes (exception-set cpp)))))
+
 
 ;;; Module tests
 

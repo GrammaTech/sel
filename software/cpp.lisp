@@ -1612,14 +1612,21 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (morally-noexcept? (cpp-declarator decl)))
 
 (defmethod exception-set ((ast cpp-function-definition))
-  (cond ((find-if (of-type 'cpp-noexcept)
-                  (direct-children (cpp-declarator ast)))
-         ;; NB A noexcept function can contain a throw statement, but it
-         ;; can't escape the function.
-         '(or))
-        ((morally-noexcept? (definition-name-ast ast))
-         '(or))
-        (t (exception-set (cpp-body ast)))))
+  (cond-let found
+    ((find-if (of-type 'cpp-noexcept)
+              (direct-children (cpp-declarator ast)))
+     ;; NB A noexcept function can contain a throw statement, but it
+     ;; can't escape the function.
+     '(or))
+    ((morally-noexcept? (definition-name-ast ast))
+     '(or))
+    ((cpp-body ast)
+     (exception-set found))
+    ((find-if (of-type 'cpp-default-method-clause) ast)
+     ;; TODO Handle default exception set semantics for
+     ;; constructors/destructors.
+     '(or))
+    (t '(or))))
 
 (defmethod exception-set ((ast cpp-declaration))
   (match (cpp-declarator ast)
