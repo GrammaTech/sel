@@ -2016,14 +2016,14 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
   (labels ((remove-ignorable-items (tree)
              "Remove ignorable items from PARSE-TREE. This includes comments,
               errors, and internal ast slots."
+             (declare (inline memq)
+                      (optimize (speed 3)))
              (when tree
                `(,(car tree)
                  ,(cadr tree)
-                 ,(mapcar
-                   #'remove-ignorable-items
-                   (remove-if
-                    (op (memq (car _) extra-asts))
-                    (caddr tree))))))
+                 ,(iter (for child in (caddr tree))
+                        (unless (memq (car child) extra-asts)
+                          (collect (remove-ignorable-items child)))))))
            (get-children ()
              "Get the children slots and their types from parse-tree."
              (iter
