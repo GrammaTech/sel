@@ -2299,6 +2299,15 @@ int main() {
       (is (equal '(or)
                  (exception-set fn))))))
 
+(deftest test-include-of-macro ()
+  (let* ((src "#ifdef BOOST_HAS_ABI_HEADERS
+#  include BOOST_ABI_PREFIX
+#endif")
+         (cpp (from-string 'cpp src)))
+    (is (null (sel/sw/c-cpp-project::include-ast-path-ast
+               (find-if (of-type 'cpp-preproc-include)
+                        cpp))))))
+
 
 ;;; Module tests
 

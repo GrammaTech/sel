@@ -772,6 +772,10 @@ inference.  Used to prevent circular attr propagation.")
     ((c/cpp-preproc-include
       (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
      path-ast)
+    ;; E.g. #include BOOST_ABI_PREFIX.
+    ((c/cpp-preproc-include
+      (c/cpp-path (identifier-ast)))
+     nil)
     ((cpp-import-declaration
       (cpp-name (and path-ast (c/cpp-system-lib-string))))
      path-ast)))
@@ -779,7 +783,7 @@ inference.  Used to prevent circular attr propagation.")
 (defun find-include (project file header-dirs include-ast
                      &key (global *global-search-for-include-files*))
   (assert file)
-  (let ((path-ast (include-ast-path-ast include-ast)))
+  (when-let ((path-ast (include-ast-path-ast include-ast)))
     (labels ((find-include (global)
                (some
                 (lambda (dir)
