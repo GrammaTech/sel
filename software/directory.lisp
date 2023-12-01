@@ -45,7 +45,15 @@
   "If a project has fewer files than this, do not bother
   parallelizing.")
 
-(define-software directory-project (project parseable) ()
+(define-software directory-project (project parseable)
+  ((lazy-paths
+    :initarg :lazy-paths
+    :reader lazy-paths
+    :documentation
+    "List of paths to exclude from the directory AST."))
+  (:default-initargs
+   ;; TODO Should be defined from .gitignore.
+   :lazy-paths nil)
   (:documentation "A directory of files and software.
 - Genome (from parseable) holds the directory structure.
   By inheriting from parseable we get support for the many common
@@ -53,6 +61,13 @@
   objects.
 
 - evolve-files and other-files (from project) hold software objects"))
+
+(defun lazy-path-p (path &key lazy-paths root
+                    &aux (path (canonical-pathname path)))
+  (when root
+    (setf path (enough-pathname path root)))
+  (find-if (op (pathname-match-p path _))
+           lazy-paths))
 
 (defmethod equal? ((x directory-project) (y directory-project))
   (equal? (genome x) (genome y)))
@@ -432,7 +447,9 @@ optimization settings."
           (list (genome software-object)))))
 
 (deftype parsed-genome ()
-  '(or ast (cons (eql :error) t)))
+  '(or ast
+    (cons (eql :error) t)
+    (eql :lazy)))
 
 (defun evolve-files-thread-count (evolve-files)
   ;; (task-map 1 ...) is equivalent to (mapcar ...).
@@ -440,66 +457,84 @@ optimization settings."
       (max 1 (count-cpus))
       1))
 
+(defun safe-genome (software &key (progress-fn #'do-nothing)
+                               lazy-paths root)
+  (lret ((genome
+          (if (lazy-path-p (file:original-path software)
+                           :lazy-paths lazy-paths
+                           :root root)
+              :lazy
+              (handler-case
+                  (with-thread-name
+                      (:name (fmt "Parsing ~a" (file:original-path software)))
+                    (genome software))
+                (error (e)
+                  (cons :error e))))))
+    (funcall progress-fn genome)))
+
+(defun eformat (control-string &rest args)
+  (format *error-output* "~?" control-string args)
+  (force-output *error-output*))
+
 (defun parallel-parse-genomes
-    (evolve-files &key (progress-fn #'do-nothing))
-  (tg:gc :full t)
-  (multiple-value-prog1
-      (fbind (progress-fn)
-        (mvlet* ((files len
-                  (iter (for len from 0)
-                        (for (nil . file) in evolve-files)
-                        (collect file into files)
-                        (finally (return (values files len))))))
-          (flet ((safe-genome (software)
-                   (lret ((genome
-                           (handler-case
-                               (with-thread-name
-                                   (:name (fmt "Parsing ~a" (file:original-path software)))
-                                 (genome software))
-                             (error (e)
-                               (cons :error e)))))
-                     (progress-fn genome))))
-            (if (< len *directory-project-parallel-minimum*)
-                (mapcar #'safe-genome files)
-                ;; Some form of makespan minimization might be useful
-                ;; here. E.g. the longest files could be evenly
-                ;; distributed across threads and processed first to
-                ;; avoid "tails" where one thread runs much longer
-                ;; than the others.
-                (task:task-map-in-order
-                 (evolve-files-thread-count evolve-files)
-                 #'safe-genome
-                 files)))))
-    (tg:gc :full t)))
+    (project evolve-files &key (progress-fn #'do-nothing))
+  (eformat "Parsing genomes~%")
+  (let ((lazy-paths (lazy-paths project))
+        (root (project-dir project)))
+    (mvlet* ((files len
+              (iter (for len from 0)
+                    (for (nil . file) in evolve-files)
+                    (collect file into files)
+                    (finally (return (values files len)))))
+             (fn (dynamic-closure
+                  '(*error-output*)
+                  (op (safe-genome _ :lazy-paths lazy-paths
+                                     :progress-fn progress-fn
+                                     :root root)))))
+      (if (< len *directory-project-parallel-minimum*)
+          (mapcar fn files)
+          (task:task-map-in-order
+           (evolve-files-thread-count evolve-files)
+           fn
+           files)))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
+  (eformat "Collecting files~%")
   (let* ((evolve-files (call-next-method))
          (genomes
-          (parallel-parse-genomes evolve-files
+          (parallel-parse-genomes obj
+                                  evolve-files
                                   :progress-fn
                                   (lambda (genome)
                                     (synchronized ()
                                       (etypecase-of parsed-genome genome
+                                        ((eql :lazy)
+                                         (eformat "?"))
                                         (ast
-                                         (format *error-output* ".")
-                                         (force-output *error-output*))
+                                         (eformat "."))
                                         ((cons (eql :error) t)
-                                         (format *error-output* "X")
-                                         (force-output *error-output*))))))))
+                                         (eformat "X")))))))
+         (skip-all nil))
+    (eformat "Inserting genomes into AST~%")
     (iter (for (path . software-object) in evolve-files)
           (for genome = (pop genomes))
-          (etypecase-of parsed-genome genome
-            (ast (insert-file obj path software-object))
-            ((cons (eql :error) t)
-             (restart-case
-                 (error (cdr genome))
-               (continue ()
-                 :report "Skip evolve file"
-                 (next-iteration))
-               (skip-all-unparsed-files ()
-                 :report "Skip all unparsed files"
-                 (setf genomes (remove-if #'consp genomes))
-                 (next-iteration))))))))
+          (restart-case
+              (etypecase-of parsed-genome genome
+                ((eql :lazy))
+                (ast
+                 (insert-file obj path software-object))
+                ((cons (eql :error) t)
+                 (restart-case
+                     (if skip-all
+                         (next-iteration)
+                         (error (cdr genome)))
+                   (skip-all-unparsed-files ()
+                     :report "Skip all unparsed files"
+                     (setf skip-all t)
+                     (next-iteration)))))
+            (continue ()
+              :report "Skip evolve file"
+              (next-iteration))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)

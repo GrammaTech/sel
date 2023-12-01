@@ -677,7 +677,7 @@ struct Point {
            (infer-type (find-if (of-type 'cpp-initializer-list) v)))))))
 
 (deftest test-lookup-type-from-inside-type ()
-  (let* ((sw (from-string 'cpp-project "struct Point {
+  (let* ((sw (from-string 'cpp "struct Point {
   double x,y;
   double Distance(const Point & p) {
     const auto a = this.x - p.y;

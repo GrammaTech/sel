@@ -1119,9 +1119,15 @@ the `genome' of the software object."
 
 (defmethod genome :before ((obj parseable))
   "Lazily parse the genome upon first access."
-  (when (stringp (slot-value obj 'genome))
-    (setf (slot-value obj 'genome)
-          (parse-asts obj))))
+  (typecase (slot-value obj 'genome)
+    (string
+     (setf (slot-value obj 'genome)
+           (parse-asts obj)))
+    (pathname
+     (setf (slot-value obj 'genome)
+           (parse-asts
+            obj
+            (file-to-string (slot-value obj 'genome)))))))
 
 (defmethod (setf genome) :before ((new t) (obj parseable))
   "Clear fitness prior to updating to the NEW genome."

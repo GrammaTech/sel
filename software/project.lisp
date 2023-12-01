@@ -124,14 +124,14 @@ object (e.g., the original program).")
   (setf (slot-value project 'ignore-other-paths)
         (union *always-ignore-paths* (ignore-other-paths project) :test #'equal)
         (slot-value project 'ignore-paths)
-        (union *always-ignore-paths* (ignore-paths project) :test #'equal))
+        (union *always-ignore-paths* (ignore-paths project) :test #'equal)))
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
   (flet ((included (files)
            (find-if {pathname-match-p canonical-path} files)))
     (or (and only-paths (not (included only-paths)))
-        (included ignore-paths)))))
+        (included ignore-paths))))
 
 (defgeneric evolve-files-ref (software path)
   (:documentation "Lookup PATH in the evolve-files of SOFTWARE.")

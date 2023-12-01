@@ -612,7 +612,11 @@ the standard path and add it to PROJECT."))
     (let ((result (call-next-method)))
       (setf #1=(genome result) (make-instance 'c/cpp-root
                                               :project-directory #1#))
-      (mapc #'maybe-populate-header project)
+      (iter (for (nil . sw) in (evolve-files project))
+            (when (typep (slot-value sw 'genome) 'ast)
+              (mapc #'maybe-populate-header
+                    (genome sw))))
+      ;; (mapc #'maybe-populate-header project)
       result)))
 
 
@@ -687,7 +691,7 @@ This is used as a fallback when we have no header search path."
                                          (pathname-type include-path)))))
                        (evolve-files project))))
                  (if (null (cdr matches))
-                     (cdar matches)
+                     (car matches)
                      (if-let* ((m (find absolute-include-path matches
                                         :key (op (original-path (cdr _)))
                                         :test #'equal)))
@@ -695,7 +699,7 @@ This is used as a fallback when we have no header search path."
                        ;; targeted by the include relative to the including
                        ;; file, choose it even if there are files elsewhere
                        ;; with the same name.
-                       (cdr m)
+                       m
                        (restart-case
                            (error 'include-conflict-error
                                   :ast path-ast
@@ -705,14 +709,14 @@ This is used as a fallback when we have no header search path."
                            nil)
                          (first ()
                            :report "Return the first candidate"
-                           (cdar matches))
+                           (car matches))
                          (whichever ()
                            :report "Pick one at random"
-                           (cdr (random-elt matches)))
+                           (random-elt matches))
                          (use-value (match)
                            :report "Specify the header to use"
                            (assert (member match matches))
-                           (cdr match)))))))
+                           match))))))
              (simple-relative-search ()
                "Do a search relative to BASE, if supplied, or the location of
 the including file."
@@ -721,12 +725,20 @@ the including file."
                ;; of paths to search in. TODO: Allow searching
                ;; up through grandparent directories (as some
                ;; compilers do).
-               (aget include-path-string
-                     (evolve-files project)
-                     :test #'equal)))
-      (or (simple-relative-search)
-          (and global
-               (global-search))))))
+               (assoc include-path-string
+                      (evolve-files project)
+                      :test #'equal)))
+      (when-let (result
+                 (or (simple-relative-search)
+                     (and global
+                          (global-search))))
+        (if (not (typep (slot-value (cdr result) 'genome) 'ast))
+            (progn
+              (format *error-output* "~%Loading ~a~%" (car result))
+              (force-output *error-output*)
+              (sel/sw/directory::insert-file project (car result) (cdr result))
+              (cdr result))
+            (cdr result))))))
 
 
 ;;; Includes Symbol Table
