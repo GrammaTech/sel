@@ -414,6 +414,8 @@ See the `task-job' method on `task-map' objects."))
   "Return a function which will spawn jobs for all of TASK's objects."
   (declare (ignore runner))
   (let ((objs (task-object task)))
+    ;; Release the task object so it can be GC'd.
+    (setf (task-object task) nil)
     (lambda () (when objs
                  ;; Return a task-item whose task-object run
                  ;; FUNCTION on the next element of OBJECTS.
