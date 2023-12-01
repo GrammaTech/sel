@@ -433,6 +433,12 @@ optimization settings."
 (deftype parsed-genome ()
   '(or ast (cons (eql :error) t)))
 
+(defun evolve-files-thread-count (evolve-files)
+  ;; (task-map 1 ...) is equivalent to (mapcar ...).
+  (if (length>= evolve-files *directory-project-parallel-minimum*)
+      (max 1 (count-cpus))
+      1))
+
 (defun parallel-parse-genomes
     (evolve-files &key (progress-fn #'do-nothing))
   (fbind (progress-fn)
@@ -457,7 +463,7 @@ optimization settings."
             ;; distributed across threads and processed first to
             ;; avoid "tails" where one thread runs much longer
             ;; than the others.
-            (task:task-map (count-cpus)
+            (task:task-map (evolve-files-thread-count evolve-files)
                            #'safe-genome
                            files))))))
 
