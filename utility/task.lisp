@@ -138,7 +138,8 @@
    :run-task-and-block
    :some-task
    :some-task-pred
-   :some-test-task))
+   :some-test-task
+   :task-map-in-order))
 (in-package :software-evolution-library/utility/task)
 
 (defstruct task-runner
@@ -427,8 +428,18 @@ See the `task-job' method on `task-map' objects."))
   (task-save-result runner (funcall (task-object task))))
 
 (defun task-map (num-threads function objects)
-  "Run FUNCTION over OBJECTS using a `simple-job' `task-job'.
-This function preserves the order of OBJECTS."
+  "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
+  (if (<= num-threads 1)
+      (mapcar function objects)   ; No threading when num-threads <= 1.
+      (task-runner-results  ; Return the results from the results obj.
+       ;; Create the task-map object, and run until exhausted.
+       (run-task-and-block (make-instance 'task-map
+                                          :object objects
+                                          :task-function function)
+                           num-threads))))
+
+(defun task-map-in-order (num-threads function objects)
+  "Like `task-map', but preserves the order of OBJECTS in the output."
   (if (<= num-threads 1)
       (mapcar function objects)  ; No threading when num-threads <= 1.
       ;; Use index . value pairs so we preserve the order of results.
@@ -439,13 +450,7 @@ This function preserves the order of OBJECTS."
                     (for object in objects)
                     (collect (cons i object))))
              (results
-              (task-runner-results ; Return the results from the results
-                                        ; obj.
-               ;; Create the task-map object, and run until exhausted.
-               (run-task-and-block (make-instance 'task-map
-                                                  :object objects
-                                                  :task-function function)
-                                   num-threads)))
+              (task-map num-threads function objects))
              (vector (make-array (length results))))
         (iter (for (i . value) in results)
               (setf (aref vector i) value))

@@ -463,9 +463,10 @@ optimization settings."
             ;; distributed across threads and processed first to
             ;; avoid "tails" where one thread runs much longer
             ;; than the others.
-            (task:task-map (evolve-files-thread-count evolve-files)
-                           #'safe-genome
-                           files))))))
+            (task:task-map-in-order
+             (evolve-files-thread-count evolve-files)
+             #'safe-genome
+             files))))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
   (let* ((evolve-files (call-next-method))
