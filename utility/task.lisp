@@ -427,15 +427,29 @@ See the `task-job' method on `task-map' objects."))
   (task-save-result runner (funcall (task-object task))))
 
 (defun task-map (num-threads function objects)
-  "Run FUNCTION over OBJECTS using a `simple-job' `task-job'."
+  "Run FUNCTION over OBJECTS using a `simple-job' `task-job'.
+This function preserves the order of OBJECTS."
   (if (<= num-threads 1)
-      (mapcar function objects)   ; No threading when num-threads <= 1.
-      (task-runner-results  ; Return the results from the results obj.
-       ;; Create the task-map object, and run until exhausted.
-       (run-task-and-block (make-instance 'task-map
-                             :object objects
-                             :task-function function)
-                           num-threads))))
+      (mapcar function objects)  ; No threading when num-threads <= 1.
+      ;; Use index . value pairs so we preserve the order of results.
+      (let* ((function (ensure-function function))
+             (function (op (cons (car _1) (funcall function (cdr _1)))))
+             (objects
+              (iter (for i from 0)
+                    (for object in objects)
+                    (collect (cons i object))))
+             (results
+              (task-runner-results ; Return the results from the results
+                                        ; obj.
+               ;; Create the task-map object, and run until exhausted.
+               (run-task-and-block (make-instance 'task-map
+                                                  :object objects
+                                                  :task-function function)
+                                   num-threads)))
+             (vector (make-array (length results))))
+        (iter (for (i . value) in results)
+              (setf (aref vector i) value))
+        (coerce vector 'list))))
 
 (defun task-map-async (num-threads func objects)
   "Run FUNC over OBJECTS using a `simple-job' `task-job'."
