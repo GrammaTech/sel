@@ -662,7 +662,7 @@ struct Point {
   )
 
 (deftest test-infer-return-type ()
-  (let* ((sw (from-string 'cpp-project +struct-with-methods+)))
+  (let* ((sw (from-string 'cpp +struct-with-methods+)))
     (with-attr-table sw
       (nest (is)
             (source-text= "double")
