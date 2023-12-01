@@ -39,60 +39,70 @@
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
+(defparameter *always-ignore-paths*
+  '(".git/**/*"
+    ".vscode/**/*"
+    ".ccls-cache/**/*"
+    ".DS_Store/**/*"))
+
+(defparameter *default-ignore-paths*
+  '())
+
 (define-software project (software)
-    ((build-command :initarg :build-command :reader build-command
-                    :initform nil
-                    :documentation "Shell command to build the project.")
-     (artifacts :initarg :artifacts :reader artifacts :initform nil
-                :documentation
-                "Artifacts (e.g., executables) of the project build.")
-     (evolve-files :initarg :evolve-files :accessor evolve-files
-                   :initform nil
-                   :documentation
-                   "Files within the project to mutate.
-This holds a list of cons cells of the form (path . software-object-for-path)."
-                   :copier copy-files)
-     (other-files
-      :initarg :other-files :accessor other-files :initform nil
-      :documentation
-      "Source files which may be used but not evolved.
-This holds a list of cons cells of the form (path . software-object-for-path)."
-      :copier copy-files)
-     (ignore-paths
-      :initarg :ignore-paths
-      :reader ignore-paths
-      :initform nil
-      :documentation
-      "List of paths to ignore when collecting evolve-files.
-Paths may contain wildcards.")
-     (only-paths
-      :initarg :only-paths
-      :reader only-paths
-      :initform nil
-      :documentation
-      "List of paths to only consider when collecting evolve-files.
-Paths may contain wildcards.")
-     (ignore-other-paths
-      :initarg :ignore-other-paths
-      :reader ignore-other-paths
-      :initform nil
-      :documentation
-      "List of paths to ignore when collecting other-files.
-Paths may contain wildcards.")
-     (only-other-paths
-      :initarg :only-other-paths
-      :reader only-other-paths
-      :initform nil
-      :documentation
-      "List of paths to only consider when collecting other-files.
-Paths may contain wildcards.")
-     (component-class
-      :initarg :component-class :accessor component-class :initform nil
-      :documentation "Software object class to utilize in component objects.")
-     (project-dir :initarg :project-dir
-                  :accessor project-dir
+  ((build-command :initarg :build-command :reader build-command
                   :initform nil
-                  :documentation "Source directory containing the project."))
+                  :documentation "Shell command to build the project.")
+   (artifacts :initarg :artifacts :reader artifacts :initform nil
+              :documentation
+              "Artifacts (e.g., executables) of the project build.")
+   (evolve-files :initarg :evolve-files :accessor evolve-files
+                 :initform nil
+                 :documentation
+                 "Files within the project to mutate.
+This holds a list of cons cells of the form (path . software-object-for-path)."
+                 :copier copy-files)
+   (other-files
+    :initarg :other-files :accessor other-files :initform nil
+    :documentation
+    "Source files which may be used but not evolved.
+This holds a list of cons cells of the form (path . software-object-for-path)."
+    :copier copy-files)
+   (ignore-paths
+    :initarg :ignore-paths
+    :reader ignore-paths
+    :documentation
+    "List of paths to ignore when collecting evolve-files.
+Paths may contain wildcards.")
+   (only-paths
+    :initarg :only-paths
+    :reader only-paths
+    :initform nil
+    :documentation
+    "List of paths to only consider when collecting evolve-files.
+Paths may contain wildcards.")
+   (ignore-other-paths
+    :initarg :ignore-other-paths
+    :reader ignore-other-paths
+    :documentation
+    "List of paths to ignore when collecting other-files.
+Paths may contain wildcards.")
+   (only-other-paths
+    :initarg :only-other-paths
+    :reader only-other-paths
+    :initform nil
+    :documentation
+    "List of paths to only consider when collecting other-files.
+Paths may contain wildcards.")
+   (component-class
+    :initarg :component-class :accessor component-class :initform nil
+    :documentation "Software object class to utilize in component objects.")
+   (project-dir :initarg :project-dir
+                :accessor project-dir
+                :initform nil
+                :documentation "Source directory containing the project."))
+  (:default-initargs
+   :ignore-paths *default-ignore-paths*
+   :ignore-other-paths *default-ignore-paths*)
   (:documentation
    "A project is composed of multiple component software objects.
 E.g., a multi-file C software project may include multiple clang
@@ -112,16 +122,16 @@ object (e.g., the original program).")
 (defmethod initialize-instance :after ((project project) &key)
   "Wrapper to ensure software objects are not created from git artifacts."
   (setf (slot-value project 'ignore-other-paths)
-        (adjoin ".git/**/*" (ignore-other-paths project) :test #'equal)
+        (union *always-ignore-paths* (ignore-other-paths project) :test #'equal)
         (slot-value project 'ignore-paths)
-        (adjoin ".git/**/*" (ignore-paths project) :test #'equal)))
+        (union *always-ignore-paths* (ignore-paths project) :test #'equal))
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
   (flet ((included (files)
            (find-if {pathname-match-p canonical-path} files)))
     (or (and only-paths (not (included only-paths)))
-        (included ignore-paths))))
+        (included ignore-paths)))))
 
 (defgeneric evolve-files-ref (software path)
   (:documentation "Lookup PATH in the evolve-files of SOFTWARE.")
