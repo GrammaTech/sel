@@ -309,9 +309,16 @@
 (defun run-task-and-block (task &optional (num-workers 1))
   "Create a TASK-RUNNER, using the specified task as the first job,
 blocking until completion"
-  (let ((runner (run-task task num-workers)))
-    (mapcar #'join-thread (task-runner-workers runner))
-    runner))
+  (let (done runner)
+    (unwind-protect
+         (progn
+           (setf runner (run-task task num-workers))
+           (mapcar #'join-thread (task-runner-workers runner))
+           (setf done t)
+           runner)
+      ;; Terminate the runner on abnormal exit.
+      (unless done
+        (task-runner-stop-jobs runner)))))
 
 (defun task-runner-remaining-jobs (runner)
   "Returns the number of jobs remaining."
