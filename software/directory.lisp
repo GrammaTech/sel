@@ -10,12 +10,11 @@
         :software-evolution-library/software/parseable)
   (:import-from :functional-trees/attrs
                 :subroot)
-  (:import-from :software-evolution-library/components/file
-                :original-path)
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:compdb-project
     :software-evolution-library/software/compilation-database-project)
+   (:file :software-evolution-library/components/file)
    (:task :software-evolution-library/utility/task))
   (:shadowing-import-from :software-evolution-library/software/compilable
                           :flags :compiler :compilable)
@@ -445,7 +444,8 @@ optimization settings."
       (flet ((safe-genome (software)
                (lret ((genome
                        (handler-case
-                           (with-thread-name (:name (fmt "Parsing ~a" (original-path software)))
+                           (with-thread-name
+                               (:name (fmt "Parsing ~a" (file:original-path software)))
                              (genome software))
                          (error (e)
                            (cons :error e)))))
