@@ -10,6 +10,8 @@
         :software-evolution-library/software/parseable)
   (:import-from :functional-trees/attrs
                 :subroot)
+  (:import-from :software-evolution-library/components/file
+                :original-path)
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:compdb-project
@@ -443,7 +445,8 @@ optimization settings."
       (flet ((safe-genome (software)
                (lret ((genome
                        (handler-case
-                           (genome software)
+                           (with-thread-name (:name (fmt "Parsing ~a" (original-path software)))
+                             (genome software))
                          (error (e)
                            (cons :error e)))))
                  (funcall progress-fn genome))))
