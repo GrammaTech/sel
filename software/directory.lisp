@@ -15,7 +15,8 @@
    (:compdb-project
     :software-evolution-library/software/compilation-database-project)
    (:file :software-evolution-library/components/file)
-   (:task :software-evolution-library/utility/task))
+   (:task :software-evolution-library/utility/task)
+   (:tg :trivial-garbage))
   (:shadowing-import-from :software-evolution-library/software/compilable
                           :flags :compiler :compilable)
   (:export :file-ast
@@ -441,32 +442,35 @@ optimization settings."
 
 (defun parallel-parse-genomes
     (evolve-files &key (progress-fn #'do-nothing))
-  (fbind (progress-fn)
-    (mvlet* ((files len
-              (iter (for len from 0)
-                    (for (nil . file) in evolve-files)
-                    (collect file into files)
-                    (finally (return (values files len))))))
-      (flet ((safe-genome (software)
-               (lret ((genome
-                       (handler-case
-                           (with-thread-name
-                               (:name (fmt "Parsing ~a" (file:original-path software)))
-                             (genome software))
-                         (error (e)
-                           (cons :error e)))))
-                 (funcall progress-fn genome))))
-        (if (< len *directory-project-parallel-minimum*)
-            (mapcar #'safe-genome files)
-            ;; Some form of makespan minimization might be useful
-            ;; here. E.g. the longest files could be evenly
-            ;; distributed across threads and processed first to
-            ;; avoid "tails" where one thread runs much longer
-            ;; than the others.
-            (task:task-map-in-order
-             (evolve-files-thread-count evolve-files)
-             #'safe-genome
-             files))))))
+  (tg:gc :full t)
+  (multiple-value-prog1
+      (fbind (progress-fn)
+        (mvlet* ((files len
+                  (iter (for len from 0)
+                        (for (nil . file) in evolve-files)
+                        (collect file into files)
+                        (finally (return (values files len))))))
+          (flet ((safe-genome (software)
+                   (lret ((genome
+                           (handler-case
+                               (with-thread-name
+                                   (:name (fmt "Parsing ~a" (file:original-path software)))
+                                 (genome software))
+                             (error (e)
+                               (cons :error e)))))
+                     (progress-fn genome))))
+            (if (< len *directory-project-parallel-minimum*)
+                (mapcar #'safe-genome files)
+                ;; Some form of makespan minimization might be useful
+                ;; here. E.g. the longest files could be evenly
+                ;; distributed across threads and processed first to
+                ;; avoid "tails" where one thread runs much longer
+                ;; than the others.
+                (task:task-map-in-order
+                 (evolve-files-thread-count evolve-files)
+                 #'safe-genome
+                 files)))))
+    (tg:gc :full t)))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
   (let* ((evolve-files (call-next-method))
