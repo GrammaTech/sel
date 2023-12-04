@@ -277,7 +277,18 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
   "When updating the genome, update the evolve files too."
   (if (typep new 'ast)
       (let* ((result (call-next-method))
-             (changed-file (find-enclosing 'file-ast result new)))
+             (changed-file
+              (or (find-enclosing 'file-ast result new)
+                  ;; If for some reason the new AST is not in
+                  ;; the tree (CRAM AST fragment), look where
+                  ;; the old AST was.
+                  (when-let* ((path
+                               (if (typep old 'ast)
+                                   (ast-path project old)
+                                   old))
+                              (new-ast
+                               (lookup result path)))
+                    (find-enclosing 'file-ast result new-ast)))))
         (sync-changed-file! result project changed-file))
       (call-next-method)))
 
