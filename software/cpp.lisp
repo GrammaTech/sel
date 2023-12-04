@@ -1025,10 +1025,12 @@ templated definition's field table."
              :initial-value (empty-map)))))
 
 (defmethod outer-defs ((ast cpp-namespace-definition))
-  (conserve-outer-def-exports ast))
+  (or (conserve-outer-def-exports ast)
+      (call-next-method)))
 
 (defmethod outer-defs ((ast cpp-export-block))
-  (conserve-outer-def-exports ast))
+  (or (conserve-outer-def-exports ast)
+      (call-next-method)))
 
 (defun const-field-declaration? (field-decl fn)
   "Is FN declared const in FIELD-DECL?"
