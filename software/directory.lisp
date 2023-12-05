@@ -267,7 +267,7 @@ optimization settings."
              (new-project (copy-path project path file-ast)))
        (setf (evolve-files-ref new-project path) new)))))
 
-(defun sync-changed-file! (new-project old-project changed-file)
+(defun sync-changed-file! (new-project old-project changed-file &key (verify t))
   "Update NEW-PROJECT's evolve-files with CHANGED-FILE."
   (prog1 new-project
     (and-let* (((typep changed-file 'file-ast))
@@ -294,7 +294,8 @@ optimization settings."
                         old-entry
                         (evolve-files new-project)
                         :count 1))
-      (verify-project-in-sync new-project))))
+      (when verify
+        (verify-project-in-sync new-project)))))
 
 (defmethod with :around ((project directory-project)
                          old &optional new)
@@ -338,7 +339,9 @@ optimization settings."
   (declare (ignore val))
   (verify-project-in-sync
    (if-let (ast (lookup project path))
-     (copy (less project ast)
+     (copy project
+           :genome
+           (less (genome project) ast)
            :evolve-files
            (remove-if (op (equal (car _) path))
                       (evolve-files project))
@@ -377,7 +380,9 @@ optimization settings."
                            :key (lambda (file)
                                   (only-elt (contents file))))))
      (reduce (lambda (new-project changed-file)
-               (sync-changed-file! new-project project changed-file))
+               (sync-changed-file! new-project project changed-file
+                                   ;; Don't verify intermediate results.
+                                   :verify nil))
              changed-files
              :initial-value result))))
 
