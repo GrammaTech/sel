@@ -225,24 +225,47 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
                       new-tld))
          (copy project :genome new-genome))))))
 
+(defun check-project-in-sync (project)
+  "Iterate over PROJECT's evolve-files, making sure they're in sync with
+the project AST."
+  (iter (for (file . software) in (evolve-files project))
+        (for genome = (genome software))
+        (for path = (ast-path project genome))
+        (assert (eql genome (lookup project path)) ()
+                "Evolve file is out of sync: ~a" file)))
+
+(defmacro assert-project-in-sync (project &environment env)
+  "Given appropriate debug/safety settings, check PROJECT is in sync."
+  (when (or (serapeum::policy> env 'debug 'speed)
+            (serapeum::policy> env 'safety 'speed))
+    `(check-project-in-sync ,project)))
+
+(defun verify-project-in-sync (project)
+  "Return PROJECT after checking that it's in sync.
+The actual check may or may not be done based on compile-time
+optimization settings."
+  (assert-project-in-sync project)
+  project)
+
 (defmethod with ((project directory-project)
                  (path string)
                  &optional new)
   (unless (typep new 'software)
     (return-from with
       (call-next-method)))
-  (if-let (old-obj (evolve-files-ref project path))
-    ;; We are replacing a software object.
-    (with project old-obj new)
-    ;; We are adding new software.
-    (lret* ((pathname (pathname path))
-            (filename (nth-value 1 (pathname-to-list pathname)))
-            (file-ast (make 'file-ast
-                            :name filename
-                            :full-pathname pathname
-                            :contents (list (genome new))))
-            (new-project (copy-path project path file-ast)))
-      (setf (evolve-files-ref new-project path) new))))
+  (verify-project-in-sync
+   (if-let (old-obj (evolve-files-ref project path))
+     ;; We are replacing a software object.
+     (with project old-obj new)
+     ;; We are adding new software.
+     (lret* ((pathname (pathname path))
+             (filename (nth-value 1 (pathname-to-list pathname)))
+             (file-ast (make 'file-ast
+                             :name filename
+                             :full-pathname pathname
+                             :contents (list (genome new))))
+             (new-project (copy-path project path file-ast)))
+       (setf (evolve-files-ref new-project path) new)))))
 
 (defun sync-changed-file! (new-project old-project changed-file)
   "Update NEW-PROJECT's evolve-files with CHANGED-FILE."
@@ -270,86 +293,93 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
             (substitute new-entry
                         old-entry
                         (evolve-files new-project)
-                        :count 1)))))
+                        :count 1))
+      (verify-project-in-sync new-project))))
 
 (defmethod with :around ((project directory-project)
                          old &optional new)
   "When updating the genome, update the evolve files too."
-  (if (typep new 'ast)
-      (let* ((result (call-next-method))
-             (changed-file
-              (or (find-enclosing 'file-ast result new)
-                  ;; If for some reason the new AST is not in
-                  ;; the tree (CRAM AST fragment), look where
-                  ;; the old AST was.
-                  (when-let* ((path
-                               (if (typep old 'ast)
-                                   (ast-path project old)
-                                   old))
-                              (new-ast
-                               (lookup result path)))
-                    (find-enclosing 'file-ast result new-ast)))))
-        (sync-changed-file! result project changed-file))
-      (call-next-method)))
+  (verify-project-in-sync
+   (if (typep new 'ast)
+       (let* ((result (call-next-method))
+              (changed-file
+               (or (find-enclosing 'file-ast result new)
+                   ;; If for some reason the new AST is not in
+                   ;; the tree (CRAM AST fragment), look where
+                   ;; the old AST was.
+                   (when-let* ((path
+                                (if (typep old 'ast)
+                                    (ast-path project old)
+                                    old))
+                               (new-ast
+                                (lookup result path)))
+                     (find-enclosing 'file-ast result new-ast)))))
+         (sync-changed-file! result project changed-file))
+       (call-next-method))))
 
 (defmethod less :around ((project directory-project) (old ast) &optional val)
   "When updating the genome, update the evolve files too."
   (declare (ignore val))
-  (let ((old-file (find-enclosing 'file-ast project old))
-        (result (call-next-method)))
-    (if old-file
-        (handler-bind ((#+ccl error
-                        #+sbcl sb-kernel:index-too-large-error
-                        (lambda (c)
-                          (declare (ignore c))
-                          (return-from less result))))
-          (sync-changed-file!
-           result project (lookup result (ast-path project old-file))))
-        result)))
+  (verify-project-in-sync
+   (let ((old-file (find-enclosing 'file-ast project old))
+         (result (call-next-method)))
+     (if old-file
+         (handler-bind ((#+ccl error
+                         #+sbcl sb-kernel:index-too-large-error
+                         (lambda (c)
+                           (declare (ignore c))
+                           (return-from less result))))
+           (sync-changed-file!
+            result project (lookup result (ast-path project old-file))))
+         result))))
 
 (defmethod less ((project directory-project) (path string) &optional val)
   "Allow removing project files by name."
   (declare (ignore val))
-  (if-let (ast (lookup project path))
-    (copy (less project ast)
-          :evolve-files
-          (remove-if (op (equal (car _) path))
-                     (evolve-files project))
-          :other-files
-          (remove-if (op (equal (car _) path))
-                     (other-files project)))
-    project))
+  (verify-project-in-sync
+   (if-let (ast (lookup project path))
+     (copy (less project ast)
+           :evolve-files
+           (remove-if (op (equal (car _) path))
+                      (evolve-files project))
+           :other-files
+           (remove-if (op (equal (car _) path))
+                      (other-files project)))
+     project)))
 
 (defmethod insert :around ((project directory-project) (path t) (value ast))
   "When updating the genome, update the evolve files too."
-  (if-let* ((old-file (find-enclosing 'file-ast project (lookup project path)))
-            (result (call-next-method))
-            (changed-file (lookup result (ast-path project old-file))))
-    (sync-changed-file! result project changed-file)
-    (call-next-method)))
+  (verify-project-in-sync
+   (if-let* ((old-file (find-enclosing 'file-ast project (lookup project path)))
+             (result (call-next-method))
+             (changed-file (lookup result (ast-path project old-file))))
+     (sync-changed-file! result project changed-file)
+     (call-next-method))))
 
 (defmethod splice :around ((project directory-project) (path t) (values t))
   "When updating the genome, update the evolve files too."
-  (if-let* ((old-file (find-enclosing 'file-ast project (lookup project path)))
-            (result (call-next-method))
-            (changed-file (lookup result (ast-path project old-file))))
-    (sync-changed-file! result project changed-file)
-    (call-next-method)))
+  (verify-project-in-sync
+   (if-let* ((old-file (find-enclosing 'file-ast project (lookup project path)))
+             (result (call-next-method))
+             (changed-file (lookup result (ast-path project old-file))))
+     (sync-changed-file! result project changed-file)
+     (call-next-method))))
 
 (defmethod mapcar :around (fn (project directory-project) &rest more)
   "When updating the genome, update the evolve files too."
   (fset::check-two-arguments more 'mapcar 'directory-project)
-  (let* ((result (call-next-method))
-         (old-files (collect-if (of-type 'file-ast) project))
-         (new-files (collect-if (of-type 'file-ast) result))
-         (changed-files
-          (set-difference new-files old-files
-                          :key (lambda (file)
-                                 (only-elt (contents file))))))
-    (reduce (lambda (new-project changed-file)
-              (sync-changed-file! new-project project changed-file))
-            changed-files
-            :initial-value result)))
+  (verify-project-in-sync
+   (let* ((result (call-next-method))
+          (old-files (collect-if (of-type 'file-ast) project))
+          (new-files (collect-if (of-type 'file-ast) result))
+          (changed-files
+           (set-difference new-files old-files
+                           :key (lambda (file)
+                                  (only-elt (contents file))))))
+     (reduce (lambda (new-project changed-file)
+               (sync-changed-file! new-project project changed-file))
+             changed-files
+             :initial-value result))))
 
 (defmethod mapcar (fn (project directory-project) &rest more)
   "Override the method on projects in general, which operates on genomes."
