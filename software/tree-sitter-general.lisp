@@ -3707,15 +3707,19 @@ for ASTs which need to appear in the surrounding text slots.")
    are gone we can never detect that new calls with this string (up to string=)
    reused that previous object.")
 
-(defun canon-string (s)
-  (ensure-gethash s *string-canon-table*
-                  (etypecase s
-                    (simple-base-string s)
-                    (base-string (coerce s 'simple-base-string))
-                    (string
-                     (if (every (of-type 'base-char) s)
-                         (coerce s 'simple-base-string)
-                         (coerce s 'simple-string))))))
+(defun canon-string (s &key (cutoff 20))
+  (declare (array-length cutoff))
+  (flet ((simplify-string (s)
+           (etypecase s
+             (simple-base-string s)
+             (base-string (coerce s 'simple-base-string))
+             (string
+              (if (every (of-type 'base-char) s)
+                  (coerce s 'simple-base-string)
+                  (coerce s 'simple-string))))))
+    (if (<= (length s) cutoff)
+        (ensure-gethash s *string-canon-table* (simplify-string s))
+        (simplify-string s))))
 
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.
