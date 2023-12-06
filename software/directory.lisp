@@ -491,12 +491,7 @@ optimization settings."
                   (op (safe-genome _ :lazy-paths lazy-paths
                                      :progress-fn progress-fn
                                      :root root)))))
-      (if (< len *directory-project-parallel-minimum*)
-          (mapcar fn files)
-          (task:task-map-in-order
-           (evolve-files-thread-count evolve-files)
-           fn
-           files)))))
+      (mapcar fn files))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
   (eformat "Collecting files~%")
