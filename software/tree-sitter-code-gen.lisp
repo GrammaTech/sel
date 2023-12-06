@@ -3173,6 +3173,11 @@ of an AST."))
     ()
     (:documentation "AST for input from tree-sitter."))
 
+ (defmethod initialize-instance :after ((self tree-sitter-ast) &key)
+   (when-let (text (text self))
+     (setf (text self)
+           (canon-string text))))
+
   (defclass computed-text ()
     ()
     (:documentation "A mixin for computed text ASTs."))
