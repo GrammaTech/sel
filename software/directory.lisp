@@ -501,40 +501,42 @@ optimization settings."
 (defmethod collect-evolve-files :around ((obj directory-project))
   (eformat "Collecting files~%")
   (lret* ((evolve-files (call-next-method)))
-    (let ((genomes
-           (parallel-parse-genomes obj
-                                   evolve-files
-                                   :progress-fn
-                                   (lambda (genome)
-                                     (synchronized ()
-                                       (etypecase-of parsed-genome genome
-                                         ((eql :lazy)
-                                          (eformat "?"))
-                                         (ast
-                                          (eformat "."))
-                                         ((cons (eql :error) t)
-                                          (eformat "X")))))))
-          (skip-all nil))
-      (eformat "Inserting genomes into AST~%")
-      (iter (for (path . software-object) in evolve-files)
-            (for genome = (pop genomes))
-            (restart-case
-                (etypecase-of parsed-genome genome
-                  ((eql :lazy))
-                  (ast
-                   (insert-file obj path software-object))
-                  ((cons (eql :error) t)
-                   (restart-case
-                       (if skip-all
-                           (next-iteration)
-                           (error (cdr genome)))
-                     (skip-all-unparsed-files ()
-                       :report "Skip all unparsed files"
-                       (setf skip-all t)
-                       (next-iteration)))))
-              (continue ()
-                :report "Skip evolve file"
-                (next-iteration)))))))
+    (unwind-protect
+         (let ((genomes
+                (parallel-parse-genomes obj
+                                        evolve-files
+                                        :progress-fn
+                                        (lambda (genome)
+                                          (synchronized ()
+                                            (etypecase-of parsed-genome genome
+                                              ((eql :lazy)
+                                               (eformat "?"))
+                                              (ast
+                                               (eformat "."))
+                                              ((cons (eql :error) t)
+                                               (eformat "X")))))))
+               (skip-all nil))
+           (eformat "Inserting genomes into AST~%")
+           (iter (for (path . software-object) in evolve-files)
+                 (for genome = (pop genomes))
+                 (restart-case
+                     (etypecase-of parsed-genome genome
+                       ((eql :lazy))
+                       (ast
+                        (insert-file obj path software-object))
+                       ((cons (eql :error) t)
+                        (restart-case
+                            (if skip-all
+                                (next-iteration)
+                                (error (cdr genome)))
+                          (skip-all-unparsed-files ()
+                            :report "Skip all unparsed files"
+                            (setf skip-all t)
+                            (next-iteration)))))
+                   (continue ()
+                     :report "Skip evolve file"
+                     (next-iteration)))))
+      (tg:gc :full t))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
