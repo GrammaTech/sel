@@ -244,8 +244,7 @@ non-symlink text files that don't end in \"~\" and are not ignored by
     ;; Create software objects for these other files.
     (nest
      (flet ((ends-in-tilde (s)
-              (let ((len (length s)))
-                (and (> len 0) (eql (elt s (1- len)) #\~))))
+              (string$= "~" s))
             (pathname-has-symlink (p)
               (not (equal p (resolve-symlinks p))))))
      ;; These are represented as simple text files, for line-oriented diffs.
