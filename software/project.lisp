@@ -258,15 +258,18 @@ non-symlink text files that don't end in \"~\" and are not ignored by
                                    :test #'equal)))
      (mapcar {pathname-relativize (project-dir project)})
      (remove-if
-      (lambda (p) (or (null (pathname-name p))
-		 (not (file-exists-p p))
-		 (ends-in-tilde (pathname-name p))
-		 (ends-in-tilde (pathname-type p))
-		 (ignored-other-path-p project p)
-		 ;; For now do not include symlinks.  In the future,
-		 ;; make links be special objects.
-		 (pathname-has-symlink p)
-                 (not (text-file-p p)))))
+      (lambda (p) (or
+                   ;; Pathname tests. Cheaper, so do them first.
+                   (null (pathname-name p))
+	           (ends-in-tilde (pathname-name p))
+	           (ends-in-tilde (pathname-type p))
+	           (ignored-other-path-p project p)
+                   ;; File system tests.
+	           (not (file-exists-p p))
+                   ;; For now do not include symlinks.  In the future,
+                   ;; make links be special objects.
+	           (pathname-has-symlink p)
+                   (not (text-file-p p)))))
      (uiop:directory*)
      (merge-pathnames-as-file (project-dir project) #p"**/*.*"))))
 
