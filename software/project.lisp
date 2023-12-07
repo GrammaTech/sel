@@ -254,7 +254,9 @@ non-symlink text files that don't end in \"~\" and are not ignored by
                     {merge-pathnames-as-file (project-dir project)}]»)
      ;; Evolve files may have come from the build dir, but that
      ;; doesn't matter here as we are comparing the relativized paths.
-     (remove-if {member _ (mapcar #'car (evolve-files project)) :test #'equal})
+     (remove-if (hash-table-function
+                 (alist-hash-table (evolve-files project)
+                                   :test #'equal)))
      (mapcar {pathname-relativize (project-dir project)})
      (remove-if
       (lambda (p) (or (null (pathname-name p))
