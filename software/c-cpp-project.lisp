@@ -605,18 +605,25 @@ the standard path and add it to PROJECT."))
 (defmethod from-file :around ((project c/cpp-project) (dir t))
   (labels ((maybe-populate-header (ast)
              (match ast
-               ((c/cpp-preproc-include
-                 (c/cpp-path (and path (c/cpp-system-lib-string))))
-                (get-standard-path-header project (trim-path-string path)
-                                          :header-dirs
-                                          (file-header-dirs project ast))))))
-    (let ((result (call-next-method)))
-      (setf #1=(genome result) (make-instance 'c/cpp-root
-                                              :project-directory #1#))
-      (iter (for (nil . sw) in (evolve-files project))
-            (when (typep (slot-value sw 'genome) 'ast)
-              (mapc #'maybe-populate-header
-                    (genome sw))))
+               ((and include-ast (c/cpp-preproc-include ))
+                (let ((file-ast (find-enclosing 'file-ast (attrs-root*) include-ast)))
+                  (find-include project file-ast
+                                (file-header-dirs project ast :file file-ast)
+                                include-ast))))))
+    (let* ((result (call-next-method))
+           (genome
+            (make-instance 'c/cpp-root
+                           :project-directory (genome result)))
+           (last-evolve-files (evolve-files result)))
+      (setf (genome result)
+            (assure c/cpp-root genome))
+      (loop do (with-attr-table result
+                 (iter (for (nil . sw) in (evolve-files result))
+                       (when (typep (slot-value sw 'genome) 'ast)
+                         (mapc #'maybe-populate-header
+                               (genome sw)))))
+            until (eql (evolve-files result)
+                       (shiftf last-evolve-files (evolve-files result))))
       ;; (mapc #'maybe-populate-header project)
       result)))
 
@@ -733,13 +740,21 @@ the including file."
                  (or (simple-relative-search)
                      (and global
                           (global-search))))
-        (if (not (typep (slot-value (cdr result) 'genome) 'ast))
-            (progn
-              (format *error-output* "~%Loading ~a~%" (car result))
-              (force-output *error-output*)
-              (sel/sw/directory::insert-file project (car result) (cdr result))
-              (cdr result))
-            (cdr result))))))
+        (unless (typep (slot-value (cdr result) 'genome) 'ast)
+          (format *trace-output* "~%Inserting ~a into tree~%" (car result))
+          (force-output *trace-output*)
+          ;; Force loading the genome.
+          (genome (cdr result))
+          (let ((temp-project
+                 (with project
+                       (car result)
+                       (cdr result))))
+            (setf (genome project)
+                  (genome temp-project)
+                  (evolve-files project)
+                  (evolve-files temp-project)))
+          (cdr result))
+        (cdr result)))))
 
 
 ;;; Includes Symbol Table
