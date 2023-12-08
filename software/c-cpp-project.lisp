@@ -197,8 +197,9 @@ The top level is a list of entries. Entries have the form (FILE .
 INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
 :CIRCLE for a circular inclusion.
 
-In each entry, FILE is either a string (for a file) or a keyword (for
-a standard include)."
+In each entry, FILE is one of a string (for a file), a keyword (for a
+standard include), or an uninterned symbol (for a header that could
+not be resolved)."
   (declare ((soft-list-of string) entry-points))
   (assure dependency-tree
     (let* ((genome (genome project))
