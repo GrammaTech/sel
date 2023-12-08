@@ -135,6 +135,13 @@
              :documentation "Lazily parsed AST representation of the code."))
   (:documentation "Parsed AST tree software representation."))
 
+(defmethod copy :around ((self parseable) &key (genome nil genome-supplied?))
+  "Don't force parsing the genome when copying a parseable."
+  (cond (genome-supplied? (call-next-method))
+        ((stringp (slot-value self 'genome))
+         (call-next-method self :genome (slot-value self 'genome)))
+        (t (call-next-method))))
+
 (defmethod convert ((to-type (eql 'node)) (p parseable) &key)
   (genome p))
 
