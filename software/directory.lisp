@@ -194,17 +194,21 @@
     (return-from with (call-next-method)))
   (let ((old-root (genome old))
         (new-root (genome new)))
-    (copy project
-          :evolve-files
-          (mapcar (lambda (cons)
-                    (if (eql (cdr cons) old)
-                        (cons (car cons) new)
-                        cons))
-                  (evolve-files project))
-          :genome
-          (with (genome project)
-                old-root
-                new-root))))
+    (if-let (ast-path (ast-path project old-root))
+      (copy project
+            :evolve-files
+            (mapcar (lambda (cons)
+                      (if (eql (cdr cons) old)
+                          (cons (car cons) new)
+                          cons))
+                    (evolve-files project))
+            :genome
+            (with (genome project)
+                  ast-path
+                  new-root))
+      (if-let* ((path (rassocar old (evolve-files project))))
+        (insert-software-at project path new)
+        (error "Replacing unknown evolve-file: ~a" old)))))
 
 (defun extract-tld (root)
   "Get the top-level directory from ROOT."
@@ -271,6 +275,19 @@ optimization settings."
   (assert-project-in-sync project)
   project)
 
+(defun insert-software-at (project path new)
+  (declare (parseable new) (optimize debug))
+  (lret* ((pathname (pathname path))
+          (filename (nth-value 1 (pathname-to-list pathname)))
+          (file-ast (make 'file-ast
+                          :name filename
+                          :full-pathname pathname
+                          :contents (list (genome new))))
+          (new-project (copy-path project path file-ast)))
+    (assert (not (stringp (genome project))))
+    (setf (evolve-files-ref new-project path)
+          new)))
+
 (defmethod with ((project directory-project)
                  (path string)
                  &optional new)
@@ -282,14 +299,7 @@ optimization settings."
      ;; We are replacing a software object.
      (with project old-obj new)
      ;; We are adding new software.
-     (lret* ((pathname (pathname path))
-             (filename (nth-value 1 (pathname-to-list pathname)))
-             (file-ast (make 'file-ast
-                             :name filename
-                             :full-pathname pathname
-                             :contents (list (genome new))))
-             (new-project (copy-path project path file-ast)))
-       (setf (evolve-files-ref new-project path) new)))))
+     (insert-software-at project path new))))
 
 (defun sync-changed-file! (new-project old-project changed-file &key (verify t))
   "Update NEW-PROJECT's evolve-files with CHANGED-FILE."
