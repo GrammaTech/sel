@@ -59,10 +59,10 @@ information on the format of compilation databases.")
            (ensure-list
             (econd ((no supplied-path)
                     default-compdb-paths)
-              ((relative-pathname-p supplied-path)
-               (project-relative-pathname obj supplied-path))
-              ((absolute-pathname-p supplied-path)
-               supplied-path))))
+                   ((relative-pathname-p supplied-path)
+                    (project-relative-pathname obj supplied-path))
+                   ((absolute-pathname-p supplied-path)
+                    supplied-path))))
          (compilation-database
            (progn
              (unless (find-if #'file-exists-p comp-db-paths)
@@ -75,10 +75,15 @@ information on the format of compilation databases.")
             (build-path (maybe-build-path compilation-database)))
         ;; NOTE: original-path can be nil.
         ;;       assume build-path always exists.
-        (if (and build-path (not (pathname-equal build-path project-dir)))
+        (if (and build-path
+                 (let ((build-path (pathname build-path)))
+                   (nor (pathname-equal build-path project-dir)
+                        (subpathp build-path project-dir))))
             (setf (compilation-database obj)
                   (relativize-command-objects
-                   compilation-database build-path project-dir))
+                   compilation-database
+                   build-path
+                   project-dir))
             (setf (compilation-database obj) compilation-database))))))
 
 (defun original-project-p (obj)
@@ -95,39 +100,41 @@ COMPILATION-DATABASE. Returns NIL if one isn't found."
   (gcp (mapcar #'command-directory (command-objects compilation-database))))
 
 ;;; TODO: only relativizes the directory and file name.
+(defun relativized-path-p (original-path command-object)
+  "Return the relativized path of COMMAND-OBJECT to PROJECT's path
+             if it exists."
+  (let* ((directory (ensure-directory-pathname
+                     (command-directory command-object)))
+         (file (command-file command-object))
+         (path (canonical-pathname (path-join directory file)))
+         (relativized-to-original
+          (enough-pathname path original-path)))
+    (unless (pathname-equal relativized-to-original path)
+      relativized-to-original)))
+
+(defun relative-command-object (command-object original-path new-path)
+  (if-let* ((relative-path
+             (relativized-path-p original-path command-object))
+            (new-path (fmt "~a/~a" new-path relative-path)))
+    (copy command-object
+          :file (file-namestring new-path)
+          :directory (directory-namestring new-path))
+    command-object))
+
 (defun relativize-command-objects (compilation-database original-path new-path)
   "Relativize the command objects in COMPILATION-DATABASE such that they're
 relative to NEW-PATH."
   (assert (and compilation-database original-path new-path))
-  (labels ((relativized-path-p (original-path command-object)
-             "Return the relativized path of COMMAND-OBJECT to PROJECT's path
-             if it exists."
-             (let* ((directory (ensure-directory-pathname
-                                (command-directory command-object)))
-                    (file (command-file command-object))
-                    (path (canonical-pathname (path-join directory file)))
-                    (relativized-to-original
-                      (enough-pathname path original-path)))
-               (unless (pathname-equal relativized-to-original path)
-                 relativized-to-original)))
-           (relative-command-objects (command-objects original-path new-path)
-             (iter
-               (for command-object in command-objects)
-               (collect
-                   (if-let* ((relative-path
-                              (relativized-path-p original-path command-object))
-                             (new-path (fmt "~a/~a" new-path relative-path)))
-                     (copy command-object
-                           :file (file-namestring new-path)
-                           :directory (directory-namestring new-path))
-                     command-object)))))
+  (let ((original-path
+         (ensure-directory-pathname
+          (canonical-pathname original-path)))
+        (new-path
+         (ensure-directory-pathname
+          (canonical-pathname new-path))))
     (copy compilation-database
-          :command-objects (relative-command-objects
-                            (command-objects compilation-database)
-                            (ensure-directory-pathname
-                             (canonical-pathname original-path))
-                            (ensure-directory-pathname
-                             (canonical-pathname new-path))))))
+          :command-objects
+          (mapcar (op (relative-command-object _ original-path new-path))
+                  (command-objects compilation-database)))))
 
 (defgeneric ensure-compilation-database (obj)
   (:method ((obj compilation-database-project))

@@ -146,27 +146,34 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                          (slot-name (eql 'file-command-objects)))
   "Lazily compute the file->command-objects mapping."
   (setf (slot-value self 'file-command-objects)
-        (lret ((dict (dict)))
-          (do-each (entry (command-objects self))
-            (with-slots (directory file) entry
-              (let* ((directory (pathname-as-directory (pathname directory)))
-                     (file (pathname file))
-                     (key
-                      ;; "All paths specified in the command or file
-                      ;; fields must be either absolute or relative to
-                      ;; this directory."
-                      (if (absolute-pathname-p file) file
-                          (namestring
-                           (canonical-pathname
-                            (base-path-join directory file))))))
-                (assert (absolute-pathname-p key))
-                (push entry (href dict key))))))))
+        (file-command-table self)))
+
+(defun file-command-table (compdb)
+  (lret ((dict (dict)))
+    (do-each (entry (command-objects compdb))
+      (with-slots (directory file) entry
+        (let* ((directory (pathname-as-directory (pathname directory)))
+               (file (pathname file))
+               (key
+                ;; "All paths specified in the command or file
+                ;; fields must be either absolute or relative to
+                ;; this directory."
+                (if (absolute-pathname-p file) file
+                    (namestring
+                     (canonical-pathname
+                      (base-path-join directory file))))))
+          (assert (absolute-pathname-p key))
+          (push entry (href dict key)))))))
+
+(declaim (notinline lookup-in-compdb))
+(defun lookup-in-compdb (compdb key)
+  (gethash key (file-command-objects compdb)))
 
 (defmethod lookup ((self compilation-database) (key string))
-  (gethash key (file-command-objects self)))
+  (lookup-in-compdb self key))
 
 (defmethod lookup ((self compilation-database) (key pathname))
-  (gethash (namestring key) (file-command-objects self)))
+  (lookup self (namestring key)))
 
 (eval-always
   (defclass command-object ()

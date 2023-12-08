@@ -64,10 +64,12 @@
 
 (defun lazy-path-p (path &key lazy-paths root
                     &aux (path (canonical-pathname path)))
-  (when root
-    (setf path (enough-pathname path root)))
-  (find-if (op (pathname-match-p path _))
-           lazy-paths))
+  (let ((path
+         (if root
+             (enough-pathname path root)
+             path)))
+    (find-if (op (pathname-match-p path _))
+             lazy-paths)))
 
 (defmethod equal? ((x directory-project) (y directory-project))
   (equal? (genome x) (genome y)))
