@@ -149,14 +149,16 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
         (lret ((dict (dict)))
           (do-each (entry (command-objects self))
             (with-slots (directory file) entry
-              (let ((key
-                     ;; "All paths specified in the command or file
-                     ;; fields must be either absolute or relative to
-                     ;; this directory."
-                     (if (absolute-pathname-p file) file
-                         (namestring
-                          (canonical-pathname
-                           (merge-pathnames file directory))))))
+              (let* ((directory (pathname-as-directory (pathname directory)))
+                     (file (pathname file))
+                     (key
+                      ;; "All paths specified in the command or file
+                      ;; fields must be either absolute or relative to
+                      ;; this directory."
+                      (if (absolute-pathname-p file) file
+                          (namestring
+                           (canonical-pathname
+                            (base-path-join directory file))))))
                 (assert (absolute-pathname-p key))
                 (push entry (href dict key))))))))
 
