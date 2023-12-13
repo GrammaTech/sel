@@ -130,6 +130,20 @@ class AST:
             error_tree,
         )
 
+    @staticmethod
+    def from_file(
+        path,
+        language: ASTLanguage,
+        *,
+        error_tree: Optional[bool] = True,
+    ) -> "AST":
+        return _interface.dispatch(
+            AST.from_file.__name__,
+            str(Path(path).absolute()),
+            language,
+            error_tree,
+        )
+
     # AST construction using templates
     @staticmethod
     def ast_template(

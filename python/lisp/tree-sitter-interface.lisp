@@ -233,6 +233,12 @@ message ID followed by a function name from the API and arguments."
              source-text
              :deepest deepest)))
 
+(defun int/from-file (path language use-variation-point-tree)
+  (let ((*use-variation-point-tree* use-variation-point-tree)
+        (*use-blotting* nil))
+    (genome
+     (from-file (language-to-software-symbol language) path))))
+
 (-> int/--del-- (ast) t)
 (defun int/--del-- (ast)
   (deallocate-ast ast))
@@ -413,6 +419,11 @@ message ID followed by a function name from the API and arguments."
   (find-symbol (concatenate 'string
                             (string-upcase (python-to-cl-ast-language language))
                             "-AST")
+               :sel/sw/tree-sitter))
+
+(defun language-to-software-symbol (language)
+  "Convert the given language string to the associated software type symbol."
+  (find-symbol (string-upcase (python-to-cl-ast-language language))
                :sel/sw/tree-sitter))
 
 (-> keyword-arguments-p (list) (values boolean &optional))
