@@ -396,6 +396,10 @@ class AST:
         )
         return vars_in_scope or []
 
+    def patch_whitespace(self, prettify: bool = False):
+        _interface.dispatch(AST.patch_whitespace.__name__, self, prettify)
+        return self
+
     # AST traversal
     def traverse(self) -> Generator["AST", None, None]:
         """Traverse self in pre-order, yielding subtrees."""
