@@ -394,6 +394,18 @@ message ID followed by a function name from the API and arguments."
                ((ast-template ,template ,class ,@temps)
                 (list ,@temps)))))))
 
+(defun int/entry-control-flow (root ast)
+  (attrs:with-attr-table root
+    (entry-control-flow ast)))
+
+(defun int/exit-control-flow (root ast)
+  (attrs:with-attr-table root
+    (exit-control-flow ast)))
+
+(defun int/patch-whitespace (ast prettify)
+  (patch-whitespace ast :prettify prettify)
+  ast)
+
 ;;;; API Helpers:
 (-> language-to-ast-symbol (string) symbol)
 (defun language-to-ast-symbol (language)

@@ -631,6 +631,7 @@ class _interface:
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
+                    bufsize=0,
                     # Put the subprocess in its own process group so that it
                     # does not get SIGINT when our process does.
                     preexec_fn=lambda: os.setpgid(0, 0),
