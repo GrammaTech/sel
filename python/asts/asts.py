@@ -396,6 +396,18 @@ class AST:
         )
         return vars_in_scope or []
 
+    def entry_control_flow(self, root: "AST"):
+        """Return possible entry points."""
+        entry_points = _interface.dispatch(
+            AST.entry_control_flow.__name__, root, self
+        )
+        return entry_points or []
+
+    def exit_control_flow(self, root: "AST"):
+        """Return possible exits."""
+        exits = _interface.dispatch(AST.exit_control_flow.__name__, root, self)
+        return exits or []
+
     def patch_whitespace(self, prettify: bool = False):
         _interface.dispatch(AST.patch_whitespace.__name__, self, prettify)
         return self

@@ -21,6 +21,7 @@
         :software-evolution-library/utility/range
         :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library :oid)
+  (:local-nicknames (:attrs :functional-trees/attrs))
   #-windows (:import-from :osicat)
   (:import-from :deploy
                 :define-library
