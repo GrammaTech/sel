@@ -132,16 +132,11 @@
 
 (define-software parseable (attrs-root software file)
   ((genome   :initarg :genome :accessor genome :initform ""
-             :documentation "Lazily parsed AST representation of the code."))
+             :documentation "Lazily parsed AST representation of the code."
+             ;; We don't want to force parsing the genome when copying
+             ;; software objects.
+             :copier :direct))
   (:documentation "Parsed AST tree software representation."))
-
-(defmethod copy :around ((self parseable) &key (genome nil genome-supplied?))
-  "Don't force parsing the genome when copying a parseable."
-  (cond (genome-supplied? (call-next-method))
-        ((typep (slot-value self 'genome)
-                '(or string pathname))
-         (call-next-method self :genome (slot-value self 'genome)))
-        (t (call-next-method))))
 
 (defmethod convert ((to-type (eql 'node)) (p parseable) &key)
   (genome p))
