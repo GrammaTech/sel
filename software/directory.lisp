@@ -183,7 +183,7 @@
   (:method (new (obj directory-ast) (path string))
     (setf (get-path obj (pathname path)) new)))
 
-(defmethod (setf genome) (new (obj directory-project))
+(defmethod (setf genome) ((new ast) (obj directory-project))
   (setf (slot-value obj 'genome) new))
 
 (defmethod with ((project directory-project)
