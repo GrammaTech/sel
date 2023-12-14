@@ -138,7 +138,8 @@
 (defmethod copy :around ((self parseable) &key (genome nil genome-supplied?))
   "Don't force parsing the genome when copying a parseable."
   (cond (genome-supplied? (call-next-method))
-        ((stringp (slot-value self 'genome))
+        ((typep (slot-value self 'genome)
+                '(or string pathname))
          (call-next-method self :genome (slot-value self 'genome)))
         (t (call-next-method))))
 
@@ -1116,9 +1117,10 @@ the `genome' of the software object."
   "Return the source code of OBJ, optionally writing to STREAM"
   (with-string (s stream)
     (with-slots (genome) obj
-      (if (stringp genome)
-          (write-string genome s)
-          (source-text genome :stream s)))))
+      (typecase genome
+        (string (write-string genome s))
+        (pathname (read-file-into-string genome))
+        (t (source-text genome :stream s))))))
 
 (defmethod (setf genome-string) ((new string) (obj parseable))
   ;; We will lazily parse the ASTs from the genome when it is next accessed.
@@ -1142,7 +1144,9 @@ the `genome' of the software object."
 
 (defmethod from-file ((obj parseable) path)
   "Initialize OBJ with the contents of PATH."
-  (setf (genome obj) (file-to-string path))
+  ;; `truename' signals an error if it doesn't exist.
+  (truename path)
+  (setf (genome obj) path)
   obj)
 
 (defmethod from-string ((obj parseable) string)
