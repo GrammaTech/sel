@@ -3714,15 +3714,20 @@ STRING is also converted to a `base-string', if possible.
 Note STRING is canonized regardless of length. Duplication of long
 strings is actually common in large projects (due for example to
 copyright notices reproduced across many files)."
-  (flet ((simplify-string (string)
-           (etypecase string
-             (simple-base-string string)
-             (base-string (coerce string 'simple-base-string))
-             (string
-              (if (every (of-type 'base-char) string)
-                  (coerce string 'simple-base-string)
-                  (coerce string 'simple-string))))))
-    (ensure-gethash string *string-canon-table* (simplify-string string))))
+  (labels ((simplify-string (string)
+             (etypecase string
+               (simple-base-string string)
+               (base-string (coerce string 'simple-base-string))
+               (string
+                (if (every (of-type 'base-char) string)
+                    (coerce string 'simple-base-string)
+                    (coerce string 'simple-string)))))
+           (canon-string (string)
+             (ensure-gethash string *string-canon-table* (simplify-string string))))
+    (if synchronize
+        (synchronized ('*string-canon-table*)
+          (canon-string string))
+        (canon-string string))))
 
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.
