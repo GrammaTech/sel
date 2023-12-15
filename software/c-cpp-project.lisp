@@ -817,34 +817,38 @@ inference.  Used to prevent circular attr propagation.")
     ((c/cpp-preproc-include
       (c/cpp-path (identifier-ast)))
      nil)
-    ((cpp-import-declaration
-      (cpp-name (and path-ast (c/cpp-system-lib-string))))
-     path-ast)))
+    ;; E.g. `#include BOOST_PP_ITERATE()`.
+    ((c/cpp-preproc-include
+      (c/cpp-path (call-ast)))
+     nil)))
 
 (defun find-include (project file header-dirs include-ast
                      &key (global *global-search-for-include-files*))
-  (assert file)
+  (declare (functional-tree-ast file))
   (when-let ((path-ast (include-ast-path-ast include-ast)))
     (labels ((find-include (global)
-               (some
-                (lambda (dir)
-                  (econd ((eql dir :current)
-                          (get-program-header project file include-ast
-                                              path-ast
-                                              :base nil
-                                              :global global))
-                         ((member dir '(:always :system))
-                          nil)
-                         ((eql dir :stdinc)
-                          (get-standard-path-header
-                           project path-ast
-                           :header-dirs header-dirs))
-                         ((stringp dir)
-                          (get-program-header
-                           project file include-ast path-ast
-                           :base dir
-                           :global global))))
-                header-dirs))
+               (if (no header-dirs)
+                   (get-standard-path-header
+                    project path-ast)
+                   (some
+                    (lambda (dir)
+                      (econd ((eql dir :current)
+                              (get-program-header project file include-ast
+                                                  path-ast
+                                                  :base nil
+                                                  :global global))
+                             ((member dir '(:always :system))
+                              nil)
+                             ((eql dir :stdinc)
+                              (get-standard-path-header
+                               project path-ast
+                               :header-dirs header-dirs))
+                             ((stringp dir)
+                              (get-program-header
+                               project file include-ast path-ast
+                               :base dir
+                               :global global))))
+                    header-dirs)))
              (make-unknown-header* (include-ast)
                (lret ((unknown-header (make-unknown-header include-ast)))
                  (when (boundp '*attrs*)
