@@ -12,6 +12,8 @@
                 :subroot)
   (:local-nicknames
    (:attrs :functional-trees/attrs)
+   (:compdb
+    :software-evolution-library/components/compilation-database)
    (:compdb-project
     :software-evolution-library/software/compilation-database-project)
    (:debug
@@ -483,18 +485,26 @@ optimization settings."
       1))
 
 (defun safe-genome (software &key (progress-fn #'do-nothing)
-                               lazy-paths root)
-  (lret ((genome
-          (if (lazy-path-p (file:original-path software)
-                           :lazy-paths lazy-paths
-                           :root root)
-              :lazy
-              (handler-case
-                  (with-thread-name
-                      (:name (fmt "Parsing ~a" (file:original-path software)))
-                    (genome software))
-                (error (e)
-                  (cons :error e))))))
+                               lazy-paths root
+                               project)
+  (lret* ((lazy?
+           (or
+            (and (compdb:compilation-database project)
+                 (not
+                  (compdb:command-object
+                   project
+                   (file:original-path software))))
+            (lazy-path-p (file:original-path software)
+                         :lazy-paths lazy-paths
+                         :root root)))
+          (genome
+           (if lazy? :lazy
+               (handler-case
+                   (with-thread-name
+                       (:name (fmt "Parsing ~a" (file:original-path software)))
+                     (genome software))
+                 (error (e)
+                   (cons :error e))))))
     (funcall progress-fn genome)))
 
 (defun parallel-parse-genomes
@@ -510,8 +520,10 @@ optimization settings."
              (fn (dynamic-closure
                   '(*error-output*)
                   (op (safe-genome _ :lazy-paths lazy-paths
+                                     :project project
                                      :progress-fn progress-fn
                                      :root root)))))
+      (declare (ignore len))
       (mapcar fn files))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
