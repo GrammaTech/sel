@@ -14,6 +14,8 @@
    (:attrs :functional-trees/attrs)
    (:compdb-project
     :software-evolution-library/software/compilation-database-project)
+   (:debug
+    :software-evolution-library/utility/debug)
    (:file :software-evolution-library/components/file)
    (:task :software-evolution-library/utility/task)
    (:tg :trivial-garbage))
@@ -495,13 +497,9 @@ optimization settings."
                   (cons :error e))))))
     (funcall progress-fn genome)))
 
-(defun eformat (control-string &rest args)
-  (format *error-output* "~?" control-string args)
-  (force-output *error-output*))
-
 (defun parallel-parse-genomes
     (project evolve-files &key (progress-fn #'do-nothing))
-  (eformat "Parsing genomes~%")
+  (debug:note 2 "Found ~a file~:p" (length evolve-files))
   (let ((lazy-paths (lazy-paths project))
         (root (project-dir project)))
     (mvlet* ((files len
@@ -517,7 +515,7 @@ optimization settings."
       (mapcar fn files))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
-  (eformat "Collecting files~%")
+  (debug:note 2 "Collecting files")
   (lret* ((evolve-files (call-next-method)))
     (unwind-protect
          (let ((genomes
@@ -525,16 +523,17 @@ optimization settings."
                                         evolve-files
                                         :progress-fn
                                         (lambda (genome)
-                                          (synchronized ()
-                                            (etypecase-of parsed-genome genome
-                                              ((eql :lazy)
-                                               (eformat "?"))
-                                              (ast
-                                               (eformat "."))
-                                              ((cons (eql :error) t)
-                                               (eformat "X")))))))
+                                          (when (> debug:*note-level* 1)
+                                            (synchronized ()
+                                              (etypecase-of parsed-genome genome
+                                                ((eql :lazy)
+                                                 (format *error-output* "?"))
+                                                (ast
+                                                 (format *error-output* "."))
+                                                ((cons (eql :error) t)
+                                                 (format *error-output* "X"))))))))
                (skip-all nil))
-           (eformat "Inserting genomes into AST~%")
+           (debug:note 2 "Inserting genomes into AST")
            (iter (for (path . software-object) in evolve-files)
                  (for genome = (pop genomes))
                  (restart-case
