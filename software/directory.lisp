@@ -281,6 +281,9 @@ the project AST."
   "Return PROJECT after checking that it's in sync.
 The actual check may or may not be done based on compile-time
 optimization settings."
+  (let ((genome (slot-value project 'genome)))
+    (unless (typep genome 'ast)
+      (error "Corrupt genome: ~s" genome)))
   (assert-project-in-sync project)
   project)
 
@@ -293,7 +296,6 @@ optimization settings."
                           :full-pathname pathname
                           :contents (list (genome new))))
           (new-project (copy-path project path file-ast)))
-    (assert (not (stringp (genome project))))
     (setf (evolve-files-ref new-project path)
           new)))
 
