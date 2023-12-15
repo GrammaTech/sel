@@ -262,10 +262,14 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
   "Iterate over PROJECT's evolve-files, making sure they're in sync with
 the project AST."
   (iter (for (file . software) in (evolve-files project))
-        (for genome = (genome software))
-        (for path = (ast-path project genome))
-        (assert (eql genome (lookup project path)) ()
-                "Evolve file is out of sync: ~a" file)))
+        (for genome = (slot-value software 'genome))
+        (when (typep genome 'ast)
+          (let ((path (ast-path project genome)))
+            (unless path
+              (error "No path to genome of ~a" file))
+            (let ((tree-genome (lookup project path)))
+              (unless (eql genome tree-genome)
+                (error "Evolve file is out of sync: ~a" file)))))))
 
 (defmacro assert-project-in-sync (project &environment env)
   "Given appropriate debug/safety settings, check PROJECT is in sync."
