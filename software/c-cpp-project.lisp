@@ -54,6 +54,9 @@
   '("h" "hpp" "hh")
   "Header file extensions.")
 
+(defparameter *stdinc-dirs*
+  '("/usr/local/include/" "/usr/include/"))
+
 (defgeneric header-path (header)
   (:documentation "Extract the path from HEADER.")
   (:method ((file string))
@@ -542,7 +545,12 @@ This is largely C compatibility headers for C++, which do not throw exceptions."
     (declare (ignore header-dirs))
     nil)
   (:method ((project t) (system-header-ast c/cpp-system-lib-string) &key header-dirs)
-    (get-standard-path-header project (trim-path-string system-header-ast)
+    (get-standard-path-header project
+                              (trim-path-string system-header-ast)
+                              :header-dirs header-dirs))
+  (:method ((project t) (system-header-ast c/cpp-string-literal) &key header-dirs)
+    (get-standard-path-header project
+                              (trim-path-string system-header-ast)
                               :header-dirs header-dirs))
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING from
 the standard path and add it to PROJECT."))
@@ -562,31 +570,46 @@ the standard path and add it to PROJECT."))
   (synchronized ('*system-header-cache*)
     (clrhash *system-header-cache*)))
 
+(defun get-stdinc-header (project path-string)
+  (declare (project project)
+           (string path-string))
+  (iter (for dir in *stdinc-dirs*)
+        (when-let (file (file-exists-p (base-path-join dir path-string)))
+          (return
+            ;; TODO Why is tree-copy necessary?
+            (mapcar #'tree-copy
+                    (children (genome (from-file (component-class project) file))))))))
+
+(defun get-header-synopsis (project path-string)
+  (nest (ensure-list)
+        (parse-header-synopsis
+         path-string
+         :namespace
+         (and (eql (component-class project) 'cpp)
+              (not (c-compatibility-header? path-string))
+              "std")
+         :class-ast)
+        (format-symbol :sel/sw/ts "~a-AST")
+        (component-class project)))
+
 (defmethod get-standard-path-header ((project c/cpp-project) (path-string string)
                                      &key header-dirs)
-  (when (or (no header-dirs)
-            (member :stdinc header-dirs))
+  (when (or (member :stdinc header-dirs)
+            (no header-dirs))
     (synchronized ('*system-header-cache*)
       (symbol-macrolet ((header-hash (gethash
                                       path-string
                                       (system-headers/string->ast genome)))
                         (genome (genome project)))
-        (labels ((populate-header-entry (project path-string)
+        (labels ((get-header-by-name (path-string)
+                   (or (get-header-synopsis project path-string)
+                       (get-stdinc-header project path-string)))
+                 (populate-header-entry (project path-string)
                    (symbol-macrolet ((cached-value
                                       (cache-lookup *system-header-cache*
                                                     project path-string)))
                      (or cached-value
-                         (when-let (children
-                                    (nest (ensure-list)
-                                          (parse-header-synopsis
-                                           path-string
-                                           :namespace
-                                           (and (eql (component-class project) 'cpp)
-                                                (not (c-compatibility-header? path-string))
-                                                "std")
-                                           :class-ast)
-                                          (format-symbol :sel/sw/ts "~a-AST")
-                                          (component-class project)))
+                         (when-let (children (get-header-by-name path-string))
                            (setf cached-value
                                  (make-instance
                                   'c/cpp-system-header
@@ -722,20 +745,21 @@ the including file."
                  (or (simple-relative-search)
                      (and global
                           (global-search))))
-        (unless (typep (slot-value (cdr result) 'genome) 'ast)
-          (format *trace-output* "~%Inserting ~a into tree~%" (car result))
-          (force-output *trace-output*)
-          ;; Force loading the genome.
-          (genome (cdr result))
-          (let ((temp-project
-                 (with project
-                       (car result)
-                       (cdr result))))
-            (setf (genome project)
-                  (genome temp-project)
-                  (evolve-files project)
-                  (evolve-files temp-project)))
-          (cdr result))
+        (let ((genome (slot-value (cdr result) 'genome)))
+          (unless (typep genome 'ast)
+            (format *trace-output* "~%Inserting ~a (~a) into tree~%"
+                    (car result)
+                    include-path)
+            ;; Force loading the genome.
+            (genome (cdr result))
+            (let ((temp-project
+                   (with project
+                         (car result)
+                         (cdr result))))
+              (setf (genome project)
+                    (genome temp-project)
+                    (evolve-files project)
+                    (evolve-files temp-project)))))
         (cdr result)))))
 
 
@@ -782,7 +806,10 @@ inference.  Used to prevent circular attr propagation.")
     ((c/cpp-preproc-include
       (c/cpp-path (and path-ast (c/cpp-system-lib-string))))
      path-ast)
-    ;; E.g. #include BOOST_ABI_PREFIX.
+    ((cpp-import-declaration
+      (cpp-name (and path-ast (c/cpp-system-lib-string))))
+     path-ast)
+    ;; E.g. `#include BOOST_ABI_PREFIX`.
     ((c/cpp-preproc-include
       (c/cpp-path (identifier-ast)))
      nil)
