@@ -127,7 +127,7 @@
 system-headers directly in the tree. Note that system headers are lazily added
 by the symbol-table attribute."))
 
-(define-node-class synthetic-header (functional-tree-ast)
+(define-node-class synthetic-header (functional-tree-ast root-ast)
   ((children :initarg :children
              :accessor children
              :initform nil)
