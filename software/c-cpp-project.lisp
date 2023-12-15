@@ -17,6 +17,9 @@
         :software-evolution-library/components/file)
   (:import-from :software-evolution-library/software/tree-sitter
                 :morally-noexcept-parent?)
+  (:local-nicknames
+   (:attrs :functional-trees/attrs)
+   (:file :software-evolution-library/components/file))
   (:export :c/cpp-project
            :get-standard-path-header
            :header-name
