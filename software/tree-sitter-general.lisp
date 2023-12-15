@@ -4516,10 +4516,11 @@ using NAMESPACE.")
 
 (defmethod attr-missing ((fn-name (eql 'namespace)) node
                          &aux (attrs-root (attrs-root*)))
-  (if-let ((root (find-if (of-type 'root-ast)
-                          (get-parent-asts attrs-root node))))
-    (namespace root "")
-    (namespace attrs-root "")))
+  (namespace
+   (or (find-if (of-type 'root-ast)
+                (get-parent-asts attrs-root node))
+       attrs-root)
+   ""))
 
 
 ;;; Contextualization
