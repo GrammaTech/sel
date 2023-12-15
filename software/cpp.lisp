@@ -1891,28 +1891,42 @@ available to use at any point in a C++ AST.")
         (strip-template-arguments result)
         result)))
 
+(defun macro-name? (string)
+  (with-string-dispatch (simple-base-string) string
+    (and (> (length string) 0)
+         (not (digit-char-p (aref string 0)))
+         (every (lambda (char)
+                  (or (and (alpha-char-p char)
+                           (upper-case-p char))
+                      (digit-char-p char)
+                      (eql char #\_)))
+                string))))
+
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
-  (let* ((source-text
-          (or (declarator-name declared-ast)
-              (source-text declared-ast)))
-         (namespace (namespace declared-ast))
-         (implicit (split "::" namespace))
-         (parts (split "::" source-text))
-         (explicit
-          (append
-           (and (string^= "::" source-text)
-                (list :global))
-           (butlast parts)))
-         (class-namespace
-          (static-member-name-qualifier declared-ast))
-         (explicit
-          (if class-namespace
-              (cons class-namespace explicit)
-              explicit))
-         (combined
-          (combine-namespace-qualifiers explicit implicit)))
-    (string-join (append1 combined (lastcar parts))
-                 "::")))
+  (nest
+   (let* ((source-text
+           (or (declarator-name declared-ast)
+               (source-text declared-ast)))))
+   (if (macro-name? source-text)
+       source-text)
+   (let* ((namespace (namespace declared-ast))
+          (implicit (split "::" namespace))
+          (parts (split "::" source-text))
+          (explicit
+           (append
+            (and (string^= "::" source-text)
+                 (list :global))
+            (butlast parts)))
+          (class-namespace
+           (static-member-name-qualifier declared-ast))
+          (explicit
+           (if class-namespace
+               (cons class-namespace explicit)
+               explicit))
+          (combined
+           (combine-namespace-qualifiers explicit implicit))))
+   (string-join (append1 combined (lastcar parts))
+                "::")))
 
 (defun static-member-name-qualifier (ast &key (root (attrs-root*)))
   "Derive the extra name qualifier for a static member."
