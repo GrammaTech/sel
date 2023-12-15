@@ -19,6 +19,7 @@
                 :morally-noexcept-parent?)
   (:local-nicknames
    (:attrs :functional-trees/attrs)
+   (:debug :software-evolution-library/utility/debug)
    (:file :software-evolution-library/components/file))
   (:export :c/cpp-project
            :get-standard-path-header
@@ -751,9 +752,9 @@ the including file."
                           (global-search))))
         (let ((genome (slot-value (cdr result) 'genome)))
           (unless (typep genome 'ast)
-            (format *trace-output* "~%Inserting ~a (~a) into tree~%"
-                    (car result)
-                    include-path)
+            (debug:note 2 "~%Inserting ~a (~a) into tree~%"
+                        (car result)
+                        include-path)
             ;; Force loading the genome.
             (genome (cdr result))
             (let ((temp-project
