@@ -603,29 +603,11 @@ the standard path and add it to PROJECT."))
                                                   (system-headers genome)))))))))))
 
 (defmethod from-file :around ((project c/cpp-project) (dir t))
-  (labels ((maybe-populate-header (ast)
-             (match ast
-               ((and include-ast (c/cpp-preproc-include ))
-                (let ((file-ast (find-enclosing 'file-ast (attrs-root*) include-ast)))
-                  (find-include project file-ast
-                                (file-header-dirs project ast :file file-ast)
-                                include-ast))))))
-    (let* ((result (call-next-method))
-           (genome
-            (make-instance 'c/cpp-root
-                           :project-directory (genome result)))
-           (last-evolve-files (evolve-files result)))
-      (setf (genome result)
-            (assure c/cpp-root genome))
-      (loop do (with-attr-table result
-                 (iter (for (nil . sw) in (evolve-files result))
-                       (when (typep (slot-value sw 'genome) 'ast)
-                         (mapc #'maybe-populate-header
-                               (genome sw)))))
-            until (eql (evolve-files result)
-                       (shiftf last-evolve-files (evolve-files result))))
-      ;; (mapc #'maybe-populate-header project)
-      result)))
+  "Ensure the genome of the project is a `c/cpp-root' instance."
+  (lret ((final-project (call-next-method)))
+    (setf (genome final-project)
+          (make-instance 'c/cpp-root
+                         :project-directory (genome final-project)))))
 
 
 ;;; Program Headers
