@@ -45,7 +45,8 @@
            :find-enclosing-software
            :*dependency-stack*
            :update-dependency-graph
-           :find-symbol-table-from-include))
+           :find-symbol-table-from-include
+           :skip-include))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -940,15 +941,20 @@ include files in all directories of the project."
                 (or (file-header-dirs project include-ast :file file)
                     *header-dirs*
                     *default-header-dirs*))))
-      (handler-case
-          (ematch include-ast
-            ((or (c/cpp-preproc-include)
-                 (cpp-import-declaration))
-             (safe-symbol-table
-              (find-include project file *header-dirs*
-                            include-ast))))
-        (circular-inclusion ()
-          nil)))))
+      (restart-case
+          (handler-case
+              (ematch include-ast
+                ((or (c/cpp-preproc-include)
+                     (cpp-import-declaration))
+                 (safe-symbol-table
+                  (find-include project file *header-dirs*
+                                include-ast))))
+            (circular-inclusion ()
+              nil))
+        (skip-include ()
+          :report (lambda (s) (format s "Skip including ~a" include-ast))
+          (return-from find-symbol-table-from-include
+            in))))))
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (let ((root (attrs-root *attrs*)))
