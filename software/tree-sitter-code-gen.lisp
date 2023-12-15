@@ -3174,6 +3174,7 @@ of an AST."))
     (:documentation "AST for input from tree-sitter."))
 
  (defmethod initialize-instance :after ((self tree-sitter-ast) &key)
+   "Ensure we also canonize when creating ASTs from scratch."
    (when-let (text (text self))
      (setf (text self)
            (canon-string text))))
