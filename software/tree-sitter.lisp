@@ -704,7 +704,8 @@
            :public? :private? :protected?
            :constant-fold
            :next-sibling
-           :prev-sibling)
+           :prev-sibling
+           :skip-include)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)))

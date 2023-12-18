@@ -151,7 +151,18 @@
   (flet ((defined? (name)
            (let ((macro-ns (lookup in :macro)))
              (and macro-ns
-                  (lookup macro-ns (source-text name))))))
+                  (lookup macro-ns (source-text name)))))
+         (handle-disabled (node)
+           "Make definitions in disabled ifdefs only visible inside the ifdef."
+           (prog1 in
+             ;; Suppress include errors in disabled ifdefs. Descending
+             ;; into a disabled ifdef may lead to circular
+             ;; dependencies, or wrong-platform dependencies (e.g.
+             ;; Windows headers on Linux).
+             (handler-bind ((error (lambda (e)
+                                     (declare (ignore e))
+                                     (maybe-invoke-restart 'skip-include))))
+               (propagate-declarations-down node in)))))
     (match node
       ((c/cpp-preproc-ifdef
         (children (list* (c/cpp-#ifdef) _))
@@ -159,15 +170,12 @@
        (if (defined? name)
            (propagate-declarations-down node in)
            ;; Make new definitions visible, but only inside the ifdef.
-           (prog1 in
-             (propagate-declarations-down node in))))
+           (handle-disabled node)))
       ((c/cpp-preproc-ifdef
         (children (list* (c/cpp-#ifndef) _))
         (c/cpp-name (and name (identifier-ast))))
        (if (defined? name)
-           (prog1 in
-             (propagate-declarations-down node in))
-           ;; Make new definitions visible, but only inside the ifdef.
+           (handle-disabled node)
            (propagate-declarations-down node in)))
       (otherwise
        (propagate-declarations-down node in)))))
