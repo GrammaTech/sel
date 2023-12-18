@@ -19,8 +19,7 @@
    (:debug
     :software-evolution-library/utility/debug)
    (:file :software-evolution-library/components/file)
-   (:task :software-evolution-library/utility/task)
-   (:tg :trivial-garbage))
+   (:task :software-evolution-library/utility/task))
   (:shadowing-import-from :software-evolution-library/software/compilable
                           :flags :compiler :compilable)
   (:export :file-ast
@@ -529,43 +528,41 @@ optimization settings."
 (defmethod collect-evolve-files :around ((obj directory-project))
   (debug:note 2 "Collecting files")
   (lret* ((evolve-files (call-next-method)))
-    (unwind-protect
-         (let ((genomes
-                (parallel-parse-genomes obj
-                                        evolve-files
-                                        :progress-fn
-                                        (lambda (genome)
-                                          (when (> debug:*note-level* 1)
-                                            (synchronized ()
-                                              (etypecase-of parsed-genome genome
-                                                ((eql :lazy)
-                                                 (format *error-output* "?"))
-                                                (ast
-                                                 (format *error-output* "."))
-                                                ((cons (eql :error) t)
-                                                 (format *error-output* "X"))))))))
-               (skip-all nil))
-           (debug:note 2 "Inserting genomes into AST")
-           (iter (for (path . software-object) in evolve-files)
-                 (for genome = (pop genomes))
-                 (restart-case
-                     (etypecase-of parsed-genome genome
-                       ((eql :lazy))
-                       (ast
-                        (insert-file obj path software-object))
-                       ((cons (eql :error) t)
-                        (restart-case
-                            (if skip-all
-                                (next-iteration)
-                                (error (cdr genome)))
-                          (skip-all-unparsed-files ()
-                            :report "Skip all unparsed files"
-                            (setf skip-all t)
-                            (next-iteration)))))
-                   (continue ()
-                     :report "Skip evolve file"
-                     (next-iteration)))))
-      (tg:gc :full t))))
+    (let ((genomes
+           (parallel-parse-genomes obj
+                                   evolve-files
+                                   :progress-fn
+                                   (lambda (genome)
+                                     (when (> debug:*note-level* 1)
+                                       (synchronized ()
+                                         (etypecase-of parsed-genome genome
+                                           ((eql :lazy)
+                                            (format *error-output* "?"))
+                                           (ast
+                                            (format *error-output* "."))
+                                           ((cons (eql :error) t)
+                                            (format *error-output* "X"))))))))
+          (skip-all nil))
+      (debug:note 2 "Inserting genomes into AST")
+      (iter (for (path . software-object) in evolve-files)
+            (for genome = (pop genomes))
+            (restart-case
+                (etypecase-of parsed-genome genome
+                  ((eql :lazy))
+                  (ast
+                   (insert-file obj path software-object))
+                  ((cons (eql :error) t)
+                   (restart-case
+                       (if skip-all
+                           (next-iteration)
+                           (error (cdr genome)))
+                     (skip-all-unparsed-files ()
+                       :report "Skip all unparsed files"
+                       (setf skip-all t)
+                       (next-iteration)))))
+              (continue ()
+                :report "Skip evolve file"
+                (next-iteration)))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
