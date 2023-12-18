@@ -216,9 +216,7 @@ class AST:
         language = ast.language
         for key, value in kwargs.items():
             if isinstance(value, list):
-                kwargs[key] = [
-                    AST._ensure_ast(a, language=language) for a in value
-                ]
+                kwargs[key] = [AST._ensure_ast(a, language=language) for a in value]
             elif isinstance(value, (str, float, int, AST)):
                 kwargs[key] = AST._ensure_ast(value, language=language)
 
@@ -301,9 +299,7 @@ class AST:
         Return a list of the AST's child slots, optionally including internal slots
         such as before/after ASTs.
         """
-        lst = (
-            _interface.dispatch(AST.child_slots.__name__, self, internal) or []
-        )
+        lst = _interface.dispatch(AST.child_slots.__name__, self, internal) or []
         return [_to_tuple(i) for i in lst]
 
     # AST methods for common, simple operations
@@ -313,9 +309,7 @@ class AST:
 
     def ast_at_point(self, line: int, column: int) -> "AST":
         """Return the most specific AST covering LINE and COLUMN."""
-        return _interface.dispatch(
-            AST.ast_at_point.__name__, self, line, column
-        )
+        return _interface.dispatch(AST.ast_at_point.__name__, self, line, column)
 
     def ast_source_ranges(
         self,
@@ -336,9 +330,7 @@ class AST:
     def child_slot_arity(self, slot: str) -> Optional[int]:
         """Return the arity of the AST's child slot."""
         pairs = [
-            pair
-            for pair in self.child_slots(True)
-            if pair[0].lower() == slot.lower()
+            pair for pair in self.child_slots(True) if pair[0].lower() == slot.lower()
         ]
         if pairs:
             return pairs[0][1]
@@ -362,9 +354,7 @@ class AST:
         if arity is None:
             return None
         else:
-            slot_value = _interface.dispatch(
-                AST.child_slot.__name__, self, slot
-            )
+            slot_value = _interface.dispatch(AST.child_slot.__name__, self, slot)
             return slot_value if arity or slot_value else []
 
     def parent(self, root: "AST") -> Optional["AST"]:
@@ -384,9 +374,7 @@ class AST:
         """Return library providing AST's identifier."""
         return _interface.dispatch(AST.provided_by.__name__, root, self)
 
-    def get_vars_in_scope(
-        self, root: "AST", keep_globals: bool = True
-    ) -> List[Dict]:
+    def get_vars_in_scope(self, root: "AST", keep_globals: bool = True) -> List[Dict]:
         """Return all variables in enclosing scopes, optionally including globals."""
         vars_in_scope = _interface.dispatch(
             AST.get_vars_in_scope.__name__,
@@ -398,9 +386,7 @@ class AST:
 
     def entry_control_flow(self, root: "AST"):
         """Return possible entry points."""
-        entry_points = _interface.dispatch(
-            AST.entry_control_flow.__name__, root, self
-        )
+        entry_points = _interface.dispatch(AST.entry_control_flow.__name__, root, self)
         return entry_points or []
 
     def exit_control_flow(self, root: "AST"):
@@ -599,9 +585,7 @@ class _interface:
     @staticmethod
     def is_process_running() -> bool:
         """Return TRUE if the Lisp subprocess is running."""
-        return _interface._proc is not None and psutil.pid_exists(
-            _interface._proc.pid
-        )
+        return _interface._proc is not None and psutil.pid_exists(_interface._proc.pid)
 
     @staticmethod
     def _check_for_process_crash() -> None:
@@ -716,9 +700,7 @@ class _interface:
 
             return data
 
-        def handle_out_of_sync(
-            response_message_id: int, message_id: int
-        ) -> Any:
+        def handle_out_of_sync(response_message_id: int, message_id: int) -> Any:
             """
             Read from the interface if RESPONSE_MESSAGE_ID is not in sync
             with the request MESSAGE_ID.
@@ -733,24 +715,18 @@ class _interface:
                     assert _interface._proc.stdout
                     response = _interface._proc.stdout.readline().strip()
 
-                    if not re.match(
-                        _interface._DEFAULT_RESPONSE_REGEX_CHECK, response
-                    ):
+                    if not re.match(_interface._DEFAULT_RESPONSE_REGEX_CHECK, response):
                         msg = (
                             f"'{response.decode()}'"
                             + " is not a valid response from the AST interface subprocess."
                         )
                         raise RuntimeError(msg)
 
-                response_message_id, response_data = json.loads(
-                    response.decode()
-                )
+                response_message_id, response_data = json.loads(response.decode())
                 if response_message_id == message_id:
                     return response_data
 
-            raise RuntimeError(
-                f"AST interface could not find message {message_id}."
-            )
+            raise RuntimeError(f"AST interface could not find message {message_id}.")
 
         def serialize(v: Any) -> Any:
             """Serialize V to a form for passing thru the JSON text interface."""
@@ -764,9 +740,7 @@ class _interface:
             elif isinstance(v, ASTLanguage):
                 return v.name
             elif isinstance(v, dict):
-                return {
-                    serialize(key): serialize(val) for key, val in v.items()
-                }
+                return {serialize(key): serialize(val) for key, val in v.items()}
             elif isinstance(v, list):
                 return [serialize(i) for i in v]
             elif isinstance(v, tuple):
@@ -783,10 +757,7 @@ class _interface:
                 assert isinstance(b64string, str)
                 return base64.b64decode(b64string).decode()
             elif isinstance(v, dict):
-                return {
-                    deserialize(key): deserialize(val)
-                    for key, val in v.items()
-                }
+                return {deserialize(key): deserialize(val) for key, val in v.items()}
             elif isinstance(v, list):
                 return [deserialize(i) for i in v]
             elif isinstance(v, tuple):
@@ -816,7 +787,6 @@ class _interface:
         # NOTE: it may be worth keeping a pool of responses to allow for more
         #       granular concurrency.
         with _interface._lock:
-
             # Get an ID for the request.
             message_id = _interface._get_message_id()
 
@@ -832,13 +802,9 @@ class _interface:
             # Check for errors/mismatches in response message id
             if response_message_id < message_id:
                 # Read from the Lisp subprocess until we are back in sync.
-                response_data = handle_out_of_sync(
-                    response_message_id, message_id
-                )
+                response_data = handle_out_of_sync(response_message_id, message_id)
             elif response_message_id > message_id:
-                raise RuntimeError(
-                    "AST interface is in an inconsistent state."
-                )
+                raise RuntimeError("AST interface is in an inconsistent state.")
 
         # Load the response from the Lisp subprocess.
         return deserialize(handle_errors(response_data))
@@ -855,10 +821,7 @@ class _interface:
             request = [
                 _interface._get_message_id(),
                 "gc",
-                [
-                    _interface._gc_oids.pop()
-                    for _ in range(len(_interface._gc_oids))
-                ],
+                [_interface._gc_oids.pop() for _ in range(len(_interface._gc_oids))],
             ]
             encoded_request = f"{json.dumps(request)}\n".encode()
             _interface._communicate(encoded_request)
@@ -908,9 +871,7 @@ class _interface:
         #  (2) Check we received a valid response.
         if request != _interface._DEFAULT_QUIT_SENTINEL:
             _interface._check_for_process_crash()
-            if not re.match(
-                _interface._DEFAULT_RESPONSE_REGEX_CHECK, response
-            ):
+            if not re.match(_interface._DEFAULT_RESPONSE_REGEX_CHECK, response):
                 msg = (
                     f"'{response.decode()}'"
                     + " is not a valid response from the AST interface subprocess."
