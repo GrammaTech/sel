@@ -488,7 +488,8 @@ optimization settings."
                                project)
   (lret* ((lazy?
            (or
-            (and (compdb:compilation-database project)
+            (and (typep project 'compdb-project:compilation-database-project)
+                 (compdb:compilation-database project)
                  (not
                   (compdb:command-object
                    project

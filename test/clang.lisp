@@ -97,6 +97,7 @@
 
 (deftest asts-are-set-on-copy ()
   (with-fixture hello-world-clang
+    (genome *hello-world*)
     (let ((new (copy *hello-world*)))
       (is (eq (genome new) (genome *hello-world*))
           "Copy and original share ASTs")
@@ -220,6 +221,7 @@
 
 (deftest clang-copies-share-asts ()
   (with-fixture hello-world-clang
+    (genome *hello-world*)
     (let ((variant (copy *hello-world*)))
       (is (eq (genome *hello-world*) (genome variant)))
       (is (> (size variant) 0)))))

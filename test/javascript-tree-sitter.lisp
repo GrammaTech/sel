@@ -123,6 +123,7 @@
 
 (deftest javascript-swap-changes-a-software-object ()
   (with-fixture fib-javascript
+    (genome *soft*)
     (let ((variant (copy *soft*))
           (stmt1 (stmt-with-text *soft* "temp = a;"))
           (stmt2 (stmt-with-text *soft* "num--;")))
@@ -148,12 +149,14 @@
 
 (deftest js-copies-share-asts ()
   (with-fixture fib-javascript
+    (genome *soft*)
     (let ((variant (copy *soft*)))
       (is (eq (genome *soft*) (genome variant)))
       (is (> (size variant) 0)))))
 
 (deftest js-mutation-preserves-unmodified-subtrees ()
   (with-fixture fib-javascript
+    (genome *soft*)
     (let ((variant (copy *soft*))
           (stmt1 (stmt-with-text *soft* "temp = a;")))
       (apply-mutation variant
@@ -305,7 +308,7 @@
                  javascript-right)
                (flet ((js-identifier (name)
                         (make-instance 'javascript-identifier
-                                       :text (list name))))
+                                       :text name)))
                  (make-instance 'conflict-ast :child-alist
                  `((:old . nil)
                    (:my . (,(js-identifier "temp")))

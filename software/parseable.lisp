@@ -6,6 +6,7 @@
         :bordeaux-threads
         :software-evolution-library
         :software-evolution-library/software/simple
+        :software-evolution-library/software/lazy-genome
         :software-evolution-library/components/file
         :software-evolution-library/utility/range
         :software-evolution-library/utility/limit-stream)
@@ -130,12 +131,8 @@
 (in-package :software-evolution-library/software/parseable)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software parseable (attrs-root software file)
-  ((genome   :initarg :genome :accessor genome :initform ""
-             :documentation "Lazily parsed AST representation of the code."
-             ;; We don't want to force parsing the genome when copying
-             ;; software objects.
-             :copier :direct))
+(define-software parseable (attrs-root lazy-genome file)
+  ()
   (:documentation "Parsed AST tree software representation."))
 
 (defmethod convert ((to-type (eql 'node)) (p parseable) &key)
@@ -1108,46 +1105,18 @@ the `genome' of the software object."
               deepest (length rpath)))
       nil)))
 
-(defmethod genome-string ((obj parseable) &optional stream)
-  "Return the source code of OBJ, optionally writing to STREAM"
-  (with-string (s stream)
-    (with-slots (genome) obj
-      (typecase genome
-        (string (write-string genome s))
-        (pathname (read-file-into-string genome))
-        (t (source-text genome :stream s))))))
+(defmethod serialize-lazy-genome ((obj parseable) genome stream)
+  (source-text genome :stream stream))
 
-(defmethod (setf genome-string) ((new string) (obj parseable))
-  ;; We will lazily parse the ASTs from the genome when it is next accessed.
-  (setf (genome obj) new))
+(defmethod parse-lazy-genome ((obj parseable) (genome pathname))
+  (parse-asts obj (file-to-string genome)))
 
-(defmethod genome :before ((obj parseable))
-  "Lazily parse the genome upon first access."
-  (typecase (slot-value obj 'genome)
-    (string
-     (setf (slot-value obj 'genome)
-           (parse-asts obj)))
-    (pathname
-     (setf (slot-value obj 'genome)
-           (parse-asts
-            obj
-            (file-to-string (slot-value obj 'genome)))))))
+(defmethod parse-lazy-genome ((obj parseable) (genome string))
+  (parse-asts obj genome))
 
 (defmethod (setf genome) :before ((new t) (obj parseable))
   "Clear fitness prior to updating to the NEW genome."
   (setf (slot-value obj 'fitness) nil))
-
-(defmethod from-file ((obj parseable) path)
-  "Initialize OBJ with the contents of PATH."
-  ;; `truename' signals an error if it doesn't exist.
-  (truename path)
-  (setf (genome obj) path)
-  obj)
-
-(defmethod from-string ((obj parseable) string)
-  "Initialize OBJ with the contents of STRING."
-  (setf (genome obj) string)
-  obj)
 
 (defmethod parse-asts :around ((sw parseable) &optional text)
   (declare (ignorable text))

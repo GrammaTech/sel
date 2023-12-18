@@ -4,6 +4,7 @@
   (:use :gt/full
         :metabang-bind
         :software-evolution-library
+        :software-evolution-library/software/lazy-genome
         :software-evolution-library/components/file)
   (:export :simple
            :light
@@ -22,9 +23,9 @@
 
 
 ;;; simple software objects
-(define-software simple (software file-w-attributes)
+(define-software simple (lazy-genome file-w-attributes)
   ((genome :initarg :genome :accessor genome :initform nil
-           :copier enhanced-copy-seq))
+           :copier copy-simple-genome))
   (:documentation "The simplest base software object."))
 
 (defun sel-copy-array (array)
@@ -37,6 +38,11 @@
                           :fill-pointer fill-pointer)))
     (dotimes (i (array-total-size array) new)
       (setf (row-major-aref new i)(row-major-aref array i)))))
+
+(defun copy-simple-genome (genome)
+  (typecase genome
+    ((or pathname string) genome)
+    (sequence (enhanced-copy-seq genome))))
 
 (defun enhanced-copy-seq (sequence)
   "Copies any type of array (except :displaced-to) and lists. Otherwise returns NIL."
@@ -54,22 +60,23 @@
 (defmethod size ((obj simple))
   (length (lines obj)))
 
-(defmethod genome-string ((simple simple) &optional stream)
+(defgeneric parse-simple-genome (source)
+  (:method ((path pathname))
+    (with-open-file (in path :external-format (reasonable-external-format path))
+      (parse-simple-genome in)))
+  (:method ((string string))
+    (with-input-from-string (in string)
+      (parse-simple-genome in)))
+  (:method ((in stream))
+    (loop :for line := (read-line in nil) :while line
+          :collect (list (cons :code line)))))
+
+(defmethod parse-lazy-genome ((simple simple) genome)
+  (parse-simple-genome genome))
+
+(defmethod serialize-lazy-genome ((simple simple) genome stream)
+  (declare (ignore genome))
   (format stream "~{~a~%~}" (lines simple)))
-
-(defmethod from-file ((simple simple) path)
-  (setf (genome simple)
-        (with-open-file (in path :external-format (reasonable-external-format path))
-          (loop :for line := (read-line in nil) :while line
-             :collect (list (cons :code line)))))
-  simple)
-
-(defmethod from-string ((simple simple) string)
-  (setf (genome simple)
-        (with-input-from-string (in string)
-          (loop :for line := (read-line in nil) :while line
-                :collect (list (cons :code line)))))
-  simple)
 
 (defmethod to-file ((simple simple) file)
   (with-open-file (out file :direction :output :if-exists :supersede)

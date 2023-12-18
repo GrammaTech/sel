@@ -20,4 +20,4 @@
 
 (deftest simple-source-text ()
   (is (equal (source-text (from-string 'simple "simple-text"))
-             (fmt "simple-text~%"))))
+             (fmt "simple-text"))))

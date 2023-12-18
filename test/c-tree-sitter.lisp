@@ -1561,7 +1561,7 @@ source text equal to any value in variables."
 when its surrounding text is removed."
   (let* ((software (from-file (make 'c) (prettify-software-dir path)))
          ;; Get the string directly before #'genome turns it into an AST.
-         (original-source (slot-value software 'genome))
+         (original-source (genome-string software))
          (software-copy (make 'c :genome (strip-surrounding-text
                                           (tree-copy (genome software))))))
     (is (equal (trim-whitespace original-source)
