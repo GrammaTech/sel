@@ -959,7 +959,10 @@ include files in all directories of the project."
             (circular-inclusion ()
               nil))
         (skip-include ()
-          :report (lambda (s) (format s "Skip including ~a" include-ast))
+          :report (lambda (s)
+                    (format s "Skip including ~a"
+                            (source-text
+                             (include-ast-path-ast include-ast))))
           (return-from find-symbol-table-from-include
             in))))))
 
