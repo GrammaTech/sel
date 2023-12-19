@@ -704,6 +704,7 @@ signals a restartable error if there are collisions."
                "Search for the include everywhere in the project.
 This is used as a fallback when we have no header search path."
                (let* ((matches
+                       ;; Restrict to headers that match the name and type.
                        (filter
                         ;; Search for the include file everywhere.
                         (op (let ((p (original-path (cdr _))))
@@ -712,7 +713,24 @@ This is used as a fallback when we have no header search path."
                                    (equal (pathname-type p)
                                           (pathname-type include-path)))))
                         (evolve-files project)))
-                      (matches (nub matches :test (op (file= (car _) (car _))))))
+                      (matches
+                       (or
+                        ;; If there are matches to the whole tweaked
+                        ;; include as a suffix, only use those.
+                        (and (pathname-directory include-path)
+                             (filter
+                              (lambda (cons)
+                                (let ((p (original-path (cdr cons))))
+                                  (string$= (namestring tweaked-include-path)
+                                            (namestring p))))
+                              matches))
+                        matches))
+                      (matches
+                       (nub matches
+                            :test
+                            (lambda (file1 file2)
+                              (file= (path-join project-dir (car file1))
+                                     (path-join project-dir (car file2)))))))
                  (if (null (cdr matches))
                      (car matches)
                      (or
