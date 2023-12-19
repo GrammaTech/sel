@@ -703,42 +703,43 @@ signals a restartable error if there are collisions."
     (labels ((global-search ()
                "Search for the include everywhere in the project.
 This is used as a fallback when we have no header search path."
-               (let ((matches
-                      (filter
-                       ;; Search for the include file everywhere.
-                       (op (let ((p (original-path (cdr _))))
-                             (and (equal (pathname-name p)
-                                         (pathname-name include-path))
-                                  (equal (pathname-type p)
-                                         (pathname-type include-path)))))
-                       (evolve-files project))))
+               (let* ((matches
+                       (filter
+                        ;; Search for the include file everywhere.
+                        (op (let ((p (original-path (cdr _))))
+                              (and (equal (pathname-name p)
+                                          (pathname-name include-path))
+                                   (equal (pathname-type p)
+                                          (pathname-type include-path)))))
+                        (evolve-files project)))
+                      (matches (nub matches :test (op (file= (car _) (car _))))))
                  (if (null (cdr matches))
                      (car matches)
-                     (if-let* ((m (find absolute-include-path matches
-                                        :key (op (original-path (cdr _)))
-                                        :test #'equal)))
-                       ;; If one of the matches is in the directory
-                       ;; targeted by the include relative to the including
-                       ;; file, choose it even if there are files elsewhere
-                       ;; with the same name.
-                       m
-                       (restart-case
-                           (error 'include-conflict-error
-                                  :ast path-ast
-                                  :candidates matches)
-                         (ignore ()
-                           :report "Ignore the conflict, return nil"
-                           nil)
-                         (first ()
-                           :report "Return the first candidate"
-                           (car matches))
-                         (whichever ()
-                           :report "Pick one at random"
-                           (random-elt matches))
-                         (use-value (match)
-                           :report "Specify the header to use"
-                           (assert (member match matches))
-                           match))))))
+                     (or
+                      ;; If one of the matches is in the directory
+                      ;; targeted by the include relative to the
+                      ;; including file, choose it even if there are
+                      ;; files elsewhere with the same name.
+                      (find absolute-include-path matches
+                            :key (op (original-path (cdr _)))
+                            :test #'equal)
+                      (restart-case
+                          (error 'include-conflict-error
+                                 :ast path-ast
+                                 :candidates matches)
+                        (ignore ()
+                          :report "Ignore the conflict, return nil"
+                          nil)
+                        (first ()
+                          :report "Return the first candidate"
+                          (car matches))
+                        (whichever ()
+                          :report "Pick one at random"
+                          (random-elt matches))
+                        (use-value (match)
+                          :report "Specify the header to use"
+                          (assert (member match matches))
+                          match))))))
              (simple-relative-search ()
                "Do a search relative to BASE, if supplied, or the location of
 the including file."
