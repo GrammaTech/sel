@@ -19,6 +19,8 @@
         :software-evolution-library)
   #-windows (:import-from :osicat :file-permissions)
   (:import-from :cl-strftime :format-time)
+  (:import-from :cl-murmurhash :murmurhash)
+  (:local-nicknames (:tg :trivial-garbage))
   (:export :file
            :file-w-attributes
            :ext
@@ -75,9 +77,9 @@ path from which the software was created is required."))
     :initarg :modification-time
     :accessor modification-time
     :initform nil)
-   (original-genome-string
-    :initarg :original-genome-string
-    :accessor original-genome-string
+   (original-genome-string-hash
+    :initarg :original-genome-string-hash
+    :accessor original-genome-string-hash
     :initform nil))
   (:documentation
    "Mixin class for software where preserving file attributes is required."))
@@ -91,10 +93,10 @@ path from which the software was created is required."))
 (defmethod copy :around ((obj file-w-attributes) &key &allow-other-keys)
   "Wrap the copy method to ensure the OBJ's fields are copied."
   (let ((copy (call-next-method)))
-    (with-slots (permissions modification-time original-genome-string) copy
+    (with-slots (permissions modification-time original-genome-string-hash) copy
       (setf permissions (permissions obj)
             modification-time (modification-time obj)
-            original-genome-string (original-genome-string obj)))
+            original-genome-string-hash (original-genome-string-hash obj)))
     copy))
 
 (defmethod from-file :before ((obj file-w-attributes) path)
@@ -106,7 +108,14 @@ permissions and modification time when creating OBJ."
 (defmethod from-file :after ((obj file-w-attributes) path)
   "Reading from a file sets ORIGINAL-GENOME-STRING."
   (declare (ignorable path))
-  (setf (original-genome-string obj) (genome-string obj)))
+  (with-slots (genome) obj
+    (when (stringp genome)
+      (setf (original-genome-string-hash obj)
+            (murmurhash genome)))))
+
+(defmethod (setf genome) :after ((value string) (obj file-w-attributes))
+  (setf (original-genome-string-hash obj)
+        (murmurhash value)))
 
 (defmethod to-file :after ((obj file-w-attributes) path)
   "Wrapper around the `to-file` method to preserve permissions and
@@ -125,7 +134,9 @@ modification time when writing OBJ to PATH."
 
 (defmethod to-file :around ((obj file-w-attributes) path)
   ;; Copy from original-path unless obj is modified or original-path is invalid
-  (if (or (not (equal (original-genome-string obj) (genome-string obj)))
+  (if (or (and (original-genome-string-hash obj)
+               (not (equal (original-genome-string-hash obj)
+                           (murmurhash (genome-string obj)))))
           (not (original-path obj))
           (not (probe-file (original-path obj))))
       (call-next-method)
