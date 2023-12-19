@@ -221,14 +221,14 @@ not be resolved)."
                  "Intern duplicated subtrees (common with modules)."
                  (ensure-gethash leaf intern-table leaf))
                (rec (path seen)
-                 (if (find path seen :test #'equal)
+                 (if (contains? seen path)
                      (list :circle path)
-                     (let ((seen (cons path seen)))
+                     (let ((seen (with seen path)))
                        (intern-leaf
                         (cons path
                               (mapcar (op (rec _ seen))
                                       (gethash path included-headers))))))))
-        (mapcar (op (rec _ nil))
+        (mapcar (op (rec _ (empty-set)))
                 (or entry-points
                     (if allow-headers
                         files
