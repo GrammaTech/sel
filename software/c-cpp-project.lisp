@@ -971,23 +971,34 @@ include files in all directories of the project."
                 (or (file-header-dirs project include-ast :file file)
                     *header-dirs*
                     *default-header-dirs*))))
-      (restart-case
-          (handler-case
-              (ematch include-ast
-                ((or (c/cpp-preproc-include)
-                     (cpp-import-declaration))
-                 (safe-symbol-table
-                  (find-include project file *header-dirs*
-                                include-ast))))
-            (circular-inclusion ()
-              nil))
-        (skip-include ()
-          :report (lambda (s)
-                    (format s "Skip including ~a"
-                            (source-text
-                             (include-ast-path-ast include-ast))))
-          (return-from find-symbol-table-from-include
-            in))))))
+      (nlet retry ()
+        (restart-case
+            (handler-case
+                (ematch include-ast
+                  ((or (c/cpp-preproc-include)
+                       (cpp-import-declaration))
+                   (safe-symbol-table
+                    (or
+                     (find-include project file *header-dirs*
+                                   include-ast)
+                     (error "Could not resolve ~a" (source-text (include-ast-path-ast include-ast)))
+                     ))))
+              (circular-inclusion ()
+                nil))
+          (skip-include ()
+            :report (lambda (s)
+                      (format s "Skip including ~a"
+                              (source-text
+                               (include-ast-path-ast include-ast))))
+            (return-from find-symbol-table-from-include
+              in))
+          (enable-global-search ()
+            :test (lambda (c)
+                    (declare (ignore c))
+                    (null *global-search-for-include-files*))
+            :report "Enable global (within project) search for include files"
+            (setq *global-search-for-include-files* t)
+            (retry)))))))
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (let ((root (attrs-root *attrs*)))
