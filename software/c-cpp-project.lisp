@@ -931,8 +931,10 @@ include files in all directories of the project."
                 (update-dependency-graph project software)
                 (let ((*dependency-stack* (cons software *dependency-stack*)))
                   (symbol-table* software in))))))
-    (let* ((file (find-enclosing '(or file-ast synthetic-header)
-                                 project include-ast))
+    (let* ((file
+            (or (find-enclosing '(or file-ast synthetic-header)
+                                project include-ast)
+                (error "No enclosing file for ~a" include-ast)))
            (*dependency-stack*
             ;; Initialize the stack with a top-level file, if needed.
             (or *dependency-stack*
