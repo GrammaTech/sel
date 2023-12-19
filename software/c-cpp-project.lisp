@@ -383,7 +383,11 @@ should already have been computed as part of their compilation units."
   (:documentation "Synthesize an implicit header for COMMAND.")
   (:method ((co command-object) lang)
     (when-let (alist (command-preproc-defs co))
-      (let* ((source
+      (let* ((alist
+              (if (eql lang 'cpp)
+                  (cons '("__cplusplus" . "1") alist)
+                  alist))
+             (source
               (mapconcat (lambda (cons)
                            (preproc-macro-source (car cons) (cdr cons)))
                          (reverse alist)
