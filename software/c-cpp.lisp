@@ -155,13 +155,11 @@
          (handle-disabled (node)
            "Make definitions in disabled ifdefs only visible inside the ifdef."
            (prog1 in
-             ;; Suppress include errors in disabled ifdefs. Descending
-             ;; into a disabled ifdef may lead to circular
-             ;; dependencies, or wrong-platform dependencies (e.g.
-             ;; Windows headers on Linux).
-             (handler-bind ((error (lambda (e)
-                                     (declare (ignore e))
-                                     (maybe-invoke-restart 'skip-include))))
+             ;; Suppress circular include errors in disabled ifdefs.
+             (handler-bind ((circular-inclusion
+                             (lambda (e)
+                               (declare (ignore e))
+                               (maybe-invoke-restart 'skip-include))))
                (propagate-declarations-down node in)))))
     (match node
       ((c/cpp-preproc-ifdef
