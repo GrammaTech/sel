@@ -71,6 +71,34 @@ headers."
   '(:current :always :system :stdinc))
 
 (progn
+  (defparameter *standard-macros*
+    ;; These are valid values.
+    '(("__DATE__" . "??? ?? ????")
+      ("__TIME__" . "??:??:??")
+      ("__STDC__" . "1")))
+
+  (defparameter *platform-macros*
+    '((:linux
+       ("linux" . "1")
+       ("__linux" . "1")
+       ("__linux__" . "1")
+       ("__GNU__" . "1")
+       ("__GLIBC__" . "1"))))
+
+  (defun platform-specific-macros (platform)
+    (aget platform *platform-macros*
+          :test (op (member _ (ensure-list _) :test #'string-equal))))
+
+  (defparameter *compiler-macros*
+    '(((:gcc :g++)
+       ("__GNUC__" . "1"))
+      ((:clang :clang++))))
+
+  (defun compiler-specific-macros (compiler)
+    (aget compiler *compiler-macros*
+          :test (op (member _ (ensure-list _) :test #'string-equal)))))
+
+(progn
   (defparameter *path-flags*
     '("-L"
       "-I" "--include-directory"
@@ -219,11 +247,17 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
       :reader command-header-dirs)
      (isysroot
       :type (or null string)
-      :reader command-isysroot))
+      :reader command-isysroot)
+     (platform
+      :type :keyword
+      :initarg :platform
+      :reader command-platform))
     (:documentation "Entry in a compiler database")
     (:default-initargs
      :directory (required-argument :directory)
-     :file (required-argument :file))))
+     :file (required-argument :file)
+     ;; TODO Detect meaningfully.
+     :platform :linux)))
 
 (define-default-copy command-object ())
 
@@ -267,7 +301,11 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                          (slot-name (eql 'preprocessor-definitions)))
   "Lazily compute preprocessor definitions."
   (setf (slot-value self 'preprocessor-definitions)
-        (preprocessor-definition-alist-from-flags (command-flags self))))
+        (append
+         (compiler-specific-macros (command-compiler self))
+         (platform-specific-macros (command-platform self))
+         (preprocessor-definition-alist-from-flags (command-flags self))
+         *standard-macros*)))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
