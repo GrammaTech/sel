@@ -267,7 +267,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
                          (slot-name (eql 'preprocessor-definitions)))
   "Lazily compute preprocessor definitions."
   (setf (slot-value self 'preprocessor-definitions)
-        (preprocessor-definition-alist (command-flags self))))
+        (preprocessor-definition-alist-from-flags (command-flags self))))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
@@ -366,9 +366,9 @@ Return the macro name and macro definition as two values."
           (fmt "#undef ~a~%" mname)
           (fmt "#define ~a ~a~%" mname mdef))))
 
-(-> preprocessor-definition-alist ((soft-list-of string))
+(-> preprocessor-definition-alist-from-flags ((soft-list-of string))
     (values macro-alist &optional))
-(defun preprocessor-definition-alist (flags)
+(defun preprocessor-definition-alist-from-flags (flags)
   "Extract an alist of macro definitions from FLAGS.
 The alist maps names to definitions.
 
