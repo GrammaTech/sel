@@ -273,7 +273,9 @@
 (let ((worker-id -1))
   (defun task-runner-create-worker (runner)
     "Create a new worker thread."
-    (let ((*default-special-bindings* (acons '*task-runner* runner nil)))
+    (let ((*default-special-bindings*
+           (acons '*task-runner* runner
+                  *default-special-bindings*)))
       (with-lock-held ((task-runner-workers-lock runner))
         (push (make-thread 'start-worker
                 :name (format nil "~A-~D" "software-mutator"
