@@ -149,7 +149,7 @@ headers and implicit headers for command-line preprocessor macros."))
 
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
   "Return the text of PATH-AST with the quotes around it removed."
-  (string-trim "<>\"" text))
+  (string-trim " <>\"" text))
 
 (defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
   "Get a header search path for FILE from PROJECT's compilation database."
@@ -535,6 +535,8 @@ This is largely C compatibility headers for C++, which do not throw exceptions."
   (:method ((name c/cpp-system-lib-string))
     (make-unknown-header (trim-path-string name)))
   (:method ((name c/cpp-string-literal))
+    (make-unknown-header (trim-path-string name)))
+  (:method ((name c/cpp-preproc-arg))
     (make-unknown-header (trim-path-string name))))
 
 (defmethod original-path ((self c/cpp-system-header))
@@ -561,6 +563,13 @@ This is largely C compatibility headers for C++, which do not throw exceptions."
     (get-standard-path-header project
                               (trim-path-string system-header-ast)
                               :header-dirs header-dirs))
+  (:method ((project c/cpp-project)
+            (system-header-ast c/cpp-preproc-arg)
+            &key header-dirs)
+    (get-standard-path-header project
+                              (trim-path-string system-header-ast)
+                              :header-dirs header-dirs))
+
   (:documentation "Get the system header indicated by SYSTEM-HEADER-STRING from
 the standard path and add it to PROJECT."))
 
@@ -827,7 +836,9 @@ inference.  Used to prevent circular attr propagation.")
                (format s "Circular inclusion of ~a" header)))))
 
 (defun include-ast-path-ast (include-ast &key symbol-table)
-  (declare (ignore symbol-table))       ;TODO
+  "Extract the path AST from INCLUDE-AST.
+If SYMBOL-TABLE is supplied, use it to resolve macros in include
+paths."
   (ematch include-ast
     ((c/cpp-preproc-include
       (c/cpp-path (and path-ast (c/cpp-string-literal))))
@@ -838,15 +849,19 @@ inference.  Used to prevent circular attr propagation.")
     ((cpp-import-declaration
       (cpp-name (and path-ast (c/cpp-system-lib-string))))
      path-ast)
-    ;; TODO Look up macro definitions in SYMBOL-TABLE.
-
     ;; E.g. `#include BOOST_ABI_PREFIX`.
     ((c/cpp-preproc-include
-      (c/cpp-path (identifier-ast)))
-     nil)
+      (c/cpp-path (and id (identifier-ast))))
+     (and-let* (((sel/sw/ts::macro-name? (source-text id)))
+                (symbol-table)
+                (ns (lookup symbol-table :macro))
+                (macro (car (lookup ns (source-text id))))
+                (preproc-def (find-enclosing 'c/cpp-preproc-def (attrs-root*) macro)))
+       (cpp-value preproc-def)))
     ;; E.g. `#include BOOST_PP_ITERATE()`.
     ((c/cpp-preproc-include
       (c/cpp-path (call-ast)))
+     ;; TODO
      nil)))
 
 (defun find-include (project file header-dirs include-ast
