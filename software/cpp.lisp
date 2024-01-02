@@ -1718,14 +1718,21 @@ instance we only want to remove one).")
       (call-next-method)))
 
 (defmethod exception-set ((ast cpp-call-expression))
-  (match ast
-    ((cpp-call-expression
-      :function (cpp-template-function
-                 :cpp-name name))
-     (if (morally-noexcept? name)
-         '(or)
-         (call-next-method)))
-    (otherwise (call-next-method))))
+  (flet ((call-exception-set (name)
+           (if (morally-noexcept? name)
+               ;; Include the exception sets of the arguments.
+               (reduce #'exception-set-union
+                       (mapcar #'exception-set
+                               (call-arguments ast))
+                       :initial-value '(or))
+               (call-next-method))))
+    (match ast
+      ((cpp-call-expression
+        :function (cpp-template-function
+                   :cpp-name name))
+       (call-exception-set name))
+      (otherwise
+       (call-exception-set (call-function ast))))))
 
 
 ;;; Whitespace rules
