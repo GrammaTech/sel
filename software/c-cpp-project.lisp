@@ -826,7 +826,8 @@ inference.  Used to prevent circular attr propagation.")
              (with-slots (header) c
                (format s "Circular inclusion of ~a" header)))))
 
-(defun include-ast-path-ast (include-ast)
+(defun include-ast-path-ast (include-ast &key symbol-table)
+  (declare (ignore symbol-table))       ;TODO
   (ematch include-ast
     ((c/cpp-preproc-include
       (c/cpp-path (and path-ast (c/cpp-string-literal))))
@@ -837,6 +838,8 @@ inference.  Used to prevent circular attr propagation.")
     ((cpp-import-declaration
       (cpp-name (and path-ast (c/cpp-system-lib-string))))
      path-ast)
+    ;; TODO Look up macro definitions in SYMBOL-TABLE.
+
     ;; E.g. `#include BOOST_ABI_PREFIX`.
     ((c/cpp-preproc-include
       (c/cpp-path (identifier-ast)))
@@ -847,9 +850,11 @@ inference.  Used to prevent circular attr propagation.")
      nil)))
 
 (defun find-include (project file header-dirs include-ast
-                     &key (global *global-search-for-include-files*))
+                     &key (global *global-search-for-include-files*)
+                       symbol-table)
   (declare (functional-tree-ast file))
-  (when-let ((path-ast (include-ast-path-ast include-ast)))
+  (when-let ((path-ast (include-ast-path-ast include-ast
+                                             :symbol-table symbol-table)))
     (labels ((find-include (global)
                (if (no header-dirs)
                    (get-standard-path-header
@@ -935,7 +940,8 @@ is included by."
 included by INCLUDE-AST.  IN is the symbol table before entry
 to the include-ast.  If GLOBAL is true, search for non-system
 include files in all directories of the project."
-  (declare (fset:map in))
+  (declare (fset:map in)
+           (ignore global))
   #+debug-fstfi
   (format t "Enter find-symbol-table-from-include on ~a~%"
           (source-text include-ast))
@@ -980,16 +986,20 @@ include files in all directories of the project."
                    (safe-symbol-table
                     (or
                      (find-include project file *header-dirs*
-                                   include-ast)
-                     (error "Could not resolve ~a" (source-text (include-ast-path-ast include-ast)))
-                     ))))
+                                   include-ast
+                                   :symbol-table in)
+                     (error "Could not resolve ~a"
+                            (source-text
+                             (include-ast-path-ast include-ast
+                                                   :symbol-table in)))))))
               (circular-inclusion ()
                 nil))
           (skip-include ()
             :report (lambda (s)
                       (format s "Skip including ~a"
                               (source-text
-                               (include-ast-path-ast include-ast))))
+                               (include-ast-path-ast include-ast
+                                                     :symbol-table in))))
             (return-from find-symbol-table-from-include
               in))
           (enable-global-search ()
