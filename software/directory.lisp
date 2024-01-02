@@ -523,8 +523,12 @@ optimization settings."
                                      :project project
                                      :progress-fn progress-fn
                                      :root root)))))
-      (declare (ignore len))
-      (mapcar fn files))))
+      (if (< len *directory-project-parallel-minimum*)
+          (mapcar fn files)
+          (task:task-map-in-order
+           (evolve-files-thread-count evolve-files)
+           fn
+           files)))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
   (debug:note 2 "Collecting files")
