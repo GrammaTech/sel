@@ -20,7 +20,8 @@
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:debug :software-evolution-library/utility/debug)
-   (:file :software-evolution-library/components/file))
+   (:file :software-evolution-library/components/file)
+   (:task :software-evolution-library/utility/task))
   (:export :c/cpp-project
            :get-standard-path-header
            :header-name
@@ -176,10 +177,11 @@ supplied at the command line."))
 (defun clear-implicit-headers (project)
   "Clear cached implicit headers in PROJECT's genome.
 For development."
-  (setf (genome project)
-        (copy (genome project)
-              :implicit-headers nil
-              :implicit-headers-table (dict)))
+  (synchronized (project)
+    (setf (genome project)
+          (copy (genome project)
+                :implicit-headers nil
+                :implicit-headers-table (dict))))
   (values))
 
 (deftype dependency-tree ()
@@ -420,13 +422,14 @@ should already have been computed as part of their compilation units."
       (let* ((genome (genome project))
              (table (implicit-headers-table genome))
              (lang (component-class project)))
-        (ensure2 (gethash file table)
-          (lret ((header (command-implicit-header co lang)))
-            (when header
-              (setf (genome project)
-                    (copy (genome project)
-                          :implicit-headers
-                          (adjoin header (implicit-headers genome)))))))))))
+        (synchronized (project)
+          (ensure2 (gethash file table)
+            (lret ((header (command-implicit-header co lang)))
+              (when header
+                (setf (genome project)
+                      (copy (genome project)
+                            :implicit-headers
+                            (adjoin header (implicit-headers genome))))))))))))
 
 (defun implicit-header-symbol-table (header)
   (with-attr-session (header :inherit nil)
@@ -638,35 +641,59 @@ the standard path and add it to PROJECT."))
                       (when-let (header (populate-header-entry project path-string))
                         (setf header-hash header)))))
             (when header
-              (setf genome
-                    (copy genome
-                          :system-headers (adjoin header
-                                                  (system-headers genome)))))))))))
+              (synchronized (project)
+                (setf genome
+                      (copy genome
+                            :system-headers (adjoin header
+                                                    (system-headers genome))))))))))))
 
 (defmethod from-file :around ((project c/cpp-project) (dir t))
-  (labels ((maybe-populate-header (ast)
-             (match ast
-               ((and include-ast (c/cpp-preproc-include ))
-                (let ((file-ast (find-enclosing 'file-ast (attrs-root*) include-ast)))
-                  (find-include project file-ast
-                                (file-header-dirs project ast :file file-ast)
-                                include-ast))))))
-    (let* ((result (call-next-method))
-           (genome
-            (make-instance 'c/cpp-root
-                           :project-directory (genome result)))
-           (last-evolve-files (evolve-files result)))
-      (setf (genome result)
-            (assure c/cpp-root genome))
-      (loop do (with-attr-table result
-                 (iter (for (nil . sw) in (evolve-files result))
-                       (when (typep (slot-value sw 'genome) 'ast)
-                         (mapc #'maybe-populate-header
-                               (genome sw)))))
-            until (eql (evolve-files result)
-                       (shiftf last-evolve-files (evolve-files result))))
-      ;; (mapc #'maybe-populate-header project)
-      result)))
+  (let* ((result (call-next-method))
+         (genome
+          (make-instance 'c/cpp-root
+                         :project-directory (genome result)))
+         (last-evolve-files (evolve-files result)))
+    (setf (genome result)
+          (assure c/cpp-root genome))
+    (debug:note 2 "Populating headers")
+    ;; Recursively populate headers, starting with .cpp files, adding
+    ;; include headers, then adding transitively included headers with
+    ;; depth 1, depth 2, etc. Note this will not handle includes where
+    ;; the path is a preprocessor macro (they will be populated later
+    ;; during symbol table construction).
+    (iter (let ((to-populate '()))
+            (with-attr-table result
+              (iter (for (nil . sw) in (evolve-files result))
+                    (when (typep (slot-value sw 'genome) 'ast)
+                      (iter (for ast in-tree (genome sw))
+                            (match ast
+                              ((and include-ast (c/cpp-preproc-include))
+                               (let* ((file-ast
+                                       (find-enclosing 'file-ast
+                                                       (attrs-root*)
+                                                       include-ast)))
+                                 (push (list file-ast
+                                             (file-header-dirs project ast
+                                                               :file file-ast)
+                                             include-ast)
+                                       to-populate)))))))
+              (debug:note 3 "Populating ~a header~:p" (length to-populate))
+              (task:task-map
+               (parallel-parse-thread-count to-populate)
+               (dynamic-closure
+                '(*attrs*)
+                (lambda (args)
+                  (destructuring-bind (file-ast header-dirs include-ast) args
+                    (with-thread-name (:name
+                                       (fmt "Including ~a"
+                                            (source-text
+                                             (include-ast-path-ast include-ast))))
+                      (find-include project file-ast header-dirs include-ast)))))
+               to-populate)))
+          (until (eql (evolve-files result)
+                      (shiftf last-evolve-files (evolve-files result)))))
+    ;; (mapc #'maybe-populate-header project)
+    result))
 
 
 ;;; Program Headers
@@ -800,21 +827,27 @@ the including file."
                  (or (simple-relative-search)
                      (and global
                           (global-search))))
-        (let ((genome (slot-value (cdr result) 'genome)))
-          (unless (typep genome 'ast)
-            (debug:note 2 "~%Inserting ~a (~a) into tree~%"
-                        (car result)
-                        include-path)
-            ;; Force loading the genome.
-            (genome (cdr result))
-            (let ((temp-project
-                   (with project
-                         (car result)
-                         (cdr result))))
-              (setf (genome project)
-                    (genome temp-project)
-                    (evolve-files project)
-                    (evolve-files temp-project)))))
+        (destructuring-bind (path . software) result
+          (with-slots (genome) software
+            (unless (typep genome 'ast)
+              ;; Force loading the genome.
+              (synchronized (software)
+                (with-thread-name (:name (fmt "Parsing ~a" path))
+                  (unless (typep genome 'ast)
+                    (genome software))))
+              (synchronized (project)
+                (unless (lookup (genome project) path)
+                  (debug:note 2 "~%Inserting ~a (~a) into tree~%"
+                              (car result)
+                              include-path)
+                  (let ((temp-project
+                         (with project
+                               (car result)
+                               (cdr result))))
+                    (setf (genome project)
+                          (genome temp-project)
+                          (evolve-files project)
+                          (evolve-files temp-project))))))))
         (cdr result)))))
 
 
@@ -914,7 +947,8 @@ paths."
              (make-unknown-header* (include-ast)
                (lret ((unknown-header (make-unknown-header include-ast)))
                  (when (boundp '*attrs*)
-                   (setf (attr-proxy unknown-header) include-ast)))))
+                   (synchronized (project)
+                     (setf (attr-proxy unknown-header) include-ast))))))
       (declare (dynamic-extent #'find-include))
       (or (find-include nil)
           (and global (find-include :global))
@@ -955,15 +989,16 @@ value of `*dependency-stack*'."
 (defun record-inclusion (project includer-path includee-path)
   "Return two values: who INCLUDER-PATH includes, and who INCLUDEE-PATH
 is included by."
-  (values
-   (pushnew includee-path
-            (href (included-headers (genome project))
-                  includer-path)
-            :test #'equal)
-   (pushnew includer-path
-            (href (including-files (genome project))
-                  includee-path)
-            :test #'equal)))
+  (synchronized (project)
+    (values
+     (pushnew includee-path
+              (href (included-headers (genome project))
+                    includer-path)
+              :test #'equal)
+     (pushnew includer-path
+              (href (including-files (genome project))
+                    includee-path)
+              :test #'equal))))
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
@@ -1023,8 +1058,8 @@ include files in all directories of the project."
                                    :symbol-table in)
                      (error "Could not resolve ~a"
                             (source-text
-                             (include-ast-path-ast include-ast
-                                                   :symbol-table in)))))))
+                             (or (include-ast-path-ast include-ast :symbol-table in)
+                                 include-ast)))))))
               (circular-inclusion ()
                 nil))
           (skip-include ()

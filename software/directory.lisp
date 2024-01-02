@@ -40,7 +40,8 @@
            :only-other-paths
            :all-files
            :pick-file
-           :collect-evolve-files*))
+           :collect-evolve-files*
+           :parallel-parse-thread-count))
 (in-package :software-evolution-library/software/directory)
 (in-readtable :curry-compose-reader-macros)
 
@@ -477,9 +478,9 @@ optimization settings."
     (cons (eql :error) t)
     (eql :lazy)))
 
-(defun evolve-files-thread-count (evolve-files)
+(defun parallel-parse-thread-count (to-parse)
   ;; (task-map 1 ...) is equivalent to (mapcar ...).
-  (if (length>= evolve-files *directory-project-parallel-minimum*)
+  (if (length>= to-parse *directory-project-parallel-minimum*)
       (max 1 (count-cpus))
       1))
 
@@ -526,7 +527,7 @@ optimization settings."
       (if (< len *directory-project-parallel-minimum*)
           (mapcar fn files)
           (task:task-map-in-order
-           (evolve-files-thread-count evolve-files)
+           (parallel-parse-thread-count evolve-files)
            fn
            files)))))
 
