@@ -1404,6 +1404,46 @@ for (int i = 0; i < x; i++) {
              (definition-name
               (find-if (of-type 'c-union-specifier)
                        (convert 'c-ast "union u { int x, y; };"))))))
+
+(deftest simple-typedef-test ()
+  (let* ((c (from-string 'c "typedef unsigned long ulong; ulong l2;"))
+         (last (lastcar (collect-if (op (source-text= "ulong" _)) c))))
+    (with-attr-table c
+      (is (typep (get-declaration-ast :type last)
+                 'c-type-definition)))))
+
+(deftest complex-typedef-test ()
+  (let* ((c (from-string 'c (fmt "~
+typedef int int_t, *intp_t, (&fp)(int, ulong), arr_t[10];
+
+int_t p1 = 0;
+arr_t a2;")))
+         (decls (is (collect-if (of-type 'c-declaration) c)))
+         (types (is (mapcar #'c-type decls)))
+         (typedef (is (find-if (of-type 'c-type-definition) c))))
+    (is (length= 2 decls))
+    (is (length= 2 types))
+    (with-attr-table c
+      (is (eql* typedef
+                (get-declaration-ast :type (first types))
+                (get-declaration-ast :type (second types)))))))
+
+(deftest typedef-struct-multiple-names-test ()
+  (let* ((c (from-string 'c (fmt "~
+typedef struct { int a; int b; } S, *pS;
+
+// the following two objects have the same type
+pS ps1;
+S* ps2;")))
+         (decls (is (collect-if (of-type 'c-declaration) c)))
+         (types (is (mapcar #'c-type decls)))
+         (typedef (is (find-if (of-type 'c-type-definition) c))))
+    (is (length= 2 decls))
+    (is (length= 2 types))
+    (with-attr-table c
+      (is (eql* typedef
+                (get-declaration-ast :type (first types))
+                (get-declaration-ast :type (second types)))))))
   
 
 

@@ -382,14 +382,15 @@ pointer declarations which are nested on themselves."
           '(:type)))
 
 (defmethod outer-declarations ((ast c/cpp-type-definition))
-  (mvlet ((type
-           (assure ast
-             (find-if (of-type 'c/cpp-type-identifier)
-                      (car (c/cpp-declarator ast)))))
-          (type-decls type-namespaces
+  (mvlet ((declared-types
+           (mappend (op (collect-if (of-type 'c/cpp-type-identifier) _))
+                    (c/cpp-declarator ast)))
+          (orig-type-decls orig-type-namespaces
            (outer-declarations (c/cpp-type ast))))
-    (values (cons type type-decls)
-            (cons :type type-namespaces))))
+    (values (append declared-types orig-type-decls)
+            (append (mapcar (constantly :type)
+                            declared-types)
+                    orig-type-namespaces))))
 
 (defmethod outer-declarations ((ast c/cpp-preproc-def))
   (values (list (c/cpp-name ast))
