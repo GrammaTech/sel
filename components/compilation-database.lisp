@@ -78,7 +78,7 @@ headers."
       ("__STDC__" . "1")))
 
   (defparameter *platform-macros*
-    '((:linux
+    '(((:linux)
        ("linux" . "1")
        ("__linux" . "1")
        ("__linux__" . "1")
@@ -87,7 +87,7 @@ headers."
 
   (defun platform-specific-macros (platform)
     (aget platform *platform-macros*
-          :test (op (member _ (ensure-list _) :test #'string-equal))))
+          :test (op (member _ _ :test #'string-equal))))
 
   (defparameter *compiler-macros*
     '(((:gcc :g++)
@@ -96,7 +96,7 @@ headers."
 
   (defun compiler-specific-macros (compiler)
     (aget compiler *compiler-macros*
-          :test (op (member _ (ensure-list _) :test #'string-equal)))))
+          :test (op (member _ _ :test #'string-equal)))))
 
 (progn
   (defparameter *path-flags*
