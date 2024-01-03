@@ -457,10 +457,46 @@ the header.")
   (:documentation "Node for representing synthetic system headers."))
 
 (defparameter *morally-noexcept-headers*
-  (set-hash-table
-   ;; TODO Add all.
-   '("math" "cmath")
-   :test #'equal)
+  ;; See https://en.cppreference.com/w/cpp/header
+  (let ((c-compatibility-headers
+         '("assert"
+           "ctype"
+           "errno"
+           "fenv"
+           "float"
+           "inttypes"
+           "limits"
+           "locale"
+           "math"
+           "setjmp"
+           "signal"
+           "stdarg"
+           "stddef"
+           "stdint"
+           "stdio"
+           "stdlib"
+           "string"
+           "time"
+           "uchar"
+           "wchar"
+           "wctype"))
+        (special-c-compatibility-headers
+         '("stdatomic.h"))
+        (empty-c-headers
+         '("complex" "tgmath"))
+        (meaningless-c-headers
+         '("iso646" "stdalign" "stdbool"))
+        (unsupported-c-headers
+         '("stdnoreturn.h" "threads.h")))
+    (set-hash-table
+     (append unsupported-c-headers
+             special-c-compatibility-headers
+             (mappend (op (list (string+ "c"  _1)
+                                (string+ _1 ".h")))
+                      (append c-compatibility-headers
+                              empty-c-headers
+                              meaningless-c-headers)))
+     :test #'equal))
   "Names of C++ headers to treat as always noexcept.
 This is largely C compatibility headers for C++, which do not throw exceptions.")
 
