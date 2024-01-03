@@ -1575,7 +1575,9 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
      (implicit-namespace-qualifiers ast))))
 
 (defgeneric unqualified-name (name &key count)
-  (:documentation "Remove namespace qualifications from NAME.")
+  (:documentation "Remove namespace qualifications from NAME.
+COUNT controls how many levels of qualification to remove \(if for
+instance we only want to remove one).")
   (:method ((ast cpp-identifier) &key count)
     (declare (ignore count))
     ast)
