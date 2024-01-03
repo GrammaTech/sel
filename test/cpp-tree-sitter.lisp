@@ -2261,6 +2261,44 @@ struct MyStruct {
                 (get-declaration-ast :type (first types))
                 (get-declaration-ast :type (second types)))))))
 
+(deftest test-morally-noexcept-headers-with-std-namespace ()
+  (let* ((project (from-string 'cpp-project (fmt "~
+#include <cmath>
+#include <cstdio>
+
+void print_abs(int x) { std::printf(\"%d\\n\", std::abs(x)); }
+
+int main() {
+  print_abs(-2);
+  return 0;
+}")))
+         (cpp (cdr (only-elt (dir:evolve-files project))))
+         (fn (find-if (of-type 'cpp-function-definition) cpp)))
+    (is (source-text= (function-name fn) "print_abs"))
+    (with-attr-table project
+      (is (not (empty? (symbol-table fn))))
+      (is (equal '(or)
+                 (exception-set fn))))))
+
+(deftest test-morally-noexcept-headers-with-global-namespace ()
+  (let* ((project (from-string 'cpp-project (fmt "~
+#include <math.h>
+#include <stdio.h>
+
+void print_abs(int x) { printf(\"%d\\n\", abs(x)); }
+
+int main() {
+  print_abs(-2);
+  return 0;
+}")))
+         (cpp (cdr (only-elt (dir:evolve-files project))))
+         (fn (find-if (of-type 'cpp-function-definition) cpp)))
+    (is (source-text= (function-name fn) "print_abs"))
+    (with-attr-table project
+      (is (not (empty? (symbol-table fn))))
+      (is (equal '(or)
+                 (exception-set fn))))))
+
 
 ;;; Module tests
 
