@@ -292,6 +292,7 @@ optimization settings."
   project)
 
 (defun insert-software-at (project path new)
+  "Insert NEW, a software object, into PROJECT at PATH."
   (declare (parseable new) (optimize debug))
   (lret* ((pathname (pathname path))
           (filename (nth-value 1 (pathname-to-list pathname)))

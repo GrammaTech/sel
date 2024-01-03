@@ -177,6 +177,9 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
         (file-command-table self)))
 
 (defun file-command-table (compdb)
+  "Compute a table from paths to command objects in COMPDB.
+The path is computed by merging the directory and file keys of the
+command object."
   (lret ((dict (dict)))
     (do-each (entry (command-objects compdb))
       (with-slots (directory file) entry

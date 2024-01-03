@@ -592,6 +592,7 @@ the standard path and add it to PROJECT."))
     (clrhash *system-header-cache*)))
 
 (defun get-stdinc-header (project path-string)
+  "Find PATH-STRING in standard include directories."
   (declare (project project)
            (string path-string))
   (iter (for dir in *stdinc-dirs*)
@@ -602,6 +603,7 @@ the standard path and add it to PROJECT."))
                     (children (genome (from-file (component-class project) file))))))))
 
 (defun get-header-synopsis (project path-string)
+  "Find the synopsis for the standard header in PATH-STRING."
   (nest (ensure-list)
         (parse-header-synopsis
          path-string
@@ -657,7 +659,7 @@ the standard path and add it to PROJECT."))
           (assure c/cpp-root genome))
     (debug:note 2 "Populating headers")
     ;; Recursively populate headers, starting with .cpp files, adding
-    ;; include headers, then adding transitively included headers with
+    ;; included headers, then adding transitively included headers with
     ;; depth 1, depth 2, etc. Note this will not handle includes where
     ;; the path is a preprocessor macro (they will be populated later
     ;; during symbol table construction).
@@ -692,7 +694,6 @@ the standard path and add it to PROJECT."))
                to-populate)))
           (until (eql (evolve-files result)
                       (shiftf last-evolve-files (evolve-files result)))))
-    ;; (mapc #'maybe-populate-header project)
     result))
 
 
