@@ -1642,7 +1642,7 @@ instance we only want to remove one).")
   "List of STL functions that are morally noexcept, Lakos Rule notwithstanding.")
 
 (defmethod morally-noexcept? ((fn-name identifier-ast))
-  (and (equal (namespace fn-name) "std")
+  (and (member (namespace fn-name) '("std" "") :test #'equal)
        (or (gethash (source-text (unqualified-name fn-name :count 1))
                     *morally-noexcept*)
            (some #'morally-noexcept-parent?
