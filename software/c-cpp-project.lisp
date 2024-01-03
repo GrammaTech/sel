@@ -500,6 +500,11 @@ the header.")
   "Names of C++ headers to treat as always noexcept.
 This is largely C compatibility headers for C++, which do not throw exceptions.")
 
+(defun c-compatibility-header? (name)
+  (declare (string name))
+  (and (string$= ".h" name)
+       (gethash name *morally-noexcept-headers*)))
+
 (defmethod morally-noexcept-parent? ((self c/cpp-system-header))
   (gethash (header-name self) *morally-noexcept-headers*))
 
@@ -575,8 +580,9 @@ the standard path and add it to PROJECT."))
                                           (parse-header-synopsis
                                            path-string
                                            :namespace
-                                           (when (eql (component-class project) 'cpp)
-                                             "std")
+                                           (and (eql (component-class project) 'cpp)
+                                                (not (c-compatibility-header? path-string))
+                                                "std")
                                            :class-ast)
                                           (format-symbol :sel/sw/ts "~a-AST")
                                           (component-class project)))
