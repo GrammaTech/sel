@@ -315,18 +315,20 @@ pointer declarations which are nested on themselves."
     (mvlet* ((table (field-table ast))
              (vars-map (@ table :variable))
              (fns-map (@ table :function))
+             (types-map (@ table :type))
              (members
-              (when vars-map
-                (sort-map-range vars-map)))
+              (and vars-map (sort-map-range vars-map)))
              (methods
-              (when fns-map
-                (sort-map-range fns-map)))
+              (and fns-map (sort-map-range fns-map)))
+             (types
+              (and types-map (sort-map-range types-map)))
              (outer-decls outer-decl-types
               (outer-declarations ast)))
-      (values (append outer-decls members methods)
+      (values (append outer-decls members methods types)
               (append outer-decl-types
                       (mapcar (constantly :variable) members)
-                      (mapcar (constantly :function) methods))))))
+                      (mapcar (constantly :function) methods)
+                      (mapcar (constantly :type) types))))))
 
 (defmethod outer-declarations ((ast c/cpp-enum-specifier))
   (match ast

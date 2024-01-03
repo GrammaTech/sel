@@ -2244,6 +2244,23 @@ system_clock::now();
         (is (get-declaration-ast :function call-inside-class))
         (is (get-declaration-ast :function call-outside-class))))))
 
+(deftest test-typedef-multiple-aliases-in-struct ()
+  (let* ((cpp (from-string 'cpp (fmt "~
+struct MyStruct {
+  typedef std::size_t result_type_1, result_type_2;
+
+  result_type_1 x;
+  result_type_2 y;
+};")))
+         (decls (is (collect-if (of-type 'cpp-field-declaration) cpp)))
+         (types (is (mapcar #'cpp-type decls)))
+         (typedef (is (find-if (of-type 'cpp-type-definition) cpp))))
+    (is (length= 2 decls types))
+    (with-attr-table cpp
+      (is (eql* typedef
+                (get-declaration-ast :type (first types))
+                (get-declaration-ast :type (second types)))))))
+
 
 ;;; Module tests
 

@@ -1421,8 +1421,7 @@ arr_t a2;")))
          (decls (is (collect-if (of-type 'c-declaration) c)))
          (types (is (mapcar #'c-type decls)))
          (typedef (is (find-if (of-type 'c-type-definition) c))))
-    (is (length= 2 decls))
-    (is (length= 2 types))
+    (is (length= 2 decls types))
     (with-attr-table c
       (is (eql* typedef
                 (get-declaration-ast :type (first types))
@@ -1438,8 +1437,7 @@ S* ps2;")))
          (decls (is (collect-if (of-type 'c-declaration) c)))
          (types (is (mapcar #'c-type decls)))
          (typedef (is (find-if (of-type 'c-type-definition) c))))
-    (is (length= 2 decls))
-    (is (length= 2 types))
+    (is (length= 2 decls types))
     (with-attr-table c
       (is (eql* typedef
                 (get-declaration-ast :type (first types))
