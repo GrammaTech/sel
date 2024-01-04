@@ -196,8 +196,7 @@ command object."
           (assert (absolute-pathname-p key))
           (push entry (href dict key)))))))
 
-(declaim (notinline lookup-in-compdb))
-(defun lookup-in-compdb (compdb key)
+(defsubst lookup-in-compdb (compdb key)
   (gethash key (file-command-objects compdb)))
 
 (defmethod lookup ((self compilation-database) (key string))
