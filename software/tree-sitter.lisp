@@ -709,7 +709,8 @@
            :circular-inclusion)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
-   #-sbcl (:md5 :md5)))
+   #-sbcl (:md5 :md5)
+   (:task :software-evolution-library/utility/task)))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 

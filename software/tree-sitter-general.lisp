@@ -3707,7 +3707,7 @@ for ASTs which need to appear in the surrounding text slots.")
    are gone we can never detect that new calls with this string (up to string=)
    reused that previous object.")
 
-(defun canon-string (string &key (synchronize t))
+(defun canon-string (string &key (synchronize task:*task-runner*))
   "Canonize STRING using `*string-canon-table*'.
 STRING is also converted to a `base-string', if possible.
 
