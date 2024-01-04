@@ -665,37 +665,41 @@ the standard path and add it to PROJECT."))
     ;; depth 1, depth 2, etc. Note this will not handle includes where
     ;; the path is a preprocessor macro (they will be populated later
     ;; during symbol table construction).
-    (iter (let ((to-populate '()))
-            (with-attr-table result
-              (iter (for (nil . sw) in (evolve-files result))
-                    (when (typep (slot-value sw 'genome) 'ast)
-                      (iter (for ast in-tree (genome sw))
-                            (match ast
-                              ((and include-ast (c/cpp-preproc-include))
-                               (let* ((file-ast
-                                       (find-enclosing 'file-ast
-                                                       (attrs-root*)
-                                                       include-ast)))
-                                 (push (list file-ast
+    (labels ((collect-find-include-arglists ()
+               (iter outer
+                     (for (nil . sw) in (evolve-files result))
+                     (when (typep (slot-value sw 'genome) 'ast)
+                       (iter (for ast in-tree (genome sw))
+                             (match ast
+                               ((and include-ast (c/cpp-preproc-include))
+                                (let* ((file-ast
+                                        (find-enclosing 'file-ast
+                                                        (attrs-root*)
+                                                        include-ast)))
+                                  (in outer
+                                      (collecting
+                                       (list file-ast
                                              (file-header-dirs project ast
                                                                :file file-ast)
-                                             include-ast)
-                                       to-populate)))))))
-              (debug:note 3 "Populating ~a header~:p" (length to-populate))
-              (task:task-map
-               (parallel-parse-thread-count to-populate)
-               (dynamic-closure
-                '(*attrs*)
-                (lambda (args)
-                  (destructuring-bind (file-ast header-dirs include-ast) args
-                    (with-thread-name (:name
-                                       (fmt "Including ~a"
-                                            (source-text
-                                             (include-ast-path-ast include-ast))))
-                      (find-include project file-ast header-dirs include-ast)))))
-               to-populate)))
-          (until (eql (evolve-files result)
-                      (shiftf last-evolve-files (evolve-files result)))))
+                                             include-ast))))))))))
+             (find-include-in-project (args)
+               (destructuring-bind (file-ast header-dirs include-ast) args
+                 (with-thread-name (:name
+                                    (fmt "Including ~a"
+                                         (source-text
+                                          (include-ast-path-ast include-ast))))
+                   (find-include project file-ast header-dirs include-ast)))))
+      (iter (with-attr-table result
+              (let ((to-populate (collect-find-include-arglists)))
+                (debug:note 3 "Populating ~a header~:p" (length to-populate))
+                (task:task-map
+                 (parallel-parse-thread-count to-populate)
+                 (dynamic-closure '(*attrs*)
+                                  #'find-include-in-project)
+                 to-populate)))
+            ;; Stop once a fixed point has been reached.
+            (until (eql (evolve-files result)
+                        (shiftf last-evolve-files (evolve-files result))))))
     result))
 
 
