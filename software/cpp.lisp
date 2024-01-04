@@ -1899,6 +1899,7 @@ available to use at any point in a C++ AST.")
         result)))
 
 (defun macro-name? (string)
+  "Does STRING follow the conventions for a macro name?"
   (with-string-dispatch (simple-base-string) string
     (and (> (length string) 0)
          (not (digit-char-p (aref string 0)))

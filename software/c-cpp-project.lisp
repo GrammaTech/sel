@@ -150,6 +150,8 @@ headers and implicit headers for command-line preprocessor macros."))
 
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
   "Return the text of PATH-AST with the quotes around it removed."
+  ;; Spaces are included here for path ASTs that are preprocessor
+  ;; macro expansions.
   (string-trim " <>\"" text))
 
 (defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
@@ -1072,10 +1074,10 @@ include files in all directories of the project."
             (return-from find-symbol-table-from-include
               in))
           (enable-global-search ()
+            :report "Enable global (within project) search for include files"
             :test (lambda (c)
                     (declare (ignore c))
                     (null *global-search-for-include-files*))
-            :report "Enable global (within project) search for include files"
             (setq *global-search-for-include-files* t)
             (retry)))))))
 

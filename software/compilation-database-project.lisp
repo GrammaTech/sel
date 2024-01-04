@@ -113,6 +113,7 @@ COMPILATION-DATABASE. Returns NIL if one isn't found."
       relativized-to-original)))
 
 (defun relative-command-object (command-object original-path new-path)
+  "Copy COMMAND object with ORIGINAL-PATH relative to NEW-PATH."
   (if-let* ((relative-path
              (relativized-path-p original-path command-object))
             (new-path (fmt "~a/~a" new-path relative-path)))

@@ -488,6 +488,8 @@ optimization settings."
 (defun safe-genome (software &key (progress-fn #'do-nothing)
                                lazy-paths root
                                project)
+  "Optionally parse SOFTWARE, returning a parsed-genome instance.
+This function will not signal an error due to a bad parse."
   (lret* ((lazy?
            (or
             (and (typep project 'compdb-project:compilation-database-project)
@@ -511,6 +513,8 @@ optimization settings."
 
 (defun parallel-parse-genomes
     (project evolve-files &key (progress-fn #'do-nothing))
+  "Parse genomes from EVOLVE-FILES, returning `parsed-genome'
+instances."
   (debug:note 2 "Found ~a file~:p" (length evolve-files))
   (let ((lazy-paths (lazy-paths project))
         (root (project-dir project)))
@@ -535,7 +539,7 @@ optimization settings."
 (defmethod collect-evolve-files :around ((obj directory-project))
   (debug:note 2 "Collecting files")
   (lret* ((evolve-files (call-next-method)))
-    (let ((genomes
+    (let ((parsed-genomes
            (parallel-parse-genomes obj
                                    evolve-files
                                    :progress-fn
@@ -552,7 +556,7 @@ optimization settings."
           (skip-all nil))
       (debug:note 2 "Inserting genomes into AST")
       (iter (for (path . software-object) in evolve-files)
-            (for genome = (pop genomes))
+            (for genome = (pop parsed-genomes))
             (restart-case
                 (etypecase-of parsed-genome genome
                   ((eql :lazy))
