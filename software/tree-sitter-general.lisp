@@ -1640,7 +1640,7 @@ node in the block.")
    ((and (listp x) (eql y t))
     y)
    ((and (listp x) (listp y))
-    (cons 'or (intersection x y :test #'source-text=)))))
+    (cons 'or (intersection (cdr x) (cdr y) :test #'source-text=)))))
 
 (defun exception-set-difference (x y)
   (econd
