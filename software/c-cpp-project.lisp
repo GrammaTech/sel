@@ -1028,7 +1028,10 @@ include files in all directories of the project."
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond
                ((null software) nil)
-               ((member software *dependency-stack*)
+               ((member (original-path software)
+                        *dependency-stack*
+                        :key #'original-path
+                        :test #'equal)
                 ;; Just returning nil might still result in a global
                 ;; search. We found the header, we just can't use it.
                 (update-dependency-graph project software)
