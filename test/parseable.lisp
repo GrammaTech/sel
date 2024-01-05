@@ -9,7 +9,9 @@
    :software-evolution-library/utility/range
    :software-evolution-library/software/parseable
    :software-evolution-library/software/lisp
-   :software-evolution-library/software/tree-sitter)
+   :software-evolution-library/software/tree-sitter
+   :software-evolution-library/software/javascript
+   :software-evolution-library/software/python)
   (:import-from :software-evolution-library/software/parseable
                 :hash-type
                 :parseable)
@@ -90,3 +92,49 @@
               (new-a (crossover soft1 soft2))
               (pos (search "case 2:" (source-text (genome new-a)))))
     (is (integerp pos))))
+
+(def +contents+ "2+2;")
+
+(deftest test-lazy-load-parseable-genome-string ()
+  (with-temporary-file-of (:pathname p) +contents+
+    (let ((sw (from-file 'javascript p)))
+      (is (equal (slot-value sw 'genome) (pathname p)))
+      (is (equal (genome-string sw) +contents+))
+      (is (stringp (slot-value sw 'genome)))
+      (is (equal (slot-value sw 'genome) +contents+)))))
+
+(deftest test-lazy-load-parseable-genome ()
+  (with-temporary-file-of (:pathname p) +contents+
+    (let ((sw (from-file 'javascript p)))
+      (is (equal (slot-value sw 'genome) (pathname p)))
+      (is (typep (genome sw) 'ast))
+      (is (equal (genome-string sw) +contents+)))))
+
+(deftest test-lazy-copy-parseable-from-path ()
+  (with-temporary-file-of (:pathname p) +contents+
+    (let ((sw1 (from-file 'javascript p)))
+      (is (equal (slot-value sw1 'genome) (pathname p)))
+      (let ((sw2 (copy sw1)))
+        (is (pathnamep (slot-value sw2 'genome)))
+        (is (eql (slot-value sw1 'genome)
+                 (slot-value sw2 'genome)))))))
+
+(deftest test-lazy-copy-parseable-genome-from-string ()
+  (let ((sw1 (from-string 'javascript +contents+)))
+    (is (equal (slot-value sw1 'genome) +contents+))
+    (let ((sw2 (copy sw1)))
+      (is (stringp (slot-value sw2 'genome)))
+      (is (eql (slot-value sw1 'genome)
+               (slot-value sw2 'genome))))))
+
+(deftest test-lazy-copy-parseable-genome ()
+  (with-temporary-file-of (:pathname p) +contents+
+    (let ((sw1 (from-string 'javascript +contents+)))
+      (is (stringp (slot-value sw1 'genome)))
+      (is (typep (genome sw1) 'ast))
+      (is (typep (slot-value sw1 'genome) 'ast))
+      (let ((sw2 (copy sw1)))
+        (is (not (eql sw1 sw2)))
+        (is (typep (slot-value sw2 'genome) 'ast))
+        (is (eql (genome sw1)
+                 (genome sw2)))))))

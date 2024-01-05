@@ -25,8 +25,26 @@
 ;;; simple software objects
 (define-software simple (lazy-genome file-w-attributes)
   ((genome :initarg :genome :accessor genome :initform nil
-           :copier copy-simple-genome))
+           :copier :none))
   (:documentation "The simplest base software object."))
+
+;;; Override generated copy method.
+(defmethod copy :around ((obj simple) &key (genome nil genome-supplied-p)
+                         &allow-other-keys)
+  (let ((copy (call-next-method)))
+    (if genome-supplied-p
+        (setf (slot-value copy 'genome) genome)
+        (setf (slot-value copy 'genome)
+              (copy-simple-genome (slot-value obj 'genome))))
+    copy))
+
+(defmethod copy ((obj simple) &key (genome nil genome-supplied?)
+                 &allow-other-keys)
+  (declare (ignore genome))
+  (lret ((copy (call-next-method)))
+    (unless genome-supplied?
+      (setf (slot-value copy 'genome)
+            (copy-simple-genome (slot-value obj 'genome))))))
 
 (defun sel-copy-array (array)
   (let* ((element-type (array-element-type array))
@@ -61,6 +79,9 @@
   (length (lines obj)))
 
 (defgeneric parse-simple-genome (source)
+  ;; TODO It's probably a mistake that the lines in a simple genome do
+  ;; not store their original line endings. We should use
+  ;; `serapeum:lines` with `:keep-eols`.
   (:method ((path pathname))
     (with-open-file (in path :external-format (reasonable-external-format path))
       (parse-simple-genome in)))
