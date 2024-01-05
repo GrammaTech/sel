@@ -829,32 +829,35 @@ the including file."
                ;; compilers do).
                (assoc include-path-string
                       (evolve-files project)
-                      :test #'equal)))
+                      :test #'equal))
+             (force-parse-genome (path software)
+               (with-slots (genome) software
+                 (synchronized (software)
+                   (unless (typep genome 'ast)
+                     (with-thread-name (:name (fmt "Parsing ~a" path))
+                       (genome software))))))
+             (insert-software-into-project (path software)
+               (synchronized (project)
+                 (unless (lookup (genome project) path)
+                   (debug:note 2 "~%Inserting ~a (~a) into tree~%"
+                               path
+                               include-path)
+                   (let ((temp-project (with project path software)))
+                     (setf (genome project)
+                           (genome temp-project)
+                           (evolve-files project)
+                           (evolve-files temp-project))))))
+             (ensure-result-in-project-ast (result)
+               (destructuring-bind (path . software) result
+                 (with-slots (genome) software
+                   (unless (typep genome 'ast)
+                     (force-parse-genome path software)
+                     (insert-software-into-project path software))))))
       (when-let (result
                  (or (simple-relative-search)
                      (and global
                           (global-search))))
-        (destructuring-bind (path . software) result
-          (with-slots (genome) software
-            (unless (typep genome 'ast)
-              ;; Force loading the genome.
-              (synchronized (software)
-                (with-thread-name (:name (fmt "Parsing ~a" path))
-                  (unless (typep genome 'ast)
-                    (genome software))))
-              (synchronized (project)
-                (unless (lookup (genome project) path)
-                  (debug:note 2 "~%Inserting ~a (~a) into tree~%"
-                              (car result)
-                              include-path)
-                  (let ((temp-project
-                         (with project
-                               (car result)
-                               (cdr result))))
-                    (setf (genome project)
-                          (genome temp-project)
-                          (evolve-files project)
-                          (evolve-files temp-project))))))))
+        (ensure-result-in-project-ast result)
         (cdr result)))))
 
 
