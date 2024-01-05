@@ -931,7 +931,7 @@ paths."
   (declare (functional-tree-ast file))
   (when-let ((path-ast (include-ast-path-ast include-ast
                                              :symbol-table symbol-table)))
-    (labels ((find-include (global)
+    (labels ((search-header-dirs (global)
                (if (no header-dirs)
                    (get-standard-path-header
                     project path-ast)
@@ -959,9 +959,8 @@ paths."
                  (when (boundp '*attrs*)
                    (synchronized (project)
                      (setf (attr-proxy unknown-header) include-ast))))))
-      (declare (dynamic-extent #'find-include))
-      (or (find-include nil)
-          (and global (find-include :global))
+      (or (search-header-dirs nil)
+          (and global (search-header-dirs :global))
           (make-unknown-header* include-ast)))))
 
 (defun find-enclosing-software (project ast &key file-ast)
