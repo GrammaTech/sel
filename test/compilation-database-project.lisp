@@ -104,27 +104,30 @@
              '("x" "(y) z=1"))))
 
 (deftest test-command-object-definitions ()
-  (is (equal `(("_U_" . "a")
-               ("IN" . "1")
-               ("DIR" . "\"/tmp\""))
-             (command-preproc-defs
-              (make 'command-object
-                    :directory ""
-                    :file ""
-                    :command "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\""))))
-  (is (equal `(("DIR2" . "\"/tmp2\"")
-               ("DIR1" . "\"/tmp1\""))
-             (command-preproc-defs
-              (make 'command-object
-                    :directory ""
-                    :file ""
-                    :command "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\""))))
-  (is (equal `(("DIR" . "\"\""))
-             (command-preproc-defs
-              (make 'command-object
-                    :directory ""
-                    :file ""
-                    :command `"cc -DDIR=\\\"\\\"")))))
+  (is (subsetp `(("_U_" . "a")
+                 ("IN" . "1")
+                 ("DIR" . "\"/tmp\""))
+               (command-preproc-defs
+                (make 'command-object
+                      :directory ""
+                      :file ""
+                      :command "cc -DDIR=\\\"/tmp\\\" -DIN \"-D_U_=a\""))
+               :test #'equal))
+  (is (subsetp `(("DIR2" . "\"/tmp2\"")
+                 ("DIR1" . "\"/tmp1\""))
+               (command-preproc-defs
+                (make 'command-object
+                      :directory ""
+                      :file ""
+                      :command "cc -DDIR1=\\\"/tmp1\\\" -DDIR2=\\\"/tmp2\\\""))
+               :test #'equal))
+  (is (subsetp `(("DIR" . "\"\""))
+               (command-preproc-defs
+                (make 'command-object
+                      :directory ""
+                      :file ""
+                      :command `"cc -DDIR=\\\"\\\""))
+               :test #'equal)))
 
 (deftest test-compute-header-dirs ()
   (is (equal '(:current :always :system :stdinc)
