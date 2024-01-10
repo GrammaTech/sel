@@ -1640,7 +1640,7 @@ instance we only want to remove one).")
       (call-next-method)))
 
 (defparameter *morally-noexcept*
-  (set-hash-table '("static_cast" "next" "begin" "end" "cbegin" "cend") :test #'equal)
+  (set-hash-table '("static_cast" "next" "begin" "end" "cbegin" "cend" "swap") :test #'equal)
   "List of STL functions that are morally noexcept, Lakos Rule notwithstanding.")
 
 (defmethod morally-noexcept? ((fn-name identifier-ast))
