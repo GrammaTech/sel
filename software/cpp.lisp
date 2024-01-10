@@ -1808,14 +1808,25 @@ instance we only want to remove one).")
   cpp-this cpp-->
   cpp-this cpp-.
   cpp-field-identifier cpp-parameter-list
-  cpp-primitive-type cpp-reference-declarator
-  cpp-type-identifier cpp-reference-declarator)
+  cpp-& cpp-identifier
+  :|operator| cpp-ast)
 
 (defmethod whitespace-between/parent ((parent cpp-namespace-definition)
                                       (style c-style-indentation)
                                       (x ast)
                                       (y ast))
   #\Newline)
+
+(defmethod whitespace-between/parent ((parent cpp-reference-declarator)
+                                      (style c-style-indentation)
+                                      (x cpp-&)
+                                      (y cpp-ast))
+  (if (emptyp (before-text parent)) " " ""))
+
+(defmethod whitespace-between :around ((style c-style-indentation)
+                                       (l cpp-ast)
+                                       (r cpp-reference-declarator))
+  (if (emptyp (before-text (second (children r)))) " " ""))
 
 
 ;;; Namespace Attr

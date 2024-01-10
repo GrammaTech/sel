@@ -2452,4 +2452,8 @@ namespace b {
   (check-patch-whitespace (fmt "switch (1) {~%~4tdefault:~%~8tbreak;~%}"))
   (check-patch-whitespace (fmt "switch (1) {~%~4tcase 1:~%~8tbreak;~%}"))
   (check-patch-whitespace (fmt "struct mytype {~%int mymethod();~%};"))
-  (check-patch-whitespace "int fn(double& x);"))
+  (check-patch-whitespace "int fn(double& x);")
+  (check-patch-whitespace "std::vector<x> trim_front(std::vector<x> &xs) {}")
+  ;; Don't change spacing of reference declarator unnecessarily.
+  (check-patch-whitespace "x operator-(const x& x) {}")
+  (check-patch-whitespace "x operator-(const x &x) {}"))
