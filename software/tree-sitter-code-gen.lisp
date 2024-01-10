@@ -1348,7 +1348,10 @@ definitions.")
         (cpp-expression-statement-
          (:seq (:child cpp--expression cpp-comma-expression)))
         (cpp-empty-expression-statement
-         (:seq))))
+         (:seq)))
+       (cpp-throw-specifier
+        (cpp-empty-throw-specifier
+         (:seq (:slot cpp-internal-asts-0) (:slot cpp-internal-asts-1)))))
       (:python
        (python-tuple
         (python-empty-tuple
