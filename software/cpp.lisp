@@ -1806,7 +1806,10 @@ instance we only want to remove one).")
   cpp-preproc-params cpp-preproc-arg
   cpp-module-qualified-name cpp-module-partition
   cpp-this cpp-->
-  cpp-this cpp-.)
+  cpp-this cpp-.
+  cpp-field-identifier cpp-parameter-list
+  cpp-primitive-type cpp-reference-declarator
+  cpp-type-identifier cpp-reference-declarator)
 
 (defmethod whitespace-between/parent ((parent cpp-namespace-definition)
                                       (style c-style-indentation)
