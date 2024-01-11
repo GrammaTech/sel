@@ -1659,32 +1659,79 @@ instance we only want to remove one).")
 (defmethod morally-noexcept? ((decl cpp-declaration))
   (morally-noexcept? (cpp-declarator decl)))
 
+(defmethod morally-noexcept? ((decl cpp-operator-name))
+  ;; E.g. you can enable exceptions for operator<< with the
+  ;; .exceptions method on iostreams.
+  nil)
+
+(defmethod exception-set ((ast cpp-field-initializer-list))
+  ;; TODO Get the exception set of the initializer of each member.
+  (let ((args
+         (iter (for field-initializer in (children ast))
+               (destructuring-bind (field arglist)
+                   (children field-initializer)
+                 (declare (ignore field))
+                 (appending (children arglist))))))
+    (reduce #'exception-set-union
+            args
+            :key #'exception-set
+            :initial-value +exception-bottom-type+)))
+
 (defmethod exception-set ((ast cpp-function-definition))
   (cond-let found
     ((find-if (of-type 'cpp-noexcept)
               (direct-children (cpp-declarator ast)))
      ;; NB A noexcept function can contain a throw statement, but it
      ;; can't escape the function.
-     '(or))
+     +exception-bottom-type+)
     ((morally-noexcept? (definition-name-ast ast))
-     '(or))
+     +exception-bottom-type+)
+    ((find-if (of-type 'cpp-field-initializer-list) ast)
+     (exception-set-union
+      (exception-set found)
+      (if-let (body (cpp-body ast))
+        (exception-set body)
+        +exception-bottom-type+)))
     ((cpp-body ast)
      (exception-set found))
     ((find-if (of-type 'cpp-default-method-clause) ast)
      ;; TODO Handle default exception set semantics for
      ;; constructors/destructors.
-     '(or))
-    (t '(or))))
+     +exception-bottom-type+)
+    (t +exception-bottom-type+)))
 
 (defmethod exception-set ((ast cpp-declaration))
   (match (cpp-declarator ast)
     ((list (and declarator (cpp-function-declarator)))
      (cond ((find-if (of-type 'cpp-noexcept)
                      (direct-children declarator))
-            '(or))
+            +exception-bottom-type+)
            ((morally-noexcept? declarator)
-            '(or))
-           (t t)))
+            +exception-bottom-type+)
+           (t
+            (let ((definitions (c/cpp-function-declaration-definitions ast)))
+              (reduce #'exception-set-union
+                      definitions
+                      :key #'exception-set
+                      :initial-value +exception-bottom-type+))
+            t)))
+    (otherwise (call-next-method))))
+
+(defmethod exception-set ((ast cpp-field-declaration))
+  (match (cpp-declarator ast)
+    ((list (and declarator (cpp-function-declarator)))
+     (cond ((find-if (of-type 'cpp-noexcept)
+                     (direct-children declarator))
+            +exception-bottom-type+)
+           ((morally-noexcept? declarator)
+            +exception-bottom-type+)
+           (t
+            (let ((definitions (c/cpp-function-declaration-definitions ast)))
+              (reduce #'exception-set-union
+                      definitions
+                      :key #'exception-set
+                      :initial-value +exception-bottom-type+))
+            t)))
     (otherwise (call-next-method))))
 
 (defun cpp-catch-clause-handled-exception-set (catch-clause)
@@ -1693,10 +1740,10 @@ instance we only want to remove one).")
                   (param (first (children params))))
         (typecase param
           ;; TODO This should be parsed as a terminal.
-          (cpp-variadic-declaration t)
+          (cpp-variadic-declaration +exception-top-type+)
           (parameter-ast
            (list 'or (parameter-type param)))))
-      '(or)))
+      +exception-bottom-type+))
 
 (defmethod exception-set ((ast cpp-try-statement))
   (let* ((catch-clause (find-if (of-type 'cpp-catch-clause) ast))
@@ -1724,7 +1771,7 @@ instance we only want to remove one).")
                (reduce #'exception-set-union
                        (mapcar #'exception-set
                                (call-arguments ast))
-                       :initial-value '(or))
+                       :initial-value +exception-bottom-type+)
                (call-next-method))))
     (match ast
       ((cpp-call-expression

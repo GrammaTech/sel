@@ -471,6 +471,7 @@
            :cpp-variadic-declaration
            :cpp-canonical-type
            :+cpp-multi-declaration-keys+
+           :c/cpp-function-declaration-definitions
            ;; C/Cpp
            :c/cpp-canonical-type
            :specifier
@@ -706,7 +707,9 @@
            :next-sibling
            :prev-sibling
            :skip-include
-           :circular-inclusion)
+           :circular-inclusion
+           :+exception-top-type+
+           :+exception-bottom-type+)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)

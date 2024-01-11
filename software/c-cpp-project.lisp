@@ -49,7 +49,8 @@
            :*dependency-stack*
            :update-dependency-graph
            :find-symbol-table-from-include
-           :skip-include))
+           :skip-include
+           :c/cpp-system-header))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)

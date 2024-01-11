@@ -140,6 +140,14 @@
 
 ;;; Symbol Table
 
+(defun c/cpp-function-declaration-definitions (declaration &key (root (attrs-root*)))
+  "Get the function(s) that define DECLARATION."
+  (iter (for ast in-tree (genome root))
+        (when (typep ast 'c/cpp-function-definition)
+          (when (eql (get-declaration-ast :function ast)
+                     declaration)
+            (collect ast)))))
+
 (defmethod symbol-table-union ((root c/cpp) table-1 table-2 &key)
   (symbol-table-union (genome root) table-1 table-2))
 

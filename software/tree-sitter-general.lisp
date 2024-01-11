@@ -1624,33 +1624,37 @@ node in the block.")
   (:method :around ((ast assignment-ast))
     (rhs ast)))
 
+(defconst +exception-top-type+ t)
+
+(defconst +exception-bottom-type+ '(or))
+
 (defun exception-set-union (x y)
   (econd
-   ((eql x t) t)
-   ((eql y t) t)
+   ((eql x +exception-top-type+) +exception-top-type+)
+   ((eql y +exception-top-type+) +exception-top-type+)
    ((and (eql (car x) 'or)
          (eql (car y) 'or))
     (cons 'or (append (cdr x) (cdr y))))))
 
 (defun exception-set-intersection (x y)
   (econd
-   ((and (eql x t) (eql y t)) t)
-   ((and (eql x t) (listp y))
+   ((and (eql x +exception-top-type+) (eql y +exception-top-type+)) +exception-top-type+)
+   ((and (eql x +exception-top-type+) (listp y))
     y)
-   ((and (listp x) (eql y t))
+   ((and (listp x) (eql y +exception-top-type+))
     y)
    ((and (listp x) (listp y))
     (cons 'or (intersection (cdr x) (cdr y) :test #'source-text=)))))
 
 (defun exception-set-difference (x y)
   (econd
-   ((and (eql x t) (eql y t))
-    '(or))
-   ((and (eql x t) (listp y))
+   ((and (eql x +exception-top-type+) (eql y +exception-top-type+))
+    +exception-bottom-type+)
+   ((and (eql x +exception-top-type+) (listp y))
     ;; TODO
-    t)
-   ((and (listp x) (eql y t))
-    '(or))
+    +exception-top-type+)
+   ((and (listp x) (eql y +exception-top-type+))
+    +exception-bottom-type+)
    ((and (listp x) (listp y))
     (cons 'or
           (set-difference
@@ -1663,18 +1667,18 @@ node in the block.")
 The set should be t (if it could throw anything) or a list starting
 with `or' for a specific list of exceptions.")
   (:method ((ast literal-ast))
-    '(or))
+    +exception-bottom-type+)
   (:method ((ast type-ast))
-    '(or))
+    +exception-bottom-type+)
   (:method ((ast ast))
     (if (no (children ast))
-        '(or)
+        +exception-bottom-type+
         (reduce #'exception-set-union
                 (children ast)
                 :key #'exception-set)))
   (:method ((ast compound-ast))
     (if (no (children ast))
-        '(or)
+        +exception-bottom-type+
         (reduce #'exception-set-union
                 (children ast)
                 :key #'exception-set)))
@@ -1695,7 +1699,7 @@ with `or' for a specific list of exceptions.")
                                                ast)
                                fn-defs))
                ;; If we have no definition, assume it could throw anything.
-               (list t))))))
+               (list +exception-top-type+))))))
 
 
 ;;;; Structured text
