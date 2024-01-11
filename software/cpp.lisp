@@ -1664,6 +1664,11 @@ instance we only want to remove one).")
   ;; .exceptions method on iostreams.
   nil)
 
+(defgeneric noexcept-specifier? (ast)
+  (:method ((ast t)) nil)
+  (:method ((ast cpp-noexcept)) t)
+  (:method ((ast cpp-empty-throw-specifier)) t))
+
 (defmethod exception-set ((ast cpp-field-initializer-list))
   ;; TODO Get the exception set of the initializer of each member.
   (let ((args
@@ -1679,7 +1684,7 @@ instance we only want to remove one).")
 
 (defmethod exception-set ((ast cpp-function-definition))
   (cond-let found
-    ((find-if (of-type 'cpp-noexcept)
+    ((find-if #'noexcept-specifier?
               (direct-children (cpp-declarator ast)))
      ;; NB A noexcept function can contain a throw statement, but it
      ;; can't escape the function.
@@ -1703,7 +1708,7 @@ instance we only want to remove one).")
 (defmethod exception-set ((ast cpp-declaration))
   (match (cpp-declarator ast)
     ((list (and declarator (cpp-function-declarator)))
-     (cond ((find-if (of-type 'cpp-noexcept)
+     (cond ((find-if #'noexcept-specifier?
                      (direct-children declarator))
             +exception-bottom-type+)
            ((morally-noexcept? declarator)
@@ -1720,7 +1725,7 @@ instance we only want to remove one).")
 (defmethod exception-set ((ast cpp-field-declaration))
   (match (cpp-declarator ast)
     ((list (and declarator (cpp-function-declarator)))
-     (cond ((find-if (of-type 'cpp-noexcept)
+     (cond ((find-if #'noexcept-specifier?
                      (direct-children declarator))
             +exception-bottom-type+)
            ((morally-noexcept? declarator)
@@ -1809,7 +1814,8 @@ instance we only want to remove one).")
   cpp-this cpp-.
   cpp-field-identifier cpp-parameter-list
   cpp-& cpp-identifier
-  :|operator| cpp-ast)
+  :|operator| cpp-ast
+  cpp-ast cpp-abstract-reference-declarator)
 
 (defmethod whitespace-between/parent ((parent cpp-namespace-definition)
                                       (style c-style-indentation)
