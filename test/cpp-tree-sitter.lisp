@@ -2437,7 +2437,9 @@ namespace b {
   (check-patch-whitespace "--i;")
   (check-patch-whitespace "x.y;")
   (check-patch-whitespace "x->y;")
-  (check-patch-whitespace "x & y;")
+  ;; Parentheses force parsing as a binary expression (vs. reference
+  ;; declarator).
+  (check-patch-whitespace "(x & y)")
   (check-patch-whitespace "*x;")
   (check-patch-whitespace "x * y;")
   (check-patch-whitespace "+x;")
