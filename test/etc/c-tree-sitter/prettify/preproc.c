@@ -3,14 +3,14 @@
 #include <stdio.h>
 
 #if 1
-void f () {}
+void f() {}
 #elif 1
-void g () {}
+void g() {}
 #else
-void h () {}
+void h() {}
 #endif
 #if 1
-int main () {
+int main() {
     printf("");
     return 0;
 }

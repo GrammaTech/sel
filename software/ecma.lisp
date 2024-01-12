@@ -20,7 +20,6 @@ JavaScript, TypeScript, and TSX."))
   (make 'ecma-whitespace))
 
 (define-empty-whitespace-methods (:style ecma-whitespace)
-  identifier-ast parameters-ast
   ecma-ast decrement-operator-ast
   decrement-operator-ast ecma-ast
   increment-operator-ast ecma-ast

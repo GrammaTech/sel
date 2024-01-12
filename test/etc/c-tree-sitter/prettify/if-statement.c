@@ -1,4 +1,4 @@
-int main () {
+int main() {
     if (0)
         0;
     else

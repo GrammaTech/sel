@@ -4069,12 +4069,6 @@ the rebinding"
                                       ast2)
   #.(fmt "~%"))
 
-;;; This is necessary for the c-round-trip-prettify-software test.
-(defmethod whitespace-between ((style c-style-indentation)
-                               (ast1 identifier-ast)
-                               (ast2 parameters-ast))
-  " ")
-
 (defmethod whitespace-between ((style c-style-indentation)
                                (ast1 t)
                                (ast2 definition-ast))
