@@ -3486,14 +3486,15 @@ correct class name for subclasses of SUPERCLASS."
   "Create a TO-TYPE AST from the SPEC (specification) list.
 See CONVERT-TO-LIST-SPECIFICATION in tree-sitter-dev for easy generation of
 list specifications."
-  (if string-pass-through
-      (apply
-       #'convert-parse-tree
-       spec (get-language-from-superclass superclass) superclass
-       string-pass-through
-       args)
-      (convert-spec
-       spec (get-language-from-superclass superclass) superclass)))
+  (with-serial-number-block ()
+    (if string-pass-through
+        (apply
+         #'convert-parse-tree
+         spec (get-language-from-superclass superclass) superclass
+         string-pass-through
+         args)
+        (convert-spec
+         spec (get-language-from-superclass superclass) superclass))))
 
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (string string)
                     &key superclass
