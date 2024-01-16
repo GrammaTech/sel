@@ -3425,8 +3425,9 @@ the indentation slots."
                        (class (aget :class spec)))
   "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
 correct class name for subclasses of SUPERCLASS."
+  (declare (optimize (speed 3)))
   (lret ((instance
-          (if (eql :text-fragment class)
+          (if (eq :text-fragment class)
               (make-instance 'text-fragment)
               (make-instance
                (symbol-cat-in-package
@@ -3441,8 +3442,11 @@ correct class name for subclasses of SUPERCLASS."
     (iter
       (iter:with child-types = (child-slots instance))
       (iter:with annotations = nil)
-      (for (slot . value) in (adrop '(:class) spec))
-      (for key = (format-symbol package "~a" slot))
+      (for (slot . value) in spec)
+      (declare (symbol slot))
+      (when (eq slot :class)
+        (next-iteration))
+      (for key = (intern (string slot) package))
       (for translated-key = (translate-to-slot-name key prefix))
       (cond
         ((slot-exists-p instance translated-key)
@@ -3453,14 +3457,15 @@ correct class name for subclasses of SUPERCLASS."
                    ;; (cons key arity)
                    ((cons _ 1) (convert superclass value))
                    ((cons _ 0) (iter (for item in value)
-                                 (collect (convert superclass item)))))
+                                     (collect (convert superclass item)))))
                  value)))
         ;; Account for slots in superclasses.
         ((slot-exists-p instance key) (setf (slot-value instance key) value))
         (t (push (cons slot value) annotations)))
       (finally
        (with-slots ((annotations-slot annotations)) instance
-         (setf annotations-slot (append annotations annotations-slot)))))))
+         (when annotations
+           (setf annotations-slot (append annotations annotations-slot))))))))
 
 (defmethod convert ((to-type (eql 'tree-sitter-ast)) (spec tree-sitter-ast)
                      &key &allow-other-keys)
