@@ -215,7 +215,8 @@ around generic-type-with-turbofish being aliased to generic-type."
   rust-ast :!
   :! rust-ast
   :|impl| rust-type-parameters
-  :|*| rust-mutable-specifier)
+  :|*| rust-mutable-specifier
+  rust-call-expression :?)
 
 (defmethod whitespace-between ((s rustfmt-style) (x (eql :=)) (y rust-ast))
   " ")
