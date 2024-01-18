@@ -983,6 +983,7 @@ from a prior sibling \(`public:', `private:', `protected:').")
               :initial-value result))))
 
 (defmethod attr-missing ((fn-name (eql 'member-access)) node)
+  (declare (ignore node))
   (member-access (genome (attrs-root*)) :public))
 
 (defun public? (ast)
