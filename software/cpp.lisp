@@ -1640,18 +1640,17 @@ instance we only want to remove one).")
       (call-next-method)))
 
 (defparameter *morally-noexcept*
-  (set-hash-table '("static_cast" "next"
-                    "begin" "end"
-                    "rbegin" "rend"
-                    "cbegin" "cend"
-                    "swap")
-                  :test #'equal)
-  "List of STL functions that are morally noexcept, Lakos Rule notwithstanding.")
+  (fset:set "static_cast" "next"
+            "begin" "end"
+            "rbegin" "rend"
+            "cbegin" "cend"
+            "swap")
+  "List of STL functions, methods, and operators that are morally noexcept, Lakos Rule notwithstanding.")
 
 (defmethod morally-noexcept? ((fn-name identifier-ast))
   (and (member (namespace fn-name) '("std" "") :test #'equal)
-       (or (gethash (source-text (unqualified-name fn-name :count 1))
-                    *morally-noexcept*)
+       (or (lookup *morally-noexcept*
+                   (source-text (unqualified-name fn-name :count 1)))
            (some #'morally-noexcept-parent?
                  (get-parent-asts* (attrs-root*) fn-name)))))
 
@@ -1671,7 +1670,7 @@ instance we only want to remove one).")
 (defmethod morally-noexcept? ((decl cpp-operator-name))
   ;; E.g. you can enable exceptions for operator<< with the
   ;; .exceptions method on iostreams.
-  nil)
+  (lookup *morally-noexcept* (source-text decl)))
 
 (defgeneric noexcept-specifier? (ast)
   (:method ((ast t)) nil)
