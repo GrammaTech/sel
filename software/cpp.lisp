@@ -926,9 +926,6 @@ to look it up as `x::z' or just `z'."
     (values types
             (mapcar (constantly :type) types))))
 
-(defmethod outer-declarations ((ast cpp-template-declaration))
-  (outer-declarations-merge (children ast)))
-
 (deftype member-access ()
   '(member :public :private :protected))
 
@@ -1784,9 +1781,6 @@ instance we only want to remove one).")
 
 (defmethod function-exception-set ((ast cpp-template-function))
   (function-exception-set (cpp-name ast)))
-
-(defmethod function-exception-sets ((ast cpp-template-function))
-  (function-exception-sets (cpp-name ast)))
 
 
 ;;; Whitespace rules
