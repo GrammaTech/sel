@@ -22,6 +22,7 @@
    (:debug :software-evolution-library/utility/debug)
    (:file :software-evolution-library/components/file)
    (:task :software-evolution-library/utility/task))
+  (:shadowing-import-from :serapeum :~>>)
   (:export :c/cpp-project
            :get-standard-path-header
            :header-name
@@ -761,37 +762,40 @@ signals a restartable error if there are collisions."
       (warn "~A in ~A may be interpreted incorrectly in the presence of symlinks"
             (remove #\Newline (source-text include-ast))
             (namestring file-path)))
-    (labels ((global-search ()
+    (labels ((restrict-headers-by-name-and-type (evolve-files)
+               (let ((include-name (pathname-name include-path))
+                     (include-type (pathname-type include-path)))
+                 (filter
+                  ;; Search for the include file everywhere.
+                  (op (let ((p (original-path (cdr _))))
+                        (and (equal (pathname-name p) include-name)
+                             (equal (pathname-type p) include-type))))
+                  evolve-files)))
+             (prefer-full-path-matches (evolve-files)
+               "If there are matches to the whole tweaked include as a suffix,
+                only use those. Otherwise return `evolve-files'."
+               (or (and (pathname-directory include-path)
+                        (filter
+                         (lambda (cons)
+                           (let ((p (original-path (cdr cons))))
+                             (string$= (namestring tweaked-include-path)
+                                       (namestring p))))
+                         evolve-files))
+                   evolve-files))
+             (remove-duplicate-evolve-files (evolve-files)
+               (nub evolve-files
+                    :test
+                    (lambda (file1 file2)
+                      (file= (path-join project-dir (car file1))
+                             (path-join project-dir (car file2))))))
+             (global-search ()
                "Search for the include everywhere in the project.
 This is used as a fallback when we have no header search path."
                (let* ((matches
-                       ;; Restrict to headers that match the name and type.
-                       (filter
-                        ;; Search for the include file everywhere.
-                        (op (let ((p (original-path (cdr _))))
-                              (and (equal (pathname-name p)
-                                          (pathname-name include-path))
-                                   (equal (pathname-type p)
-                                          (pathname-type include-path)))))
-                        (evolve-files project)))
-                      (matches
-                       (or
-                        ;; If there are matches to the whole tweaked
-                        ;; include as a suffix, only use those.
-                        (and (pathname-directory include-path)
-                             (filter
-                              (lambda (cons)
-                                (let ((p (original-path (cdr cons))))
-                                  (string$= (namestring tweaked-include-path)
-                                            (namestring p))))
-                              matches))
-                        matches))
-                      (matches
-                       (nub matches
-                            :test
-                            (lambda (file1 file2)
-                              (file= (path-join project-dir (car file1))
-                                     (path-join project-dir (car file2)))))))
+                       (nest (remove-duplicate-evolve-files)
+                             (prefer-full-path-matches)
+                             (restrict-headers-by-name-and-type)
+                             (evolve-files project))))
                  (if (null (cdr matches))
                      (car matches)
                      (or
