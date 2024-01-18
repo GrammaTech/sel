@@ -1640,7 +1640,12 @@ instance we only want to remove one).")
       (call-next-method)))
 
 (defparameter *morally-noexcept*
-  (set-hash-table '("static_cast" "next" "begin" "end" "cbegin" "cend" "swap") :test #'equal)
+  (set-hash-table '("static_cast" "next"
+                    "begin" "end"
+                    "rbegin" "rend"
+                    "cbegin" "cend"
+                    "swap")
+                  :test #'equal)
   "List of STL functions that are morally noexcept, Lakos Rule notwithstanding.")
 
 (defmethod morally-noexcept? ((fn-name identifier-ast))
@@ -1649,6 +1654,10 @@ instance we only want to remove one).")
                     *morally-noexcept*)
            (some #'morally-noexcept-parent?
                  (get-parent-asts* (attrs-root*) fn-name)))))
+
+(defmethod morally-noexcept? ((fn cpp-field-expression))
+  ;; TODO Based on namespace.
+  (morally-noexcept? (cpp-field fn)))
 
 (defmethod morally-noexcept? ((fn cpp-function-definition))
   (morally-noexcept? (definition-name-ast fn)))
