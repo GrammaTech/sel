@@ -1777,22 +1777,15 @@ instance we only want to remove one).")
            (error "No enclosing catch clause for throw without argument")))
       (call-next-method)))
 
-(defmethod exception-set ((ast cpp-call-expression))
-  (flet ((call-exception-set (name)
-           (if (morally-noexcept? name)
-               ;; Include the exception sets of the arguments.
-               (reduce #'exception-set-union
-                       (mapcar #'exception-set
-                               (call-arguments ast))
-                       :initial-value +exception-bottom-type+)
-               (call-next-method))))
-    (match ast
-      ((cpp-call-expression
-        :function (cpp-template-function
-                   :cpp-name name))
-       (call-exception-set name))
-      (otherwise
-       (call-exception-set (call-function ast))))))
+(defmethod function-exception-set :around ((ast cpp-ast))
+  (if (morally-noexcept? ast) '(or)
+      (call-next-method)))
+
+(defmethod function-exception-set ((ast cpp-template-function))
+  (function-exception-set (cpp-name ast)))
+
+(defmethod function-exception-sets ((ast cpp-template-function))
+  (function-exception-sets (cpp-name ast)))
 
 
 ;;; Whitespace rules

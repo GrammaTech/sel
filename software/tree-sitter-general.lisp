@@ -1687,19 +1687,31 @@ with `or' for a specific list of exceptions.")
     ;; assume functions are constructors?
     (list 'or (infer-type (first (children ast)))))
   (:method ((ast call-ast))
-    (reduce #'exception-set-union
-            (append
+    (exception-set-union
+     (reduce #'exception-set-union
              (mapcar #'exception-set (call-arguments ast))
-             (if-let ((fn-defs
-                       (get-declaration-asts :function (call-function ast))))
-               (mapcar #'exception-set
-                       ;; Don't recurse on the enclosing function.
-                       (remove (find-enclosing 'function-declaration-ast
-                                               (attrs-root*)
-                                               ast)
-                               fn-defs))
-               ;; If we have no definition, assume it could throw anything.
-               (list +exception-top-type+))))))
+             :initial-value +exception-bottom-type+)
+     (function-exception-set (call-function ast)))))
+
+(defgeneric function-exception-set (function)
+  (:documentation "Get the exception set of FUNCTION.
+
+Having this function lets we distinguish the exception set of the
+function itself from the exception set of a function call (which is
+the union of the function's exception set and its arguments' exception
+sets.")
+  (:method ((ast ast))
+    (if-let ((fn-defs (get-declaration-asts :function ast)))
+      (reduce #'exception-set-union
+              ;; Don't recurse on the enclosing function.
+              (remove (find-enclosing 'function-declaration-ast
+                                      (attrs-root*)
+                                      ast)
+                      fn-defs)
+              :key #'exception-set
+              :initial-value +exception-bottom-type+)
+      ;; If we have no definition, assume it could throw anything.
+      +exception-top-type+)))
 
 
 ;;;; Structured text

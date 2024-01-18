@@ -472,6 +472,7 @@
            :cpp-canonical-type
            :+cpp-multi-declaration-keys+
            :c/cpp-function-declaration-definitions
+           :*morally-noexcept*
            ;; C/Cpp
            :c/cpp-canonical-type
            :specifier
@@ -632,6 +633,7 @@
            :subexpression-exit-control-flow
            :normal-exit-control-flow
            :exception-set
+           :function-exception-set
            :c-functions
            :c
            :cpp
