@@ -711,7 +711,8 @@
            :skip-include
            :circular-inclusion
            :+exception-top-type+
-           :+exception-bottom-type+)
+           :+exception-bottom-type+
+           :specified-noexcept?)
   (:local-nicknames
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)

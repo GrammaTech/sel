@@ -1675,6 +1675,10 @@ instance we only want to remove one).")
   (:method ((ast cpp-noexcept)) t)
   (:method ((ast cpp-empty-throw-specifier)) t))
 
+(defun specified-noexcept? (ast)
+  (find-if #'noexcept-specifier?
+           (direct-children (cpp-declarator ast))))
+
 (defmethod exception-set ((ast cpp-field-initializer-list))
   ;; TODO Get the exception set of the initializer of each member.
   (let ((args
@@ -1690,8 +1694,7 @@ instance we only want to remove one).")
 
 (defmethod exception-set ((ast cpp-function-definition))
   (cond-let found
-    ((find-if #'noexcept-specifier?
-              (direct-children (cpp-declarator ast)))
+    ((specified-noexcept? ast)
      ;; NB A noexcept function can contain a throw statement, but it
      ;; can't escape the function.
      +exception-bottom-type+)
