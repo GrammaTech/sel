@@ -124,6 +124,19 @@ around generic-type-with-turbofish being aliased to generic-type."
 
 ;;; Methods for tree-sitter generics
 
+(defmethod output-transformation :around ((ast rust-arguments) &key &allow-other-keys)
+  ;; This is a workaround for children-parser not backtracking: the
+  ;; rule is a sequence of `(attribute_item? expression)*` ASTs. The
+  ;; problem is the alternative-ast, which is a wildcard, matches the
+  ;; attribute_item rule, so there is nothing left to be an expression
+  ;; and the match fails.
+  (match (direct-children ast)
+    ((list (and real-child (alternative-ast)))
+     (let* ((id (make 'rust-identifier :text "temp"))
+            (temp (copy ast :children (list id))))
+       (substitute real-child id (output-transformation temp))))
+    (otherwise (call-next-method))))
+
 (defmethod convert ((to (eql 'rust-identifier))
                     (id identifier-ast)
                     &key)
