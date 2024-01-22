@@ -1797,24 +1797,22 @@ which slots are expected to be used."
            (trim-slot-stack (slot slot->stack)
              "Removes one item from SLOT's stack in SLOT->STACK and returns
               a copy of SLOT->STACK with this change."
-             (let ((copy (copy-table slot->stack)))
+             (lret ((copy (copy-table slot->stack)))
                (symbol-macrolet ((slot-hash (get* slot copy)))
-                 (push-child-stack (car slot-hash) copy)
-                 (setf slot-hash (cdr slot-hash))
-                 copy)))
+                 (push-child-stack (pop slot-hash) copy))))
+           (match? (ast types)
+             (let ((matchable (get-matchable-value ast)))
+               ;; Treat source-text-fragment-variation-point as a wild
+               ;; card.
+               (or (typep matchable 'source-text-fragment-variation-point)
+                   (some (op (typep matchable _)) types))))
            (handle-child (rule slot->stack)
-             (when (typep (get-matchable-value
-                           (car (get* 'children slot->stack)))
-                          ;; Treat source-text-fragment-variation-point
-                          ;; as a wild card.
-                          (append '(or source-text-fragment-variation-point)
-                                  (cdr rule)))
+             (when (match? (car (get* 'children slot->stack))
+                           (cdr rule))
                (trim-slot-stack 'children slot->stack)))
            (handle-field (rule slot->stack &aux (slot (cadr rule)))
-             (when (typep (get-matchable-value
-                           (car (get* slot slot->stack)))
-                          (append '(or source-text-fragment-variation-point)
-                                  (cddr rule)))
+             (when (match? (car (get* slot slot->stack))
+                           (cddr rule))
                (trim-slot-stack slot slot->stack)))
            (handle-slot (rule slot->stack &aux (slot (cadr rule)))
              (ensure-get* slot slot->stack (slot-value ast slot))
