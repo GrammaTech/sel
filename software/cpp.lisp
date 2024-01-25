@@ -1714,8 +1714,8 @@ instance we only want to remove one).")
      +exception-bottom-type+)
     (t +exception-bottom-type+)))
 
-(defmethod exception-set ((ast cpp-declaration))
-  (match (cpp-declarator ast)
+(defun declaration-exception-set (declaration)
+  (match (cpp-declarator declaration)
     ((list (and declarator (cpp-function-declarator)))
      (cond ((find-if #'noexcept-specifier?
                      (direct-children declarator))
@@ -1723,30 +1723,19 @@ instance we only want to remove one).")
            ((morally-noexcept? declarator)
             +exception-bottom-type+)
            (t
-            (let ((definitions (c/cpp-function-declaration-definitions ast)))
+            (let ((definitions (c/cpp-function-declaration-definitions declaration)))
               (reduce #'exception-set-union
                       definitions
                       :key #'exception-set
-                      :initial-value +exception-bottom-type+))
-            t)))
-    (otherwise (call-next-method))))
+                      :initial-value +exception-bottom-type+)))))))
+
+(defmethod exception-set ((ast cpp-declaration))
+  (or (declaration-exception-set ast)
+      (call-next-method)))
 
 (defmethod exception-set ((ast cpp-field-declaration))
-  (match (cpp-declarator ast)
-    ((list (and declarator (cpp-function-declarator)))
-     (cond ((find-if #'noexcept-specifier?
-                     (direct-children declarator))
-            +exception-bottom-type+)
-           ((morally-noexcept? declarator)
-            +exception-bottom-type+)
-           (t
-            (let ((definitions (c/cpp-function-declaration-definitions ast)))
-              (reduce #'exception-set-union
-                      definitions
-                      :key #'exception-set
-                      :initial-value +exception-bottom-type+))
-            t)))
-    (otherwise (call-next-method))))
+  (or (declaration-exception-set ast)
+      (call-next-method)))
 
 (defun cpp-catch-clause-handled-exception-set (catch-clause)
   (declare (cpp-catch-clause catch-clause))

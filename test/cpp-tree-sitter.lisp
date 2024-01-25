@@ -1241,6 +1241,21 @@ export {
     (with-attr-table cpp
       (is (equal t (exception-set cpp))))))
 
+(deftest test-declaration-with-all-nonthrowing-definitions ()
+  "If the definitions are all nonthrowing, the declaration is too."
+  (let ((cpp (cpp* "int myfun(int x, int y);
+
+int noexcept_fun() noexcept {
+  return 0;
+}
+
+int myfun(int x, int y) {
+  return noexcept_fun();
+}")))
+    (with-attr-table cpp
+      (is (equal +exception-bottom-type+
+                 (exception-set (find-if (of-type 'cpp-declaration) cpp)))))))
+
 (deftest test-exception-set/noexcept ()
   "A function with noexcept should have an empty exception set, even if it throws."
   ;; NB The user may mark functions noexcept even if they throw.
