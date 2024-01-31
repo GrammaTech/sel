@@ -483,6 +483,9 @@ pointer declarations which are nested on themselves."
   "Get the declaration for a C/C++ function definition."
   (find-in-symbol-table ast type (definition-name-ast ast)))
 
+(defmethod expression-type ((ast c/cpp-function-definition))
+  (c/cpp-type ast))
+
 (defmethod resolve-overloads ((type (eql :function))
                               (ast c/cpp-function-definition)
                               &optional overloads)
@@ -702,7 +705,7 @@ is the operator of a binary ast.")
          (empty-map))
      (source-text key)))
 
-(defun get-field-class (field)
+(defun get-field-classes (field)
   "Find the declaration of the type of the argument of FIELD."
   (ematch field
     ((c/cpp-field-expression
@@ -717,14 +720,14 @@ is the operator of a binary ast.")
                   type)))
          ;; (when (not (eql type new-type))
          ;;   (setf (attr-proxy new-type) type))
-         (get-declaration-ast
+         (get-declaration-asts
           (if (typep new-type 'c-tag-specifier) ;A mixin class.
               :tag :type)
           new-type))))))
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
-  (when-let (class (get-field-class ast))
-    (lookup-in-field-table class type (c/cpp-field ast))))
+  (mappend (op (lookup-in-field-table _ type (c/cpp-field ast)))
+           (get-field-classes ast)))
 
 (defmethod get-initialization-ast ((ast cpp-ast) &aux (obj (attrs-root*)))
   "Find the assignment for an unitialized variable."

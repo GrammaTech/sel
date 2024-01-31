@@ -1074,7 +1074,7 @@ templated definition's field table."
             (cpp-argument (and arg (cpp-identifier)))
             (cpp-field (and field (cpp-field-identifier)))
             (cpp-operator (source-text= ".")))
-           (when-let (decl (get-declaration-ast :variable arg))
+           (when-let (decl (car (get-declaration-asts :variable arg)))
              (mvlet* ((const? (declared-const? decl))
                       (const-overloads
                        mutable-overloads
@@ -1085,8 +1085,13 @@ templated definition's field table."
                            const-overloads
                            mutable-overloads)))
                (cond ((null relevant-overloads)
-                      (error "Invalid partitioning of overloads: ~a"
-                             overloads))
+                      ;; We can call const methods on a mutable
+                      ;; object, but not v.v.
+                      (if (not const?)
+                          overloads
+                          (error "Invalid partitioning of overloads: ~a"
+                                 overloads))
+                      relevant-overloads)
                      ((single relevant-overloads)
                       (only-elt relevant-overloads))
                      (t (if (length= relevant-overloads overloads)
@@ -1773,6 +1778,94 @@ instance we only want to remove one).")
 
 (defmethod function-exception-set ((ast cpp-template-function))
   (function-exception-set (cpp-name ast)))
+
+(defun find-enclosing-template (ast)
+  (find-enclosing 'cpp-template-declaration (attrs-root*) ast))
+
+(def-attr-fun template-specializations ()
+  (:documentation "Return all specializations of a template.
+Specializations are both template types and calls of template
+functions.")
+  (:method ((template cpp-template-declaration) &aux (root (attrs-root*)))
+    (nest
+     (labels ((specialized? (arguments)
+                (let* ((params (children arguments))
+                       (param-decls
+                        (mapcar (op (get-declaration-ast :type _))
+                                params)))
+                  (notevery (of-type 'cpp-type-parameter-declaration)
+                            param-decls)))))
+     (iter (for node in-tree (genome root)))
+     (unless (parent-ast-p (attrs-root*) template node))
+     (match node
+       ;; Collect specializations from types.
+       ((cpp-template-type
+         (cpp-name type)
+         (cpp-arguments arguments))
+        (when-let* ((type-args (children arguments))
+                    (type-def (get-declaration-ast :type type)))
+          (when (eql template (find-enclosing-template type-def))
+            (when (specialized? arguments)
+              (collect node)))))
+       ;; Collect specializations from invocations.
+       ((call-ast
+         (call-function (cpp-field-expression)))
+        nil)
+       ((call-ast
+         (call-function
+          (and fn
+               (cpp-template-function
+                (cpp-name name))))
+         (call-arguments arguments))
+        (when-let* ((id (get-declaration-id :function name))
+                    (template (find-enclosing-template id)))
+          (when (specialized? arguments)
+            (collect fn))))
+       ((call-ast
+         (call-function (and fn (identifier-ast)))
+         (call-arguments _))
+        (unless (get-declaration-id :macro fn)
+          (when-let* ((id (get-declaration-id :function fn))
+                      (template (find-enclosing-template id)))
+            (collect fn))))))))
+
+(def-attr-fun possible-types ()
+  (:documentation "Get the possible types of a template parameter declaration.")
+  (:method ((decl cpp-type-parameter-declaration))
+    (labels ((param-offset (template decl)
+               (position decl (children (cpp-parameters template))))
+             (specialization-type-arguments (specialization)
+               "Get the type arguments from a template specialization. "
+               (match specialization
+                 ((or (cpp-template-type
+                       (cpp-arguments type-args))
+                      (cpp-template-function
+                       (cpp-arguments type-args)))
+                  (children type-args))
+                 ;; Handle implicit specialization of a
+                 ;; call.
+                 ((and id (identifier-ast))
+                  (let* ((call (find-enclosing 'call-ast (attrs-root*) id)))
+                    (mapcar #'infer-type (call-arguments call)))))))
+      (when-let* ((template (find-enclosing-template decl))
+                  (offset (param-offset template decl)))
+        (nest (nub)
+              (filter-map (op (get-declaration-id :type _)))
+              (filter-map (op (elt _ offset)))
+              (mapcar #'specialization-type-arguments)
+              (template-specializations template))))))
+
+(defmethod get-declaration-ids :around ((type (eql :type)) (ast cpp-ast))
+  "When the declaration of a type is a type parameter, include the
+set of possible concrete specializations of that type."
+  (let ((results (call-next-method type ast)))
+    (if-let (type-params
+             (filter-map
+              (op (find-enclosing 'cpp-type-parameter-declaration (attrs-root*) _))
+              results))
+      (append results
+              (mappend #'possible-types type-params))
+      results)))
 
 
 ;;; Whitespace rules

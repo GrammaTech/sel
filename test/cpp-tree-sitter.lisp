@@ -1236,7 +1236,8 @@ export {
   (let ((cpp (cpp* "allocator_type get_allocator() const noexcept;")))
     (with-attr-table cpp
       (is (equal '(or) (exception-set cpp)))))
-  ;; T unless declared otherwise.
+  ;; T unless declared otherwise. TODO What is the exception set
+  ;; really of a declaration without definitions?
   (let ((cpp (cpp* "allocator_type get_allocator() const;")))
     (with-attr-table cpp
       (is (equal t (exception-set cpp))))))

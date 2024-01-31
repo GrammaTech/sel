@@ -634,6 +634,8 @@
            :normal-exit-control-flow
            :exception-set
            :function-exception-set
+           :template-specializations
+           :possible-types
            :c-functions
            :c
            :cpp
