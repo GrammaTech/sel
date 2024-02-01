@@ -162,6 +162,7 @@ module.exports = {
       (is (equal? (genome v1) (genome v2))))))
 
 (deftest test-can-remove-file-by-name ()
+  "Removing a file by name should remove both the file-ast and evolve files entry."
   (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
          (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
          (project (is (from-file (make 'cpp-project) project-dir))))
@@ -171,6 +172,25 @@ module.exports = {
     (is (length= 3 (evolve-files project)))
     (is (length= 3 (collect-if (of-type 'file-ast) project)))
     (let ((new-project (less project "my_class.h")))
+      (is (null (assoc "my_class.h" (evolve-files new-project) :test #'equal)))
+      (is (null (lookup new-project "my_class.h")))
+      (is (null (lookup (genome new-project) "my_class.h")))
+      (is (length= 2 (evolve-files new-project)))
+      (is (length= 2 (collect-if (of-type 'file-ast) new-project))))))
+
+(deftest test-can-remove-file-ast ()
+  "Removing a file-ast should remove the corresponding evolve files entry."
+  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+         (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
+         (project (is (from-file (make 'cpp-project) project-dir)))
+         (file-ast
+          (is (lookup project "my_class.h"))))
+    (is (assoc "my_class.h" (evolve-files project) :test #'equal))
+    (is (typep file-ast 'file-ast))
+    (is (lookup (genome project) "my_class.h"))
+    (is (length= 3 (evolve-files project)))
+    (is (length= 3 (collect-if (of-type 'file-ast) project)))
+    (let ((new-project (less project file-ast)))
       (is (null (assoc "my_class.h" (evolve-files new-project) :test #'equal)))
       (is (null (lookup new-project "my_class.h")))
       (is (null (lookup (genome new-project) "my_class.h")))

@@ -400,6 +400,11 @@ optimization settings."
                       (other-files project)))
      project)))
 
+(defmethod less ((project directory-project) (ast file-ast) &optional val)
+  "Delete correspnding evolve-files when deleting file-asts."
+  (declare (ignore val))
+  (less project (namestring (full-pathname ast))))
+
 (defmethod insert :around ((project directory-project) (path t) (value ast))
   "When updating the genome, update the evolve files too."
   (verify-project-in-sync
