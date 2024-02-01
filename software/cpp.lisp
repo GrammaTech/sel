@@ -1728,11 +1728,12 @@ instance we only want to remove one).")
            ((morally-noexcept? declarator)
             +exception-bottom-type+)
            (t
-            (let ((definitions (c/cpp-function-declaration-definitions declaration)))
+            (if-let ((definitions (c/cpp-function-declaration-definitions declaration)))
               (reduce #'exception-set-union
                       definitions
                       :key #'exception-set
-                      :initial-value +exception-bottom-type+)))))))
+                      :initial-value +exception-bottom-type+)
+              +exception-top-type+))))))
 
 (defmethod exception-set ((ast cpp-declaration))
   (or (declaration-exception-set ast)
