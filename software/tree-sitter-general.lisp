@@ -1692,7 +1692,15 @@ with `or' for a specific list of exceptions.")
      (reduce #'exception-set-union
              (mapcar #'exception-set (call-arguments ast))
              :initial-value +exception-bottom-type+)
-     (function-exception-set (call-function ast)))))
+     (function-exception-set (call-function ast))))
+  (:method ((ast if-ast))
+    (reduce #'exception-set-union
+            (remove nil
+                    (list (condition ast)
+                          (consequence ast)
+                          (alternative ast)))
+            :key #'exception-set
+            :initial-value +exception-bottom-type+)))
 
 (defgeneric function-exception-set (function)
   (:documentation "Get the exception set of FUNCTION.
