@@ -309,7 +309,9 @@ tree ASTs."
                         (remove-if [{eql :class} #'slot-definition-allocation])
                         (class-slots (class-of ast)))))
     (iter (for (key . value) in (plist-alist args))
-          (unless (member key initargs)
+          (unless (or (member key initargs)
+                      ;; Omit ordered children cache.
+                      (eq key :ordered-children))
             (setf (aget key (slot-value ast 'annotations)) value)))))
 
 (defmethod copy :around ((ast functional-tree-ast) &rest keys)
