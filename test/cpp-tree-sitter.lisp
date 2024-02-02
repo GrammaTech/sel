@@ -2315,6 +2315,32 @@ int main() {
       (is (equal '(or)
                  (exception-set fn))))))
 
+(deftest test-exception-set-with-method ()
+  (let ((project (from-string 'cpp-project
+                              (read-file-into-string
+                               (asdf:system-relative-pathname
+                                :software-evolution-library
+                                "test/etc/exception-set/print_class_name.cc")))))
+    (with-attr-table project
+      (let* ((fns (is (collect-if (of-type 'cpp-function-definition) project)))
+             (method (is (find "print_class_name" fns :key #'function-name :test #'equal)))
+             (main (is (find "main" fns :key #'function-name :test #'equal))))
+        (is (equal +exception-bottom-type+ (exception-set method)))
+        (is (equal +exception-bottom-type+ (exception-set main)))))))
+
+(deftest test-exception-set-with-method-through-pointer ()
+  (let ((project (from-string 'cpp-project
+                              (read-file-into-string
+                               (asdf:system-relative-pathname
+                                :software-evolution-library
+                                "test/etc/exception-set/print_class_name_unique_ptr.cc")))))
+    (with-attr-table project
+      (let* ((fns (is (collect-if (of-type 'cpp-function-definition) project)))
+             (method (find "print_class_name" fns :key #'function-name :test #'equal))
+             (main (is (find "main" fns :key #'function-name :test #'equal))))
+        (is (equal +exception-bottom-type+ (exception-set method)))
+        (is (equal +exception-bottom-type+ (exception-set main)))))))
+
 (deftest test-include-of-macro ()
   (let* ((src "#ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX

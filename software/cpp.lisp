@@ -40,6 +40,16 @@
     "()" "[]")
   "Names of operators that can occur in operator_name ASTs.")
 
+(defconst +smart-pointer-type-names+
+  '("unique_ptr" "shared_ptr" "weak_ptr" "auto_ptr"))
+
+(defun smart-pointer-type-name? (string)
+  "Is STRING the name of a smart pointer class?"
+  (declare (string string))
+  (string-case string
+    (#.+smart-pointer-type-names+ t)
+    (t nil)))
+
 (define-language-alias-mappings
     cpp ("c plus plus" "c++" "c-plus-plus" "cc" "cp" "cpp" "cxx" "hpp"
          ;; Module unit extensions. Visual Studio uses .ixx, Clang
@@ -1172,13 +1182,33 @@ then the return type of the call is the return type of the field."
       (and (single children)
            (first children)))))
 
+(defun smart-pointer-type-arg (ast)
+  "If AST is a smart pointer, extract its type argument."
+  (match ast
+    ((cpp-qualified-identifier)
+     (smart-pointer-type-arg
+      (lastcar (qualified-name->list ast))))
+    ((cpp-template-type
+      (cpp-name
+       (cpp-type-identifier
+        :text (satisfies smart-pointer-type-name?)))
+      (cpp-arguments
+       (cpp-template-argument-list :children (list type))))
+     (and (equal (namespace ast) "std")
+          type))))
+
 (defmethod deref-type ((type cpp-qualified-identifier))
   ;; TODO This needs to be generalized.
-  (let ((parts (qualified-name->list type)))
-    (if (member (lastcar parts) '("iterator" "const_iterator")
-                :test #'source-text=)
-        (resolve-container-element-type type)
-        (call-next-method))))
+  (or (smart-pointer-type-arg type)
+      (let ((parts (qualified-name->list type)))
+        (if (member (lastcar parts) '("iterator" "const_iterator")
+                    :test #'source-text=)
+            (resolve-container-element-type type)
+            (call-next-method)))))
+
+(defmethod deref-type ((type cpp-template-type))
+  (or (smart-pointer-type-arg type)
+      (call-next-method)))
 
 (defmethod deref-type ((type cpp-type-descriptor))
   "Dereference a reference type."
