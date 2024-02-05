@@ -1751,7 +1751,10 @@ instance we only want to remove one).")
 
 (defun declaration-exception-set (declaration)
   (match (cpp-declarator declaration)
-    ((list (and declarator (cpp-function-declarator)))
+    ((list
+      (or (and declarator (cpp-function-declarator))
+          (cpp-reference-declarator
+           :children (list (and declarator (cpp-function-declarator))))))
      (cond ((find-if #'noexcept-specifier?
                      (direct-children declarator))
             +exception-bottom-type+)
