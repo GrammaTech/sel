@@ -3,6 +3,7 @@ import copy
 
 from asts.asts import AST, ASTException, ASTLanguage, LiteralOrAST, PathOrAST
 from asts.types import (
+    BinaryAST,
     CCastExpression,
     CComment,
     CompoundAST,
@@ -48,9 +49,13 @@ def contains_type(ast, type):
 
 
 class BinaryOperationTestDriver(unittest.TestCase):
+    binop: BinaryAST
+
     def setUp(self):
         self.root = AST.from_string("x + 88", ASTLanguage.Python)
-        self.binop = self.root.children[0].children[0]
+        binary_ast = self.root.children[0].children[0]
+        assert isinstance(binary_ast, BinaryAST)
+        self.binop = binary_ast
         return
 
     # AST at point
@@ -124,7 +129,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
     def test_child_slot_accessor(self):
         def test_child_slot_accessor_helper(slotname):
             slot = self.binop.child_slot(slotname)
-            assert slot
+            assert isinstance(slot, AST)
             self.assertEqual("88", slot.source_text)
 
         test_child_slot_accessor_helper("RIGHT")
@@ -133,6 +138,7 @@ class BinaryOperationTestDriver(unittest.TestCase):
 
     # AST child-slot property
     def test_child_slot_property(self):
+        assert self.binop.right
         self.assertEqual("88", self.binop.right.source_text)
 
     # AST size
@@ -394,11 +400,11 @@ class MutationTestDriver(unittest.TestCase):
 
     def test_replace_throws_exception_no_replacement(self):
         with self.assertRaises(ASTException):
-            AST.replace(self.root, self.statement, None)
+            AST.replace(self.root, self.statement, None)  # type: ignore
 
     def test_insert_throws_exception_no_replacement(self):
         with self.assertRaises(ASTException):
-            AST.insert(self.root, self.statement, None)
+            AST.insert(self.root, self.statement, None)  # type: ignore
 
 
 class TransformTestDriver(unittest.TestCase):
@@ -547,7 +553,7 @@ class CallsiteTestDriver(unittest.TestCase):
 class ErrorTestDriver(unittest.TestCase):
     def test_error_handling(self):
         with self.assertRaises(ASTException):
-            AST.from_string("foo()", language="foo")
+            AST.from_string("foo()", language="foo")  # type: ignore
 
 
 class VarsInScopeTestDriver(unittest.TestCase):
