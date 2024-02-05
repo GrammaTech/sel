@@ -149,8 +149,8 @@ class AST:
     def ast_template(
         template: str,
         language: ASTLanguage,
-        *args: LiteralOrAST,
-        **kwargs: LiteralOrAST,
+        *args: Union[LiteralOrAST, List[LiteralOrAST]],
+        **kwargs: Union[LiteralOrAST, List[LiteralOrAST]],
     ) -> "AST":
         """
         Build a single AST using an AST template syntax.
