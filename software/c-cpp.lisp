@@ -484,6 +484,7 @@ pointer declarations which are nested on themselves."
   (find-in-symbol-table ast type (definition-name-ast ast)))
 
 (defmethod expression-type ((ast c/cpp-function-definition))
+  "Use the return type of a function definition as its expression type."
   (c/cpp-type ast))
 
 (defmethod resolve-overloads ((type (eql :function))
@@ -706,7 +707,8 @@ is the operator of a binary ast.")
      (source-text key)))
 
 (defun get-field-classes (field)
-  "Find the declaration of the type of the argument of FIELD."
+  "Find the classes that define FIELD.
+There can be multiple classes if FIELD occurs in a template."
   (ematch field
     ((c/cpp-field-expression
       ;; TODO Just ->?

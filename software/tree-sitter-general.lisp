@@ -1625,10 +1625,16 @@ node in the block.")
   (:method :around ((ast assignment-ast))
     (rhs ast)))
 
-(defconst +exception-top-type+ t)
+(deftype exception-set ()
+  '(or (eql t) (cons (eql or) t)))
 
-(defconst +exception-bottom-type+ '(or))
+(defconst +exception-top-type+ t
+  "The set of all possible exception sets.")
 
+(defconst +exception-bottom-type+ '(or)
+  "The empty exception set.")
+
+(-> exception-set-union (exception-set exception-set) exception-set)
 (defun exception-set-union (x y)
   (econd
    ((eql x +exception-top-type+) +exception-top-type+)
@@ -1637,6 +1643,7 @@ node in the block.")
          (eql (car y) 'or))
     (cons 'or (append (cdr x) (cdr y))))))
 
+(-> exception-set-intersection (exception-set exception-set) exception-set)
 (defun exception-set-intersection (x y)
   (econd
    ((and (eql x +exception-top-type+) (eql y +exception-top-type+)) +exception-top-type+)
@@ -1647,6 +1654,7 @@ node in the block.")
    ((and (listp x) (listp y))
     (cons 'or (intersection (cdr x) (cdr y) :test #'source-text=)))))
 
+(-> exception-set-difference (exception-set exception-set) exception-set)
 (defun exception-set-difference (x y)
   (econd
    ((and (eql x +exception-top-type+) (eql y +exception-top-type+))
@@ -1705,9 +1713,9 @@ with `or' for a specific list of exceptions.")
 (defgeneric function-exception-set (function)
   (:documentation "Get the exception set of FUNCTION.
 
-Having this function lets we distinguish the exception set of the
-function itself from the exception set of a function call (which is
-the union of the function's exception set and its arguments' exception
+We use `function-exception-set' to distinguish the exception set of
+the function itself from the exception set of a function call (which
+is the union of the function exception set and the argument exception
 sets.")
   (:method ((ast ast))
     (if-let ((fn-defs (get-declaration-asts :function ast)))

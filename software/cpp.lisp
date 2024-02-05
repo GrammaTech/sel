@@ -1084,7 +1084,7 @@ templated definition's field table."
             (cpp-argument (and arg (cpp-identifier)))
             (cpp-field (and field (cpp-field-identifier)))
             (cpp-operator (source-text= ".")))
-           (when-let (decl (car (get-declaration-asts :variable arg)))
+           (when-let (decl (get-declaration-ast :variable arg))
              (mvlet* ((const? (declared-const? decl))
                       (const-overloads
                        mutable-overloads
@@ -1182,6 +1182,7 @@ then the return type of the call is the return type of the field."
       (and (single children)
            (first children)))))
 
+(-> smart-pointer-type-arg (cpp-ast) (or cpp-ast null))
 (defun smart-pointer-type-arg (ast)
   "If AST is a smart pointer, extract its type argument."
   (match ast
@@ -1701,8 +1702,8 @@ instance we only want to remove one).")
   (morally-noexcept? (cpp-declarator decl)))
 
 (defmethod morally-noexcept? ((decl cpp-operator-name))
-  ;; E.g. you can enable exceptions for operator<< with the
-  ;; .exceptions method on iostreams.
+  ;; Operators are not always noexcept. E.g. you can enable exceptions
+  ;; for operator<< with the .exceptions method on iostreams.
   (lookup *morally-noexcept* (source-text decl)))
 
 (defgeneric noexcept-specifier? (ast)
@@ -1749,7 +1750,13 @@ instance we only want to remove one).")
      +exception-bottom-type+)
     (t +exception-bottom-type+)))
 
-(defun declaration-exception-set (declaration)
+(defun declared-function-exception-set (declaration)
+  "Helper function to compute the exception set of DECLARATION, if
+DECLARATION declares a function.
+
+The exception set of the declaration is either empty, if the
+declaration is `noexcept', or the union of the exception sets of all
+the definitions of the declared function."
   (match (cpp-declarator declaration)
     ((list
       (or (and declarator (cpp-function-declarator))
@@ -1769,11 +1776,11 @@ instance we only want to remove one).")
               +exception-top-type+))))))
 
 (defmethod exception-set ((ast cpp-declaration))
-  (or (declaration-exception-set ast)
+  (or (declared-function-exception-set ast)
       (call-next-method)))
 
 (defmethod exception-set ((ast cpp-field-declaration))
-  (or (declaration-exception-set ast)
+  (or (declared-function-exception-set ast)
       (call-next-method)))
 
 (defun cpp-catch-clause-handled-exception-set (catch-clause)
