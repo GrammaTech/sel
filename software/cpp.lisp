@@ -57,7 +57,7 @@
          "ixx" "cppm" "ccm" "cxxm" "c++m"))
 
 (defgeneric strip-template-arguments (template)
-  (:documentation "Strip template arguments (in angle brackets) from STRING.")
+  (:documentation "Strip template arguments (in angle brackets) from TEMPLATE.")
   (:method ((string string))
     (with-string-dispatch () string
       (if (not (position #\< string)) string
