@@ -2048,6 +2048,11 @@ different orders."
                               "void f2 (int g2(float, double), h1(int(x, y)));")
     (is-canonical-type= target-ast1 target-ast2)))
 
+(deftest cpp-canonical-abstract-reference-declarator-type ()
+  (let* ((cpp (cpp "int myfun(mytype&);"))
+         (param (is (first (children (cpp-parameters (first (cpp-declarator cpp))))))))
+    (is (occurs :reference (declarator (canonicalize-type param))))))
+
 
 ;;; Symbol table
 

@@ -614,6 +614,12 @@ to look it up as `x::z' or just `z'."
   (append (canonicalize-declarator (car (direct-children declarator)))
           `((:reference))))
 
+(defmethod canonicalize-declarator ((declarator cpp-abstract-reference-declarator))
+  ;; NOTE: more or less an alias. Maybe adding it to the type information
+  ;;       isn't really needed or maybe it can just be ignored?
+  (append (canonicalize-declarator (car (direct-children declarator)))
+          `((:reference))))
+
 (defclass cpp-canonical-type (c/cpp-canonical-type)
   ()
   (:documentation "C++ representation of canonical types."))
