@@ -6333,12 +6333,16 @@ Unlike the `children` methods which collects all children of an AST from any slo
                 :stream s
                 :readably t)
                (finish-output s)))))
-       (overlord:depends-on
+       (overlord:use
         (asdf:system-relative-pathname "software-evolution-library"
                                        "software/tree-sitter-code-gen.lisp")
         (pathname ,(format nil "/usr/share/tree-sitter/~a/node-types.json"
                            name-string))
+        (pathname ,(format nil "/usr/local/share/tree-sitter/~a/node-types.json"
+                           name-string))
         (pathname ,(format nil "/usr/share/tree-sitter/~a/grammar.json"
+                           name-string))
+        (pathname ,(format nil "/usr/local/share/tree-sitter/~a/grammar.json"
                            name-string))))
      ;; Generate FASL.
      (overlord:file-target ,compiled-cache-file-var
