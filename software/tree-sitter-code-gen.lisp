@@ -3053,7 +3053,14 @@ stored on the AST or external rules.")
 
 (defmacro register-tree-sitter-language (lib-name language ast-superclass)
   "Setup LANGUAGE to map to AST-SUPERCLASS and use LIB-NAME for parsing."
-  (let ((register-language #.(when (asdf:find-system :cl-tree-sitter nil) t)))
+  (let ((register-language #.(when (asdf:find-system :cl-tree-sitter nil) t))
+        (fn-name-args
+          ;; Override the inferred name of the foreign function.
+          (string-case lib-name
+            ("tree-sitter-typescript-typescript"
+             '(:fn-name "tree_sitter_typescript"))
+            ("tree-sitter-typescript-tsx"
+             '(:fn-name "tree_sitter_tsx")))))
     `(eval-always
        (handler-case
            (progn
@@ -3061,17 +3068,24 @@ stored on the AST or external rules.")
                (handler-case
                    (progn
                      (when ,register-language
-                       (register-language
-                        ,language ,lib-name
-                        ,@(string-case lib-name
-                            ("tree-sitter-typescript-typescript"
-                             '(:fn-name "tree_sitter_typescript"))
-                            ("tree-sitter-typescript-tsx"
-                             '(:fn-name "tree_sitter_tsx")))))
+                       (register-language ,language ,lib-name ,@fn-name-args))
                      (setf (gethash ,ast-superclass *superclass->language*) ,language))
                  ;; Try again with an augmented library search path.
+                 ;; We want to construct the full paths, instead of
+                 ;; using `cffi:*foreign-library-directories*',
+                 ;; because the local binding will not be available
+                 ;; when reloading the libraries in a dumped image.
                  (load-foreign-library-error ()
-                   (register-language ,language ,(concatenate 'string "/usr/lib/" lib-name)))))
+                   (handler-case
+                       (register-language
+                        ,language
+                        ,(concatenate 'string "/usr/lib/" lib-name)
+                        ,@fn-name-args)
+                     (load-foreign-library-error ()
+                       (register-language
+                        ,language
+                        ,(concatenate 'string "/usr/local/lib/" lib-name)
+                        ,@fn-name-args))))))
              (setf (gethash ,ast-superclass *superclass->language*) ,language))
          (load-foreign-library-error ()
            (format
