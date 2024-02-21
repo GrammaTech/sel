@@ -67,10 +67,12 @@ pin_repo() {
     fi
 }
 
-# Install tree-sitter itself.
+# Note we don't shallow clone (we couldn't pin the repositories that
+# way) but we do clone only the default branch.
 
+# Install tree-sitter itself.
 if [ ! -d tree-sitter ]; then
-   git clone https://github.com/tree-sitter/tree-sitter
+   git clone --single-branch https://github.com/tree-sitter/tree-sitter
 fi
 (
     cd tree-sitter
@@ -88,7 +90,7 @@ else
 fi
 
 for language in "${languages[@]}";do
-    [ -d "tree-sitter-${language%/*}" ] || git clone ${repos[$language]:-https://github.com/tree-sitter/tree-sitter-${language%/*}};
+    [ -d "tree-sitter-${language%/*}" ] || git clone --single-branch ${repos[$language]:-https://github.com/tree-sitter/tree-sitter-${language%/*}};
     # Use a subshell to avoid directory juggling.
     (
         cd "tree-sitter-${language}/src";
