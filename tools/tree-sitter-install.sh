@@ -3,8 +3,8 @@ set -eux
 
 WORKDIR=${WORKDIR:-$(mktemp -d)}
 PREFIX=${PREFIX:-/usr}
-CC=${CC:-clang}
-CXX=${CXX:-clang++}
+CC=${CC:-cc}
+CXX=${CXX:-c++}
 
 if [ $(uname) == "Darwin" ];then
    EXT=dylib;
