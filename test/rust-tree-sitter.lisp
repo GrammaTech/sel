@@ -11,6 +11,7 @@
    :software-evolution-library/software/rust
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
+  (:local-nicknames (:attrs :functional-trees/attrs))
   (:export :test-rust-tree-sitter))
 (in-package :software-evolution-library/test/rust-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -28,6 +29,66 @@
   (is (eql 5 (constant-fold (rust* "(2+2)+1"))))
   (is (eql 5 (constant-fold (rust* "{ 2+2 }+1"))))
   (is (eql 7 (constant-fold (rust* "2*3+1")))))
+
+
+;;; Analysis test
+
+(deftest test-implicit-return-exit-control-flow ()
+  "An implicit return expression has the surrounding block in its exit control flow."
+  (let* ((rust-block (rust* "{ x }"))
+         (rust-return (is (find-if (of-type 'rust-implicit-return-expression)
+                                   rust-block))))
+    (is (typep rust-block 'rust-block))
+    (attrs::with-attr-table rust-block
+      (is (equal (list rust-block) (exit-control-flow rust-return))))))
+
+(deftest test-try-expression-control-flow-in-named-function ()
+  "A try expression should have the surrounding function in its exit control flow."
+  (let* ((rust (rust* "fn myfun() -> Result<(), &'static string> {
+    fallible_step1()?;
+    infallible_step2()?;
+}"))
+         (expr (is (find-if (of-type 'rust-try-expression) rust))))
+    (attrs::with-attr-table rust
+      (is (member rust (exit-control-flow expr))))))
+
+(deftest test-try-expression-control-flow-in-closure ()
+  "A try expression should have the surrounding closure in its exit control flow."
+  (let* ((rust (rust* "|| -> Result<(), &'static string> {
+    fallible_step1()?;
+    infallible_step2()?;
+}"))
+         (expr (is (find-if (of-type 'rust-try-expression) rust))))
+    (attrs::with-attr-table rust
+      (is (member rust (exit-control-flow expr))))))
+
+(deftest test-control-flow-in-else-clause ()
+  "We follow control flow into an else clause."
+  (let* ((rust (rust* "|| -> mytype {
+if test() {
+    do_something();
+} else {
+    return mytype{};
+}
+do_something_else();
+}"))
+         (if-ast (is (find-if (of-type 'if-ast) rust))))
+    (attrs::with-attr-table rust
+      (let ((exits (exit-control-flow if-ast)))
+        ;; It could fall through or short-circuit.
+        (is (length= exits 2))
+        (is (member rust exits))))))
+
+(deftest test-fallthrough-to-implicit-return ()
+  "A statement before an implicit return expression should fall through to it."
+  (let* ((rust (rust* "{
+    function_call();
+    value
+}"))
+         (statement (is (find-if (of-type 'statement-ast) rust)))
+         (return-ast (is (find-if (of-type 'return-ast) rust))))
+    (attrs::with-attr-table rust
+      (is (member return-ast (exit-control-flow statement))))))
 
 
 ;;; Round Trip Tests

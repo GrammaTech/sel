@@ -192,6 +192,16 @@ around generic-type-with-turbofish being aliased to generic-type."
           (list expr))))))
      (constant-fold expr))))
 
+(defmethod exit-control-flow ((ast rust-implicit-return-expression))
+  (find-enclosing 'compound-ast (attrs-root*) ast))
+
+(defmethod exit-control-flow ((ast rust-try-expression))
+  (cons (find-enclosing 'returnable-ast (attrs-root*) ast)
+        (ensure-list (call-next-method))))
+
+(defmethod entry-control-flow ((ast rust-else-clause))
+  (children ast))
+
 
 ;;; Whitespace.
 
