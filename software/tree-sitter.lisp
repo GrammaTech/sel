@@ -610,6 +610,7 @@
            :infer-expression-type
            :expression-type
            :placeholder-type-p
+           :boolean-type-p
            :resolve-declaration-type
            :declaration-type
            :find-enclosing

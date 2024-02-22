@@ -604,9 +604,29 @@ pointer declarations which are nested on themselves."
 (defmethod infer-type ((ast c/cpp-cast-expression))
   (c/cpp-type ast))
 
+(defmethod boolean-type-p ((ast c/cpp-primitive-type))
+  ;; C99 has a bool type.
+  (equal "bool" (text ast)))
+
+(defgeneric make-c/cpp-bool-type (ast)
+  (:method ((ast c-ast))
+    (make-instance 'c-primitive-type :text "int"))
+  (:method ((ast cpp-ast))
+    (make-instance 'cpp-primitive-type :text "bool")))
+
+(defmethod infer-type-binary-expression ((op boolean-operator-ast) (ast c/cpp-binary-expression))
+  (make-c/cpp-bool-type ast))
+(defmethod infer-type-binary-expression ((op comparison-operator-ast) (ast c/cpp-binary-expression))
+  (make-c/cpp-bool-type ast))
+
 (defmethod infer-type ((ast c/cpp-binary-expression))
   (or (infer-type-binary-expression (c/cpp-operator ast) ast)
       (call-next-method)))
+
+(defmethod expression-type ((ast c/cpp-unary-expression))
+  (match (c/cpp-operator ast)
+    ((c/cpp-!) (make-c/cpp-bool-type ast))
+    (otherwise (call-next-method))))
 
 (defmethod infer-type ((ast c/cpp-comma-expression))
   (infer-type (c/cpp-right ast)))

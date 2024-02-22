@@ -1317,6 +1317,32 @@ int myfun(int x, int y) {
                (exception-set
                 (find-if (of-type 'cpp-try-statement) cpp)))))))
 
+(defun infer-type/standalone (x)
+  "Infer the type of X by itself."
+  (with-attr-table x
+    (infer-type x)))
+
+(deftest test-recognize-bool-type ()
+  (is (boolean-type-p (cpp-type (cpp* "bool x = true;")))))
+
+(deftest test-literal-bool-type ()
+  (is (boolean-type-p (infer-type/standalone (cpp* "true"))))
+  (is (boolean-type-p (infer-type/standalone (cpp* "false")))))
+
+(deftest test-negation-boolean-type ()
+  (is (boolean-type-p (infer-type/standalone (cpp* "!x")))))
+
+(deftest test-binary-operations-are-boolean ()
+  (is (boolean-type-p (infer-type/standalone (cpp* "(x && y)"))))
+  (is (boolean-type-p (infer-type/standalone (cpp* "(x || y)"))))
+  (is (boolean-type-p (infer-type/standalone (cpp* "(x == y)"))))
+  (is (boolean-type-p (infer-type/standalone (cpp* "(x !== y)"))))
+  (is (boolean-type-p (infer-type/standalone (cpp* "(x < y)"))))
+  (is (boolean-type-p (infer-type/standalone (cpp* "(x > y)"))))
+  (is (boolean-type-p (infer-type/standalone (cpp* "(x <= y)"))))
+  (is (boolean-type-p (infer-type/standalone (cpp* "(x >= y)")))))
+
+
 
 ;;; Parsing tests
 

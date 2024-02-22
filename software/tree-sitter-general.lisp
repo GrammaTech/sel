@@ -1351,6 +1351,10 @@ A placeholder type is a type like C++ `auto' or Java `var', a request
 for the compiler to infer the type.")
   (:method ((ast t)) nil))
 
+(defgeneric boolean-type-p (ast)
+  (:documentation "Is AST a boolean type?")
+  (:method ((ast t)) nil))
+
 (defgeneric deref-type (type)
   (:documentation "Return the type that comes from dereferencing TYPE.")
   (:method (type) type))

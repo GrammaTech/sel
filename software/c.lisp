@@ -193,31 +193,11 @@ field."
           (setf prev a)
           (finally (return (call-next-method))))))
 
-(defun make-c-int-type ()
-  (make-instance 'c-primitive-type :text "int"))
-
-(defmethod infer-type-binary-expression ((op c-==) (ast c-binary-expression))
-  (make-c-int-type))
-(defmethod infer-type-binary-expression ((op c-!=) (ast c-binary-expression))
-  (make-c-int-type))
-(defmethod infer-type-binary-expression ((op c-<) (ast c-binary-expression))
-  (make-c-int-type))
-(defmethod infer-type-binary-expression ((op c-<=) (ast c-binary-expression))
-  (make-c-int-type))
-(defmethod infer-type-binary-expression ((op c->) (ast c-binary-expression))
-  (make-c-int-type))
-(defmethod infer-type-binary-expression ((op c->=) (ast c-binary-expression))
-  (make-c-int-type))
-(defmethod infer-type-binary-expression ((op c-&&) (ast c-binary-expression))
-  (make-c-int-type))
-(defmethod infer-type-binary-expression ((op c-\|\|) (ast c-binary-expression))
-  (make-c-int-type))
-
 ;; TODO -- binary arithmetic, bit operators
 
 (defmethod infer-type ((ast c-unary-expression))
   (if (typep (c-operator ast) 'c-!)
-      (make-c-int-type)
+      (make-c/cpp-bool-type ast)
       (call-next-method)))
 
 (defun fix-nil-internal-asts-slots (ast)
