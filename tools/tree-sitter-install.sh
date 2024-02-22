@@ -24,6 +24,7 @@ NOPIN=${NOPIN:-}
 # Pinned versions.
 declare -A pins
 pins[tree-sitter]=efe009f4
+
 pins[bash]=275effd
 pins[c]=f357890
 pins[commonlisp]=c7e8149
@@ -48,8 +49,8 @@ pins[typescript/tsx]=${pins[typescript]}
 # Declared repositories.
 declare -A repos
 repos[commonlisp]=https://github.com/theHamsta/tree-sitter-commonlisp.git
-repos[yaml]=https://github.com/ikatyang/tree-sitter-yaml.git
 repos[cpp]=https://github.com/ruricolist/tree-sitter-cpp.git
+repos[yaml]=https://github.com/ikatyang/tree-sitter-yaml.git
 
 cd "$WORKDIR"
 
