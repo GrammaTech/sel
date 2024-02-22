@@ -2355,6 +2355,28 @@ int main() {
                (find-if (of-type 'cpp-preproc-include)
                         cpp))))))
 
+(deftest test-catch-clause-symbol-table ()
+  (let* ((cpp (from-string 'cpp (fmt "~
+try {
+    do_something();
+} catch (const std::exception& e) {
+    std::cout << e.what(); << std::endl;
+}"))))
+    (with-attr-table cpp
+      (let ((calls (collect-if (of-type 'cpp-call-expression) cpp)))
+        (is (length= 2 calls))
+        (let ((decl (is (get-declaration-ast
+                         :variable
+                         (cpp-argument
+                          (call-function
+                           (second calls)))))))
+          (is (typep decl 'cpp-parameter-declaration))
+          (is (descendant-of-p (attrs-root*)
+                               (is (find-if
+                                    (of-type 'cpp-catch-clause)
+                                    cpp))
+                               decl)))))))
+
 
 ;;; Module tests
 

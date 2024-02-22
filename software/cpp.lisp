@@ -2157,6 +2157,13 @@ available to use at any point in a C++ AST.")
     (values result
             (mapcar (constantly :variable) result))))
 
+(defmethod inner-declarations ((catch-clause cpp-catch-clause))
+  (let ((params
+          (mappend #'parameter-names
+                   (children (cpp-parameters catch-clause)))))
+    (values params
+            (mapcar (constantly :variable) params))))
+
 (defmethod outer-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (outer-declarations node)))
     (convert 'fset:map
