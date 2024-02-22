@@ -24,7 +24,6 @@ NOPIN=${NOPIN:-}
 # Pinned versions.
 declare -A pins
 pins[tree-sitter]=efe009f4
-pins[python]=24b530c
 pins[bash]=275effd
 pins[c]=f357890
 pins[commonlisp]=c7e8149
