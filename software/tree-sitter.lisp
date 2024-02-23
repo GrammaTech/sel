@@ -717,6 +717,7 @@
            :+exception-bottom-type+
            :specified-noexcept?)
   (:local-nicknames
+   (:dbg :software-evolution-library/utility/debug)
    #+sbcl (:md5 :sb-md5)
    #-sbcl (:md5 :md5)
    (:task :software-evolution-library/utility/task)))
