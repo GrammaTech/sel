@@ -20,7 +20,8 @@
   (:export :test-rest))
 (in-package :software-evolution-library/test/rest)
 (in-readtable :curry-compose-reader-macros)
-(defsuite test-rest "REST API tests.")
+(defsuite test-rest "REST API tests."
+    (resolve-executable "astyle"))
 
 (defvar *rest-client* nil "Client-id (cid) for REST API test client.")
 (defvar *clack-port*  9003 "Default port for clack web server instance.")
