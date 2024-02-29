@@ -243,6 +243,42 @@ Rust macro invocations can use (), [], and {} equivalently."
   (children ast))
 
 
+;;; Symbol table
+
+(defun rust-pattern-variables (pattern)
+  (declare (rust--pattern pattern))
+  (ematch pattern
+    ((identifier-ast) (list pattern))
+    ((or (rust-reference-pattern)
+         (rust-tuple-pattern))
+     (mappend #'rust-pattern-variables (children pattern)))
+    ((rust-tuple-struct-pattern)
+     (mappend #'rust-pattern-variables (direct-children pattern)))))
+
+;;; TODO Let's have a rust-pattern mixin.
+(defmethod outer-declarations ((pat rust--pattern))
+  (labels ((extract-vars (pat)
+             (ematch pat
+               ((identifier-ast) (list pat))
+               ((or (rust-reference-pattern)
+                    (rust-tuple-pattern))
+                (mappend #'extract-vars (children pat)))
+               ((rust-tuple-struct-pattern)
+                (mappend #'extract-vars (direct-children pat))))))
+    (let ((vars (extract-vars pat)))
+      (values vars
+              (mapcar (constantly :variable) vars)))))
+
+(defmethod parameter-names ((param rust-parameter))
+  (values (outer-declarations (rust-pattern param))))
+
+(Defmethod outer-declarations ((decl rust-let-declaration))
+  (outer-declarations (rust-pattern decl)))
+
+;; (defmethod outer-declarations ((decl rust-use-declaration))
+;;   (outer-declarations (find-rust-module (rust-argument decl))))
+
+
 ;;; Whitespace.
 
 (defclass rustfmt-style (c-style-indentation)
