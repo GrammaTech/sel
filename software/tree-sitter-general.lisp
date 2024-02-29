@@ -634,7 +634,10 @@ argument destructuring (e.g. ECMAScript).")
 (defgeneric outer-declarations (ast)
   (:documentation
    "Return a list of variable declarations affecting outer scopes. This can
-return more information as values depending on the language.")
+return more information as values depending on the language.
+
+For languages that have multiple namespaces (variables, functions,
+types, etc.) this should return the namespaces as a second value.")
   (:method-combination standard/context)
   (:method ((ast ast)) nil)
   (:method :context (ast)
