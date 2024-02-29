@@ -218,7 +218,6 @@ around generic-type-with-turbofish being aliased to generic-type."
   rust-ast rust-arguments
   rust-ast rust-type-arguments
   rust-ast :|;|
-  rust-ast :|;|
   rust-ast :|:|
   rust-ast :|::|
   :|:| rust-ast
