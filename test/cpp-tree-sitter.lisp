@@ -2553,4 +2553,5 @@ namespace b {
   (check-patch-whitespace "std::vector<x> trim_front(std::vector<x> &xs) {}")
   ;; Don't change spacing of reference declarator unnecessarily.
   (check-patch-whitespace "x operator-(const x& x) {}")
-  (check-patch-whitespace "x operator-(const x &x) {}"))
+  (check-patch-whitespace "x operator-(const x &x) {}")
+  (check-patch-whitespace "char argv[];"))

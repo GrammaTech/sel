@@ -1239,7 +1239,8 @@ Should return `:failure' in the base case.")
   c/cpp--- c/cpp-ast
   c/cpp-identifier c/cpp-->
   c/cpp--> c/cpp-field-identifier
-  identifier-ast c/cpp-parameter-list)
+  identifier-ast c/cpp-parameter-list
+  c/cpp-identifier :\[)
 
 (defmethod whitespace-between ((style c-style-indentation)
                                (x c/cpp-ast)
