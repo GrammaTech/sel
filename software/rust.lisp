@@ -121,6 +121,14 @@ around generic-type-with-turbofish being aliased to generic-type."
   (with-modify-parse-tree (parse-tree)
     ((:|..| :|...| :|..=|) (label-as :operator))))
 
+(defmethod transform-parse-tree
+    ((language (eql :rust)) (class (eql 'rust-token-tree)) parse-tree &key)
+  "Record the delimiters of a Rust macro invocation.
+Rust macro invocations can use (), [], and {} equivalently."
+  (with-modify-parse-tree (parse-tree)
+    ((:|(| :|[| :|{|) (label-as :left-delimiter))
+    ((:|)| :|]| :|}|) (label-as :right-delimiter))))
+
 
 ;;; Methods for tree-sitter generics
 

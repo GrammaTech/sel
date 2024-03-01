@@ -290,6 +290,22 @@ valid output transformation."
     (is (eql (operator rust) :-))
     (is (typep (argument rust) 'rust-identifier))))
 
+(deftest test-rust-token-tree-delimiters ()
+  (flet ((test-delimiters (delims ast)
+           (let ((tree (find-if (of-type 'rust-token-tree) ast)))
+             (is (equal delims
+                        (mapconcat #'source-text
+                                   (mapcar (op (funcall _ tree))
+                                           (list #'rust-left-delimiter
+                                                 #'rust-right-delimiter))
+                                   ""))))))
+    (test-delimiters "()" (rust* "macro!()"))
+    (test-delimiters "[]" (rust* "macro![]"))
+    (test-delimiters "{}" (rust* "macro!{}"))
+    (test-delimiters "()" (rust* "macro!(x)"))
+    (test-delimiters "[]" (rust* "macro![x]"))
+    (test-delimiters "{}" (rust* "macro!{x}"))))
+
 
 ;;; Whitespace tests.
 
