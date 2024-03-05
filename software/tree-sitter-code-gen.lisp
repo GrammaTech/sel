@@ -513,10 +513,13 @@ for the language.")
         (rust-name :reader definition-name-ast))
        (rust-for-expression
         (rust-body :reader body :initarg :body))
+       (rust-closure-expression
+        (rust-parameters :reader function-parameters)
+        (rust-body :reader function-body :reader body :initarg :body))
        (rust-function-item
         (rust-name :reader function-name :reader definition-name-ast)
         (rust-parameters :reader function-parameters)
-        (rust-body :reader function-body))
+        (rust-body :reader function-body :reader body :initarg :body))
        (rust-if-expression
         (rust-condition :initarg :condition :reader condition)
         (rust-consequence :initarg :consequence :reader consequence)
