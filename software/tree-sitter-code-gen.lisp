@@ -3236,7 +3236,7 @@ of an AST."))
       :allocation :class))
     (:documentation "A wrapper class for text fragments in computed text ASTs."))
 
-  (defclass source-text-fragment (computed-text)
+  (defclass source-text-fragment (computed-text subexpression-ast)
     ((text :accessor text
            :initform ""
            :initarg :text)

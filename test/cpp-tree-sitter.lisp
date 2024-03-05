@@ -1231,6 +1231,20 @@ export {
           (is (equal (exit-control-flow case-1)
                      (list fun))))))))
 
+(deftest test-variation-point-control-flow ()
+  (let ((cpp (from-string 'cpp "{ x; &!BAD!&; }")))
+    (with-attr-table cpp
+      (is (typep
+           (only-elt
+            (exit-control-flow
+             (find-if (of-type 'source-text-fragment) cpp)))
+           'source-text-fragment-variation-point))
+      (is (typep
+           (only-elt
+            (exit-control-flow
+             (find-if (of-type 'source-text-fragment-variation-point) cpp)))
+           'cpp-expression-statement)))))
+
 (deftest test-declaration-noexcept ()
   "Noexcept is recognized in declarations (not just definitions)."
   (let ((cpp (cpp* "allocator_type get_allocator() const noexcept;")))
