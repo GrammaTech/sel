@@ -40,6 +40,8 @@
   (:teardown (setf *broken-gcc* nil)))
 
 (deftest (fix-compilation-inserts-declaration-and-initializes :long-running) ()
+  (unless (resolve-executable "clang-tidy")
+    (return-from fix-compilation-inserts-declaration-and-initializes))
   (let ((*compilation-fixers*
          (remove-if-not
           «or {starts-with-subseq ":(\\d+):\\d+: error: use of undeclared"}
@@ -65,6 +67,8 @@
                         (return (genome-string fixed)))))))))
 
 (deftest (fix-compilation-declare-var-as-pointer :long-running) ()
+  (unless (resolve-executable "clang-tidy")
+    (return-from fix-compilation-declare-var-as-pointer))
   (let ((*compilation-fixers*
          (remove-if-not
           «or {starts-with-subseq ":(\\d+):(\\d+): error: invalid type arg"}

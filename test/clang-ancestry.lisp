@@ -68,6 +68,8 @@
                                         (first (ancestors crossed))))))))))
 
 (deftest (graphing-ancestry :long-running) ()
+  (unless (resolve-executable "dot")
+    (return-from graphing-ancestry))
   (with-fixture hello-world-clang-w-ancestry
     (apply-mutation *hello-world*
                     (make-instance 'clang-cut

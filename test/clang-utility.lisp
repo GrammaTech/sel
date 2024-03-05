@@ -101,6 +101,8 @@
                            (stmt-with-text *hello-world* "return 0;"))))))
 
 (deftest (tidy-a-clang-software-object :long-running) ()
+  (unless (resolve-executable "clang-tidy")
+    (return-from tidy-a-clang-software-object))
   (with-fixture hello-world-clang
     (let ((variant (copy *hello-world*)))
       (clang-tidy variant)
@@ -108,6 +110,8 @@
              (size *hello-world*))))))
 
 (deftest (tidy-adds-braces :long-running) ()
+  (unless (resolve-executable "clang-tidy")
+    (return-from tidy-adds-braces))
   (with-fixture tidy-adds-braces-clang
     (let ((variant (copy *soft*)))
       (clang-tidy variant)
@@ -116,6 +120,8 @@
                      (stmt-asts variant)))))))
 
 (deftest (format-a-clang-software-object :long-running) ()
+  (unless (resolve-executable "clang-format")
+    (return-from format-a-clang-software-object))
   (flet ((run (obj)
            (with-temporary-file (:pathname bin)
              (phenome obj :bin bin)

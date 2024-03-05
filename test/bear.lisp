@@ -14,8 +14,7 @@
 (in-package :software-evolution-library/test/bear)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-bear "Clang representation."
-  (lambda () (zerop (nth-value 2 (shell "which bear")))))
-
+  (resolve-executable "bear"))
 
 #-windows
 (deftest (able-to-create-a-bear-project :long-running) ()
