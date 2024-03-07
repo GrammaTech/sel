@@ -4241,6 +4241,9 @@ Otherwise, return PARSE-TREE."
 
 ;;; Symbol Table
 
+(defconst +symbol-table-namespaces+
+  '(nil :variable :function :type :tag :macro :namespace :method))
+
 (deftype symbol-table-namespace ()
   "Possible namespaces in a symbol table."
   ;; The nil "namespace" is for languages that don't use namespaces.
@@ -4248,7 +4251,7 @@ Otherwise, return PARSE-TREE."
   ;; namespaces).
   ;; The :method namespace is for Go which treats methods differently
   ;; than functions.
-  '(member nil :variable :function :type :tag :macro :namespace :method))
+  (cons 'member +symbol-table-namespaces+))
 
 (def +namespace-decl-type-table+
   '((:variable . variable-declaration-ast)

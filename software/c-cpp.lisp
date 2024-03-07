@@ -28,6 +28,32 @@
     "<" ">" "<=" ">=" "==" "!="
     "&" "^" "|"))
 
+(defconst +c/cpp-primitive-types+
+  '("bool"
+    "char"
+    "int"
+    "float"
+    "double"
+    "void"
+    "size_t"
+    "ssize_t"
+    "intptr_t"
+    "uintptr_t"
+    "charptr_t"
+    "int8_t"
+    "int16_t"
+    "int32_t"
+    "int64_t"
+    "uint8_t"
+    "uint16_t"
+    "uint32_t"
+    "uint64_t"
+    "char8_t"
+    "char16_t"
+    "char32_t"
+    "char64_t")
+  "Primitive types recognized by the C/C++ parser.")
+
 #+(or :tree-sitter-c :tree-sitter-cpp)
 (progn
 
@@ -471,6 +497,10 @@ pointer declarations which are nested on themselves."
   (list (c/cpp-name ast)))
 (defmethod field-name-asts ((ast c/cpp-function-definition))
   (list (definition-name-ast ast)))
+
+(defmethod get-declaration-ids :context (type (ast c/cpp-primitive-type))
+  "Primitive types don't have declarations."
+  nil)
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-pointer-expression))
   (get-declaration-ids type (c/cpp-argument ast)))

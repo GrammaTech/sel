@@ -26,7 +26,8 @@
                 :explicit-namespace-qualifiers
                 :qualified-name-lookup-variants)
   (:local-nicknames (:project :software-evolution-library/software/project)
-                    (:dir :software-evolution-library/software/directory))
+                    (:dir :software-evolution-library/software/directory)
+                    (:ts :software-evolution-library/software/tree-sitter))
   (:export :test-cpp-tree-sitter))
 (in-package :software-evolution-library/test/cpp-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -2416,6 +2417,12 @@ try {
                                     (of-type 'cpp-catch-clause)
                                     cpp))
                                decl)))))))
+
+(deftest test-no-primitive-type-declarations ()
+  (dolist (type-string ts::+c/cpp-primitive-types+)
+    (dolist (ns ts::+symbol-table-namespaces+)
+      (let ((ast (make 'cpp-primitive-type :text type-string)))
+        (is (null (get-declaration-ids ns ast)))))))
 
 
 ;;; Module tests
