@@ -1838,13 +1838,14 @@ Specializations are both template types and calls of template
 functions.")
   (:method ((template cpp-template-declaration) &aux (root (attrs-root*)))
     (nest
-     (labels ((specialized? (arguments)
-                (let* ((params (children arguments))
-                       (param-decls
-                        (mapcar (op (get-declaration-ast :type _))
-                                params)))
+     (labels ((specialized? (arguments-ast)
+                (let* ((args (children arguments-ast))
+                       (arg-decls
+                         (mapcar (op (get-declaration-ast :type _))
+                                 args)))
+                  ;; NB This excludes optional type parameters.
                   (notevery (of-type 'cpp-type-parameter-declaration)
-                            param-decls)))))
+                            arg-decls)))))
      (iter (for node in-tree (genome root)))
      (unless (parent-ast-p (attrs-root*) template node))
      (match node
@@ -1852,11 +1853,10 @@ functions.")
        ((cpp-template-type
          (cpp-name type)
          (cpp-arguments arguments))
-        (when-let* ((type-args (children arguments))
-                    (type-def (get-declaration-ast :type type)))
-          (when (eql template (find-enclosing-template type-def))
-            (when (specialized? arguments)
-              (collect node)))))
+        (and-let* ((type-def (get-declaration-ast :type type))
+                   ((eql template (find-enclosing-template type-def)))
+                   ((specialized? arguments)))
+          (collect node)))
        ;; Collect specializations from invocations.
        ((call-ast
          (call-function (cpp-field-expression)))
@@ -1866,44 +1866,61 @@ functions.")
           (and fn
                (cpp-template-function
                 (cpp-name name))))
-         (call-arguments arguments))
-        (when-let* ((id (get-declaration-id :function name))
-                    (template (find-enclosing-template id)))
-          (when (specialized? arguments)
-            (collect fn))))
+         (call-arguments-ast arguments))
+        (and-let* ((id (get-declaration-id :function name))
+                   (template (find-enclosing-template id))
+                   ((specialized? arguments)))
+          (collect fn)))
        ((call-ast
-         (call-function (and fn (identifier-ast)))
-         (call-arguments _))
+         (call-function (and fn (identifier-ast))))
         (unless (get-declaration-id :macro fn)
           (when-let* ((id (get-declaration-id :function fn))
                       (template (find-enclosing-template id)))
             (collect fn))))))))
 
+(defun param-possible-types (decl &optional default)
+  (labels ((param-offset (template decl)
+             (position decl (children (cpp-parameters template))))
+           (specialization-type-arguments (specialization)
+             "Get the type arguments from a template specialization. "
+             (match specialization
+               ((or (cpp-template-type
+                     (cpp-arguments type-args))
+                    (cpp-template-function
+                     (cpp-arguments type-args)))
+                (children type-args))
+               ;; Handle implicit specialization of a
+               ;; call.
+               ((and id (identifier-ast))
+                (let* ((call (find-enclosing 'call-ast (attrs-root*) id)))
+                  (mapcar #'infer-type (call-arguments call)))))))
+    (when-let* ((template (find-enclosing-template decl))
+                (offset (param-offset template decl)))
+      (let* ((specializations (template-specializations template))
+             (specialization-argument-lists
+              (mapcar #'specialization-type-arguments specializations))
+             (parameter-arguments
+              ;; TODO Handle defaulting.
+              (filter-map (op (or (nth offset _) default))
+                          specialization-argument-lists))
+             ;; TODO Circularity?
+             (ids (mappend
+                   (lambda (type)
+                     (or (get-declaration-ids :type type)
+                         (match type
+                           ((or (cpp-primitive-type)
+                                (cpp-type-descriptor
+                                 (cpp-type (cpp-primitive-type))))
+                            (list type)))))
+                   parameter-arguments)))
+        (nub ids)))))
+
 (def-attr-fun possible-types ()
   (:documentation "Get the possible types of a template parameter declaration.")
   (:method ((decl cpp-type-parameter-declaration))
-    (labels ((param-offset (template decl)
-               (position decl (children (cpp-parameters template))))
-             (specialization-type-arguments (specialization)
-               "Get the type arguments from a template specialization. "
-               (match specialization
-                 ((or (cpp-template-type
-                       (cpp-arguments type-args))
-                      (cpp-template-function
-                       (cpp-arguments type-args)))
-                  (children type-args))
-                 ;; Handle implicit specialization of a
-                 ;; call.
-                 ((and id (identifier-ast))
-                  (let* ((call (find-enclosing 'call-ast (attrs-root*) id)))
-                    (mapcar #'infer-type (call-arguments call)))))))
-      (when-let* ((template (find-enclosing-template decl))
-                  (offset (param-offset template decl)))
-        (nest (nub)
-              (filter-map (op (get-declaration-id :type _)))
-              (filter-map (op (elt _ offset)))
-              (mapcar #'specialization-type-arguments)
-              (template-specializations template))))))
+    (param-possible-types decl))
+  (:method ((decl cpp-optional-type-parameter-declaration))
+    (param-possible-types decl (cpp-default-type decl))))
 
 (defmethod get-declaration-ids :around ((type (eql :type)) (ast cpp-ast))
   "When the declaration of a type is a type parameter, include the

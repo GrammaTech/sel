@@ -1363,6 +1363,25 @@ int myfun(int x, int y) {
   (is (boolean-type-p (infer-type/standalone (cpp* "(x <= y)"))))
   (is (boolean-type-p (infer-type/standalone (cpp* "(x >= y)")))))
 
+(deftest test-template-specialization-with-defaulting ()
+  (let* ((src "template<typename T1, typename T2 = int>
+class X;
+
+struct S
+{
+    using type = int;
+};
+
+X<S, char> var1 = fn();
+X<char> var = fn();")
+         (cpp (from-string 'cpp src))
+         (template (is (find-if (of-type 'cpp-template-declaration) cpp))))
+    (with-attr-table cpp
+      (is (equal '("S" "char")
+                 (mapcar #'source-text (possible-types (first (children (cpp-parameters template)))))))
+      (is (equal '("char" "int")
+                 (mapcar #'source-text (possible-types (second (children (cpp-parameters template))))))))))
+
 
 
 ;;; Parsing tests
