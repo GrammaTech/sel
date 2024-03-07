@@ -21,13 +21,16 @@
                 :contextualize-ast
                 :canonicalize-type
                 :canonical-type=
-                :strip-template-arguments)
+                :strip-template-arguments
+                :qualify-declared-ast-name
+                :+c/cpp-primitive-types+
+                :+symbol-table-namespaces+
+                :template-parameter-types)
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers
                 :qualified-name-lookup-variants)
   (:local-nicknames (:project :software-evolution-library/software/project)
-                    (:dir :software-evolution-library/software/directory)
-                    (:ts :software-evolution-library/software/tree-sitter))
+                    (:dir :software-evolution-library/software/directory))
   (:export :test-cpp-tree-sitter))
 (in-package :software-evolution-library/test/cpp-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -221,6 +224,24 @@
         std::distance(first, mid));"))
          (name (call-function (is (find-if (of-type 'call-ast) cpp)))))
     (sel/sw/ts::unqualified-name name)))
+
+(deftest test-dont-qualify-primitive-types ()
+  (dolist (type-string +c/cpp-primitive-types+)
+    (let ((ast (make 'cpp-primitive-type :text type-string)))
+      (is (equal (qualify-declared-ast-name ast) type-string))
+      (let* ((cpp
+               (from-string 'cpp
+                            (fmt "namespace myns { ~a var1 = var2; }"
+                                 type-string)))
+             (type-ast
+               (is (find-if (of-type 'cpp-primitive-type) cpp)))
+             (vars (last (collect-if (of-type 'cpp-identifier) cpp) 2)))
+        (with-attr-table cpp
+          (is (length= vars 2))
+          (is (equal type-string (qualify-declared-ast-name type-ast)))
+          (is (every (op (string^= "myns::" _))
+                     (mapcar #'qualify-declared-ast-name
+                             vars))))))))
 
 (def +trim-front-types+
   '(("trim_front" . "std::list<Point>")
@@ -2245,8 +2266,7 @@ class Y;"
             (is (typep template 'cpp-template-declaration)
                 "No template in:~%~a" template-string)
             (let ((param-types
-                   (sel/sw/ts::template-parameter-types
-                    template)))
+                   (template-parameter-types template)))
               (is (set-equal types param-types
                              :test #'source-text=)
                   "Template defines ~a but got ~a:~%~a"
@@ -2444,8 +2464,8 @@ try {
                                decl)))))))
 
 (deftest test-no-primitive-type-declarations ()
-  (dolist (type-string ts::+c/cpp-primitive-types+)
-    (dolist (ns ts::+symbol-table-namespaces+)
+  (dolist (type-string +c/cpp-primitive-types+)
+    (dolist (ns +symbol-table-namespaces+)
       (let ((ast (make 'cpp-primitive-type :text type-string)))
         (is (null (get-declaration-ids ns ast)))))))
 

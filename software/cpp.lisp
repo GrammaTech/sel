@@ -2125,6 +2125,9 @@ available to use at any point in a C++ AST.")
                       (eql char #\_)))
                 string))))
 
+(defmethod qualify-declared-ast-name ((type cpp-primitive-type))
+  (source-text type))
+
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
   (nest
    (let* ((source-text
