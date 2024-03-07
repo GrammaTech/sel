@@ -1643,7 +1643,10 @@ instance we only want to remove one).")
   (:method ((ast cpp-nested-namespace-specifier) &key (count most-positive-fixnum))
     (declare ((and fixnum unsigned-byte) count))
     (if (zerop count) ast
-        (car (children ast)))))
+        (car (children ast))))
+  (:method ((ast cpp-template-function) &key (count most-positive-fixnum))
+    (if (zerop count) ast
+        (unqualified-name (cpp-name ast) :count (1- count)))))
 
 (defmethod initializer-aliasee ((sw t)
                                 (lhs cpp-reference-declarator)

@@ -216,6 +216,12 @@
     (with-attr-table cpp
       (is (string*= "x = 1" (source-text (get-declaration-ast :variable qid)))))))
 
+(deftest test-unqualify-template-function-name ()
+  (let* ((cpp (cpp "permutation::reversible_permutation<Function&, D>(f,
+        std::distance(first, mid));"))
+         (name (call-function (is (find-if (of-type 'call-ast) cpp)))))
+    (sel/sw/ts::unqualified-name name)))
+
 (def +trim-front-types+
   '(("trim_front" . "std::list<Point>")
     ("pts" . "std::list<Point>&")
