@@ -360,7 +360,10 @@ for the language.")
        (c-class-specifier
         (c-body :reader body :initarg :body))
        (c-struct-specifier
-        (c-body :reader body :initarg :body)))
+        (c-body :reader body :initarg :body))
+       (c-function-definition
+        (c-body :reader function-body)
+        (c-type :reader return-type :initarg :return-type)))
       (:cpp
        (cpp-init-declarator
         (cpp-declarator :initarg :lhs :reader lhs)
@@ -384,7 +387,8 @@ for the language.")
        (cpp-for-range-loop
         (cpp-body :reader body :initarg :body))
        (cpp-function-definition
-        (cpp-body :reader function-body))
+        (cpp-body :reader function-body)
+        (cpp-type :reader return-type :initarg :return-type))
        (cpp-if-statement
         (cpp-condition :initarg :condition :reader condition)
         (cpp-consequence :initarg :consequence :reader consequence)
@@ -519,7 +523,8 @@ for the language.")
        (rust-function-item
         (rust-name :reader function-name :reader definition-name-ast)
         (rust-parameters :reader function-parameters)
-        (rust-body :reader function-body :reader body :initarg :body))
+        (rust-body :reader function-body :reader body :initarg :body)
+        (rust-return-type :reader return-type :initarg :return-type))
        (rust-if-expression
         (rust-condition :initarg :condition :reader condition)
         (rust-consequence :initarg :consequence :reader consequence)
