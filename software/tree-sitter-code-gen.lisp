@@ -3252,7 +3252,13 @@ of an AST."))
     (:documentation "A mixin for ASTs that represent fragments of source text.")
     (:default-initargs :indent-adjustment 0))
 
-  (defclass variation-point (alternative-ast)
+  (defclass control-flow-ast (ast) ()
+    (:documentation "Mix-in for AST classes that have control flow."))
+
+  (defclass control-flow-fork-ast (control-flow-ast) ()
+    (:documentation "Mix-in for AST classes that fork control flow."))
+
+  (defclass variation-point (control-flow-fork-ast alternative-ast)
     ()
     (:documentation "A mixin to represent variations"))
 
@@ -3329,10 +3335,7 @@ This consists of at least expressions."))
   (defclass conditional-ast (ast) ()
     (:documentation "Mix-in for AST classes that have a conditional."))
 
-  (defclass control-flow-ast (ast) ()
-    (:documentation "Mix-in for AST classes that have control flow."))
-
-  (defclass if-ast (control-flow-ast conditional-ast) ()
+  (defclass if-ast (control-flow-fork-ast conditional-ast) ()
     (:documentation "Mix-in for AST classes that are ifs."))
 
  (defclass if-expression-ast (if-ast expression-ast) ()
@@ -3413,7 +3416,7 @@ A for while is expected to support continue and break."))
  (defclass for-statement-ast (for-ast loop-statement-ast) ()
    (:documentation "Mix-in for for statements."))
 
- (defclass switch-ast (breakable-ast) ()
+ (defclass switch-ast (control-flow-fork-ast breakable-ast) ()
    (:documentation "Mix-in for switches."))
 
  (defclass switch-expression-ast (switch-ast expression-ast) ()

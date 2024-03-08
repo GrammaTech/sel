@@ -30,7 +30,8 @@
                 :explicit-namespace-qualifiers
                 :qualified-name-lookup-variants)
   (:local-nicknames (:project :software-evolution-library/software/project)
-                    (:dir :software-evolution-library/software/directory))
+                    (:dir :software-evolution-library/software/directory)
+                    (:ts :software-evolution-library/software/tree-sitter))
   (:export :test-cpp-tree-sitter))
 (in-package :software-evolution-library/test/cpp-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -1272,6 +1273,67 @@ export {
             (exit-control-flow
              (find-if (of-type 'source-text-fragment-variation-point) cpp)))
            'cpp-expression-statement)))))
+
+(deftest test-if-control-flow/two-arms ()
+  (let ((cpp (from-string 'cpp "{ if (test) { consequence(); } else { alternative(); }
+next_statement(); }")))
+    (with-attr-table cpp
+      (let ((calls (rest (collect-if (of-type 'cpp-compound-statement) cpp)))
+            (if-ast (is (find-if (of-type 'if-statement-ast) cpp)))
+            (next-statement (lastcar (collect-if (of-type 'statement-ast) cpp))))
+        (is (length= calls 2))
+        (is (equal calls (exit-control-flow (ts::condition if-ast))))
+        (is (member next-statement (exit-control-flow if-ast)))))))
+
+(deftest test-if-control-flow/one-arm ()
+  (let ((cpp (from-string 'cpp "{ if (test) { consequence(); }
+next_statement();
+}")))
+    (with-attr-table cpp
+      (let ((calls (rest (collect-if (of-type 'cpp-compound-statement) cpp)))
+            (if-ast (is (find-if (of-type 'if-statement-ast) cpp)))
+            (next-statement (lastcar (collect-if (of-type 'statement-ast) cpp))))
+        (is (length= calls 1))
+        (is (subsetp calls (exit-control-flow (ts::condition if-ast))))
+        (is (member next-statement (exit-control-flow if-ast)))))))
+
+(deftest test-if-return-from-consequence-control-flow ()
+  (let ((cpp (from-string 'cpp "int main() { if (test) { return consequence(); }
+next_statement();
+}")))
+    (with-attr-table cpp
+      (let ((function (find-if (of-type 'cpp-function-definition) cpp))
+            (calls (rest (collect-if (of-type 'cpp-compound-statement) cpp)))
+            (if-ast (is (find-if (of-type 'if-statement-ast) cpp)))
+            (next-statement (lastcar (collect-if (of-type 'statement-ast) cpp))))
+        (is (length= calls 1))
+        (is (subsetp calls (exit-control-flow (ts::condition if-ast))))
+        (is (set-equal (list next-statement function)
+                       (exit-control-flow if-ast))))))
+  (let ((cpp (from-string 'cpp "int main() { if (test) { return consequence(); } else { alternative(); }
+next_statement();
+}")))
+    (with-attr-table cpp
+      (let ((function (find-if (of-type 'cpp-function-definition) cpp))
+            (calls (rest (collect-if (of-type 'cpp-compound-statement) cpp)))
+            (if-ast (is (find-if (of-type 'if-statement-ast) cpp)))
+            (next-statement (lastcar (collect-if (of-type 'statement-ast) cpp))))
+        (is (length= calls 2))
+        (is (subsetp calls (exit-control-flow (ts::condition if-ast))))
+        (is (set-equal (list next-statement function)
+                       (exit-control-flow if-ast)))))))
+
+(deftest test-if-return-from-alternative-control-flow ()
+  (let ((cpp (from-string 'cpp "int main() { if (test) { consequence(); } else { return alternative(); }
+next_statement();
+}")))
+    (with-attr-table cpp
+      (let ((calls (rest (collect-if (of-type 'cpp-compound-statement) cpp)))
+            (if-ast (is (find-if (of-type 'if-statement-ast) cpp)))
+            (next-statement (lastcar (collect-if (of-type 'statement-ast) cpp))))
+        (is (length= calls 2))
+        (is (equal calls (exit-control-flow (ts::condition if-ast))))
+        (is (member next-statement (exit-control-flow if-ast)))))))
 
 (deftest test-declaration-noexcept ()
   "Noexcept is recognized in declarations (not just definitions)."
