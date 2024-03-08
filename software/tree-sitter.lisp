@@ -413,7 +413,10 @@
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:shadowing-import-from :cl-tree-sitter :parse-string)
         (values))
-  (:intern :explicit-namespace-qualifiers)
+  ;; Ensure symbols are interned for definitions that could be skipped
+  ;; when building without tree-sitter.
+  (:intern :explicit-namespace-qualifiers
+           :template-parameter-types)
   (:shadow :condition)
   (:export :tree-sitter-ast
            :tree-sitter
