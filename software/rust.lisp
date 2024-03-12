@@ -242,6 +242,12 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod entry-control-flow ((ast rust-else-clause))
   (children ast))
 
+(defmethod exit-control-flow ((ast rust-macro-invocation))
+  (if (source-text= (rust-macro ast) "panic")
+      nil
+      ;; TODO Parse the macro tree?
+      (call-next-method)))
+
 
 ;;; Symbol table
 

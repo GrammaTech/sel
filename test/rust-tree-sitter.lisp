@@ -90,6 +90,16 @@ do_something_else();
     (attrs::with-attr-table rust
       (is (member return-ast (exit-control-flow statement))))))
 
+(deftest test-panic-control-flow ()
+  "A panic! call should terminate control flow."
+  (let* ((rust (rust* "{
+panic!(\"Disco!\");
+other_function();
+}"))
+         (stmt (find-if (of-type 'rust-macro-invocation) rust)))
+    (attrs:with-attr-table rust
+      (is (null (exit-control-flow stmt))))))
+
 
 ;;; Round Trip Tests
 (deftest rust-can-round-trip-_-pattern ()
