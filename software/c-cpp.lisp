@@ -1231,12 +1231,12 @@ Should return `:failure' in the base case.")
                                   (member switch-ast
                                           (exit-control-flow ast))))))
        switch-ast
-       (or (next-sibling case-ast 'c/cpp-case-statement)
+       (or (find-next-sibling 'c/cpp-case-statement root case-ast)
            switch-ast)))))
 
 (defmethod subexpression-exit-control-flow ((decl c/cpp-declaration)
                                             (ast c/cpp-init-declarator))
-  (or (next-sibling ast 'c/cpp-init-declarator)
+  (or (find-next-sibling 'c/cpp-init-declarator (attrs-root*) ast)
       decl))
 
 

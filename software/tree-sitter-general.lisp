@@ -751,6 +751,25 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
     (when-let (default (first (conflict-ast-default-children ast)))
       (find-preceding pred root default))))
 
+(defgeneric find-previous-sibling (test obj ast)
+  (:documentation "Return nearest sibling passing TEST preceding AST in OBJ.
+If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
+  (:method ((type t) (root t) (ast tree-sitter-ast))
+    (find-previous-sibling (of-type type) root ast))
+  (:method ((pred function) (obj parseable) (ast ast))
+    (find-previous-sibling pred (genome obj) ast))
+  (:method ((pred function) (root ast) (ast ast))
+    (when-let ((parent (get-parent-ast root ast)))
+      (let (previous)
+        (iter (for child in (children parent))
+              (until (eql child ast))
+              (when (funcall pred child)
+                (setf previous child)))
+        previous)))
+  (:method ((pred function) (root ast) (ast conflict-ast))
+    (when-let (default (first (conflict-ast-default-children ast)))
+      (find-previous-sibling pred root default))))
+
 (defgeneric find-following (test obj ast)
   (:documentation "Return any siblings passing TEST following AST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
@@ -768,41 +787,16 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
        (drop-until (eqls ast))
        (sorted-children parent)))))
 
-(define-compiler-macro next-sibling (&whole call ast &optional test)
-  (match test
-    ((list 'quote _)
-     `(next-sibling ,ast (of-type ,test)))
-    (otherwise call)))
-
-(-> next-sibling (ast &optional t) (or null ast))
-(defun next-sibling (ast &optional test)
-  (when-let* ((parent (get-parent-ast (attrs-root*) ast))
-              (tail (member ast (children parent))))
-    (etypecase test
-      (null
-       (find-if (of-type 'ast) (rest tail)))
-      (function
-       (find-if test (rest tail)))
-      (symbol
-       (find-if (of-type test) (rest tail))))))
-
-(define-compiler-macro prev-sibling (&whole call ast &optional test)
-  (match test
-    ((list 'quote _)
-     `(prev-sibling ,ast (of-type ,test)))
-    (otherwise call)))
-
-(-> prev-sibling (ast &optional t) (or null ast))
-(defun prev-sibling (ast &optional test)
-  (when-let* ((parent (get-parent-ast (attrs-root*) ast))
-              (tail (member ast (reverse (children parent)))))
-    (etypecase test
-      (null
-       (find-if (of-type 'ast) (rest tail)))
-      (function
-       (find-if test (rest tail)))
-      (symbol
-       (find-if (of-type test) (rest tail))))))
+(defgeneric find-next-sibling (test obj ast)
+  (:documentation "Return next sibling passing TEST following AST in OBJ.
+If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
+  (:method ((type t) (obj t) (ast ast))
+    (find-next-sibling (of-type type) obj ast))
+  (:method ((pred function) (obj parseable) (ast ast))
+    (find-next-sibling pred (genome obj) ast))
+  (:method ((pred function) (root ast) (ast ast))
+    (when-let (parent (get-parent-ast root ast))
+      (find-if pred (rest (member ast (children parent)))))))
 
 (defgeneric comments-for (obj ast)
   (:documentation "Return the comments for AST in OBJ.")
@@ -1560,7 +1554,9 @@ automatically removed.")
     (let ((parent (get-parent-ast (attrs-root*) ast)))
       (if (typep parent 'control-flow-fork-ast)
           parent
-          (or (next-sibling ast '(or statement-ast return-ast))
+          (or (find-next-sibling '(or statement-ast return-ast)
+                                 parent
+                                 ast)
               parent))))
   (:method ((ast subexpression-ast))
     (when-let (parent (get-parent-ast (attrs-root*) ast))
@@ -1584,7 +1580,7 @@ automatically removed.")
     (append (remove-if (op (or (eql _1 ast)
                                (ancestor-of-p root _1 ast)))
                        (mappend #'exit-control-flow (children ast)))
-            (list (or (next-sibling ast)
+            (list (or (find-next-sibling t root ast)
                       (get-parent-ast root ast))))))
 
 (defgeneric subexpression-exit-control-flow (parent subexpression)
@@ -1594,11 +1590,11 @@ parent, as within a conditional, or for a \"subexpression\" that is
 not actually an expression, e.g. an initializer in a C/C++
 declaration.")
   (:method ((parent ltr-eval-ast) (sub ast))
-    (or (next-sibling sub 'subexpression-ast)
+    (or (find-next-sibling 'subexpression-ast parent sub)
         parent))
   (:method ((parent ast) (child ast))
     (or (if (ltr-eval-ast-p parent)
-            (next-sibling child 'subexpression-ast)
+            (find-next-sibling 'subexpression-ast parent child)
             (remove child
                     (filter (of-type 'subexpression-ast) (children parent))))
         parent))

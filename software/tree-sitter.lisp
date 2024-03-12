@@ -620,7 +620,9 @@
            :find-all-enclosing
            :find-outermost
            :find-preceding
+           :find-previous-sibling
            :find-following
+           :find-next-sibling
            :comments-for
            :definition-name
            :definition-name-ast
@@ -712,8 +714,6 @@
            :module-partition-implementation-unit
            :public? :private? :protected?
            :constant-fold
-           :next-sibling
-           :prev-sibling
            :skip-include
            :circular-inclusion
            :+exception-top-type+
