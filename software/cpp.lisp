@@ -1892,17 +1892,17 @@ functions.")
                ;; Handle implicit specialization of a
                ;; call.
                ((and id (identifier-ast))
-                (let* ((call (find-enclosing 'call-ast (attrs-root*) id)))
+                (let ((call (find-enclosing 'call-ast (attrs-root*) id)))
                   (mapcar #'infer-type (call-arguments call)))))))
     (when-let* ((template (find-enclosing-template decl))
                 (offset (param-offset template decl)))
       (let* ((specializations (template-specializations template))
              (specialization-argument-lists
-              (mapcar #'specialization-type-arguments specializations))
+               (mapcar #'specialization-type-arguments specializations))
              (parameter-arguments
-              ;; TODO Handle defaulting.
-              (filter-map (op (or (nth offset _) default))
-                          specialization-argument-lists))
+               ;; TODO Handle defaulting.
+               (filter-map (op (or (nth offset _) default))
+                           specialization-argument-lists))
              ;; TODO Circularity?
              (ids (mappend
                    (lambda (type)
