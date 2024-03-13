@@ -1561,7 +1561,7 @@ automatically removed.")
       (if (typep parent 'control-flow-fork-ast)
           parent
           (or (next-sibling ast '(or statement-ast return-ast))
-              (get-parent-ast (attrs-root*) ast)))))
+              parent))))
   (:method ((ast subexpression-ast))
     (when-let (parent (get-parent-ast (attrs-root*) ast))
       (subexpression-exit-control-flow parent ast)))
@@ -1585,7 +1585,7 @@ automatically removed.")
                                (ancestor-of-p root _1 ast)))
                        (mappend #'exit-control-flow (children ast)))
             (list (or (next-sibling ast)
-                      (get-parent-ast (attrs-root*) ast))))))
+                      (get-parent-ast root ast))))))
 
 (defgeneric subexpression-exit-control-flow (parent subexpression)
   (:documentation "Get the exit control flow of SUBEXPRESSION according to PARENT.
