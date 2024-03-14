@@ -839,6 +839,7 @@ declared in a declarator, or in the first element of a list of declarators.
 Return NIL on the empty list.")
   (:method ((ast null)) nil)
   (:method ((ast ast)) nil)
+  (:method ((ast identifier-ast)) ast)
   (:method ((ast list))
     (declarator-name-ast (car ast))))
 
