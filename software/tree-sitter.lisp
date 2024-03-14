@@ -627,6 +627,7 @@
            :definition-name
            :definition-name-ast
            :declarator-name
+           :declarator-name-ast
            :enclosing-definition
            :ast-imports
            :provided-by
