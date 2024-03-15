@@ -418,12 +418,19 @@ of a single conflict-ast"
 (defmethod equal? ((ast-a ast) (ast-b ast))
   (let ((hash1 (slot-value ast-a 'stored-hash))
         (hash2 (slot-value ast-b 'stored-hash)))
+    ;; We assume they're different if the hashes differ, but we do
+    ;; *not* assume they're the same if they have the same hash.
     (if (and hash1 hash2 (not (eql hash1 hash2)))
         nil
         (and (eq (type-of ast-a) (type-of ast-b))
-             (length= (children ast-a)
-                      (children ast-b))
-             (every #'equal? (children ast-a) (children ast-b))))))
+             ;; Compare for equality and same length.
+             (iter (for (child-a . more-a) on (children ast-a))
+                   (for (child-b . more-b) on (children ast-b))
+                   (always
+                    (and
+                     ;; Must be the same length.
+                     (eq (not more-a) (not more-b))
+                     (equal? child-a child-b))))))))
 
 (eval-when (:compile-toplevel :load-toplevel)
   (define-method-combination ast-combine-hash-values
