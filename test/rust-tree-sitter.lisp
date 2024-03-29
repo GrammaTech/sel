@@ -11,7 +11,8 @@
    :software-evolution-library/software/rust
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
-  (:local-nicknames (:attrs :functional-trees/attrs))
+  (:local-nicknames (:attrs :functional-trees/attrs)
+                    (:ts :software-evolution-library/software/tree-sitter))
   (:export :test-rust-tree-sitter))
 (in-package :software-evolution-library/test/rust-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -99,6 +100,9 @@ other_function();
          (stmt (find-if (of-type 'rust-macro-invocation) rust)))
     (attrs:with-attr-table rust
       (is (null (exit-control-flow stmt))))))
+
+(deftest test-macro-invocation-has-no-outer-declarations ()
+  (is (null (ts::outer-declarations (rust* "mymacro!()")))))
 
 
 ;;; Round Trip Tests

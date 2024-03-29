@@ -270,9 +270,12 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod parameter-names ((param rust-parameter))
   (values (outer-declarations (rust-pattern param))))
 
-(Defmethod outer-declarations ((decl rust-let-declaration))
+(defmethod outer-declarations ((decl rust-let-declaration))
   (outer-declarations (rust-pattern decl)))
 
+(defmethod outer-declarations ((decl rust-macro-invocation))
+  "Work around rust-macro-invocation being a subclass of rust--pattern."
+  nil)
 ;; (defmethod outer-declarations ((decl rust-use-declaration))
 ;;   (outer-declarations (find-rust-module (rust-argument decl))))
 
