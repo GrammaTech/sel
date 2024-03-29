@@ -263,17 +263,9 @@ Rust macro invocations can use (), [], and {} equivalently."
 
 ;;; TODO Let's have a rust-pattern mixin.
 (defmethod outer-declarations ((pat rust--pattern))
-  (labels ((extract-vars (pat)
-             (ematch pat
-               ((identifier-ast) (list pat))
-               ((or (rust-reference-pattern)
-                    (rust-tuple-pattern))
-                (mappend #'extract-vars (children pat)))
-               ((rust-tuple-struct-pattern)
-                (mappend #'extract-vars (direct-children pat))))))
-    (let ((vars (extract-vars pat)))
-      (values vars
-              (mapcar (constantly :variable) vars)))))
+  (let ((vars (rust-pattern-variables pat)))
+    (values vars
+            (mapcar (constantly :variable) vars))))
 
 (defmethod parameter-names ((param rust-parameter))
   (values (outer-declarations (rust-pattern param))))
