@@ -276,6 +276,15 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod outer-declarations ((decl rust-macro-invocation))
   "Work around rust-macro-invocation being a subclass of rust--pattern."
   nil)
+
+(defmethod inner-declarations ((decl rust-closure-expression))
+  (let ((vars
+          (mappend #'rust-pattern-variables
+                   (mapcar #'rust-pattern
+                           (children (rust-parameters decl))))))
+    (values vars
+            (mapcar (constantly :variable) vars))))
+
 ;; (defmethod outer-declarations ((decl rust-use-declaration))
 ;;   (outer-declarations (find-rust-module (rust-argument decl))))
 

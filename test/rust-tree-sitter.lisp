@@ -101,8 +101,22 @@ other_function();
     (attrs:with-attr-table rust
       (is (null (exit-control-flow stmt))))))
 
+
+;;; Symbol table
+
 (deftest test-macro-invocation-has-no-outer-declarations ()
   (is (null (ts::outer-declarations (rust* "mymacro!()")))))
+
+(deftest test-rust-closure-inner-declarations ()
+  (let* ((rust (rust* "let expensive_closure = |num: u32| -> u32 {
+        println!(\"calculating slowly...\");
+        thread::sleep(Duration::from_secs(2));
+        num
+    };"))
+         (parameter (is (find-if (of-type 'parameter-ast) rust)))
+         (var (lastcar (collect-if (of-type 'identifier-ast) rust))))
+    (attrs:with-attr-table rust
+      (is (eql parameter (get-declaration-ast :variable var))))))
 
 
 ;;; Round Trip Tests
