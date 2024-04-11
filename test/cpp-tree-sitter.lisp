@@ -16,16 +16,17 @@
     :software-evolution-library/components/formatting
     :software-evolution-library/utility/include)
   (:import-from :software-evolution-library/software/tree-sitter
-                :inner-declarations
-                :outer-declarations
-                :contextualize-ast
-                :canonicalize-type
-                :canonical-type=
-                :strip-template-arguments
-                :qualify-declared-ast-name
                 :+c/cpp-primitive-types+
                 :+symbol-table-namespaces+
-                :template-parameter-types)
+                :canonical-type=
+                :canonicalize-type
+                :contextualize-ast
+                :inner-declarations
+                :outer-declarations
+                :qualify-declared-ast-name
+                :strip-template-arguments
+                :template-parameter-types
+                :unqualified-name)
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers
                 :qualified-name-lookup-variants)
@@ -224,7 +225,9 @@
   (let* ((cpp (cpp "permutation::reversible_permutation<Function&, D>(f,
         std::distance(first, mid));"))
          (name (call-function (is (find-if (of-type 'call-ast) cpp)))))
-    (sel/sw/ts::unqualified-name name)))
+    (is (equal "reversible_permutation"
+               (source-text
+                (unqualified-name name))))))
 
 (deftest test-dont-qualify-primitive-types ()
   (dolist (type-string +c/cpp-primitive-types+)
@@ -1465,6 +1468,41 @@ X<char> var = fn();")
       (is (equal '("char" "int")
                  (mapcar #'source-text (possible-types (second (children (cpp-parameters template))))))))))
 
+(deftest test-unqualify-cpp-destructor-name ()
+  "Destructor names should be preserved when unqualifying."
+  (let* ((cpp (cpp* "class Base
+{
+public:
+    virtual ~Base() {}
+};")))
+    (is (equal "~Base"
+               (source-text
+                (unqualified-name
+                 (find-if (of-type 'cpp-destructor-name)
+                          cpp)))))))
+
+(deftest test-unqualify-cpp-destructor-qualified-name ()
+  "Destructor names should be preserved when unqualifying."
+  (let* ((cpp (cpp* "class AbstractBase
+{
+public:
+    virtual ~AbstractBase() = 0;
+};
+AbstractBase::~AbstractBase() {}};"))
+         (name (lastcar (collect-if (of-type 'cpp-qualified-identifier) cpp))))
+    (is (equal "~AbstractBase" (source-text (unqualified-name name))))))
+
+(deftest test-unqualify-primitive-type ()
+  "Primitive types should always be treated as unqualified."
+  (let ((int (cpp* "int")))
+    (is (typep int 'cpp-primitive-type))
+    (is (source-text= int (unqualified-name int)))))
+
+(deftest test-unqualify-operator-name ()
+  "Operator names should be preserved when unqualifying."
+  (let* ((cpp (cpp* "T& operator=(T& other)"))
+         (opname (is (find-if (of-type 'cpp-operator-name) cpp))))
+    (is (source-text= "operator=" (unqualified-name opname)))))
 
 
 ;;; Parsing tests
