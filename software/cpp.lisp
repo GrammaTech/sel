@@ -1734,11 +1734,15 @@ instance we only want to remove one).")
 (defmethod exception-set ((ast cpp-field-initializer-list))
   ;; TODO Get the exception set of the initializer of each member.
   (let ((args
-         (iter (for field-initializer in (children ast))
-               (destructuring-bind (field arglist)
-                   (children field-initializer)
-                 (declare (ignore field))
-                 (appending (children arglist))))))
+          (iter (for field-initializer in
+                     ;; Comments in a field initializer list appear as
+                     ;; children.
+                     (filter (of-type 'cpp-field-initializer)
+                             (children ast)))
+                (destructuring-bind (field arglist)
+                    (children field-initializer)
+                  (declare (ignore field))
+                  (appending (children arglist))))))
     (reduce #'exception-set-union
             args
             :key #'exception-set
