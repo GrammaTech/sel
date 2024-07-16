@@ -245,7 +245,6 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod exit-control-flow ((ast rust-macro-invocation))
   (if (source-text= (rust-macro ast) "panic")
       nil
-      ;; TODO Parse the macro tree?
       (call-next-method)))
 
 
@@ -261,7 +260,6 @@ Rust macro invocations can use (), [], and {} equivalently."
     ((rust-tuple-struct-pattern)
      (mappend #'rust-pattern-variables (direct-children pattern)))))
 
-;;; TODO Let's have a rust-pattern mixin.
 (defmethod outer-declarations ((pat rust--pattern))
   (let ((vars (rust-pattern-variables pat)))
     (values vars
@@ -284,9 +282,6 @@ Rust macro invocations can use (), [], and {} equivalently."
                            (children (rust-parameters decl))))))
     (values vars
             (mapcar (constantly :variable) vars))))
-
-;; (defmethod outer-declarations ((decl rust-use-declaration))
-;;   (outer-declarations (find-rust-module (rust-argument decl))))
 
 
 ;;; Whitespace.
