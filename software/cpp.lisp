@@ -840,13 +840,11 @@ to look it up as `x::z' or just `z'."
       (call-next-method)
     (values decls (substitute :type :tag types))))
 
-(defgeneric extract-nested-class (ast)
-  (:method ((ast t)) nil)
-  (:method ((decl cpp-field-declaration))
-    (when (typep decl 'cpp-field-declaration)
-      (let ((type (cpp-type decl)))
-        (when (typep type 'type-declaration-ast)
-          type)))))
+(defmethod extract-nested-class ((decl cpp-field-declaration))
+  (when (typep decl 'cpp-field-declaration)
+    (let ((type (cpp-type decl)))
+      (when (typep type 'type-declaration-ast)
+        type))))
 
 (defun nested-classes (ast)
   "Extract nested class definitions in AST."

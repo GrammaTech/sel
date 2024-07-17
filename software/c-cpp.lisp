@@ -271,6 +271,10 @@
   (when-let (init (c/cpp-initializer ast))
     (outer-declarations init)))
 
+(defgeneric extract-nested-class (ast)
+  (:documentation "Extract class declarations from AST.")
+  (:method ((ast t)) nil))
+
 (defmethod outer-declarations ((ast c/cpp-declaration))
   (labels ((get-declarations (d)
              (match d
