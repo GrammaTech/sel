@@ -54,6 +54,13 @@
     "char64_t")
   "Primitive types recognized by the C/C++ parser.")
 
+(define-condition circular-inclusion (error)
+  ((header :initarg :header :reader circular-inclusion-header)
+   (stack :initarg :stack :reader circular-inclusion-dependency-stack))
+  (:report (lambda (c s)
+             (with-slots (header) c
+               (format s "Circular inclusion of ~a" header)))))
+
 #+(or :tree-sitter-c :tree-sitter-cpp)
 (progn
 

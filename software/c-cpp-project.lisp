@@ -892,15 +892,6 @@ the including file."
   "Stack of include file names currently being processed during type
 inference.  Used to prevent circular attr propagation.")
 
-(define-condition circular-inclusion (error)
-  ((header :initarg :header :reader header)
-   (stack :initarg :stack :reader dependency-stack))
-  (:default-initargs
-   :stack *dependency-stack*)
-  (:report (lambda (c s)
-             (with-slots (header) c
-               (format s "Circular inclusion of ~a" header)))))
-
 (defun include-ast-path-ast (include-ast &key symbol-table)
   "Extract the path AST from INCLUDE-AST.
 If SYMBOL-TABLE is supplied, use it to resolve macros in include
@@ -1040,7 +1031,9 @@ include files in all directories of the project."
                 ;; Just returning nil might still result in a global
                 ;; search. We found the header, we just can't use it.
                 (update-dependency-graph project software)
-                (error 'circular-inclusion :header software))
+                (error 'circular-inclusion
+                       :header software
+                       :stack *dependency-stack*))
                (t
                 (update-dependency-graph project software)
                 (let ((*dependency-stack* (cons software *dependency-stack*)))
