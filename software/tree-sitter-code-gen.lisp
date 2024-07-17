@@ -535,6 +535,8 @@ for the language.")
         (rust-value :initarg :rhs :reader rhs))
        (rust-loop-expression
         (rust-body :reader body :initarg :body))
+       (rust-macro-invocation
+        (rust-macro :reader call-function))
        (rust-mod-item
         (rust-name :reader definition-name-ast))
        (rust-parameter

@@ -250,6 +250,22 @@ Rust macro invocations can use (), [], and {} equivalently."
 
 ;;; Symbol table
 
+;;; NB Rust has five namespaces: types, values, macros, labels and
+;;; lifetimes. For convenience we are also treating functions as a
+;;; namespace (function introducers introduce in both the variable and
+;;; function namespaces), but this is not actually a distinction that
+;;; Rust makes.
+
+(defgeneric extract-rust-pattern (ast)
+  (:method ((ast rust-identifier)) ast)
+  (:method ((ast rust-ast))
+    (if (slot-exists-p ast 'rust-pattern)
+        (rust-pattern ast)
+        (call-next-method))))
+
+(defmethod definition-name-ast ((ast rust--declaration-statement))
+  (rust-name ast))
+
 (defun rust-pattern-variables (pattern)
   (declare (rust--pattern pattern))
   (ematch pattern
@@ -266,7 +282,7 @@ Rust macro invocations can use (), [], and {} equivalently."
             (mapcar (constantly :variable) vars))))
 
 (defmethod parameter-names ((param rust-parameter))
-  (values (outer-declarations (rust-pattern param))))
+  (outer-declarations (rust-pattern param)))
 
 (defmethod outer-declarations ((decl rust-let-declaration))
   (outer-declarations (rust-pattern decl)))
@@ -278,10 +294,112 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod inner-declarations ((decl rust-closure-expression))
   (let ((vars
           (mappend #'rust-pattern-variables
-                   (mapcar #'rust-pattern
+                   (mapcar #'extract-rust-pattern
                            (children (rust-parameters decl))))))
     (values vars
             (mapcar (constantly :variable) vars))))
+
+(defmethod inner-declarations ((fn rust-function-item))
+  (flet ((type-params (fn)
+           ;; There is no `rust-type-parameter' class. Type parameter
+           ;; names are direct children of the `rust-type-parameters'
+           ;; instance.
+           (when-let (params (rust-type-parameters fn))
+             (children params))))
+    (let ((params (call-next-method))
+          (name (definition-name-ast fn))
+          (type-params (type-params fn)))
+      (values (list* name name (append type-params params))
+              (list* :function :variable
+                     (append
+                      (mapcar (constantly :type) type-params)
+                      (mapcar (constantly :variable) params)))))))
+
+(defmethod outer-declarations ((fn rust-function-item))
+  (let ((name (definition-name-ast fn)))
+    (values (list name name)
+            '(:function :variable))))
+
+(defmethod outer-declarations ((ast rust-declaration-list))
+  (outer-declarations-merge (children ast)))
+
+(defmethod inner-declarations ((ast rust-declaration-list))
+  (outer-declarations ast))
+
+(defmethod outer-declarations ((ast rust-impl-item))
+  (outer-declarations (rust-body ast)))
+
+(defmethod outer-declarations ((ast rust-foreign-mod-item))
+  (outer-declarations-merge (children ast)))
+
+(defmethod inner-declarations ((ast rust-foreign-mod-item))
+  (outer-declarations ast))
+
+(defmethod inner-declarations ((ast rust-for-expression))
+  (outer-declarations (rust-pattern ast)))
+
+(defmethod outer-declarations ((ast rust-struct-item))
+  (values (list (definition-name-ast ast))
+          '(:type)))
+
+(defmethod outer-declarations ((ast rust-enum-item))
+  (values (list (definition-name-ast ast))
+          '(:type)))
+
+(defmethod outer-declarations ((ast rust-union-item))
+  (values (list (definition-name-ast ast))
+          '(:type)))
+
+(defmethod outer-declarations ((ast rust-type-item))
+  (values (list (definition-name-ast ast))
+          '(:type)))
+
+(defmethod outer-declarations ((ast rust-const-item))
+  (values (list (definition-name-ast ast))
+          '(:variable)))
+
+(defmethod outer-declarations ((ast rust-static-item))
+  (values (list (definition-name-ast ast))
+          '(:variable)))
+
+(defmethod outer-declarations ((ast rust-trait-item))
+  (values (list (definition-name-ast ast))
+          '(:type)))
+
+(defmethod exception-set :around ((ast rust-function-item))
+  (match ast
+    ((rust-function-item
+      (rust-name (source-text= "main")))
+     ;; TODO Main can return Result. Does this count?
+     +exception-bottom-type+)
+    ((rust-function-item
+      (rust-return-type
+       (rust-generic-type
+        (rust-type (source-text= "Result"))
+        (rust-type-arguments
+         (rust-type-arguments
+          (children children))))))
+     (let ((return-type-exception-set
+             (or (second children) +exception-top-type+)))
+       (exception-set-union
+        (list 'or return-type-exception-set)
+        (call-next-method))))
+    (otherwise (call-next-method))))
+
+(defmethod exception-set ((ast rust-call-expression))
+  (match ast
+    ((rust* "$_.unwrap()")
+     +exception-bottom-type+)
+    (otherwise
+     (call-next-method))))
+
+(defmethod exception-set ((ast rust-macro-invocation))
+  (string-case (source-text (call-function ast))
+    ("panic" +exception-bottom-type+)
+    ;; Roof error handling.
+    ("throw" +exception-top-type+)
+    ;; TODO Filter by error type.
+    ("try" +exception-bottom-type+)))
 
 
 ;;; Whitespace.
