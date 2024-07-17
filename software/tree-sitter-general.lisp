@@ -4404,8 +4404,12 @@ by MULTI-DECLARATION-KEYS."
                            (soft-list-of ast))
             &optional))
 (defun group-by-namespace (declarations namespaces)
-  (let ((table (make-hash-table)))
-    (mapc (op (push _ (gethash _ table))) declarations namespaces)
+  (let ((table (make-hash-table))
+        (namespaces namespaces))
+    ;; If namespaces aren't supplied, default to nil.
+    (iter (for declaration in declarations)
+          (for namespace = (pop namespaces))
+          (push declaration (href table namespace)))
     (hash-table-alist table)))
 
 (-> convert-grouped-namespaces
