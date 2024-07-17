@@ -4274,15 +4274,26 @@ Otherwise, return PARSE-TREE."
 ;;; Symbol Table
 
 (defconst +symbol-table-namespaces+
-  '(nil :variable :function :type :tag :macro :namespace :method))
+  ;; The nil namespace is for languages that don't use namespaces.
+  '(nil
+    :variable
+    ;; Note for convenience we may use the function namespace even for
+    ;; languages that don't actually have one. Functions get added the
+    ;; :function and :variable namespaces.
+    :function
+    :type
+    ;; C (not C++) has separate tag and type namespaces.
+    :tag
+    :macro
+    :namespace
+    ;; Go treats methods differently than functions.
+    :method
+    ;; Rust
+    :label
+    :lifetime))
 
 (deftype symbol-table-namespace ()
   "Possible namespaces in a symbol table."
-  ;; The nil "namespace" is for languages that don't use namespaces.
-  ;; The :tag namespace is for C (which has separate tag and type
-  ;; namespaces).
-  ;; The :method namespace is for Go which treats methods differently
-  ;; than functions.
   (cons 'member +symbol-table-namespaces+))
 
 (def +namespace-decl-type-table+
