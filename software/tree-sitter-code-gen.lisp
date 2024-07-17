@@ -1113,7 +1113,10 @@ for the language.")
         rust-union-item)
        (:type-identifier-ast rust-type-identifier rust-primitive-type)
        (:unary-ast rust-unary-expression)
-       (:variable-declaration-ast rust-let-declaration))
+       (:variable-declaration-ast
+        rust-let-declaration
+        rust-const-item
+        rust-static-item))
       ((:typescript-ts :typescript-tsx)
        (:root-ast
         typescript-ts-program
