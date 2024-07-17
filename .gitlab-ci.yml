@@ -34,18 +34,32 @@ build-no-tree-sitter:
 .test-template: &test
   stage: test
   script:
-    - LISP=$LISP GT=yes make real-check
+    - LISP=$LISP GT=yes make $TARGET
   except:
     - schedules
 
-test-sbcl:
+unit-test-sbcl:
   variables:
     LISP: 'sbcl'
+    TARGET: 'long-unit-check'
   <<: *test
 
-test-ccl:
+bin-test-sbcl:
+  variables:
+    LISP: 'sbcl'
+    TARGET: 'bin-check long-bin-check'
+  <<: *test
+
+unit-test-ccl:
   variables:
     LISP: 'ccl'
+    TARGET: 'long-unit-check'
+  <<: *test
+
+bin-test-ccl:
+  variables:
+    LISP: 'ccl'
+    TARGET: 'bin-check long-bin-check'
   <<: *test
 
 build-python-no-tree-sitter:
