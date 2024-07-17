@@ -785,7 +785,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
        (filter pred)
        (rest)
        (drop-until (eqls ast))
-       (sorted-children parent)))))
+       (children parent)))))
 
 (defgeneric find-next-sibling (test obj ast)
   (:documentation "Return next sibling passing TEST following AST in OBJ.
@@ -3455,7 +3455,7 @@ the indentation slots."
                  (setf (text instance) (safe-subseq from to)))))
            (update-slots-based-on-arity ()
              "Update any slot in instance that needs to be converted to a list
-              to match its arity. This is primarily for #'sorted-children."
+              to match its arity."
              (mapc
               (lambda (slot-arity
                        &aux (slot (car slot-arity)))

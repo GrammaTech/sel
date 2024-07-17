@@ -3612,11 +3612,6 @@ cover every terminal symbol, only the ones that aren't named.")
         (intern (concatenate 'string (string prefix) "-" (string name))
                 'sel/sw/ts)))))
 
-  ;; NOTE: while a :child-order annotation is currently being generated
-  ;;       for every ast converted from a string, having the slot order
-  ;;       is useful for converting from a list where the :child-order
-  ;;       annotation would need to be generated and slot order is likely
-  ;;       already correct except in a few rare cases.
   (defun slot-order (language-prefix name expected-fields grammar-rules
                      &aux dependencies fields
                        (expected-fields (mapcar #'car expected-fields)))
@@ -3720,10 +3715,6 @@ of fields needs to be determined at parse-time."
             {convert-name language-prefix}
             (handler-case (sort fields (toposort dependencies :test #'equal))
               (inconsistent-graph ()
-                ;; NOTE: the order doesn't matter as a :child-order
-                ;;       annotation will be used instead of it.
-                ;;       This is only provided for #'sorted-children
-                ;;       to use.
                 fields))))))))
 
   ;; STRUCTURED TEXT

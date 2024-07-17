@@ -41,9 +41,6 @@
 (defconst +safe-ellipsis+
   (string+ +metavariable-prefix+ "ssr_ellipsis"))
 
-(defvar-unbound *annotation-number*
-  "Used to generate unique identifiers for annotation slots.")
-
 (defgeneric ellipsis-match-p (node result)
   (:method ((node t) result) nil)
   (:method ((node identifier-ast) (result list))
@@ -113,7 +110,6 @@ NOTE: This is the location at which customizations in the string
 pattern matching language should be applied. Including wildcards,
 typed wildcards, CL-PPCRE string wildcards, tildes for semantically
 similar matches, and elipses for matching series of ASTs."
-  (assert (boundp '*annotation-number*))
   (match ast
     ;; Treat $_ as instructions to ignore an AST.
     ((ast :text #.(string+ +metavariable-prefix+ "_"))
@@ -160,14 +156,7 @@ similar matches, and elipses for matching series of ASTs."
              (push (make-keyword slot-name) result)
              (cond                    ; These are the main rules.
                ((eql slot-name 'annotations)
-                ;; Preserve the child-order annotation.
-                (if (aget :child-order val)
-                    ;; TODO Just the child order?
-                    (push (format-symbol :sel/sw/string-clauses
-                                         "annot~a"
-                                         (finc *annotation-number*))
-                          result)
-                    (pop result)))
+                (pop result))
                ((null val) (pop result))
                ((and (listp val) (every «and #'stringp #'emptyp» val)) (pop result))
                ((and (stringp val) (emptyp val)) (pop result))
@@ -231,17 +220,13 @@ in context."
 (defmethod convert :around
     ((to-type (eql 'match)) (clause t)
      &key)
-  "This wrapper methods has two different intended effects:
-1. Bind `*annotation-numbers*' around nested methods.
-2. Generalize specialized class names with the enclosing `map-tree'."
-  (map-tree (lambda (node)                   ; (2)
+  "This wrapper methods generalize specialized class names with the
+enclosing `map-tree'."
+  (map-tree (lambda (node)
               (or (and (symbolp node)
                        (tree-sitter-class-name node))
                   node))
-            (if (boundp '*annotation-number*) ; (1)
-                (call-next-method)
-                (let ((*annotation-number* 0))
-                  (call-next-method)))))
+            (call-next-method)))
 
 (defmethod convert ((to-type (eql 'replace)) (not-clause t)
                     &key &allow-other-keys)

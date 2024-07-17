@@ -23,7 +23,6 @@
            :to-alist
            :from-alist
            :child-asts
-           :sorted-children
            :no-ast-path
            :ast-path
            :ast-annotation
@@ -282,23 +281,6 @@ RECURSIVE is passed, recursive AST children will also be returned.")
     (if recursive
         (cdr (reverse (reduce (flip #'cons) ast)))
         (remove-if-not {typep _ 'ast} (children ast)))))
-
-(defgeneric sorted-children (ast)
-  (:documentation "Return the children of AST sorted in textual order.")
-  (:method :before ((ast ast)
-                    &aux (children (remove nil (children ast))))
-    (assert (or (null (ast-annotation ast :child-order))
-                (length= children
-                         (ast-annotation ast :child-order)))
-            (ast)
-            "The number of elements in the AST's :child-order annotation ~
-            defining the order of the children does not match the number ~
-            of children, ~d versus ~d."
-            (length (ast-annotation ast :child-order)) (length children)))
-  (:method ((ast ast))
-    (if (ast-annotation ast :child-order)
-        (mapcar {lookup ast} (ast-annotation ast :child-order))
-        (remove nil (children ast)))))
 
 (defmethod initialize-instance :after ((ast functional-tree-ast)
                                        &rest args &key)
@@ -1147,7 +1129,7 @@ the `genome' of the software object."
                (make-instance 'source-range :begin begin :end end))
              (children-with-text-nodes (ast)
                (let* (;; NB Clang ASTs have strings as children.
-                      (child-nodes (sorted-children ast))
+                      (child-nodes (children ast))
                       (interleaved-text (interleaved-text ast)))
                  (append (iter (for node in child-nodes)
                                (when-let (text (pop interleaved-text))

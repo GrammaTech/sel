@@ -832,11 +832,11 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 ;; NB There is no single "operator" for a chained comparison.
 (defmethod lhs ((ast python-comparison-operator))
   (if (single (python-operators ast))
-      (first (sorted-children ast))
+      (first (children ast))
       (call-next-method)))
 (defmethod rhs ((ast python-comparison-operator))
   (if (single (python-operators ast))
-      (third (sorted-children ast))
+      (third (children ast))
       (call-next-method)))
 (defmethod operator ((ast python-comparison-operator))
   (if (single (python-operators ast))
