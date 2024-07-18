@@ -1690,7 +1690,7 @@ node in the block.")
    ((eql y +exception-top-type+) +exception-top-type+)
    ((and (eql (car x) 'or)
          (eql (car y) 'or))
-    (cons 'or (append (cdr x) (cdr y))))))
+    (cons 'or (union (cdr x) (cdr y) :test #'source-text=)))))
 
 (-> exception-set-intersection (exception-set exception-set) exception-set)
 (defun exception-set-intersection (x y)
