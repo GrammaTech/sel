@@ -28,3 +28,12 @@ def m(a: "a"=0, /, b: "b"=1, *args, c:"c"=2, **kwargs) -> "annotation":
 @functools.lrucache
 def n(a: "a"=0, /, b: "b"=1, *args, c:"c"=2, **kwargs) -> "annotation":
     return a
+
+def o(a, /):
+    return a
+
+def p(a, /, *):
+    return a
+
+def q(a, /, b, *):
+    return a

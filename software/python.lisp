@@ -52,13 +52,22 @@ are created if they're present in PARSE-TREE."
              (find-if (op (and (listp (car _1))
                                (eql :error-tree (caar _1))))
                       (parse-tree-children error-subtree)))
-           (positional-only-p (subtree
+           (positional-only-p (subtree succeeding-siblings
                                &aux (error-tree (get-error-tree subtree))
                                  (children (parse-tree-children error-tree)))
              "Return true if subtree represents a positional only separator."
-             (and (eql :error-tree (caar error-tree))
-                  (eql :/ (caar children))
-                  (eql :|,| (caadr children))))
+             (when (and (eql :error-tree (caar error-tree))
+                        (eql :/ (caar children)))
+               ;; Ensure that there's a comma if there's more after the '/'.
+               ;; This ensures that something like 'def x(a, / b): ...'
+               ;;  is still parsed as an error variation point.
+               (cond
+                 ;; There is something after that isn't the end of
+                 ;;  the parameter list.
+                 ((not (eql :|)| (caar succeeding-siblings)))
+                  ;; Expect a comma in the error variation point's children.
+                  (eql :|,| (caadr children)))
+                 (t t))))
            (keyword-only-p (subtree)
              "Return true if subtree represents a keyword only separator."
              (and (eql :list-splat-pattern (car subtree))
@@ -67,9 +76,9 @@ are created if they're present in PARSE-TREE."
      (butlast parse-tree)
      (list
       (iter
-        (for child-tree in (lastcar parse-tree))
+        (for (child-tree . succeeding-siblings) on (lastcar parse-tree))
         (cond
-          ((positional-only-p child-tree)
+          ((positional-only-p child-tree succeeding-siblings)
            (let* ((error-tree (get-error-tree child-tree))
                   (error-children (parse-tree-children error-tree))
                   (position-/ (car error-children)))
