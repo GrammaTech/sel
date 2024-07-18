@@ -169,6 +169,10 @@ annotation.
 to be modified.
 - `replace` does not throw an error if we are replacing the root node.
 
+## v0.9.7 -> v0.9.8
+
+- Fix issue relating to PEP 570 when parsing Python.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
