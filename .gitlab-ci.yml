@@ -173,8 +173,21 @@ dependent-cram:
       --destination=$DESTINATION
       --destination=$DESTINATION:r$(date '+%F')
 
+python-image-build:
+  extends: .image-build
+  variables:
+    DESTINATION: $DOCKER_REGISTRY/$CI_PROJECT_PATH/python
+    DOCKERFILE_PATH: python/Dockerfile
+    USERNAME: $CI_REGISTRY_USER
+    PASSWORD: $CI_REGISTRY_PASSWORD
+    REGISTRY: $CI_REGISTRY
+  rules:
+    - if: '$CI_COMMIT_REF_NAME =~ /^r\d\d\d\d\.\d\d\.\d\d/'
+
 .scheduled-build:
   extends: .image-build
+  variables:
+    DOCKERFILE_PATH: Dockerfile
   only:
     - schedules
 
