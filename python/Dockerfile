@@ -1,4 +1,4 @@
-FROM quay.io/pypa/manylinux_2_24_x86_64
+FROM quay.io/pypa/manylinux_2_28_x86_64
 
 # Install required system packages
 RUN apt-get -y --fix-missing update && \
