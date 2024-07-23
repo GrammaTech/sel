@@ -1,14 +1,21 @@
 FROM quay.io/pypa/manylinux_2_28_x86_64
 
 # Install required system packages
-RUN apt-get -y --fix-missing update && \
-    apt-get install -y autoconf build-essential git clang curl wget sbcl libffi-dev zlib1g-dev
+RUN yum --setopt=skip_missing_names_on_install=False install -y \
+    autoconf @development git clang curl wget libffi-devel zlib-devel
 
+
+# Install SBCL; not in EPEL.
+RUN curl -LO http://prdownloads.sourceforge.net/sbcl/sbcl-2.2.5-x86-64-linux-binary.tar.bz2 \
+    && tar -xaf sbcl-2.2.5-x86-64-linux-binary.tar.bz2 \
+    && cd sbcl-2.2.5-x86-64-linux \
+    && sh install.sh \
+    && cd .. \
+    && rm -rf sbcl-2.2.5-x76-64-linux
 # Rebuild SBCL from scratch from a tag, enabling dynamic core so users
 # can expand the memory with a command line option
 RUN git clone --branch sbcl-2.2.5 https://git.code.sf.net/p/sbcl/sbcl /root/sbcl
 RUN cd /root/sbcl && bash make.sh --prefix=/usr --with-sb-linkable-runtime --with-sb-dynamic-core --dynamic-space-size=8Gb
-RUN apt-get -y remove sbcl
 RUN cd /root/sbcl && bash install.sh
 
 # Install QuickLisp
