@@ -172,6 +172,9 @@ dependent-cram:
       --dockerfile=$CI_PROJECT_DIR/Dockerfile
       --destination=$DESTINATION
       --destination=$DESTINATION:r$(date '+%F')
+
+.scheduled-build:
+  extends: .image-build
   only:
     - schedules
 
@@ -181,7 +184,7 @@ scheduled-build-internal:
     USERNAME: $CI_REGISTRY_USER
     PASSWORD: $CI_REGISTRY_PASSWORD
     REGISTRY: $CI_REGISTRY
-  extends: .image-build
+  extends: .scheduled-build
 
 scheduled-build-public:
   variables:
@@ -189,4 +192,4 @@ scheduled-build-public:
     USERNAME: $DOCKERHUB_USERNAME
     PASSWORD: $DOCKERHUB_PASSWORD
     REGISTRY: https://index.docker.io/v1/
-  extends: .image-build
+  extends: .scheduled-build
