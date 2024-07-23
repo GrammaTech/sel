@@ -31,7 +31,7 @@ build-no-tree-sitter:
   except:
     - schedules
 
-.test-template: &test
+.test:
   stage: test
   script:
     - LISP=$LISP GT=yes make $TARGET
@@ -42,25 +42,25 @@ unit-test-sbcl:
   variables:
     LISP: 'sbcl'
     TARGET: 'long-unit-check'
-  <<: *test
+  extends: .test
 
 bin-test-sbcl:
   variables:
     LISP: 'sbcl'
     TARGET: 'bin-check long-bin-check'
-  <<: *test
+  extends: .test
 
 unit-test-ccl:
   variables:
     LISP: 'ccl'
     TARGET: 'long-unit-check'
-  <<: *test
+  extends: .test
 
 bin-test-ccl:
   variables:
     LISP: 'ccl'
     TARGET: 'bin-check long-bin-check'
-  <<: *test
+  extends: .test
 
 build-python-no-tree-sitter:
   stage: test
@@ -71,7 +71,7 @@ build-python-no-tree-sitter:
   except:
     - schedules
 
-.test-python-template: &test-python
+.test-python:
   stage: test
   except:
     - schedules
@@ -88,12 +88,12 @@ build-python-no-tree-sitter:
 test-python-sbcl:
   variables:
     LISP: 'sbcl'
-  <<: *test-python
+  extends: .test-python
 
 test-python-ccl:
   variables:
     LISP: 'ccl'
-  <<: *test-python
+  extends: .test-python
 
 deploy-python-package:
   stage: deploy
@@ -155,7 +155,7 @@ dependent-cram:
 # Use kaniko to build docker image.
 #  https://docs.gitlab.com/ee/ci/docker/using_kaniko.html
 #  https://github.com/GoogleContainerTools/kaniko
-.image-build: &image-build
+.image-build:
   stage: build
   inherit:
     default: false
@@ -181,7 +181,7 @@ scheduled-build-internal:
     USERNAME: $CI_REGISTRY_USER
     PASSWORD: $CI_REGISTRY_PASSWORD
     REGISTRY: $CI_REGISTRY
-  <<: *image-build
+  extends: .image-build
 
 scheduled-build-public:
   variables:
@@ -189,4 +189,4 @@ scheduled-build-public:
     USERNAME: $DOCKERHUB_USERNAME
     PASSWORD: $DOCKERHUB_PASSWORD
     REGISTRY: https://index.docker.io/v1/
-  <<: *image-build
+  extends: .image-build
