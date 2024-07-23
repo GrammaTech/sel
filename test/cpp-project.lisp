@@ -21,8 +21,7 @@
                 :restrict-map)
   (:local-nicknames
    (:dir :software-evolution-library/software/directory))
-  #-windows (:shadowing-import-from :osicat
-                                    :file-permissions :pathname-as-directory)
+  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :test-cpp-project))
 (in-package :software-evolution-library/test/cpp-project)
 (in-readtable :curry-compose-reader-macros)

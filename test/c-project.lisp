@@ -15,8 +15,7 @@
    :software-evolution-library/software/c-cpp-project
    :software-evolution-library/software/c-project
    :functional-trees/attrs)
-  #-windows (:shadowing-import-from :osicat
-                                    :file-permissions :pathname-as-directory)
+  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :test-c-project))
 (in-package :software-evolution-library/test/c-project)
 (in-readtable :curry-compose-reader-macros)
@@ -175,7 +174,7 @@
   (nest
    (with-fixture grep-project)
    (with-temporary-file (:pathname dir-path))
-   (let ((dir (pathname-directory (pathname-as-directory dir-path))))
+   (let ((dir (pathname-directory (uiop:ensure-directory-pathname dir-path))))
      (is (project-dir *project*))
      (to-file *project* dir-path)
      (is (member :user-exec

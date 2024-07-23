@@ -13,7 +13,7 @@
    :software-evolution-library/software/clang
    :software-evolution-library/software/project
    :software-evolution-library/software/clang-project)
-  #-windows (:shadowing-import-from :osicat :file-permissions :pathname-as-directory)
+  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :test-clang-project))
 (in-package :software-evolution-library/test/clang-project)
 (in-readtable :curry-compose-reader-macros)
@@ -117,7 +117,7 @@
   (nest
    (with-fixture grep-project)
    (with-temporary-file (:pathname dir-path))
-   (let ((dir (pathname-directory (pathname-as-directory dir-path))))
+   (let ((dir (pathname-directory (uiop:ensure-directory-pathname dir-path))))
      (is (project-dir *project*))
      (to-file *project* dir-path)
      (is (member :user-exec

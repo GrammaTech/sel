@@ -183,7 +183,7 @@ command object."
   (lret ((dict (dict)))
     (do-each (entry (command-objects compdb))
       (with-slots (directory file) entry
-        (let* ((directory (pathname-as-directory (pathname directory)))
+        (let* ((directory (uiop:ensure-directory-pathname (pathname directory)))
                (file (pathname file))
                (key
                 ;; "All paths specified in the command or file

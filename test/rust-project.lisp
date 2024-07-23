@@ -14,8 +14,7 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
    :software-evolution-library/software/rust-project)
-  #-windows (:shadowing-import-from :osicat
-                                    :file-permissions :pathname-as-directory)
+  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :test-rust-project))
 (in-package :software-evolution-library/test/rust-project)
 (in-readtable :curry-compose-reader-macros)
