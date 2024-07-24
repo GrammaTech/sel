@@ -35,7 +35,14 @@
            :text-file-p
            :find-include-files
            :directories-of-header-files
-           :project-relative-pathname))
+           :project-relative-pathname
+           :project-dependency-tree
+           :dependency-tree
+           :dependency-tree-path
+           :dependency-tree-entry
+           :system-dependency
+           :unknown-dependency
+           :dependency-path))
 (in-package :software-evolution-library/software/project)
 (in-readtable :curry-compose-reader-macros)
 
@@ -698,3 +705,48 @@ Stores them as comma separated values."
     (when-let ((ignore-paths (option config "Ignore" "ignore-paths")))
       (with-slots ((previous-value ignore-paths)) project
         (setf previous-value (append previous-value (split "," ignore-paths)))))))
+
+
+;;; Dependencies
+
+(eval-always
+  (defun symbol-package? (x)
+    (and (symbolp x)
+         (symbol-package x))))
+
+(deftype uninterned-symbol ()
+  '(and symbol (not (satisfies symbol-package?))))
+
+(deftype dependency-path ()
+  'string)
+
+(deftype system-dependency ()
+  'keyword)
+
+(deftype unknown-dependency ()
+  'uninterned-symbol)
+
+(deftype dependency-tree-path ()
+  '(or dependency-path system-dependency unknown-dependency))
+
+(deftype dependency-tree-entry ()
+  '(cons dependency-tree-path list))
+
+(deftype dependency-tree ()
+  '(soft-list-of dependency-tree-entry))
+
+(defgeneric project-dependency-tree (project &key &allow-other-keys)
+  (:documentation "Return the dependency graph of PROJECT as a cons tree.
+The top level is a list of entries. Entries have the form (FILE .
+INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
+:CIRCLE for a circular inclusion.
+
+In each entry, FILE is one of a string (for a file), a keyword (for a
+standard include), or an uninterned symbol (for a header that could
+not be resolved).")
+  (:method-combination standard/context)
+  (:method :context ((p project) &key)
+    (assure dependency-tree
+      (call-next-method)))
+  (:method ((p project) &key)
+    nil))

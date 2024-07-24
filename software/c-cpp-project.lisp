@@ -188,24 +188,9 @@ For development."
                 :implicit-headers-table (dict))))
   (values))
 
-(deftype dependency-tree ()
-  '(soft-list-of dependency-tree-entry))
-
-(eval-always
- (defun symbol-package? (x)
-   (and (symbolp x)
-        (symbol-package x))))
-
-(deftype uninterned-symbol ()
-  '(and symbol (not (satisfies symbol-package?))))
-
-(deftype dependency-tree-path ()
-  '(or string keyword uninterned-symbol))
-
-(deftype dependency-tree-entry ()
-  '(cons dependency-tree-path list))
-
-(defun project-dependency-tree (project &key allow-headers entry-points)
+(defmethod project-dependency-tree
+    ((project c/cpp-project)
+     &key allow-headers entry-points)
   "Dump the header graph of PROJECT as a cons tree.
 The top level is a list of entries. Entries have the form (FILE .
 INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
@@ -215,30 +200,29 @@ In each entry, FILE is one of a string (for a file), a keyword (for a
 standard include), or an uninterned symbol (for a header that could
 not be resolved)."
   (declare ((soft-list-of string) entry-points))
-  (assure dependency-tree
-    (let* ((genome (genome project))
-           (included-headers (included-headers genome))
-           (files (mapcar #'car (evolve-files project)))
-           (intern-table (dict)))
-      ;; Populate the symbol table, recording header dependencies as a
-      ;; side effect.
-      (symbol-table project)
-      (labels ((intern-leaf (leaf)
-                 "Intern duplicated subtrees (common with modules)."
-                 (ensure-gethash leaf intern-table leaf))
-               (rec (path seen)
-                 (if (contains? seen path)
-                     (list :circle path)
-                     (let ((seen (with seen path)))
-                       (intern-leaf
-                        (cons path
-                              (mapcar (op (rec _ seen))
-                                      (gethash path included-headers))))))))
-        (mapcar (op (rec _ (empty-set)))
-                (or entry-points
-                    (if allow-headers
-                        files
-                        (remove-if #'header-file? files))))))))
+  (let* ((genome (genome project))
+         (included-headers (included-headers genome))
+         (files (mapcar #'car (evolve-files project)))
+         (intern-table (dict)))
+    ;; Populate the symbol table, recording header dependencies as a
+    ;; side effect.
+    (symbol-table project)
+    (labels ((intern-leaf (leaf)
+               "Intern duplicated subtrees (common with modules)."
+               (ensure-gethash leaf intern-table leaf))
+             (rec (path seen)
+               (if (contains? seen path)
+                   (list :circle path)
+                   (let ((seen (with seen path)))
+                     (intern-leaf
+                      (cons path
+                            (mapcar (op (rec _ seen))
+                                    (gethash path included-headers))))))))
+      (mapcar (op (rec _ (empty-set)))
+              (or entry-points
+                  (if allow-headers
+                      files
+                      (remove-if #'header-file? files)))))))
 
 (defgeneric file-dependency-tree (project file)
   (:documentation "Return the tree of includes rooted at FILE in PROJECT.")
@@ -975,8 +959,8 @@ paths."
 If PATH is a symbol, it is left unchanged."
   (assure dependency-tree-path
     (etypecase-of (or pathname dependency-tree-path) path
-      ((or keyword uninterned-symbol) path)
-      ((or pathname string)
+      ((or system-dependency unknown-dependency) path)
+      ((or pathname dependency-path)
        (pathname-relativize (project-dir project) path)))))
 
 (defun get-includer ()
