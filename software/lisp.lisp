@@ -386,9 +386,30 @@ returned."))
               :start start
               :end end)))))
 
+;;; Workaround for a change to Eclector's API. See
+;;; https://github.com/s-expressionists/Eclector/blob/5f8686dd76f1378bfdf2b3f137965557bc3da041/NEWS#L27.
+;;; "The above code pushes a symbol that is interned in a package
+;;; under the control of the respective client (as opposed to the
+;;; KEYWORD package) onto *FEATURES* before the second form is read
+;;; and uses that feature to select either the version with or the
+;;; version without the children parameter of the method definition.
+;;; See Maintaining Portable Lisp Programs by Christophe Rhodes for a
+;;; detailed discussion of this technique."
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (let* ((generic-function #'eclector.parse-result:make-skipped-input-result)
+         (lambda-list      (c2mop:generic-function-lambda-list
+                            generic-function)))
+    (when (= (length lambda-list) 5)
+      (pushnew 'skipped-input-children *features*))))
+
 (defmethod make-skipped-input-result
-    ((client client) stream reason source)
-  (declare (ignorable client stream))
+    ((client client) stream reason
+     #+sel/sw/lisp::skipped-input-children (children t)
+     source)
+  (declare (ignorable
+            client stream
+            #+sel/sw/lisp::skipped-input-children children))
   (make-instance 'skipped-input-result
     :reason reason :start (car source) :end (cdr source)))
 
