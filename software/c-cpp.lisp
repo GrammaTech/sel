@@ -784,7 +784,8 @@ There can be multiple classes if FIELD occurs in a template."
          ;; (when (not (eql type new-type))
          ;;   (setf (attr-proxy new-type) type))
          (get-declaration-asts
-          (if (typep new-type 'c-tag-specifier) ;A mixin class.
+          ;; NB `c-tag-specifier' is a mixin class we define.
+          (if (typep new-type 'c-tag-specifier)
               :tag :type)
           new-type))))))
 
