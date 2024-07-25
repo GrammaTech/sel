@@ -4552,6 +4552,52 @@ using NAMESPACE.")
     (find-enclosing type (attrs-root*) id)))
 
 
+;;; Classes.
+
+(-> add-field-as (fset:map symbol-table-namespace ast) fset:map)
+(defun add-field-as (map ns id)
+  "Add ID to MAP in NS, a namespace such as `:type' or `:variable'."
+  (let ((ns-map (or (lookup map ns) (empty-map))))
+    (values
+     (with map ns
+           (with ns-map
+                 (source-text id)
+                 ;; Overloads!
+                 (cons id (@ ns-map (source-text id))))))))
+
+(defun lookup-in-field-table (class namespace key)
+  "Look up KEY in NAMESPACE of the field table of CLASS."
+  (@ (or (when-let ((field-table (field-table class)))
+           (@ field-table namespace))
+         (empty-map))
+     (source-text key)))
+
+(defgeneric field-adjoin (field map)
+  (:documentation
+   "Adjoin FIELD to MAP (an FSet map) according to the type of FIELD.")
+  (:method ((field t) map)
+    map)
+  (:method ((field function-declaration-ast) map)
+    (add-field-as map :function (definition-name-ast field))))
+
+(defgeneric class-fields (class)
+  (:documentation "Get the fields of CLASS."))
+
+(-> adjoin-fields (fset:map list) fset:map)
+(defun adjoin-fields (map fields)
+  (assure fset:map
+    (reduce (flip #'field-adjoin)
+            fields
+            :initial-value map)))
+
+(def-attr-fun field-table ()
+  "Build an FSet map from field names to identifiers."
+  (:method ((ast t)) (empty-map))
+  (:method ((class class-ast))
+    (adjoin-fields (empty-map)
+                   (class-fields class))))
+
+
 ;;; Namespace
 (def-attr-fun namespace (in)
   "Compute the namespace at this node."

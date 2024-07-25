@@ -687,86 +687,55 @@ pointer declarations which are nested on themselves."
 is the operator of a binary ast.")
   (:method (op ast) nil))
 
-(-> add-field-as (fset:map symbol-table-namespace ast) fset:map)
-(defun add-field-as (map ns id)
-  "Add ID to MAP in NS, a namespace such as `:type' or `:variable'."
-  (let ((ns-map (or (lookup map ns) (empty-map))))
-    (values
-     (with map ns
-           (with ns-map
-                 (source-text id)
-                 ;; Overloads!
-                 (cons id (@ ns-map (source-text id))))))))
+(defmethod field-adjoin ((field c/cpp-field-declaration) map)
+  (adjoin-fields map
+                 (ensure-list (c/cpp-declarator field))))
 
-(defgeneric field-adjoin (field map)
-  (:documentation "Adjoin FIELD to MAP according to the type of FIELD.")
-  (:method ((field t) map)
-    map)
-  (:method ((field function-declaration-ast) map)
-    (add-field-as map :function (definition-name-ast field)))
-  (:method ((field c/cpp-field-declaration) map)
-    (reduce (flip #'field-adjoin)
-            (ensure-list (c/cpp-declarator field))
-            :initial-value map))
-  (:method ((field c/cpp-function-declarator) map)
-    (add-field-as map :function (c/cpp-declarator field)))
-  (:method ((field c/cpp-field-identifier) map)
-    (add-field-as map :variable field))
-  (:method ((field c/cpp-type-definition) map)
-    (reduce (op (add-field-as _ :type _))
-            (c/cpp-declarator field)
-            :initial-value map))
-  (:method ((field c/cpp-pointer-declarator) map)
-    (reduce (flip #'field-adjoin)
-            (ensure-list (c/cpp-declarator field))
-            :initial-value map))
-  (:method ((field c/cpp-array-declarator) map)
-    (reduce (flip #'field-adjoin)
-            (ensure-list (c/cpp-declarator field))
-            :initial-value map)))
+(defmethod field-adjoin ((field c/cpp-function-declarator) map)
+  (add-field-as map :function (c/cpp-declarator field)))
 
-(def-attr-fun field-table ()
-  "Build an FSet map from field names to identifiers."
-  (:method ((ast t)) (empty-map))
-  (:method ((ast c/cpp-classoid-specifier))
-    (ematch ast
-      ((c/cpp-classoid-specifier
-        (c/cpp-body
-         (and (type c/cpp-field-declaration-list)
-              (access #'direct-children fields))))
-       (assure fset:map
-         (reduce (flip #'field-adjoin)
-                 fields
-                 :initial-value (empty-map))))
-      ((c/cpp-classoid-specifier
-        (c/cpp-body nil))
-       (empty-map))))
-  (:method ((ast c/cpp-union-specifier))
-    (ematch ast
-      ((c/cpp-union-specifier
-        (c/cpp-body
-         (and (type c/cpp-field-declaration-list)
-              (access #'direct-children fields))))
-       (assure fset:map
-         (reduce (flip #'field-adjoin)
-                 fields
-                 :initial-value (empty-map))))
-      ((c/cpp-union-specifier
-        (c/cpp-body nil))
-       (empty-map))))
-  (:method ((ast c/cpp-type-definition))
-    (match ast
-      ((c/cpp-type-definition
-        (c/cpp-type
-         (and struct (c/cpp-classoid-specifier))))
-       (field-table struct)))))
+(defmethod field-adjoin ((field c/cpp-field-identifier) map)
+  (add-field-as map :variable field))
 
-(defun lookup-in-field-table (class namespace key)
-  "Look up KEY in NAMESPACE of the field table of CLASS."
-  (@ (or (when-let ((field-table (field-table class)))
-           (@ field-table namespace))
-         (empty-map))
-     (source-text key)))
+(defmethod field-adjoin ((field c/cpp-type-definition) map)
+  (reduce (op (add-field-as _ :type _))
+          (c/cpp-declarator field)
+          :initial-value map))
+
+(defmethod field-adjoin ((field c/cpp-pointer-declarator) map)
+  (adjoin-fields map (ensure-list (c/cpp-declarator field))))
+
+(defmethod field-adjoin ((field c/cpp-array-declarator) map)
+  (adjoin-fields map (ensure-list (c/cpp-declarator field))))
+
+(defmethod class-fields ((ast c/cpp-classoid-specifier))
+  (ematch ast
+    ((c/cpp-classoid-specifier
+      (c/cpp-body
+       (and (type c/cpp-field-declaration-list)
+            (access #'direct-children fields))))
+     fields)
+    ((c/cpp-classoid-specifier
+      (c/cpp-body nil))
+     nil)))
+
+(defmethod field-table ((ast c/cpp-union-specifier))
+  (ematch ast
+    ((c/cpp-union-specifier
+      (c/cpp-body
+       (and (type c/cpp-field-declaration-list)
+            (access #'direct-children fields))))
+     (adjoin-fields (empty-map) fields))
+    ((c/cpp-union-specifier
+      (c/cpp-body nil))
+     (empty-map))))
+
+(defmethod field-table ((ast c/cpp-type-definition))
+  (match ast
+    ((c/cpp-type-definition
+      (c/cpp-type
+       (and struct (c/cpp-classoid-specifier))))
+     (field-table struct))))
 
 (defun get-field-classes (field)
   "Find the classes that define FIELD.

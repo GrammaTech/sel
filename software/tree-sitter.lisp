@@ -720,7 +720,12 @@
            :circular-inclusion
            :+exception-top-type+
            :+exception-bottom-type+
-           :specified-noexcept?)
+           :specified-noexcept?
+           :field-table
+           :field-adjoin
+           :adjoin-fields
+           :class-fields
+           :add-field-as)
   (:local-nicknames
    (:dbg :software-evolution-library/utility/debug)
    #+sbcl (:md5 :sb-md5)
