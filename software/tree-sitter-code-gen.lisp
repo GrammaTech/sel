@@ -6357,6 +6357,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
                 (list 'progn
                       (macroexpand-1
                        '(create-tree-sitter-language ,name-string)))
+                ;; Make the generated code browseable.
+                :pretty t
                 :stream s
                 :readably t)
                (finish-output s)))))
