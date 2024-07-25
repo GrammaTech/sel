@@ -737,13 +737,27 @@ Stores them as comma separated values."
 
 (defgeneric project-dependency-tree (project &key &allow-other-keys)
   (:documentation "Return the dependency graph of PROJECT as a cons tree.
-The top level is a list of entries. Entries have the form (FILE .
-INCLUDEES), where each of INCLUDEES is itself an entry, or the keyword
-:CIRCLE for a circular inclusion.
+The dependency tree is an alist from files to dependency (sub-)trees.
 
-In each entry, FILE is one of a string (for a file), a keyword (for a
-standard include), or an uninterned symbol (for a header that could
-not be resolved).")
+A file in the tree is one of a string (for an actual file), a
+keyword (for a standard include), an uninterned symbol (for a
+dependency that could not be resolved), or the keyword `:circle` (for
+a circular inclusion).
+
+For example:
+
+    '(;; A file with no dependencies.
+      #1=(\"dir/file1.h\")
+      ;; A file with a standard library dependency (a keyword).
+      (\"dir/file2.c\" (:stdio.h))
+      ;; A file with an unknown dependency, represented as an uninterned
+      ;; symbol.
+      (\"dir/file3.c\" (#:unknown.h))
+      ;; A dependency: file4 depends on file2.
+      (\"dir/file4\" (\"dir/file2.h\" (:stdio.h))
+      ;; `:circle` means a circularity was encountered when calculating the
+      ;; dependencies of a file.
+      (\"dir/file5\" (:circle \"dir/file5\"))")
   (:method-combination standard/context)
   (:method :context ((p project) &key)
     (assure dependency-tree
