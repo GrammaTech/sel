@@ -761,9 +761,10 @@ is the operator of a binary ast.")
          (and struct (c/cpp-classoid-specifier))))
        (field-table struct)))))
 
-(defun lookup-in-field-table (class ns key)
+(defun lookup-in-field-table (class namespace key)
+  "Look up KEY in NAMESPACE of the field table of CLASS."
   (@ (or (when-let ((field-table (field-table class)))
-            (@ field-table ns))
+           (@ field-table namespace))
          (empty-map))
      (source-text key)))
 
