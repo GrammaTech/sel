@@ -1880,9 +1880,7 @@ functions.")
                (cpp-template-function
                 (cpp-name name))))
          (call-arguments-ast arguments))
-        (and-let* ((id (get-declaration-id :function name))
-                   (template (find-enclosing-template id))
-                   ((specialized? arguments)))
+        (when (specialized? arguments)
           (collect fn)))
        ((call-ast
          (call-function (and fn (identifier-ast))))
