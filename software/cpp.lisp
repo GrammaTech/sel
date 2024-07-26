@@ -56,6 +56,11 @@
          ;; uses the extensions ending with -m.
          "ixx" "cppm" "ccm" "cxxm" "c++m"))
 
+(deftype member-access ()
+  "Whether a member is public, private, or protected.
+`nil' means the member is not visible at all."
+  '(member nil :public :private :protected))
+
 (defgeneric strip-template-arguments (template)
   (:documentation "Strip template arguments (in angle brackets) from TEMPLATE.")
   (:method ((string string))
@@ -940,14 +945,11 @@ to look it up as `x::z' or just `z'."
     (values types
             (mapcar (constantly :type) types))))
 
-(deftype member-access ()
-  '(member :public :private :protected))
-
 (defgeneric contextual-member-access (ast)
   (:documentation "If AST changes the member access, return the new member access.")
   (:method-combination standard/context)
   (:method :context ((ast cpp-ast))
-    (assure (or null member-access)
+    (assure member-access
       (call-next-method)))
   (:method ((ast cpp-namespace-definition))
     (if (cpp-name ast)
@@ -969,7 +971,7 @@ to look it up as `x::z' or just `z'."
 
 (def-attr-fun member-access (in)
   (:documentation "Compute the member access of an AST.
-Returns one of `:public', `:private', `:protected'.
+Returns one of `:public', `:private', `:protected' (or `nil').
 
 Member access can be inherited from a parent (`class' vs. `struct') or
 from a prior sibling \(`public:', `private:', `protected:').")
