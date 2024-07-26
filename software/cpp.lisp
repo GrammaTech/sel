@@ -943,7 +943,7 @@ to look it up as `x::z' or just `z'."
 (deftype member-access ()
   '(member :public :private :protected))
 
-(defgeneric static-member-access (ast)
+(defgeneric contextual-member-access (ast)
   (:documentation "If AST changes the member access, return the new member access.")
   (:method-combination standard/context)
   (:method :context ((ast cpp-ast))
@@ -987,7 +987,7 @@ from a prior sibling \(`public:', `private:', `protected:').")
   (:method ((node cpp-ast) &optional in)
     ;; Member access can be determined by the parent or by a preceding
     ;; sibling.
-    (lret ((result (or (static-member-access node) in)))
+    (lret ((result (or (contextual-member-access node) in)))
       (reduce (lambda (in next)
                 (member-access next in))
               (children node)
