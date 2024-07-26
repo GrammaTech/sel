@@ -4554,8 +4554,10 @@ using NAMESPACE.")
 
 ;;; Classes.
 
+(fset:define-tuple-key +access+)
 (fset:define-tuple-key +ast+)
 (fset:define-tuple-key +ns+)
+
 
 (-> add-field-as (fset:map symbol-table-namespace ast)
     (values fset:map &optional))

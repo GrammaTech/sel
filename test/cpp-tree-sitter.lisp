@@ -1505,6 +1505,82 @@ AbstractBase::~AbstractBase() {}};"))
          (opname (is (find-if (of-type 'cpp-operator-name) cpp))))
     (is (source-text= "operator=" (unqualified-name opname)))))
 
+(def +basic-inheritance-example+ (fmt "~
+struct Base
+{
+    int a, b, c;
+};
+
+// every object of type Derived includes Base as a subobject
+struct Derived : Base
+{
+    int b;
+};
+
+// every object of type Derived2 includes Derived and Base as subobjects
+struct Derived2 : Derived
+{
+    int c;
+};
+
+int main() {
+    Derived2 derived2 = Derived2{0, 1, 2};
+    derived2.a;
+    derived2.b;
+    derived2.c;
+}~%"))
+
+(deftest test-basic-inheritance ()
+  "Field tables should include inheritance."
+  (let* ((cpp (from-string 'cpp +basic-inheritance-example+))
+         (classes (collect-if (of-type 'cpp-struct-specifier) cpp)))
+    (is (length= classes 3))
+    (labels ((field-ast (table name)
+               (@ (only-elt (@ table name)) ts::+ast+))
+             (get-defining-class (table name)
+               (find-enclosing 'c/cpp-classoid-specifier
+                               cpp
+                               (field-ast table name))))
+      (with-attr-table cpp
+        (symbol-table cpp)
+        (destructuring-bind (base derived derived2) classes
+          (let ((derived-table (field-table derived)))
+            (is (equal? (domain derived-table)
+                        (fset:set "a" "b" "c")))
+            (is (eql (get-defining-class derived-table "a")
+                     base))
+            (is (eql (get-defining-class derived-table "c")
+                     base))
+            (is (eql (get-defining-class derived-table "b")
+                     derived)))
+          (let ((derived2-table (field-table derived2)))
+            (is (eql (get-defining-class derived2-table "a")
+                     base))
+            (is (eql (get-defining-class derived2-table "b")
+                     derived))
+            (is (eql (get-defining-class derived2-table "c")
+                     derived2))))))))
+
+(deftest test-basic-inheritance-lookup ()
+  "Looking up definitions of field expression should find the correct
+definition."
+  (let ((cpp (from-string 'cpp +basic-inheritance-example+)))
+    (labels ((get-enclosing-class (ast)
+               (find-enclosing 'class-ast (attrs-root*) ast)))
+      (with-attr-table cpp
+        (symbol-table cpp)
+        (destructuring-bind (base derived derived2)
+            (collect-if (of-type 'class-ast) cpp)
+          (destructuring-bind (expr1 expr2 expr3)
+              (collect-if (of-type 'cpp-field-expression) cpp)
+            (labels ((test-enclosing (expr class)
+                       (let ((decl (is (get-declaration-ast :variable expr))))
+                         (is (eql (get-enclosing-class decl) class)))))
+              (test-enclosing expr1 base)
+              (test-enclosing expr2 derived)
+              (test-enclosing expr3 derived2))))))))
+
+
 
 ;;; Parsing tests
 

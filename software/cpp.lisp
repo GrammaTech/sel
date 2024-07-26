@@ -56,10 +56,14 @@
          ;; uses the extensions ending with -m.
          "ixx" "cppm" "ccm" "cxxm" "c++m"))
 
+(deftype private () '(eql :private))
+(deftype protected () '(eql :protected))
+(deftype public () '(eql :public))
+
 (deftype member-access ()
   "Whether a member is public, private, or protected.
 `nil' means the member is not visible at all."
-  '(member nil :public :private :protected))
+  '(or null public private protected))
 
 (defgeneric strip-template-arguments (template)
   (:documentation "Strip template arguments (in angle brackets) from TEMPLATE.")
@@ -1017,6 +1021,159 @@ templated definition's field table."
      (when-let (class (get-declaration-ast :type type))
        (field-table class)))
     (otherwise (call-next-method))))
+
+(-> inherited-member-access (member-access member-access) member-access)
+(defun inherited-member-access (as-inherited as-defined)
+  "Compute the final visibility of a member give how it is inherited in
+the derived class (AS-INHERITED) and how it is defined in the base
+class (AS-DEFINED)."
+  (dispatch-case ((as-inherited member-access)
+                  (as-defined member-access))
+    ((* null) nil)
+    ((null *) nil)
+    ;; The final visibility of inheritance of a private field is
+    ;; always null.
+    ((* private) nil)
+    ;; The final visibility of private inheritance of a field is
+    ;; always private.
+    ((private *) :private)
+    ;; The final visibility of public inheritance of a public field is
+    ;; public.
+    ((public public) :public)
+    ;; The final visibility of public inheritance of a protected field
+    ;; is protected.
+    ((public protected) :protected)
+    ;; The final visibility of protected inheritance of a
+    ;; public/protected field is protected.
+    ((protected (or public protected)) :protected)))
+
+(defun base-class-alist (class)
+  "Return an alist from the base classes of CLASS to their
+qualifiers (public/private/protected/virtual). Maintain textual
+order."
+  (when-let (clause
+             (find-if (of-type 'cpp-base-class-clause)
+                      (children class)))
+    (let ((alist
+            (reduce (lambda (child alist)
+                      (if (typep child '(or cpp-type-identifier
+                                         cpp-template-type
+                                         cpp-qualified-identifier))
+                          (acons child '() alist)
+                          (ematch alist
+                            ((cons (cons last-class quals) alist)
+                             (acons last-class (cons child quals)
+                                    alist)))))
+                    (children clause)
+                    :from-end t
+                    :initial-value nil)))
+      (mapcar (op (cons (car _1) (nreverse (cdr _1))))
+              alist))))
+
+(defun field-table-save-access (table)
+  "Record member access from the class declaration."
+  (iter (for (name fields) in-map table)
+        (map-collect
+         name
+         (mapcar (lambda (field)
+                   (if (@ field +access+)
+                       field
+                       (with field +access+
+                             (member-access
+                              (@ field +ast+)))))
+                 fields))))
+
+(defun base-class-access (derived-class quals)
+  "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
+QUALIFIERS could contain a public, private, or protected qualifier;
+otherwise use the default (public for a struct, private for a class)."
+  (assure member-access
+    (cond ((find-if (of-type 'cpp-public) quals)
+           :public)
+          ((find-if (of-type 'cpp-private) quals)
+           :private)
+          ((find-if (of-type 'cpp-protected) quals)
+           :protected)
+          ((typep derived-class 'cpp-class-specifier)
+           :private)
+          ((typep derived-class 'cpp-struct-specifier)
+           :public))))
+
+(defun single-inheritance (derived-field-table
+                           derived-class
+                           base-class
+                           quals)
+  (declare (fset:map derived-field-table)
+           (ast derived-class base-class))
+  (let ((base-access (base-class-access derived-class quals))
+        (new-field-table derived-field-table))
+    (iter (for (key fields) in-map (field-table base-class))
+          ;; C++ uses "name hiding": if a derived class specifies a
+          ;; name, overloads for that name in the parent class
+          ;; disappear.
+          (unless (@ new-field-table key)
+            (when-let (fields
+                       (mapcar (lambda (field)
+                                 (let ((visibility
+                                         (inherited-member-access
+                                          base-access
+                                          (@ field +access+))))
+                                   (with field +access+ visibility)))
+                               fields))
+              (withf new-field-table key fields)))
+          (finally (return new-field-table)))))
+
+(defun multiple-inheritance (class field-table)
+  "Extend FIELD-TABLE with the members of all classes FIELD-TABLE
+inherits from."
+  (let ((class-name (definition-name-ast class))
+        (field-table (field-table-save-access field-table)))
+    (labels ((inherit-from-base-class-definition (field-table id quals)
+               (if-let ((base-class (get-declaration-ast :type id)))
+                 (single-inheritance field-table
+                                     class
+                                     base-class
+                                     quals)
+                 (progn
+                   (dbg:note :debug
+                             "No definition found for base class ~a of ~a"
+                             (source-text id)
+                             (source-text class-name))
+                   field-table)))
+             (inherit-from-base-class-specifiers
+                 (field-table base-class-specifiers)
+               ;; todo C3 linearization? Left classes do take
+               ;; precedence over right.
+               (reduce (lambda (field-table id.quals)
+                         (destructuring-bind (id . quals) id.quals
+                           (inherit-from-base-class-definition
+                            field-table id quals)))
+                       base-class-specifiers
+                       :initial-value field-table))
+             (inherit-from-base-classes (class field-table)
+               (let ((base-class-alist (base-class-alist class)))
+                 (cond ((no base-class-alist)
+                        field-table)
+                       ((has-attribute-p class 'symbol-table)
+                        (inherit-from-base-class-specifiers
+                         field-table base-class-alist))
+                       (t
+                        (error "Cannot inherit into ~a without a symbol table"
+                               class-name))))))
+      (inherit-from-base-classes class field-table))))
+
+(defun perform-inheritance (class field-table)
+  (multiple-inheritance class (field-table-save-access field-table)))
+
+(defmethod field-table :around ((struct cpp-struct-specifier))
+  (if (has-attribute-p struct 'symbol-table)
+      (perform-inheritance struct (call-next-method))
+      (call-next-method)))
+
+(defmethod field-table :around ((class cpp-class-specifier))
+  (if (has-attribute-p class 'symbol-table)
+      (perform-inheritance class (call-next-method))
+      (call-next-method)))
 
 (defmethod outer-declarations ((ast cpp-template-declaration))
   ;; TODO Store the template parameters somehow in the symbol table?
