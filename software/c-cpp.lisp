@@ -356,21 +356,30 @@ pointer declarations which are nested on themselves."
     (values (list name) '(:tag))
     (values nil nil)))
 
-(defmethod inner-declarations ((ast c/cpp-classoid-specifier))
+;;; Defined on the field-declaration-list rather than classoids to
+;;; avoid circular dependencies.
+(defmethod inner-declarations ((ast c/cpp-field-declaration-list))
   "Make the type and its members and methods visible inside the type."
-  (flet ((sort-asts (asts)
-           "Sort ASTs according to file position."
-           (nreverse
-            (sort (copy-list asts)
-                  (op (path-later-p ast _ _))))))
-    (mvlet* ((table (field-table ast))
-             (table-by-ns
-              (mapcar (op (cons (@ (car _1) +ns+)
-                                (sort-asts
-                                 (mapcar (op (@ _ +ast+))
-                                         _1))))
-                      (assort (reduce #'append (range table))
-                              :key (op (@ _ +ns+)))))
+  (labels ((sort-asts (asts)
+             "Sort ASTs according to file position."
+             (nreverse
+              (sort (copy-list asts)
+                    (op (path-later-p ast _ _)))))
+           (partition-map-by-ns (map)
+             "Partition MAP into an alist from namespaces, to the subset of MAP
+            whose values belong to those namespaces."
+             (mapcar (op (cons (@ (car _1) +ns+)
+                               (sort-asts
+                                (mapcar (op (@ _ +ast+))
+                                        _1))))
+                     (assort (reduce #'append (range map))
+                             :key (op (@ _ +ns+)))))
+           (find-enclosing-class (ast)
+             (or (find-enclosing 'c/cpp-classoid-specifier (attrs-root*) ast)
+                 (error "No enclosing class at ~a" ast))))
+    (mvlet* ((class (find-enclosing-class ast))
+             (field-table (field-table class))
+             (table-by-ns (partition-map-by-ns field-table))
              (members (aget :variable table-by-ns))
              (methods (aget :function table-by-ns))
              (types (aget :type table-by-ns))

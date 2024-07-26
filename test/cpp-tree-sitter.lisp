@@ -758,6 +758,7 @@ class A
       (let* ((as (collect-if (op (source-text= "a" _)) cpp))
              (decls (mapcar (op (get-declaration-ast :variable _))
                             as)))
+        (is (not (empty? (symbol-table (first as)))))
         (is (every (of-type 'cpp-field-declaration)
                    (take 2 decls)))
         (is (every (of-type 'cpp-declaration)
