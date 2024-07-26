@@ -358,21 +358,22 @@ pointer declarations which are nested on themselves."
 
 (defmethod inner-declarations ((ast c/cpp-classoid-specifier))
   "Make the type and its members and methods visible inside the type."
-  (flet ((sort-map-range (map)
-           "Sort the range (values) of a map according to file position."
+  (flet ((sort-asts (asts)
+           "Sort ASTs according to file position."
            (nreverse
-            (sort (reduce #'append (range map))
+            (sort (copy-list asts)
                   (op (path-later-p ast _ _))))))
     (mvlet* ((table (field-table ast))
-             (vars-map (@ table :variable))
-             (fns-map (@ table :function))
-             (types-map (@ table :type))
-             (members
-              (and vars-map (sort-map-range vars-map)))
-             (methods
-              (and fns-map (sort-map-range fns-map)))
-             (types
-              (and types-map (sort-map-range types-map)))
+             (table-by-ns
+              (mapcar (op (cons (@ (car _1) +ns+)
+                                (sort-asts
+                                 (mapcar (op (@ _ +ast+))
+                                         _1))))
+                      (assort (reduce #'append (range table))
+                              :key (op (@ _ +ns+)))))
+             (members (aget :variable table-by-ns))
+             (methods (aget :function table-by-ns))
+             (types (aget :type table-by-ns))
              (outer-decls outer-decl-types
               (outer-declarations ast)))
       (values (append outer-decls members methods types)

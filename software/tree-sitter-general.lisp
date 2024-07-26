@@ -4554,23 +4554,27 @@ using NAMESPACE.")
 
 ;;; Classes.
 
-(-> add-field-as (fset:map symbol-table-namespace ast) fset:map)
+(fset:define-tuple-key +ast+)
+(fset:define-tuple-key +ns+)
+
+(-> add-field-as (fset:map symbol-table-namespace ast)
+    (values fset:map &optional))
 (defun add-field-as (map ns id)
   "Add ID to MAP in NS, a namespace such as `:type' or `:variable'."
-  (let ((ns-map (or (lookup map ns) (empty-map))))
-    (values
-     (with map ns
-           (with ns-map
-                 (source-text id)
-                 ;; Overloads!
-                 (cons id (@ ns-map (source-text id))))))))
+  (let* ((key (source-text id))
+         (data (fset:tuple (+ns+ ns) (+ast+ id))))
+    ;; Conserve previous entry because of overloads.
+    (with map key (cons data (@ map key)))))
 
 (defun lookup-in-field-table (class namespace key)
   "Look up KEY in NAMESPACE of the field table of CLASS."
-  (@ (or (when-let ((field-table (field-table class)))
-           (@ field-table namespace))
-         (empty-map))
-     (source-text key)))
+  (declare (type symbol-table-namespace namespace))
+  (when-let* ((map (field-table class))
+              (key (source-text key))
+              (fields (@ map key)))
+    (iter (for field in fields)
+          (when (eql namespace (@ field +ns+))
+            (collect (@ field +ast+))))))
 
 (defgeneric field-adjoin (field map)
   (:documentation
