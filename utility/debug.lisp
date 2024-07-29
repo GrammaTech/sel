@@ -1,8 +1,35 @@
 ;;;; Debugging helpers
 ;;;
-;;; Functions useful for debugging lisp code.  Of particular note are
-;;; the `note' functions and associated `*note-level*' and
-;;; `*note-out*' variables which provide a basic logging framework.
+;;; Functions useful for debugging lisp code.
+;;;
+;;; The @code{note} and @code{note-level} functions and @code{*note-out*}
+;;; variable provide a basic logging framework:
+;;;
+;;;     (note 3 "Something happened: ~a" thing)
+;;;
+;;; Notes will only be printed if the level supplied is <= to
+;;; @code{*note-level*}:
+;;;
+;;;     (setf (note-level) 2)
+;;;     (note 3 "I won't be seen")
+;;;
+;;;
+;;;
+;;; By default, notes go to @code{*note-out*}. You can redirect them
+;;; by rebinding (or setting) the variable:
+;;;
+;;;     (with-output-to-file (*note-out* #p"saved-notes.txt")
+;;;       ...)
+;;;
+;;; Note levels can also be symbolic:
+;;;
+;;;     (setf (note-level) :info)
+;;;     (note :info "Informational note")
+;;;
+;;; Symbolic note levels will be familiar from other logging
+;;; frameworks: @code{FATAL}, @code{ERROR}, @code{WARN}, @code{DEBUG},
+;;; @code{TRACE}, @{ALL}, and variants thereof.
+
 ;;;
 ;;; @texi{debugging}
 (defpackage software-evolution-library/utility/debug
@@ -84,6 +111,7 @@ with `cl-user:trace'."
 (define-symbolic-note-level :critical 0)
 (define-symbolic-note-level :fatal 0)
 (define-symbolic-note-level :error 1)
+(define-symbolic-note-level :warn 2)
 (define-symbolic-note-level :warning 2)
 (define-symbolic-note-level :info 3)
 (define-symbolic-note-level :information 3)
