@@ -4596,7 +4596,6 @@ using NAMESPACE.")
 
 (def-attr-fun field-table ()
   "Build an FSet map from field names to identifiers."
-  (:method ((ast t)) (empty-map))
   (:method ((class class-ast))
     (adjoin-fields (empty-map)
                    (class-fields class))))
