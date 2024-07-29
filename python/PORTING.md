@@ -173,6 +173,10 @@ to be modified.
 
 - Fix issue relating to PEP 570 when parsing Python.
 
+## v0.9.8 -> v0.9.9
+
+- Update docker image
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language
