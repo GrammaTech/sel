@@ -2040,8 +2040,7 @@ functions.")
        ((call-ast
          (call-function
           (and fn
-               (cpp-template-function
-                (cpp-name name))))
+               (cpp-template-function)))
          (call-arguments-ast arguments))
         (when (specialized? arguments)
           (collect fn)))
