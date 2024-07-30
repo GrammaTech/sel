@@ -1080,7 +1080,7 @@ order."
                        field
                        (with field +access+
                              (member-access
-                              (@ field +ast+)))))
+                              (@ field +id+)))))
                  fields))))
 
 (defun base-class-access (derived-class quals)

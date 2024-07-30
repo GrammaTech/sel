@@ -370,7 +370,7 @@ pointer declarations which are nested on themselves."
             whose values belong to those namespaces."
              (mapcar (op (cons (@ (car _1) +ns+)
                                (sort-asts
-                                (mapcar (op (@ _ +ast+))
+                                (mapcar (op (@ _ +id+))
                                         _1))))
                      (assort (reduce #'append (range map))
                              :key (op (@ _ +ns+)))))

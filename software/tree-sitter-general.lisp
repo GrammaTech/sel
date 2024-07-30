@@ -4555,7 +4555,7 @@ using NAMESPACE.")
 ;;; Classes.
 
 (fset:define-tuple-key +access+)
-(fset:define-tuple-key +ast+)
+(fset:define-tuple-key +id+)
 (fset:define-tuple-key +ns+)
 
 
@@ -4564,7 +4564,7 @@ using NAMESPACE.")
 (defun add-field-as (map ns id)
   "Add ID to MAP in NS, a namespace such as `:type' or `:variable'."
   (let* ((key (source-text id))
-         (data (fset:tuple (+ns+ ns) (+ast+ id))))
+         (data (fset:tuple (+ns+ ns) (+id+ id))))
     ;; Conserve previous entry because of overloads.
     (with map key (cons data (@ map key)))))
 
@@ -4576,7 +4576,7 @@ using NAMESPACE.")
               (fields (@ map key)))
     (iter (for field in fields)
           (when (eql namespace (@ field +ns+))
-            (collect (@ field +ast+))))))
+            (collect (@ field +id+))))))
 
 (defgeneric field-adjoin (field map)
   (:documentation

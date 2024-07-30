@@ -1536,7 +1536,7 @@ int main() {
          (classes (collect-if (of-type 'cpp-struct-specifier) cpp)))
     (is (length= classes 3))
     (labels ((field-ast (table name)
-               (@ (only-elt (@ table name)) ts::+ast+))
+               (@ (only-elt (@ table name)) ts::+id+))
              (get-defining-class (table name)
                (find-enclosing 'c/cpp-classoid-specifier
                                cpp
