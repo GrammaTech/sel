@@ -1038,11 +1038,22 @@ auto x = Unit::IN;"))
   float x;
   Unit unit;
 };
-Distance::Unit y;")))
+Distance::Unit y;
+// Bogus
+frob(IN);
+frob(Distance::Unit::IN);
+")))
     (with-attr-table cpp
       (let ((unit (find-if (op (source-text= _ "Distance::Unit")) cpp)))
         (is (typep (get-declaration-ast :type unit)
-                   'cpp-enum-specifier))))))
+                   'cpp-enum-specifier)))
+      (let* ((calls (collect-if (of-type 'call-ast) cpp)))
+        (destructuring-bind (call1 call2) calls
+          (let ((arg (only-elt (call-arguments call1))))
+            (is (null (get-declaration-ast :variable arg))))
+          (let ((arg (only-elt (call-arguments call2))))
+            (is (typep (get-declaration-ast :variable arg)
+                       'cpp-enumerator))))))))
 
 (deftest test-lambda-bindings ()
   (let ((cpp (cpp* "[](auto a, auto&& b) { return a < b; }")))

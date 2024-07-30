@@ -2263,7 +2263,7 @@ available to use at any point in a C++ AST.")
         (strip-template-arguments result)
         result)))
 
-(defun macro-name? (string)
+(defun macro-name-string? (string)
   "Does STRING follow the conventions for a macro name?"
   (with-string-dispatch (simple-base-string) string
     (and (> (length string) 0)
@@ -2275,32 +2275,64 @@ available to use at any point in a C++ AST.")
                       (eql char #\_)))
                 string))))
 
+(defgeneric identifier-macro-name? (ast &key source-text &allow-other-keys)
+  (:documentation
+   "Is AST of a class where it makes sense to check for a macro name?")
+  (:method ((ast cpp-identifier) &key (source-text (source-text ast)))
+    (macro-name-string? source-text))
+  (:method ((ast cpp-type-identifier) &key (source-text (source-text ast)))
+    (macro-name-string? source-text))
+  (:method ((ast cpp-field-identifier) &key (source-text (source-text ast)))
+    (macro-name-string? source-text))
+  (:method ((ast cpp-operator-name) &key)
+    nil)
+  (:method ((ast cpp-destructor-name) &key)
+    nil)
+  (:method ((ast cpp-qualified-identifier) &key)
+    nil)
+  (:method ((ast cpp-this) &key)
+    nil))
+
+(defun macro-name? (ast &key source-text)
+  "Does AST look like a macro name (that should not be qualified)?"
+  (when (typep ast 'identifier-ast)
+    (identifier-macro-name?
+     ast
+     :source-text (or source-text (source-text ast)))))
+
 (defmethod qualify-declared-ast-name ((type cpp-primitive-type))
   (source-text type))
 
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
   (nest
    (let* ((source-text
-           (or (declarator-name declared-ast)
-               (source-text declared-ast)))))
-   (if (macro-name? source-text)
+            (or (declarator-name declared-ast)
+                ;; Put a reasonable limit on it if something absurd
+                ;; has been passed in. E.g. there may be code that
+                ;; tries to get the declaration of a definition by
+                ;; looking up the definition itself. Some compilers
+                ;; limit maximum name lengths, so code that goes
+                ;; beyond this would be anyway. (MISRA only allows
+                ;; 31!).
+                (source-text-take 2048 declared-ast)))))
+   (if (macro-name? declared-ast)
        source-text)
    (let* ((namespace (namespace declared-ast))
           (implicit (split "::" namespace))
           (parts (split "::" source-text))
           (explicit
-           (append
-            (and (string^= "::" source-text)
-                 (list :global))
-            (butlast parts)))
+            (append
+             (and (string^= "::" source-text)
+                  (list :global))
+             (butlast parts)))
           (class-namespace
-           (static-member-name-qualifier declared-ast))
+            (static-member-name-qualifier declared-ast))
           (explicit
-           (if class-namespace
-               (cons class-namespace explicit)
-               explicit))
+            (if class-namespace
+                (cons class-namespace explicit)
+                explicit))
           (combined
-           (combine-namespace-qualifiers explicit implicit))))
+            (combine-namespace-qualifiers explicit implicit))))
    (string-join (append1 combined (lastcar parts))
                 "::")))
 
