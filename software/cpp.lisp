@@ -2325,25 +2325,10 @@ available to use at any point in a C++ AST.")
              (and (string^= "::" source-text)
                   (list :global))
              (butlast parts)))
-          (class-namespace
-            (static-member-name-qualifier declared-ast))
-          (explicit
-            (if class-namespace
-                (cons class-namespace explicit)
-                explicit))
           (combined
             (combine-namespace-qualifiers explicit implicit))))
    (string-join (append1 combined (lastcar parts))
                 "::")))
-
-(defun static-member-name-qualifier (ast &key (root (attrs-root*)))
-  "Derive the extra name qualifier for a static member."
-  (and-let* (((typep ast 'cpp-field-identifier))
-             (decl (find-enclosing 'cpp-field-declaration root ast))
-             ((static-member? decl))
-             (class (find-enclosing 'type-declaration-ast root ast))
-             (class-name (definition-name-ast class)))
-    (source-text class-name)))
 
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."
