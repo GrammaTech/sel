@@ -13,8 +13,6 @@
 ;;;     (setf (note-level) 2)
 ;;;     (note 3 "I won't be seen")
 ;;;
-;;;
-;;;
 ;;; By default, notes go to @code{*note-out*}. You can redirect them
 ;;; by rebinding (or setting) the variable:
 ;;;
@@ -29,6 +27,21 @@
 ;;; Symbolic note levels will be familiar from other logging
 ;;; frameworks: @code{FATAL}, @code{ERROR}, @code{WARN}, @code{DEBUG},
 ;;; @code{TRACE}, @{ALL}, and variants thereof.
+;;;
+;;; One pitfall of logging is that getting the information to log can
+;;; be expensive:
+;;;
+;;;     (note :debug "What went wrong: ~a" (generate-expensive-report))
+;;;
+;;; In this case @code{generate-expensive-report} gets called whether
+;;; or not any logging takes place. You can use `lazy-note' to avoid
+;;; this:
+;;;
+;;;     (lazy-note :debug "Problem: ~a" (generate-expensive-report))
+;;;
+;;; Using @code{lazy-note}, @code{generate-expensive-report} (or any
+;;; other argument) will only be evaluated at the appropriate logging
+;;; level.
 
 ;;;
 ;;; @texi{debugging}
@@ -147,6 +160,16 @@ LEVEL may be a symbolic level defined with `define-note-level-name'."
           *note-out*)))))
   ;; Always return nil.
   nil)
+
+(defmacro lazy-note (level format-control &rest format-args)
+  "Like `note', but only evaluates its arguments if the message would be
+printed.
+
+This is a useful alternative to `note' when computing the arguments
+would be expensive."
+  (once-only (level)
+    `(when (<= ,level *note-level*)
+       (note ,level ,format-control ,@format-args))))
 
 (define-compiler-macro note (&whole call level format-control &rest format-args)
   ;; Check symbolic note levels at compile time.
