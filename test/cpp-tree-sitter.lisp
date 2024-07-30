@@ -1530,6 +1530,21 @@ int main() {
     derived2.c;
 }~%"))
 
+(deftest test-direct-field-table ()
+  "Direct field tables should not include inherited fields."
+  (let* ((cpp (from-string 'cpp +basic-inheritance-example+))
+         (classes (collect-if (of-type 'cpp-struct-specifier) cpp)))
+    (with-attr-table cpp
+      (destructuring-bind (base derived derived2) classes
+        (let ((dft (direct-field-table derived)))
+          (is (@ dft "b"))
+          (is (not (@ dft "a")))
+          (is (not (@ dft "c"))))
+        (let ((dft (direct-field-table derived2)))
+          (is (@ dft "c"))
+          (is (not (@ dft "a")))
+          (is (not (@ dft "b"))))))))
+
 (deftest test-basic-inheritance ()
   "Field tables should include inheritance."
   (let* ((cpp (from-string 'cpp +basic-inheritance-example+))

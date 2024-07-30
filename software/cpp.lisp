@@ -1165,15 +1165,17 @@ inherits from."
 (defun perform-inheritance (class field-table)
   (multiple-inheritance class (field-table-save-access field-table)))
 
-(defmethod field-table :around ((struct cpp-struct-specifier))
-  (if (has-attribute-p struct 'symbol-table)
-      (perform-inheritance struct (call-next-method))
-      (call-next-method)))
+(defmethod field-table ((struct cpp-struct-specifier))
+  (let ((direct-field-table (direct-field-table struct)))
+    (if (has-attribute-p struct 'symbol-table)
+        (perform-inheritance struct direct-field-table)
+        direct-field-table)))
 
-(defmethod field-table :around ((class cpp-class-specifier))
-  (if (has-attribute-p class 'symbol-table)
-      (perform-inheritance class (call-next-method))
-      (call-next-method)))
+(defmethod field-table ((class cpp-class-specifier))
+  (let ((direct-field-table (direct-field-table class)))
+    (if (has-attribute-p class 'symbol-table)
+        (perform-inheritance class direct-field-table)
+        direct-field-table)))
 
 (defmethod outer-declarations ((ast cpp-template-declaration))
   ;; TODO Store the template parameters somehow in the symbol table?

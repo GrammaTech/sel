@@ -722,6 +722,7 @@
            :+exception-bottom-type+
            :specified-noexcept?
            :field-table
+           :direct-field-table
            :field-adjoin
            :adjoin-fields
            :class-fields

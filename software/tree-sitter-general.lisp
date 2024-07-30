@@ -4558,7 +4558,6 @@ using NAMESPACE.")
 (fset:define-tuple-key +id+)
 (fset:define-tuple-key +ns+)
 
-
 (-> add-field-as (fset:map symbol-table-namespace ast)
     (values fset:map &optional))
 (defun add-field-as (map ns id)
@@ -4610,6 +4609,10 @@ define multiple identifiers).
 
 There may be additional keys in the tuple to record language-specific
 information such as visibility."
+  (:method ((class class-ast))
+    (direct-field-table class)))
+
+(def-attr-fun direct-field-table ()
   (:method ((class class-ast))
     (adjoin-fields (empty-map)
                    (class-fields class))))
