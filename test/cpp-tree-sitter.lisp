@@ -1505,6 +1505,15 @@ AbstractBase::~AbstractBase() {}};"))
          (opname (is (find-if (of-type 'cpp-operator-name) cpp))))
     (is (source-text= "operator=" (unqualified-name opname)))))
 
+(deftest test-field-namespace ()
+  (let* ((cpp (cpp* "struct inc { int x; }")))
+    (multiple-value-bind (decls namespaces)
+        (outer-declarations
+         (find-if (of-type 'cpp-field-declaration)
+                  cpp))
+      (declare (ignore decls))
+      (is (equal namespaces '(:variable))))))
+
 (def +basic-inheritance-example+ (fmt "~
 struct Base
 {

@@ -779,7 +779,7 @@ to look it up as `x::z' or just `z'."
     ((cpp-field-declaration
       (cpp-declarator
        (list (and id (cpp-field-identifier)))))
-     (list id))
+     (values (list id) '(:variable)))
     ((access #'extract-nested-class
              (and type (type ast)))
      (outer-declarations type))
