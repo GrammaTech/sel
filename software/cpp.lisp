@@ -1070,9 +1070,10 @@ order."
       (mapcar (op (cons (car _1) (nreverse (cdr _1))))
               alist))))
 
-(defun field-table-save-access (table)
-  "Record member access from the class declaration."
-  (iter (for (name fields) in-map table)
+(defun field-table-save-access (field-table)
+  "For all the fields in FIELD-TABLE, record member access from the
+class declaration."
+  (iter (for (name fields) in-map field-table)
         (map-collect
          name
          (mapcar (lambda (field)
@@ -1082,6 +1083,10 @@ order."
                              (member-access
                               (@ field +id+)))))
                  fields))))
+
+(defmethod direct-field-table :around ((ast cpp-ast))
+  (when-let (map (call-next-method))
+    (field-table-save-access map)))
 
 (defun base-class-access (derived-class quals)
   "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
@@ -1126,8 +1131,7 @@ otherwise use the default (public for a struct, private for a class)."
 (defun multiple-inheritance (class field-table)
   "Extend FIELD-TABLE with the members of all classes FIELD-TABLE
 inherits from."
-  (let ((class-name (definition-name-ast class))
-        (field-table (field-table-save-access field-table)))
+  (let ((class-name (definition-name-ast class)))
     (labels ((inherit-from-base-class-definition (field-table id quals)
                (if-let ((base-class (get-declaration-ast :type id)))
                  (single-inheritance field-table
@@ -1163,7 +1167,7 @@ inherits from."
       (inherit-from-base-classes class field-table))))
 
 (defun perform-inheritance (class field-table)
-  (multiple-inheritance class (field-table-save-access field-table)))
+  (multiple-inheritance class field-table))
 
 (defmethod field-table ((struct cpp-struct-specifier))
   (let ((direct-field-table (direct-field-table struct)))
