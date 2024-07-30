@@ -873,56 +873,33 @@ to look it up as `x::z' or just `z'."
     (filter #'static-member?
             (children body))))
 
-(defun add-nested-class-declarations (ast decls types)
-  "Add nested class definitions in AST to DECLS and TYPES."
-  (multiple-value-bind (nested-decls nested-types)
-      (outer-declarations-merge (nested-classes ast))
-    (values (append nested-decls decls)
-            (append nested-types types))))
+(defmethod field-adjoin ((field cpp-field-declaration) map)
+  "Add nested classes and their exports (e.g. enum members) to the field
+table."
+  (let ((map (call-next-method)))
+    (if-let (type (cpp-type field))
+      (field-adjoin type map)
+      map)))
 
-(defun add-cpp-class-outer-declarations (ast decls types)
-  (multiple-value-bind (new-decls new-types)
-      (when-let (body (cpp-body ast))
-        (outer-declarations-merge
-         (filter (op (or (extract-nested-class _1)
-                         (static-member? _1)))
-                 (children body))))
-    (values (append new-decls decls)
-            (append new-types types))))
-
-(defun add-outer-declarations-from-fields (fields decls types)
-  "Add outer declarations from FIELDS to DECLS and TYPES."
-  (multiple-value-bind (new-decls new-types)
-      (outer-declarations-merge fields)
-    (values (append new-decls decls)
-            (append new-types types))))
-
-(defun add-field-declarations/down (ast decls types)
-  "Add appropriate outer field declarations to AST's symbol table."
-  (add-outer-declarations-from-fields (nested-classes ast) decls types))
-
-(defun add-field-declarations/up (ast decls types)
-  "Export appropriate outer field declarations to the symbol table leaving AST."
-  (add-outer-declarations-from-fields
-   (append (nested-classes ast)
-           (static-members ast))
-   decls types))
-
-(defmethod inner-declarations :around ((ast cpp-class-specifier))
-  (multiple-value-bind (decls types) (call-next-method)
-    (add-field-declarations/down ast decls types)))
+(defun export-static-members (ast decls namespaces)
+  "Export appropriate static members in symbol table leaving AST.
+Static here means both static members and subclasses; anything that
+can be accessed by using the class as a namespace."
+  (let ((static-fields
+          (append (nested-classes ast)
+                  (static-members ast))))
+    (multiple-value-bind (new-decls new-decl-namespaces)
+        (outer-declarations-merge static-fields)
+      (values (append new-decls decls)
+              (append new-decl-namespaces namespaces)))))
 
 (defmethod outer-declarations :around ((ast cpp-class-specifier))
-  (multiple-value-bind (decls types) (call-next-method)
-    (add-field-declarations/up ast decls types)))
-
-(defmethod inner-declarations :around ((ast cpp-struct-specifier))
-  (multiple-value-bind (decls types) (call-next-method)
-    (add-field-declarations/down ast decls types)))
+  (multiple-value-bind (decls decl-namespaces) (call-next-method)
+    (export-static-members ast decls decl-namespaces)))
 
 (defmethod outer-declarations :around ((ast cpp-struct-specifier))
-  (multiple-value-bind (decls types) (call-next-method)
-    (add-field-declarations/up ast decls types)))
+  (multiple-value-bind (decls decl-namespaces) (call-next-method)
+    (export-static-members ast decls decl-namespaces)))
 
 (defmethod outer-declarations ((ast cpp-alias-declaration))
   (values (list (cpp-name ast)) '(:type)))

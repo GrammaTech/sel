@@ -667,6 +667,15 @@ int sum = myadd(2, 2);"))
         (is (equal (exit-control-flow y) (list c)))
         (is (equal (exit-control-flow z) (list c)))))))
 
+(deftest test-field-all-definitions ()
+  (let* ((c (c* "struct mystruct { int x, y, z; }"))
+         (field-table
+           (with-attr-table c
+             (field-table c))))
+    (is (@ field-table "x"))
+    (is (@ field-table "y"))
+    (is (@ field-table "z"))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

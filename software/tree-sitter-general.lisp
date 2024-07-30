@@ -4579,11 +4579,17 @@ using NAMESPACE.")
 
 (defgeneric field-adjoin (field map)
   (:documentation
-   "Adjoin FIELD to MAP, a field table, according to the type of FIELD.")
-  (:method ((field t) map)
-    map)
-  (:method ((field function-declaration-ast) map)
-    (add-field-as map :function (definition-name-ast field))))
+   "Adjoin FIELD to MAP, a field table, according to the type of FIELD.
+Note that adding FIELD may introduce multiple identifiers into FIELD.")
+  (:method ((field ast) map)
+    (assure fset:map
+      (multiple-value-bind (ids namespaces)
+          (outer-declarations field)
+        (iter (for id in ids)
+              (for ns in namespaces)
+              (let ((ns (or ns :variable)))
+                (setf map (add-field-as map ns id))))
+        map))))
 
 (defgeneric class-fields (class)
   (:documentation "Get the fields of CLASS."))
