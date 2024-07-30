@@ -4580,7 +4580,7 @@ using NAMESPACE.")
 
 (defgeneric field-adjoin (field map)
   (:documentation
-   "Adjoin FIELD to MAP (an FSet map) according to the type of FIELD.")
+   "Adjoin FIELD to MAP, a field table, according to the type of FIELD.")
   (:method ((field t) map)
     map)
   (:method ((field function-declaration-ast) map)
@@ -4591,13 +4591,25 @@ using NAMESPACE.")
 
 (-> adjoin-fields (fset:map list) fset:map)
 (defun adjoin-fields (map fields)
+  "Adjoins fields in FIELDS to MAP, a field table (see `field-table' for
+the format)."
   (assure fset:map
     (reduce (flip #'field-adjoin)
             fields
             :initial-value map)))
 
 (def-attr-fun field-table ()
-  "Build an FSet map from field names to identifiers."
+  "Attribute storing a map from names to fields of a class.
+\"Field\" is the language-agnostic term for what different languages
+call members, methods, attributes, or slots.
+
+The keys of the map are strings; the values are FSet tuples where
+`+ns+` is the namespace of the definition (function, variable, etc.)
+and `+id+` is the AST of the identifier (a single definition may
+define multiple identifiers).
+
+There may be additional keys in the tuple to record language-specific
+information such as visibility."
   (:method ((class class-ast))
     (adjoin-fields (empty-map)
                    (class-fields class))))
