@@ -360,36 +360,25 @@ pointer declarations which are nested on themselves."
 ;;; avoid circular dependencies.
 (defmethod inner-declarations ((ast c/cpp-field-declaration-list))
   "Make the type and its members and methods visible inside the type."
-  (labels ((sort-asts (asts)
-             "Sort ASTs according to file position."
-             (nreverse
-              (sort (copy-list asts)
-                    (op (path-later-p ast _ _)))))
-           (partition-map-by-ns (map)
-             "Partition MAP into an alist from namespaces, to the subset of MAP
-            whose values belong to those namespaces."
-             (mapcar (op (cons (@ (car _1) +ns+)
-                               (sort-asts
-                                (mapcar (op (@ _ +id+))
-                                        _1))))
-                     (assort (reduce #'append (range map))
-                             :key (op (@ _ +ns+)))))
+  (labels ((get-sorted-ids (field-table ns)
+             "Get field table IDs in NS in sorted order."
+             (let ((ids (field-table-ids field-table :ns ns)))
+               (sort-descendants ast ids)))
            (find-enclosing-class (ast)
              (or (find-enclosing 'c/cpp-classoid-specifier (attrs-root*) ast)
                  (error "No enclosing class at ~a" ast))))
     (mvlet* ((class (find-enclosing-class ast))
              (field-table (field-table class))
-             (table-by-ns (partition-map-by-ns field-table))
-             (members (aget :variable table-by-ns))
-             (methods (aget :function table-by-ns))
-             (types (aget :type table-by-ns))
+             (members (get-sorted-ids field-table :variable))
+             (methods (get-sorted-ids field-table :function))
+             (types   (get-sorted-ids field-table :type))
              (outer-decls outer-decl-types
               (outer-declarations ast)))
       (values (append outer-decls members methods types)
               (append outer-decl-types
                       (mapcar (constantly :variable) members)
                       (mapcar (constantly :function) methods)
-                      (mapcar (constantly :type) types))))))
+                      (mapcar (constantly :type)     types))))))
 
 (defmethod outer-declarations ((ast c/cpp-enum-specifier))
   (match ast

@@ -1525,6 +1525,28 @@ AbstractBase::~AbstractBase() {}};"))
       (declare (ignore decls))
       (is (equal namespaces '(:variable))))))
 
+(deftest test-field-table-ids-by-ns ()
+  "Test we can filter field table IDs by namespace."
+  (let* ((cpp (cpp* "struct inc {
+  int x;
+  int inc(int y) {
+    return x + y;
+  }
+}")))
+    (with-attr-table cpp
+      (let ((ft (field-table cpp)))
+        ;; Nil is a possible namespace, not no namespace.
+        (is (null (field-table-ids ft :ns nil)))
+        (is (set-equal '("x" "inc")
+                       (field-table-ids ft)
+                       :test #'source-text=))
+        (is (set-equal '("x")
+                       (field-table-ids ft :ns :variable)
+                       :test #'source-text=))
+        (is (set-equal '("inc")
+                       (field-table-ids ft :ns :function)
+                       :test #'source-text=))))))
+
 (def +basic-inheritance-example+ (fmt "~
 struct Base
 {
