@@ -618,3 +618,13 @@ RIGHT_CURLY")
                (:|;| ((9 0) (10 0)) NIL)))))))
     (is (equal (insert-blots-into-parse-tree blotted-ranges parse-tree)
                blotted-parse-tree))))
+
+
+;;; Utilities
+
+(deftest test-sort-descendants ()
+  (let* ((ast (c* "x, y, z"))
+         (sorted-children (children ast))
+         (shuffled-children (reshuffle sorted-children)))
+    (is (equal (sort-descendants ast shuffled-children)
+               sorted-children))))

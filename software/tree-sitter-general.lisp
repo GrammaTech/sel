@@ -798,6 +798,17 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
     (when-let (parent (get-parent-ast root ast))
       (find-if pred (rest (member ast (children parent)))))))
 
+(defun sort-descendants (root asts &key (key #'identity))
+  "Sort ASTs according to their position in ROOT."
+  (let ((sorted
+          (stable-sort-new
+           asts
+           (op (path-later-p root
+                             (ast-path root _2)
+                             (ast-path root _1)))
+           :key key)))
+    (coerce sorted 'list)))
+
 (defgeneric comments-for (obj ast)
   (:documentation "Return the comments for AST in OBJ.")
   (:method ((software tree-sitter) (ast tree-sitter-ast))

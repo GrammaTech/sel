@@ -624,6 +624,7 @@
            :find-previous-sibling
            :find-following
            :find-next-sibling
+           :sort-descendants
            :comments-for
            :definition-name
            :definition-name-ast
