@@ -2703,6 +2703,26 @@ try {
       (let ((ast (make 'cpp-primitive-type :text type-string)))
         (is (null (get-declaration-ids ns ast)))))))
 
+(deftest test-ignore-bare-type-declaration-in-overloads ()
+  (let* ((cpp (from-string 'cpp (fmt "~
+struct mystruct;
+
+struct mystruct {
+  int q;
+}
+
+mystruct answer_mystruct(mystruct inst) {
+    mystruct.q = 42;
+    return mystruct;
+}")))
+         (id (lastcar (collect-if (of-type 'identifier-ast) cpp))))
+    (with-attr-table cpp
+      (let* ((structs (get-declaration-asts :type id))
+             (structs (sort-descendants cpp structs)))
+        (is (length= 2 structs))
+        (is (eql (get-declaration-ast :type id)
+                 (second structs)))))))
+
 
 ;;; Module tests
 

@@ -1268,6 +1268,14 @@ inherits from."
         ;; `vector<T>` vs. `vector<boolean>`.
         (cdr (extremum alist #'length<= :key #'car)))))
 
+(defmethod resolve-overloads ((type (eql :type)) (ast cpp-ast)
+                              &optional overloads)
+  (if (every (of-type 'c/cpp-classoid-specifier) overloads)
+      (match (remove-if-not #'cpp-body overloads)
+        ((list only) only)
+        (t (call-next-method)))
+      (call-next-method)))
+
 (defmethod resolve-declaration-type ((decl cpp-ast)
                                      (ast cpp-ast)
                                      &aux (obj (attrs-root*)))
