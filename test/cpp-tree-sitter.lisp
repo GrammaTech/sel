@@ -1547,6 +1547,26 @@ AbstractBase::~AbstractBase() {}};"))
                        (field-table-ids ft :ns :function)
                        :test #'source-text=))))))
 
+(deftest test-field-table-ids-sorted ()
+  "Passing `:sort-root' to `field-table-ids' returns IDs in textual
+order."
+  (let* ((cpp
+           (cpp*
+            ;; A struct with a member for every letter, defined in
+            ;; *descending* alphabetical order.
+            (fmt "struct alpha_members {~%~{  int ~a;~^~%~}~%}"
+                 (iter (for i from (char-code #\z) downto (char-code #\a))
+                       (collect (code-char i)))))))
+    (is (typep cpp 'cpp-struct-specifier))
+    (with-attr-table cpp
+      (let* ((ft (field-table cpp))
+             (sorted-ids
+               ;; These will be sorted in the order FSet uses for map
+               ;; keys, ascending alphabetic, in this case the
+               ;; opposite of what we want.
+               (field-table-ids ft :sort-root cpp)))
+        (is (source-text= (first sorted-ids) "z"))))))
+
 (def +basic-inheritance-example+ (fmt "~
 struct Base
 {

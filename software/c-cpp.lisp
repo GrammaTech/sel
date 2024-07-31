@@ -360,18 +360,17 @@ pointer declarations which are nested on themselves."
 ;;; avoid circular dependencies.
 (defmethod inner-declarations ((ast c/cpp-field-declaration-list))
   "Make the type and its members and methods visible inside the type."
-  (labels ((get-sorted-ids (field-table ns)
-             "Get field table IDs in NS in sorted order."
-             (let ((ids (field-table-ids field-table :ns ns)))
-               (sort-descendants ast ids)))
-           (find-enclosing-class (ast)
+  (labels ((find-enclosing-class (ast)
              (or (find-enclosing 'c/cpp-classoid-specifier (attrs-root*) ast)
                  (error "No enclosing class at ~a" ast))))
     (mvlet* ((class (find-enclosing-class ast))
              (field-table (field-table class))
-             (members (get-sorted-ids field-table :variable))
-             (methods (get-sorted-ids field-table :function))
-             (types   (get-sorted-ids field-table :type))
+             (members
+              (field-table-ids field-table :ns :variable :sort-root ast))
+             (methods
+              (field-table-ids field-table :ns :function :sort-root ast))
+             (types
+              (field-table-ids field-table :ns :type :sort-root ast))
              (outer-decls outer-decl-types
               (outer-declarations ast)))
       (values (append outer-decls members methods types)

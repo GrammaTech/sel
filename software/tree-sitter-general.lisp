@@ -4634,22 +4634,29 @@ information such as visibility."
     (adjoin-fields (empty-map)
                    (class-fields class))))
 
-
-
-(-> field-table-ids (fset:map &key (:ns symbol-table-namespace))
+(-> field-table-ids (fset:map &key
+                     (:ns symbol-table-namespace)
+                     (:sort-root t))
     (values list &optional))
-(defun field-table-ids (field-table &key (ns nil ns-supplied?))
+(defun field-table-ids (field-table &key (ns nil ns-supplied?) sort-root)
   "Extract IDs of fields from FIELD-TABLE.
 If NS is supplied, only return IDs for fields in the specified
-namespace."
+namespace.
+
+If SORT-ROOT is non-nil, sort the IDs using `sort-descendants', with
+SORT-ROOT as the ancestor."
   (let* ((range (range field-table))
          (fields
            (apply #'append (convert 'list range)))
          (fields
            (if ns-supplied?
                (keep ns fields :key (op (@ _ +ns+)))
-               fields)))
-    (mapcar (op (@ _ +id+)) fields)))
+               fields))
+         (ids
+           (mapcar (op (@ _ +id+)) fields)))
+    (if sort-root
+        (sort-descendants sort-root ids)
+        ids)))
 
 
 ;;; Namespace
