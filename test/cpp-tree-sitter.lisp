@@ -1525,6 +1525,24 @@ AbstractBase::~AbstractBase() {}};"))
       (declare (ignore decls))
       (is (equal namespaces '(:variable))))))
 
+(deftest test-field-table-lookup ()
+  "Test we can restrict lookups by namespace in `field-table-lookup'."
+  (let* ((cpp (cpp* "struct inc {
+  int x;
+  int inc(int y) {
+    return x + y;
+  }
+}")))
+    (with-attr-table cpp
+      (let ((ft (field-table cpp)))
+        (is (single (field-table-lookup ft "x")))
+        (is (single (field-table-lookup ft "inc")))
+        (is (single (field-table-lookup ft "x" :ns :variable)))
+        (is (single (field-table-lookup ft "inc" :ns :function)))
+        ;; Nil is a possible namespace.
+        (is (null (field-table-lookup ft "x" :ns nil)))
+        (is (null (field-table-lookup ft "inc" :ns nil)))))))
+
 (deftest test-field-table-ids-by-ns ()
   "Test we can filter field table IDs by namespace."
   (let* ((cpp (cpp* "struct inc {

@@ -728,6 +728,7 @@
            :adjoin-fields
            :class-fields
            :field-table-ids
+           :field-table-lookup
            :add-namespaced-field)
   (:local-nicknames
    (:dbg :software-evolution-library/utility/debug)

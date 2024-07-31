@@ -4658,6 +4658,15 @@ SORT-ROOT as the ancestor."
         (sort-descendants sort-root ids)
         ids)))
 
+(-> field-table-lookup (fset:map string &key (:ns symbol-table-namespace))
+    (values (soft-list-of ast) &optional))
+(defun field-table-lookup (field-table key &key (ns nil ns-supplied?))
+  (let ((result (@ field-table key)))
+    (mapcar (op (@ _ +id+))
+            (if (not ns-supplied?)
+                result
+                (filter (op (eql ns (@ _ +ns+))) result)))))
+
 
 ;;; Namespace
 (def-attr-fun namespace (in)
