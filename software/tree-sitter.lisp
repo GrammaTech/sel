@@ -726,7 +726,7 @@
            :field-adjoin
            :adjoin-fields
            :class-fields
-           :add-field-as)
+           :add-namespaced-field)
   (:local-nicknames
    (:dbg :software-evolution-library/utility/debug)
    #+sbcl (:md5 :sb-md5)

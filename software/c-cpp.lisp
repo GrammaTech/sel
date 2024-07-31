@@ -702,13 +702,13 @@ is the operator of a binary ast.")
                  (ensure-list (c/cpp-declarator field))))
 
 (defmethod field-adjoin ((field c/cpp-function-declarator) map)
-  (add-field-as map :function (c/cpp-declarator field)))
+  (add-namespaced-field map :function (c/cpp-declarator field)))
 
 (defmethod field-adjoin ((field c/cpp-field-identifier) map)
-  (add-field-as map :variable field))
+  (add-namespaced-field map :variable field))
 
 (defmethod field-adjoin ((field c/cpp-type-definition) map)
-  (reduce (op (add-field-as _ :type _))
+  (reduce (op (add-namespaced-field _ :type _))
           (c/cpp-declarator field)
           :initial-value map))
 
