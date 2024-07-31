@@ -115,6 +115,7 @@ deploy-python-package:
     - python3.8 -m twine upload --verbose dist/wheelhouse/*.whl -u __token__ -p $PYPI_API_KEY
   rules:
     - if: '$CI_COMMIT_REF_NAME =~ /^r\d\d\d\d\.\d\d\.\d\d/'
+    - if: $MANUAL_PYTHON_RELEASE
 
 dependent-genpatcher:
   stage: deploy
@@ -183,6 +184,7 @@ python-image-build:
     REGISTRY: $CI_REGISTRY
   rules:
     - if: '$CI_COMMIT_REF_NAME =~ /^r\d\d\d\d\.\d\d\.\d\d/'
+    - if: $MANUAL_PYTHON_RELEASE
 
 .scheduled-build:
   extends: .image-build
