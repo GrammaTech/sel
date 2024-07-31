@@ -384,6 +384,7 @@ field."
 recursively resolve that struct's field table."
   (match typedef
     ((c-type-definition
+      ;; NB c-tag-specifier is a mixin class we define.
       (c-type (and type (c-tag-specifier))))
      (when-let (class (get-declaration-ast :tag type))
        (field-table class)))
