@@ -169,7 +169,7 @@ dependent-cram:
     - >-
       /kaniko/executor
       --context=$CI_PROJECT_DIR/
-      --dockerfile=$CI_PROJECT_DIR/Dockerfile
+      --dockerfile=$CI_PROJECT_DIR/$DOCKERFILE_PATH
       --destination=$DESTINATION
       --destination=$DESTINATION:r$(date '+%F')
 
