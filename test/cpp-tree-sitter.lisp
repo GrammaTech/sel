@@ -2615,13 +2615,15 @@ public:
 system_clock::now();
 ")))
     (with-attr-table cpp
-      (is (length= 5
-                   (outer-declarations (find-if (of-type 'cpp-class-specifier) cpp))))
-      ;; Check they are resolve inside and outside the class.
-      (destructuring-bind (call-inside-class call-outside-class)
-          (collect-if (of-type 'call-ast) cpp)
-        (is (get-declaration-ast :function call-inside-class))
-        (is (get-declaration-ast :function call-outside-class))))))
+      (let ((class (find-if (of-type 'cpp-class-specifier) cpp)))
+        (is (length= 5 (outer-declarations class)))
+        ;; Check they are resolved inside and outside the class.
+        (destructuring-bind (call-inside-class call-outside-class)
+            (collect-if (of-type 'call-ast) cpp)
+          (is (ancestor-of-p cpp call-inside-class class))
+          (is (not (ancestor-of-p cpp call-outside-class class)))
+          (is (get-declaration-ast :function call-inside-class))
+          (is (get-declaration-ast :function call-outside-class)))))))
 
 (deftest test-typedef-multiple-aliases-in-struct ()
   (let* ((cpp (from-string 'cpp (fmt "~
