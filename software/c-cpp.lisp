@@ -327,7 +327,7 @@
         (apply #'merged-declarations declarations)
         (apply #'merged-namespaces namespaces)))))
 
-(defmethod inner-declarations ((ast cpp-declaration-list))
+(defmethod inner-declarations ((ast c/cpp-declaration-list))
   (outer-declarations-merge (children ast)))
 
 (defun get-nested-declaration (ast)
@@ -761,7 +761,7 @@ There can be multiple classes if FIELD occurs in a template."
   (mappend (op (lookup-in-field-table _ type (c/cpp-field ast)))
            (get-field-classes ast)))
 
-(defmethod get-initialization-ast ((ast cpp-ast) &aux (obj (attrs-root*)))
+(defmethod get-initialization-ast ((ast c/cpp-ast) &aux (obj (attrs-root*)))
   "Find the assignment for an unitialized variable."
   (or (call-next-method)
       (when-let* ((id (get-declaration-id :variable ast))
@@ -1083,7 +1083,7 @@ Should return `:failure' in the base case.")
   (:method ((sw t)
             (lhs c/cpp-pointer-declarator)
             (rhs c/cpp-pointer-expression))
-    (if (typep (c/cpp-operator rhs) 'cpp-&)
+    (if (typep (c/cpp-operator rhs) 'c/cpp-&)
         (with-attr-table sw
           (aliasee (c/cpp-argument rhs)))
         (call-next-method)))
@@ -1155,8 +1155,8 @@ Should return `:failure' in the base case.")
              (match ast
                ((call-ast
                  (call-function
-                  (cpp-field-expression
-                   (cpp-argument arg))))
+                  (c/cpp-field-expression
+                   (c/cpp-argument arg))))
                 (eql (get-decl arg) target))))
            (occurs-as-arg? (ast target)
              (match ast
