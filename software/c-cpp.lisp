@@ -596,28 +596,24 @@ pointer declarations which are nested on themselves."
     (cond
       ((equal "*" op) (deref-type type))
       ((equal "&" op)
-       (if (typep ast 'c-pointer-expression)
-           (when-let ((arg-type (infer-type (c-argument ast))))
-             (if (and (typep arg-type 'c-type-descriptor)
-                      (typep (c-declarator arg-type) '(or c-abstract-pointer-declarator
-                                                          c-abstract-array-declarator)))
-                 ;; Added this check to prevent the constructed c-type-descriptor
-                 ;; from breaking the print-object method
-                 ;; TODO: make this work with pointers to pointers, for example:
-                 ;;    void f() { int* x; &x; }
-                 arg-type
+       ;; TODO Remove duplicated code.
+       (when-let ((arg-type (infer-type (c/cpp-argument ast))))
+         (if (and (typep arg-type 'c/cpp-type-descriptor)
+                  (typep (c/cpp-declarator arg-type)
+                         '(or c/cpp-abstract-pointer-declarator
+                           c/cpp-abstract-array-declarator)))
+             ;; Added this check to prevent the constructed c-type-descriptor
+             ;; from breaking the print-object method
+             ;; TODO: make this work with pointers to pointers, for example:
+             ;;    void f() { int* x; &x; }
+             arg-type
+             (if (typep ast 'c-pointer-expression)
                  (make-instance 'c-type-descriptor
-                                :c-declarator (make-instance 'c-abstract-pointer-declarator)
-                                :c-type arg-type)))
-           (when-let ((arg-type (infer-type (cpp-argument ast))))
-             (if (and (typep arg-type 'cpp-type-descriptor)
-                      (typep (cpp-declarator arg-type) '(or cpp-abstract-pointer-declarator
-                                                            cpp-abstract-array-declarator)))
-                 ;; Similar to hack for C.  TODO: make this work with pointers to pointers
-                 arg-type
+                   :c-declarator (make-instance 'c-abstract-pointer-declarator)
+                   :c-type arg-type)
                  (make-instance 'cpp-type-descriptor
-                                :cpp-declarator (make-instance 'cpp-abstract-pointer-declarator)
-                                :cpp-type arg-type)))))
+                   :cpp-declarator (make-instance 'cpp-abstract-pointer-declarator)
+                   :cpp-type arg-type)))))
       (t type))))
 
 (defmethod infer-type ((ast c/cpp-subscript-expression))
