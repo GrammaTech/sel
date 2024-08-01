@@ -2271,72 +2271,49 @@ available to use at any point in a C++ AST.")
         (strip-template-arguments result)
         result)))
 
-(defun macro-name-string? (string)
-  "Does STRING follow the conventions for a macro name?"
-  (with-string-dispatch (simple-base-string) string
-    (and (> (length string) 0)
-         (not (digit-char-p (aref string 0)))
-         (every (lambda (char)
-                  (or (and (alpha-char-p char)
-                           (upper-case-p char))
-                      (digit-char-p char)
-                      (eql char #\_)))
-                string))))
+(defmethod identifier-macro-name? ((ast cpp-operator-name))
+  nil)
 
-(defgeneric identifier-macro-name? (ast &key source-text &allow-other-keys)
-  (:documentation
-   "Is AST of a class where it makes sense to check for a macro name?")
-  (:method ((ast cpp-identifier) &key (source-text (source-text ast)))
-    (macro-name-string? source-text))
-  (:method ((ast cpp-type-identifier) &key (source-text (source-text ast)))
-    (macro-name-string? source-text))
-  (:method ((ast cpp-field-identifier) &key (source-text (source-text ast)))
-    (macro-name-string? source-text))
-  (:method ((ast cpp-operator-name) &key)
-    nil)
-  (:method ((ast cpp-destructor-name) &key)
-    nil)
-  (:method ((ast cpp-qualified-identifier) &key)
-    nil)
-  (:method ((ast cpp-this) &key)
-    nil))
+(defmethod identifier-macro-name? ((ast cpp-destructor-name))
+  nil)
 
-(defun macro-name? (ast &key source-text)
-  "Does AST look like a macro name (that should not be qualified)?"
-  (when (typep ast 'identifier-ast)
-    (identifier-macro-name?
-     ast
-     :source-text (or source-text (source-text ast)))))
+(defmethod identifier-macro-name? ((ast cpp-qualified-identifier))
+  nil)
+
+(defmethod identifier-macro-name? ((ast cpp-this))
+  nil)
 
 (defmethod qualify-declared-ast-name ((type cpp-primitive-type))
   (source-text type))
 
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
-  (nest
-   (let* ((source-text
-            (or (declarator-name declared-ast)
-                ;; Put a reasonable limit on it if something absurd
-                ;; has been passed in. E.g. there may be code that
-                ;; tries to get the declaration of a definition by
-                ;; looking up the definition itself. Some compilers
-                ;; limit maximum name lengths, so code that goes
-                ;; beyond this would be anyway. (MISRA only allows
-                ;; 31!).
-                (source-text-take 2048 declared-ast)))))
-   (if (macro-name? declared-ast)
-       source-text)
-   (let* ((namespace (namespace declared-ast))
-          (implicit (split "::" namespace))
-          (parts (split "::" source-text))
-          (explicit
-            (append
-             (and (string^= "::" source-text)
-                  (list :global))
-             (butlast parts)))
-          (combined
-            (combine-namespace-qualifiers explicit implicit))))
-   (string-join (append1 combined (lastcar parts))
-                "::")))
+  (labels ((source-text* (declared-ast)
+             (or (declarator-name declared-ast)
+                 ;; Put a reasonable limit on it if something absurd
+                 ;; has been passed in. E.g. there may be code that
+                 ;; tries to get the declaration of a definition by
+                 ;; looking up the definition itself. Some compilers
+                 ;; limit maximum name lengths, so code that goes
+                 ;; beyond this would be anyway. (MISRA only allows
+                 ;; 31!).
+                 (source-text-take 2048 declared-ast)))
+           (qualify-declared-ast-name (declared-ast)
+             (let* ((source-text (source-text* declared-ast))
+                    (namespace (namespace declared-ast))
+                    (implicit (split "::" namespace))
+                    (parts (split "::" source-text))
+                    (explicit
+                      (append
+                       (and (string^= "::" source-text)
+                            (list :global))
+                       (butlast parts)))
+                    (combined
+                      (combine-namespace-qualifiers explicit implicit)))
+               (string-join (append1 combined (lastcar parts))
+                            "::"))))
+    (if (macro-name? declared-ast)
+        (source-text* declared-ast)
+        (qualify-declared-ast-name declared-ast))))
 
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."

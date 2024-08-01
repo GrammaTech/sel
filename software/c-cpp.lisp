@@ -226,6 +226,45 @@
   (propagate-declarations-down node in))
 
 
+;;; Macro heuristics
+
+(defun macro-name? (ast &key source-text)
+  "Does AST look like a macro name (that should not be qualified)?"
+  (when (typep ast 'identifier-ast)
+    (identifier-macro-name? ast)))
+
+(defgeneric identifier-macro-name? (ast)
+  (:documentation
+   "Is AST of a class where it makes sense to check for a macro name?")
+  (:method ((id c/cpp-identifier))
+    (flet ((enumerator-name? (id)
+             (let ((parent (get-parent-ast (attrs-root*) id)))
+               (and (typep parent 'c/cpp-enumerator)
+                    (eql (c/cpp-name parent) id)))))
+      (let ((source-text (source-text id)))
+        (cond ((not (macro-name-string? source-text))
+               nil)
+              ;; Enumerator names are often all-caps.
+              ((enumerator-name? id)
+               nil)
+              (t (macro-name-string? source-text))))))
+  (:method ((ast c/cpp-type-identifier))
+    (macro-name-string? (source-text ast)))
+  (:method ((ast c/cpp-field-identifier))
+    (macro-name-string? (source-text ast))))
+
+(defun macro-name-string? (string)
+  "Does STRING follow the conventions for a macro name?"
+  (with-string-dispatch (simple-base-string) string
+    (and (> (length string) 0)
+         (not (digit-char-p (aref string 0)))
+         (every (lambda (char)
+                  (or (upper-case-p char)
+                      (digit-char-p char)
+                      (eql char #\_)))
+                string))))
+
+
 ;;; Generics and Transformations
 (defmethod function-name ((ast c/cpp-function-definition))
   (source-text (definition-name-ast ast)))
