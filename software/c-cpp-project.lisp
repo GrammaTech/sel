@@ -885,7 +885,7 @@ paths."
     ;; E.g. `#include BOOST_ABI_PREFIX`.
     ((c/cpp-preproc-include
       (c/cpp-path (and id (identifier-ast))))
-     (and-let* (((sel/sw/ts::macro-name? (source-text id)))
+     (and-let* (((sel/sw/ts::macro-name? id))
                 (symbol-table)
                 (ns (lookup symbol-table :macro))
                 (macro (car (lookup ns (source-text id))))

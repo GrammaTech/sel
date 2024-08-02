@@ -228,10 +228,15 @@
 
 ;;; Macro heuristics
 
-(defun macro-name? (ast &key source-text)
-  "Does AST look like a macro name (that should not be qualified)?"
+(defun macro-name? (ast)
+  "Does AST look like a macro name (that should not be qualified)? If a
+symbol table is available for AST, check for a macro definition.
+Otherwise, use heuristics."
   (when (typep ast 'identifier-ast)
-    (identifier-macro-name? ast)))
+    (if (has-attribute-p ast 'symbol-table)
+        (when-let* ((symbol-table (symbol-table ast)))
+          (find-in-symbol-table ast :macro (source-text ast)))
+        (identifier-macro-name? ast))))
 
 (defgeneric identifier-macro-name? (ast)
   (:documentation
