@@ -2717,6 +2717,7 @@ int main() {
                           cpp)))))))
 
 (deftest test-catch-clause-symbol-table ()
+  "Catch clauses should add their bindings to the symbol table."
   (let* ((cpp (from-string 'cpp (fmt "~
 try {
     do_something();
@@ -2739,6 +2740,7 @@ try {
                                decl)))))))
 
 (deftest test-no-primitive-type-declarations ()
+  "Primitive types (e.g. int) should not have declarations."
   (dolist (type-string +c/cpp-primitive-types+)
     (dolist (ns +symbol-table-namespaces+)
       (let ((ast (make 'cpp-primitive-type :text type-string)))
