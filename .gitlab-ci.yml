@@ -35,6 +35,10 @@ build-no-tree-sitter:
   stage: test
   script:
     - LISP=$LISP GT=yes make $TARGET
+    # Check no files have been mutated by tests
+    - git diff --exit-code
+    # Check no files have been added by tests
+    - test -z "$(git status --porcelain)"
   except:
     - schedules
 
