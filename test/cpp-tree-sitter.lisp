@@ -2764,6 +2764,24 @@ mystruct answer_mystruct(mystruct inst) {
         (is (eql (get-declaration-ast :type id)
                  (second structs)))))))
 
+(deftest test-handle-overloads-when-finding-declarations ()
+  "Trying to find the declaration of a definition should not do overload
+resolution."
+  ;; The real test here is what happens with the overloads in
+  ;; iostream.
+  (let ((cpp (from-string 'cpp-project (fmt "~
+#include <iostream>
+int myfun();
+int myfun() {
+  return 1;
+}"))))
+    (with-attr-table cpp
+      (let ((decl (find-if (of-type 'cpp-declaration) cpp)))
+        ;; Make sure the header is in the tree.
+        (symbol-table decl)
+        (finishes
+          (c/cpp-function-declaration-definitions decl))))))
+
 
 ;;; Module tests
 
