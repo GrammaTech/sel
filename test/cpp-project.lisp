@@ -521,6 +521,7 @@ int main () {
       (get-declaration-ast :variable endl))))
 
 (deftest test-incremental-symbol-table ()
+  (is ft/attrs::*enable-cross-session-cache*)
   (labels ((file-root (file-ast)
              (only-elt (dir:contents file-ast)))
            (symbol-table-alist (project)
@@ -532,6 +533,12 @@ int main () {
              (let ((old-symbol-table-alist (symbol-table-alist old-project))
                    (new-symbol-table-alist (symbol-table-alist new-project)))
                (dolist (file unchanged)
+                 (is (and (lookup old-project file)
+                          (lookup new-project file))
+                     "File must be in projects: ~a" file)
+                 (is (eql (lookup old-project file)
+                          (lookup new-project file))
+                     "Unchanged files must actually be unchanged: ~a" file)
                  (let ((v1 (aget* file old-symbol-table-alist))
                        (v2 (aget* file new-symbol-table-alist)))
                    (is (eql v1 v2)
@@ -558,7 +565,7 @@ int main () {
       ;; Test changing the .cc file.
       (let* ((new-ast (cpp* "mc.do_something_else()"))
              (new-project
-              (with project cc-ast new-ast))
+               (with project cc-ast new-ast))
              (new-file (lookup new-project "my_program.cc")))
         (is (not (eql new-project project))
             "The project must have changed")
@@ -575,11 +582,11 @@ int main () {
       (let* ((new-ast (tree-copy hpp-ast))
              (id (find-if (of-type 'cpp-field-identifier) new-ast))
              (new-ast
-              (with new-ast
-                    id
-                    (copy id :text "do_something_else")))
+               (with new-ast
+                     id
+                     (copy id :text "do_something_else")))
              (new-project
-              (with project hpp-ast new-ast))
+               (with project hpp-ast new-ast))
              (new-file (lookup new-project "my_class.h")))
         (is (not (eql new-project project))
             "The project must have changed")
