@@ -47,19 +47,21 @@
 (defixture multiple-artifacts-project
   (:setup
    (setf *project*
-         (from-file
+         (from-file-as-temporary-project
           (make-instance 'c-project
             :build-command "make"
             :artifacts (list "run_shared"
                              "shared.so.link"
                              "nested-dir/helper"))
           (make-pathname :directory +multiple-artifact-dir+))))
-  (:teardown (setf *project* nil)))
+  (:teardown
+   (delete-temporary-project *project*)
+   (setf *project* nil)))
 
 (defixture grep-project
   (:setup
    (setf *project*
-         (from-file
+         (from-file-as-temporary-project
           (make-instance 'c-project
             :build-command "make grep"
             :artifacts '("grep")
@@ -67,8 +69,10 @@
             :flags "-v")
           (make-pathname :directory +grep-prj-dir+))
          *mutation-stats* (make-hash-table :test 'equal)))
-  (:teardown (setf *project* nil
-                   *mutation-stats* nil)))
+  (:teardown
+   (delete-temporary-project *project*)
+   (setf *project* nil
+         *mutation-stats* nil)))
 
 (defixture include-processing
   (:setup
@@ -212,8 +216,6 @@
     ;; Don't include binaries in `other-files'.
     (is (not (member "support/inputs/grepBinary"
                      (mapcar #'car (other-files *project*)) :test #'equalp)))
-    (is (equal (namestring (make-pathname :directory +grep-prj-dir+))
-               (namestring (project-dir *project*))))
     (is (equal (compiler *project*) "gcc"))
     (is (equal (flags *project*) "-v"))))
 

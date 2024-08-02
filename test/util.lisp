@@ -64,7 +64,9 @@
            :test-ast-source-ranges-for-files
            :test-single-ast-source-ranges
            :expand-wildcard
-           :with-fixture/attrs))
+           :with-fixture/attrs
+           :delete-temporary-project
+           :from-file-as-temporary-project))
 (in-package :software-evolution-library/test/util)
 (in-readtable :curry-compose-reader-macros)
 
@@ -372,3 +374,15 @@ That is, test that the result of calling `source-text' on an AST is the same as 
          (files (directory path)))
     (is (not (emptyp files)))
     files))
+
+(defun from-file-as-temporary-project (project dir)
+  "Copy PATH into a temporary directory and create a project from it."
+  (with-temporary-directory-of (:pathname temp :keep t)
+                               dir
+    (from-file project temp)))
+
+(defun delete-temporary-project (project)
+  "Delete PROJECT's directory, if it's a temporary file."
+  (uiop:delete-directory-tree
+   (project-dir project)
+   :validate (op (subpathp _ uiop:*temporary-directory*))))
