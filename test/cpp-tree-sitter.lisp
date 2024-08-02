@@ -2711,9 +2711,10 @@ int main() {
 #  include BOOST_ABI_PREFIX
 #endif")
          (cpp (from-string 'cpp src)))
-    (is (null (sel/sw/c-cpp-project::include-ast-path-ast
-               (find-if (of-type 'cpp-preproc-include)
-                        cpp))))))
+    (with-attr-table cpp
+      (is (null (sel/sw/c-cpp-project::include-ast-path-ast
+                 (find-if (of-type 'cpp-preproc-include)
+                          cpp)))))))
 
 (deftest test-catch-clause-symbol-table ()
   (let* ((cpp (from-string 'cpp (fmt "~
