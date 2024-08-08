@@ -1078,16 +1078,21 @@ class declaration."
 QUALIFIERS could contain a public, private, or protected qualifier;
 otherwise use the default (public for a struct, private for a class)."
   (assure member-access
-    (cond ((find-if (of-type 'cpp-public) quals)
-           :public)
-          ((find-if (of-type 'cpp-private) quals)
-           :private)
-          ((find-if (of-type 'cpp-protected) quals)
-           :protected)
-          ((typep derived-class 'cpp-class-specifier)
-           :private)
-          ((typep derived-class 'cpp-struct-specifier)
-           :public))))
+    (iter (for qual in quals)
+          (thereis
+           (cond ((find-if (of-type 'cpp-public) qual)
+                  :public)
+                 ((find-if (of-type 'cpp-private) qual)
+                  :private)
+                 ((find-if (of-type 'cpp-protected) qual)
+                  :protected)))
+          (finally
+           (return
+             (econd
+               ((typep derived-class 'cpp-class-specifier)
+                :private)
+               ((typep derived-class 'cpp-struct-specifier)
+                :public)))))))
 
 (defun single-inheritance (derived-field-table
                            derived-class
@@ -1095,23 +1100,25 @@ otherwise use the default (public for a struct, private for a class)."
                            quals)
   (declare (fset:map derived-field-table)
            (ast derived-class base-class))
-  (let ((base-access (base-class-access derived-class quals))
-        (new-field-table derived-field-table))
-    (iter (for (key fields) in-map (field-table base-class))
-          ;; C++ uses "name hiding": if a derived class specifies a
-          ;; name, overloads for that name in the parent class
-          ;; disappear.
-          (unless (@ new-field-table key)
-            (when-let (fields
-                       (mapcar (lambda (field)
-                                 (let ((visibility
-                                         (inherited-member-access
-                                          base-access
-                                          (@ field +access+))))
-                                   (with field +access+ visibility)))
-                               fields))
-              (withf new-field-table key fields)))
-          (finally (return new-field-table)))))
+  (let ((base-access (base-class-access derived-class quals)))
+    (labels ((field-private? (field)
+               (eql :private (@ field +access+)))
+             (set-final-visibility (field)
+               (let ((final-visibility
+                       (inherited-member-access
+                        base-access
+                        (@ field +access+))))
+                 (with field +access+ final-visibility))))
+      (iter (iter:with new-field-table = derived-field-table)
+            (for (key fields) in-map (field-table base-class))
+            ;; C++ uses "name hiding": if a derived class specifies a
+            ;; name, overloads for that name in the parent class
+            ;; disappear.
+            (unless (@ new-field-table key)
+              (when-let (fields (remove-if #'field-private? fields))
+                (let ((fields (mapcar #'set-final-visibility fields)))
+                  (withf new-field-table key fields))))
+            (finally (return new-field-table))))))
 
 (defun multiple-inheritance (class field-table)
   "Extend FIELD-TABLE with the members of all classes FIELD-TABLE
@@ -1155,13 +1162,15 @@ inherits from."
   (multiple-inheritance class field-table))
 
 (defun cpp::field-table-with-inheritance (class)
+  "Return CLASS's field table, with inheritance if possible."
   (let ((direct-field-table (direct-field-table class)))
     (if (has-attribute-p class 'symbol-table)
         (perform-inheritance class direct-field-table)
         (progn
-          (when (cpp::derived-class? struct)
-            (dbg:lazy-note :debug "Not inheriting ~a without symbol table"
-                           (definition-name-ast struct)))
+          (when (cpp::derived-class? class)
+            (dbg:lazy-note :debug
+                           "Cannot inherit without a symbol table: ~a"
+                           (definition-name-ast class)))
           direct-field-table))))
 
 (defmethod field-table ((struct cpp-struct-specifier))

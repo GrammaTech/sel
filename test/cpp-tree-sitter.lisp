@@ -1675,6 +1675,33 @@ definition."
               (test-enclosing expr2 derived)
               (test-enclosing expr3 derived2))))))))
 
+(deftest test-private-members-inaccessible ()
+  (let ((cpp (from-string 'cpp "
+class BaseClass {
+public:
+   // privMem accessible from member function
+   int pubFunc() { return privMem; }
+private:
+   void privMem;
+};
+
+class DerivedClass : public BaseClass {
+public:
+   void usePrivate( int i )
+      { privMem = i; }   // C2248: privMem not accessible
+                         // from derived class
+};")))
+    (with-attr-table cpp
+      (destructuring-bind (base-class derived-class)
+          (collect-if (of-type 'class-ast) cpp)
+        (declare (ignore base-class))
+        (symbol-table derived-class)
+        (let ((derived-field-table
+                (field-table derived-class)))
+          (is (lookup derived-field-table "usePrivate"))
+          (is (lookup derived-field-table "pubFunc"))
+          (is (not (lookup derived-field-table "privMem"))))))))
+
 
 
 ;;; Parsing tests
