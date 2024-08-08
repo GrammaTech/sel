@@ -993,6 +993,8 @@ from a prior sibling \(`public:', `private:', `protected:').")
 (defun protected? (ast)
   (eql :protected (member-access ast)))
 
+(fset:define-tuple-key cpp::+virtual+)
+
 (defmethod field-table ((typedef cpp-type-definition))
   "Given a typedef for a template type, recursively resolve the
 templated definition's field table."
@@ -1055,23 +1057,43 @@ order."
       (mapcar (op (cons (car _1) (nreverse (cdr _1))))
               alist))))
 
-(defun field-table-save-access (field-table)
-  "For all the fields in FIELD-TABLE, record member access from the
-class declaration."
-  (iter (for (name fields) in-map field-table)
-        (map-collect
-         name
-         (mapcar (lambda (field)
-                   (if (@ field +access+)
-                       field
-                       (with field +access+
-                             (member-access
-                              (@ field +id+)))))
-                 fields))))
+(defun cpp::declared-virtual? (fn)
+  "Is FN declared virtual?"
+  (find-if (of-type 'cpp-virtual)
+           (slot-value-safe fn 'cpp-pre-specifiers)))
+
+(defun cpp::field-table-save-props (field-table)
+  "For all the fields in FIELD-TABLE, record properties (member access,
+virtuality) from class where they are declared."
+  (labels ((field-virtual? (field)
+             (and (eql :function (@ field +ns+))
+                  (let ((ast (@ field +id+)))
+                    (when-let* ((decl
+                                 (find-enclosing
+                                  'function-declaration-ast
+                                  (attrs-root*)
+                                  ast)))
+                      (cpp::declared-virtual? decl)))))
+           (save-props (field)
+             (let* ((field
+                      (if (@ field +access+)
+                          field
+                          (with field +access+
+                                (member-access
+                                 (@ field +id+)))))
+                    (field
+                      (if (@ field cpp::+virtual+)
+                          field
+                          (if (field-virtual? field)
+                              (with field cpp::+virtual+ t)
+                              field))))
+               field)))
+    (iter (for (name fields) in-map field-table)
+          (map-collect name (mapcar #'save-props fields)))))
 
 (defmethod direct-field-table :around ((ast cpp-ast))
   (when-let (map (call-next-method))
-    (field-table-save-access map)))
+    (cpp::field-table-save-props map)))
 
 (defun base-class-access (derived-class quals)
   "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
