@@ -162,26 +162,35 @@ LEVEL may be a symbolic level defined with `define-note-level-name'."
   ;; Always return nil.
   nil)
 
-(defmacro lazy-note (level format-control &rest format-args)
+(defun check-level (level env)
+  "Warn if a symbolic note level is not correct."
+  (multiple-value-bind (level constant?)
+      (eval-if-constant level env)
+    (when (and constant? (symbolp level))
+      (handler-case (numeric-note-level level)
+        ;; Convert the error into a style warning.
+        (unknown-symbolic-note-level (e)
+          (simple-style-warning "~a" e))))))
+
+(define-compiler-macro note (&whole call
+                                    level format-control
+                                    &rest format-args
+                                    &environment env)
+  (check-level level env)
+  (if (stringp format-control)
+      `(note ,level (formatter ,format-control) ,@format-args)
+      call))
+
+(defmacro lazy-note (level format-control &rest format-args &environment env)
   "Like `note', but only evaluates its arguments if the message would be
 printed.
 
 This is a useful alternative to `note' when computing the arguments
 would be expensive."
+  (check-level level env)
   (once-only (level)
-    `(when (<= ,level *note-level*)
+    `(when (<= (numeric-note-level ,level) *note-level*)
        (note ,level ,format-control ,@format-args))))
-
-(define-compiler-macro note (&whole call level format-control &rest format-args)
-  ;; Check symbolic note levels at compile time.
-  (when (symbolp level)
-    (handler-case (numeric-note-level level)
-      ;; Convert the error into a style warning.
-      (unknown-symbolic-note-level (e)
-        (simple-style-warning "~a" e))))
-  (if (stringp format-control)
-      `(note ,level (formatter ,format-control) ,@format-args)
-      call))
 
 (defmacro with-warnings-as-notes (note-level &body forms)
   `(handler-bind ((warning (lambda (c)
