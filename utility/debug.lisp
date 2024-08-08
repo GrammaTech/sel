@@ -55,6 +55,7 @@
    :note-level
    :*note-out*
    :note
+   :lazy-note
    :with-warnings-as-notes
    :trace-memory
    :define-symbolic-note-level))
