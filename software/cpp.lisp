@@ -1028,13 +1028,17 @@ class (AS-DEFINED)."
     ;; public/protected field is protected.
     ((protected (or public protected)) :protected)))
 
+(defun cpp::derived-class? (class)
+  "If CLASS is a derived class, return the base class clause."
+  (and (typep class 'c/cpp-classoid-specifier)
+       (find-if (of-type 'cpp-base-class-clause)
+                (children class))))
+
 (defun base-class-alist (class)
   "Return an alist from the base classes of CLASS to their
 qualifiers (public/private/protected/virtual). Maintain textual
 order."
-  (when-let (clause
-             (find-if (of-type 'cpp-base-class-clause)
-                      (children class)))
+  (when-let (clause (cpp::derived-class? class))
     (let ((alist
             (reduce (lambda (child alist)
                       (if (typep child '(or cpp-type-identifier
@@ -1150,17 +1154,21 @@ inherits from."
 (defun perform-inheritance (class field-table)
   (multiple-inheritance class field-table))
 
-(defmethod field-table ((struct cpp-struct-specifier))
-  (let ((direct-field-table (direct-field-table struct)))
-    (if (has-attribute-p struct 'symbol-table)
-        (perform-inheritance struct direct-field-table)
-        direct-field-table)))
-
-(defmethod field-table ((class cpp-class-specifier))
+(defun cpp::field-table-with-inheritance (class)
   (let ((direct-field-table (direct-field-table class)))
     (if (has-attribute-p class 'symbol-table)
         (perform-inheritance class direct-field-table)
-        direct-field-table)))
+        (progn
+          (when (cpp::derived-class? struct)
+            (dbg:lazy-note :debug "Not inheriting ~a without symbol table"
+                           (definition-name-ast struct)))
+          direct-field-table))))
+
+(defmethod field-table ((struct cpp-struct-specifier))
+  (cpp::field-table-with-inheritance struct))
+
+(defmethod field-table ((class cpp-class-specifier))
+  (cpp::field-table-with-inheritance class))
 
 (defmethod outer-declarations ((ast cpp-template-declaration))
   ;; TODO Store the template parameters somehow in the symbol table?
