@@ -11,6 +11,10 @@
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
+(eval-always
+  (uiop:add-package-local-nickname
+   :cpp :software-evolution-library/software/cpp))
+
 ;;;===================================================
 ;;; Generate the language definitions
 ;;;===================================================
