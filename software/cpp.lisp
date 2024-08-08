@@ -1094,10 +1094,10 @@ otherwise use the default (public for a struct, private for a class)."
                ((typep derived-class 'cpp-struct-specifier)
                 :public)))))))
 
-(defun single-inheritance (derived-field-table
-                           derived-class
-                           base-class
-                           quals)
+(defun cpp::single-inheritance (derived-field-table
+                                derived-class
+                                base-class
+                                quals)
   (declare (fset:map derived-field-table)
            (ast derived-class base-class))
   (let ((base-access (base-class-access derived-class quals)))
@@ -1120,16 +1120,16 @@ otherwise use the default (public for a struct, private for a class)."
                   (withf new-field-table key fields))))
             (finally (return new-field-table))))))
 
-(defun multiple-inheritance (class field-table)
+(defun cpp::multiple-inheritance (class field-table)
   "Extend FIELD-TABLE with the members of all classes FIELD-TABLE
 inherits from."
   (let ((class-name (definition-name-ast class)))
     (labels ((inherit-from-base-class-definition (field-table id quals)
                (if-let ((base-class (get-declaration-ast :type id)))
-                 (single-inheritance field-table
-                                     class
-                                     base-class
-                                     quals)
+                 (cpp::single-inheritance field-table
+                                          class
+                                          base-class
+                                          quals)
                  (progn
                    (dbg:note :debug
                              "No definition found for base class ~a of ~a"
@@ -1158,14 +1158,11 @@ inherits from."
                                class-name))))))
       (inherit-from-base-classes class field-table))))
 
-(defun perform-inheritance (class field-table)
-  (multiple-inheritance class field-table))
-
 (defun cpp::field-table-with-inheritance (class)
   "Return CLASS's field table, with inheritance if possible."
   (let ((direct-field-table (direct-field-table class)))
     (if (has-attribute-p class 'symbol-table)
-        (perform-inheritance class direct-field-table)
+        (cpp::multiple-inheritance class direct-field-table)
         (progn
           (when (cpp::derived-class? class)
             (dbg:lazy-note :debug
