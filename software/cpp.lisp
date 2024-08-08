@@ -1125,21 +1125,63 @@ otherwise use the default (public for a struct, private for a class)."
   (let ((base-access (base-class-access derived-class quals)))
     (labels ((field-private? (field)
                (eql :private (@ field +access+)))
+             (field-virtual? (field)
+               (@ field cpp::+virtual+))
              (set-final-visibility (field)
+               "Return a copy of FIELD with final visibility.
+                The final visibility is the combination of the field's
+                visibility where it was defined and the declared
+                visibility of the base class where it was inherited."
                (let ((final-visibility
                        (inherited-member-access
                         base-access
                         (@ field +access+))))
-                 (with field +access+ final-visibility))))
-      (iter (iter:with new-field-table = derived-field-table)
-            (for (key fields) in-map (field-table base-class))
-            ;; C++ uses "name hiding": if a derived class specifies a
-            ;; name, overloads for that name in the parent class
-            ;; disappear.
-            (unless (@ new-field-table key)
-              (when-let (fields (remove-if #'field-private? fields))
-                (let ((fields (mapcar #'set-final-visibility fields)))
-                  (withf new-field-table key fields))))
+                 (with field +access+ final-visibility)))
+             (filter-fields (base-fields)
+               "Remove non-virtual private fields from BASE-FIELDS."
+               (mapcar #'set-final-visibility
+                       (remove-if
+                        (lambda (field)
+                          ;; Remove private base-fields, unless they're
+                          ;; virtual.
+                          (and (field-private? field)
+                               (not (field-virtual? field))))
+                        base-fields)))
+             (mark-virtual (field)
+               "Return a copy of FIELD marked as virtual."
+               (if (field-virtual? field) field
+                   (with field cpp::+virtual+ t)))
+             (update-derived-field-table (field-table key base-fields)
+               ;; C++ uses "name hiding": if a derived class specifies
+               ;; a name, overloads for that name in the parent class
+               ;; disappear. But that doesn't apply to virtual
+               ;; methods.
+               (let ((derived-class-value (@ field-table key))
+                     ;; Note that virtuality doesn't care if a field is
+                     ;; private.
+                     (base-fields (filter-fields base-fields))
+                     (virtual (some #'field-virtual? base-fields)))
+                 (cond ((no derived-class-value)
+                        ;; If the derived class doesn't define a name,
+                        ;; inherit it.
+                        (with field-table key (filter-fields base-fields)))
+                       ;; If the derived class defines a name, only
+                       ;; inherit it if it's virtual. Also mark all
+                       ;; the base-fields virtual. TODO: This should
+                       ;; only happen if the signatures match.
+                       (virtual
+                        (with field-table key
+                              (mapcar #'mark-virtual
+                                      (append derived-class-value
+                                              (filter-fields base-fields)))))
+                       (t field-table)))))
+      (iter (for (key base-fields) in-map (field-table base-class))
+            (for new-field-table
+                 initially derived-field-table
+                 then (update-derived-field-table
+                       new-field-table
+                       key
+                       base-fields))
             (finally (return new-field-table))))))
 
 (defun cpp::multiple-inheritance (class field-table)

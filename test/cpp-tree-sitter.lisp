@@ -1702,6 +1702,22 @@ public:
           (is (lookup derived-field-table "pubFunc"))
           (is (not (lookup derived-field-table "privMem"))))))))
 
+(deftest test-virtual-method-lookup ()
+  (let* ((cpp
+           (from-file 'cpp
+                      (asdf:system-relative-pathname
+                       :software-evolution-library
+                       "test/etc/cpp-tree-sitter/virtual-method-example.cc")))
+         (invocations (collect-if (of-type 'call-ast) cpp))
+         (classes (collect-if (of-type 'class-ast) cpp)))
+    (with-attr-table cpp
+      (is (single (get-declaration-asts :function (first invocations))))
+      (destructuring-bind (def1 def2)
+          (get-declaration-asts :function (second invocations))
+        (destructuring-bind (base-class derived) classes
+          (is (ancestor-of-p cpp def1 derived))
+          (is (ancestor-of-p cpp def2 base-class)))))))
+
 
 
 ;;; Parsing tests
