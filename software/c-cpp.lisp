@@ -639,7 +639,6 @@ circular dependencies."
     (cond
       ((equal "*" op) (deref-type type))
       ((equal "&" op)
-       ;; TODO Remove duplicated code.
        (when-let ((arg-type (infer-type (c/cpp-argument ast))))
          (if (and (typep arg-type 'c/cpp-type-descriptor)
                   (typep (c/cpp-declarator arg-type)
@@ -650,6 +649,7 @@ circular dependencies."
              ;; TODO: make this work with pointers to pointers, for example:
              ;;    void f() { int* x; &x; }
              arg-type
+             ;; TODO Remove duplicated code.
              (if (typep ast 'c-pointer-expression)
                  (make-instance 'c-type-descriptor
                    :c-declarator (make-instance 'c-abstract-pointer-declarator)

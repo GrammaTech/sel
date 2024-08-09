@@ -4617,7 +4617,7 @@ the format)."
 (def-attr-fun field-table ()
   "Attribute storing a map from names to fields of a class.
 \"Field\" is the language-agnostic term for what different languages
-call members, methods, attributes, or slots.
+call fields, members, methods, attributes, or slots.
 
 The keys of the map are strings; the values are FSet tuples where
 `+ns+` is the namespace of the definition (function, variable, etc.)
