@@ -1120,12 +1120,18 @@ otherwise use the default (public for a struct, private for a class)."
                                 derived-class
                                 base-class
                                 quals)
+  "Add the fields of BASE-CLASS into DERIVED-CLASS.
+Note that because of C++'s name hiding rules, the fields of
+DERIVED-CLASS shadow those of BASE-CLASS, except for overrides of
+virtual methods."
   (declare (fset:map derived-field-table)
            (ast derived-class base-class))
   (let ((base-access (cpp::base-class-access derived-class quals)))
     (labels ((field-private? (field)
+               "Is FIELD defined as private."
                (eql :private (@ field +access+)))
              (field-virtual? (field)
+               "Is FIELD defined as virtual?"
                (@ field cpp::+virtual+))
              (set-final-visibility (field)
                "Return a copy of FIELD with final visibility.
@@ -1152,6 +1158,7 @@ otherwise use the default (public for a struct, private for a class)."
                (if (field-virtual? field) field
                    (with field cpp::+virtual+ t)))
              (update-derived-field-table (field-table key base-fields)
+               "Add BASE-FIELDS into FIELD-TABLE under KEY."
                ;; C++ uses "name hiding": if a derived class specifies
                ;; a name, overloads for that name in the parent class
                ;; disappear. But that doesn't apply to virtual
@@ -1352,6 +1359,8 @@ inherits from."
 
 (defmethod resolve-overloads ((type (eql :type)) (ast cpp-ast)
                               &optional overloads)
+  "Remove bare declarations of types (e.g. `struct mytype;') from
+consideration as overloads."
   (if (every (of-type 'c/cpp-classoid-specifier) overloads)
       (match (remove-if-not #'cpp-body overloads)
         ((list only) only)

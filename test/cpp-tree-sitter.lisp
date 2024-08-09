@@ -1033,6 +1033,7 @@ auto x = Unit::IN;"))
                    'cpp-enum-specifier))))))
 
 (deftest test-nested-class-outer-symbol-table ()
+  "Identifiers in nested classes should be accessible with qualified names."
   (let ((cpp (from-string 'cpp "struct Distance {
   enum class Unit { IN, CM };
   float x;
@@ -1516,7 +1517,8 @@ AbstractBase::~AbstractBase() {}};"))
          (opname (is (find-if (of-type 'cpp-operator-name) cpp))))
     (is (source-text= "operator=" (unqualified-name opname)))))
 
-(deftest test-field-namespace ()
+(deftest test-field-namespace-regression ()
+  "Calling `outer-declarations' on a field should always return the namespace."
   (let* ((cpp (cpp* "struct inc { int x; }")))
     (multiple-value-bind (decls namespaces)
         (outer-declarations
@@ -1566,8 +1568,8 @@ AbstractBase::~AbstractBase() {}};"))
                        :test #'source-text=))))))
 
 (deftest test-field-table-ids-sorted ()
-  "Passing `:sort-root' to `field-table-ids' returns IDs in textual
-order."
+  "Passing `:sort-root' to `field-table-ids' should return IDs in
+textual order."
   (let* ((cpp
            (cpp*
             ;; A struct with a member for every letter, defined in
@@ -1608,7 +1610,8 @@ int main() {
     derived2.a;
     derived2.b;
     derived2.c;
-}~%"))
+}~%")
+  "Example C++ program with an inheritance hierarchy.")
 
 (deftest test-direct-field-table ()
   "Direct field tables should not include inherited fields."
@@ -1626,7 +1629,7 @@ int main() {
           (is (not (@ dft "b"))))))))
 
 (deftest test-basic-inheritance ()
-  "Field tables should include inheritance."
+  "Field tables should include inherited fields."
   (let* ((cpp (from-string 'cpp +basic-inheritance-example+))
          (classes (collect-if (of-type 'cpp-struct-specifier) cpp)))
     (is (length= classes 3))
@@ -1657,8 +1660,8 @@ int main() {
                      derived2))))))))
 
 (deftest test-basic-inheritance-lookup ()
-  "Looking up definitions of field expression should find the correct
-definition."
+  "Looking up definitions of inherited field expressions should always
+return ASTs in the class that defines the field."
   (let ((cpp (from-string 'cpp +basic-inheritance-example+)))
     (labels ((get-enclosing-class (ast)
                (find-enclosing 'class-ast (attrs-root*) ast)))
@@ -1676,6 +1679,7 @@ definition."
               (test-enclosing expr3 derived2))))))))
 
 (deftest test-private-members-inaccessible ()
+  "Test private members of a base class are not accessible in a derived class."
   (let ((cpp (from-string 'cpp "
 class BaseClass {
 public:
@@ -1703,6 +1707,7 @@ public:
           (is (not (lookup derived-field-table "privMem"))))))))
 
 (deftest test-virtual-method-lookup ()
+  "Looking up a virtual method should return all inherited definitions."
   (let* ((cpp
            (from-file 'cpp
                       (asdf:system-relative-pathname
@@ -2643,8 +2648,10 @@ std::next(x);")))
       (is (equal '(or) (exception-set cpp))))))
 
 (deftest test-static-members-visible ()
+  "Static members should be present in the symbol table of ASTs after
+the class."
   (let ((cpp
-         (cpp* "class system_clock {
+          (cpp* "class system_clock {
 public:
   static const bool is_steady = false; // constexpr in C++14
   static time_point now() noexcept;
@@ -2750,6 +2757,7 @@ int main() {
         (is (equal +exception-bottom-type+ (exception-set main)))))))
 
 (deftest test-include-of-macro ()
+  "Nothing should break if an include uses a macro."
   (let* ((src "#ifdef BOOST_HAS_ABI_HEADERS
 #  include BOOST_ABI_PREFIX
 #endif")
@@ -2790,6 +2798,7 @@ try {
         (is (null (get-declaration-ids ns ast)))))))
 
 (deftest test-ignore-bare-type-declaration-in-overloads ()
+  "Bare type declarations should be ignored when resolving overloads."
   (let* ((cpp (from-string 'cpp (fmt "~
 struct mystruct;
 

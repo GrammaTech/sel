@@ -4591,7 +4591,7 @@ using NAMESPACE.")
 (defgeneric field-adjoin (field map)
   (:documentation
    "Adjoin FIELD to MAP, a field table, according to the type of FIELD.
-Note that adding FIELD may introduce multiple identifiers into FIELD.")
+Note that adding FIELD may introduce multiple identifiers into MAP.")
   (:method ((field ast) map)
     (assure fset:map
       (multiple-value-bind (ids namespaces)
@@ -4661,6 +4661,7 @@ SORT-ROOT as the ancestor."
 (-> field-table-lookup (fset:map string &key (:ns symbol-table-namespace))
     (values (soft-list-of ast) &optional))
 (defun field-table-lookup (field-table key &key (ns nil ns-supplied?))
+  "Look up KEY in FIELD-TABLE, optionally filtering by namespace NS."
   (let ((result (@ field-table key)))
     (mapcar (op (@ _ +id+))
             (if (not ns-supplied?)

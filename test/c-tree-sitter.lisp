@@ -668,6 +668,7 @@ int sum = myadd(2, 2);"))
         (is (equal (exit-control-flow z) (list c)))))))
 
 (deftest test-field-all-definitions ()
+  "The field table should include all variables defined in a field."
   (let* ((c (c* "struct mystruct { int x, y, z; }"))
          (field-table
            (with-attr-table c

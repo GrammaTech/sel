@@ -521,6 +521,7 @@ int main () {
       (get-declaration-ast :variable endl))))
 
 (deftest test-incremental-symbol-table ()
+  "Recomputation of the symbol table should be incremental."
   (is ft/attrs::*enable-cross-session-cache*)
   (labels ((file-root (file-ast)
              (only-elt (dir:contents file-ast)))
