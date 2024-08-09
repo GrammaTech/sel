@@ -2369,18 +2369,18 @@ available to use at any point in a C++ AST.")
   (source-text type))
 
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
-  (labels ((source-text* (declared-ast)
+  (labels ((enough-source-text (declared-ast)
+             "Get enough of the source text of DECLARED-AST.
+              Put a reasonable limit on it in case something absurd has
+              been passed in. E.g. callers may try to get the
+              declaration of a definition by looking up the definition
+              itself. Some compilers limit maximum name lengths, so
+              code that goes beyond this would be invalid
+              anyway (MISRA only allows 31!)."
              (or (declarator-name declared-ast)
-                 ;; Put a reasonable limit on it if something absurd
-                 ;; has been passed in. E.g. there may be code that
-                 ;; tries to get the declaration of a definition by
-                 ;; looking up the definition itself. Some compilers
-                 ;; limit maximum name lengths, so code that goes
-                 ;; beyond this would be anyway. (MISRA only allows
-                 ;; 31!).
                  (source-text-take 2048 declared-ast)))
            (qualify-declared-ast-name (declared-ast)
-             (let* ((source-text (source-text* declared-ast))
+             (let* ((source-text (enough-source-text declared-ast))
                     (namespace (namespace declared-ast))
                     (implicit (split "::" namespace))
                     (parts (split "::" source-text))
@@ -2394,7 +2394,7 @@ available to use at any point in a C++ AST.")
                (string-join (append1 combined (lastcar parts))
                             "::"))))
     (if (macro-name? declared-ast)
-        (source-text* declared-ast)
+        (enough-source-text declared-ast)
         (qualify-declared-ast-name declared-ast))))
 
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
