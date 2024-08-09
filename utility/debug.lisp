@@ -162,15 +162,16 @@ LEVEL may be a symbolic level defined with `define-note-level-name'."
   ;; Always return nil.
   nil)
 
-(defun check-level (level env)
-  "Warn if a symbolic note level is not correct."
-  (multiple-value-bind (level constant?)
-      (eval-if-constant level env)
-    (when (and constant? (symbolp level))
-      (handler-case (numeric-note-level level)
-        ;; Convert the error into a style warning.
-        (unknown-symbolic-note-level (e)
-          (simple-style-warning "~a" e))))))
+(eval-always
+  (defun check-level (level env)
+    "Warn if a symbolic note level is not correct."
+    (multiple-value-bind (level constant?)
+        (eval-if-constant level env)
+      (when (and constant? (symbolp level))
+        (handler-case (numeric-note-level level)
+          ;; Convert the error into a style warning.
+          (unknown-symbolic-note-level (e)
+            (simple-style-warning "~a" e)))))))
 
 (define-compiler-macro note (&whole call
                                     level format-control
