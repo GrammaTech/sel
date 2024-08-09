@@ -394,10 +394,10 @@ pointer declarations which are nested on themselves."
     (values (list name) '(:tag))
     (values nil nil)))
 
-;;; Defined on the field-declaration-list rather than classoids to
-;;; avoid circular dependencies.
 (defmethod inner-declarations ((ast c/cpp-field-declaration-list))
-  "Make the type and its members and methods visible inside the type."
+  "Make the type and its members and methods visible inside the type.
+Defined on the field-declaration-list rather than classes to avoid
+circular dependencies."
   (labels ((find-enclosing-class (ast)
              (or (find-enclosing 'c/cpp-classoid-specifier (attrs-root*) ast)
                  (error "No enclosing class at ~a" ast))))
