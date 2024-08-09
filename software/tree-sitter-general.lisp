@@ -4605,13 +4605,13 @@ Note that adding FIELD may introduce multiple identifiers into FIELD.")
 (defgeneric class-fields (class)
   (:documentation "Get the fields of CLASS."))
 
-(-> adjoin-fields (fset:map list) fset:map)
+(-> adjoin-fields (fset:map (or ast list)) fset:map)
 (defun adjoin-fields (map fields)
   "Adjoins fields in FIELDS to MAP, a field table (see `field-table' for
 the format)."
   (assure fset:map
     (reduce (flip #'field-adjoin)
-            fields
+            (ensure-list fields)
             :initial-value map)))
 
 (def-attr-fun field-table ()

@@ -242,6 +242,7 @@ Otherwise, use heuristics."
    "Is AST of a class where it makes sense to check for a macro name?")
   (:method ((id c/cpp-identifier))
     (flet ((enumerator-name? (id)
+             "Is ID the name of an enumerator in a enum definition?"
              (let ((parent (get-parent-ast (attrs-root*) id)))
                (and (typep parent 'c/cpp-enumerator)
                     (eql (c/cpp-name parent) id)))))
@@ -720,8 +721,7 @@ is the operator of a binary ast.")
   (:method (op ast) nil))
 
 (defmethod field-adjoin ((field c/cpp-field-declaration) map)
-  (adjoin-fields map
-                 (ensure-list (c/cpp-declarator field))))
+  (adjoin-fields map (c/cpp-declarator field)))
 
 (defmethod field-adjoin ((field c/cpp-function-declarator) map)
   (add-namespaced-field map :function (c/cpp-declarator field)))
@@ -735,10 +735,10 @@ is the operator of a binary ast.")
           :initial-value map))
 
 (defmethod field-adjoin ((field c/cpp-pointer-declarator) map)
-  (adjoin-fields map (ensure-list (c/cpp-declarator field))))
+  (adjoin-fields map (c/cpp-declarator field)))
 
 (defmethod field-adjoin ((field c/cpp-array-declarator) map)
-  (adjoin-fields map (ensure-list (c/cpp-declarator field))))
+  (adjoin-fields map (c/cpp-declarator field)))
 
 (defmethod class-fields ((ast c/cpp-classoid-specifier))
   (ematch ast
