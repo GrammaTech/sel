@@ -579,6 +579,7 @@
            :output-transformation
            :get-representative-ast
            ;; Cross-language Generics
+           :constant-fold
            :direct-children
            :body
            :lhs
@@ -715,21 +716,22 @@
            :anonymous-implementation-unit
            :module-partition-interface-unit
            :module-partition-implementation-unit
+           ;; C/C++ analysis
            :public? :private? :protected?
-           :constant-fold
            :skip-include
            :circular-inclusion
            :+exception-top-type+
            :+exception-bottom-type+
            :specified-noexcept?
-           :field-table
-           :direct-field-table
-           :field-adjoin
+           ;; Field tables
+           :add-namespaced-field
            :adjoin-fields
            :class-fields
+           :direct-field-table
+           :field-adjoin
+           :field-table
            :field-table-ids
-           :field-table-lookup
-           :add-namespaced-field)
+           :field-table-lookup)
   (:local-nicknames
    (:dbg :software-evolution-library/utility/debug)
    #+sbcl (:md5 :sb-md5)
