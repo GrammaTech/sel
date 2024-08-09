@@ -7,6 +7,7 @@
    #+gt :testbot
    :software-evolution-library/test/util
    :stefil+
+   :software-evolution-library/utility/debug
    :software-evolution-library/utility/json
    :software-evolution-library/utility/range
    :software-evolution-library)
@@ -64,3 +65,26 @@
       (is (pos= s (loc 2 2) 2))
       (is (pos= s (loc 3 1) 3))
       (is (pos= s (loc 3 2) 4)))))
+
+(deftest test-symbolic-note ()
+  "`note' should accept symbolic levels."
+  (let ((*note-level* 0))
+    (is (emptyp (with-output-to-string (*note-out*)
+                  (note :trace "Tracing")))))
+  (let ((*note-level* most-positive-fixnum))
+    (is (search "Tracing"
+               (with-output-to-string (*note-out*)
+                  (note :trace "Tracing"))))))
+
+(deftest test-lazy-note ()
+  "`lazy-note' shouldn't evaluate arguments until the log level is met."
+  (let ((side-effect? nil)
+        (*note-out* (make-broadcast-stream)))
+    (let ((*note-level* 0))
+      (lazy-note :trace "Tracing ~a"
+                 (setf side-effect? t)))
+    (is (null side-effect?))
+    (let ((*note-level* most-positive-fixnum))
+      (lazy-note :trace "Tracing ~a"
+                 (setf side-effect? t)))
+    (is side-effect?)))
