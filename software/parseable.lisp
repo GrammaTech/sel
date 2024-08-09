@@ -91,6 +91,7 @@
            :shares-path-of-p
            :ancestor-of-p
            :descendant-of-p
+           :children-of-type
            :get-function-from-function-call
            :map-arguments-to-parameters
            :assign-to-var-p
@@ -991,6 +992,11 @@ of SHARED-PATH-AST's path in OBJ.")
 (defun descendant-of-p (obj target-ast descendant)
   "Returns T if DESCENDANT is a descendant of TARGET-AST in OBJ."
   (ancestor-of-p obj descendant target-ast))
+
+(-> children-of-type (ast t) list)
+(defun children-of-type (ast type)
+  "Returns a list of the children of AST that are of type TYPE."
+  (remove-if-not (of-type type) (children ast)))
 
 
 ;;; Core parseable methods

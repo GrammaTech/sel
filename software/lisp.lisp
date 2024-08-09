@@ -64,7 +64,6 @@
            :collect-function-info*
            :collect-var-info
            :define-var-binding-form-alias
-           :children-of-type
            :fun-body
            :define-fun-body-alias
            :lambda-list
@@ -1718,10 +1717,6 @@ which is in scope of ENCLOSED-FORM."
   ;; Returns nil if already at the top level.
   (butlast (ast-path obj ast)))
 
-(-> children-of-type (lisp-ast symbol) list)
-(defun children-of-type (ast type)
-  "Returns a list of the children of AST that are of type TYPE."
-  (remove-if-not {typep _ type} (children ast)))
 
 (-> later-than-p (lisp lisp-ast lisp-ast) t)
 (defun later-than-p (obj later-than earlier-than)
