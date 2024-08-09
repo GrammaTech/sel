@@ -2353,16 +2353,16 @@ available to use at any point in a C++ AST.")
         (strip-template-arguments result)
         result)))
 
-(defmethod identifier-macro-name? ((ast cpp-operator-name))
+(defmethod plausible-macro-name? ((ast cpp-operator-name))
   nil)
 
-(defmethod identifier-macro-name? ((ast cpp-destructor-name))
+(defmethod plausible-macro-name? ((ast cpp-destructor-name))
   nil)
 
-(defmethod identifier-macro-name? ((ast cpp-qualified-identifier))
+(defmethod plausible-macro-name? ((ast cpp-qualified-identifier))
   nil)
 
-(defmethod identifier-macro-name? ((ast cpp-this))
+(defmethod plausible-macro-name? ((ast cpp-this))
   nil)
 
 (defmethod qualify-declared-ast-name ((type cpp-primitive-type))

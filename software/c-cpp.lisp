@@ -235,9 +235,9 @@ Otherwise, use heuristics."
     (if (has-attribute-p ast 'symbol-table)
         (when-let* ((symbol-table (symbol-table ast)))
           (find-in-symbol-table ast :macro (source-text ast)))
-        (identifier-macro-name? ast))))
+        (plausible-macro-name? ast))))
 
-(defgeneric identifier-macro-name? (ast)
+(defgeneric plausible-macro-name? (ast)
   (:documentation
    "Is AST of a class where it makes sense to check for a macro name?")
   (:method ((id c/cpp-identifier))
