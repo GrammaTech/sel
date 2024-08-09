@@ -1005,8 +1005,8 @@ templated definition's field table."
        (field-table class)))
     (otherwise (call-next-method))))
 
-(-> inherited-member-access (member-access member-access) member-access)
-(defun inherited-member-access (as-inherited as-defined)
+(-> cpp::inherited-member-access (member-access member-access) member-access)
+(defun cpp::inherited-member-access (as-inherited as-defined)
   "Compute the final visibility of a member give how it is inherited in
 the derived class (AS-INHERITED) and how it is defined in the base
 class (AS-DEFINED)."
@@ -1036,7 +1036,7 @@ class (AS-DEFINED)."
        (find-if (of-type 'cpp-base-class-clause)
                 (children class))))
 
-(defun base-class-alist (class)
+(defun cpp::base-class-alist (class)
   "Return an alist from the base classes of CLASS to their
 qualifiers (public/private/protected/virtual). Maintain textual
 order."
@@ -1095,7 +1095,7 @@ virtuality) from class where they are declared."
   (when-let (map (call-next-method))
     (cpp::field-table-save-props map)))
 
-(defun base-class-access (derived-class quals)
+(defun cpp::base-class-access (derived-class quals)
   "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
 QUALIFIERS could contain a public, private, or protected qualifier;
 otherwise use the default (public for a struct, private for a class)."
@@ -1122,7 +1122,7 @@ otherwise use the default (public for a struct, private for a class)."
                                 quals)
   (declare (fset:map derived-field-table)
            (ast derived-class base-class))
-  (let ((base-access (base-class-access derived-class quals)))
+  (let ((base-access (cpp::base-class-access derived-class quals)))
     (labels ((field-private? (field)
                (eql :private (@ field +access+)))
              (field-virtual? (field)
@@ -1133,7 +1133,7 @@ otherwise use the default (public for a struct, private for a class)."
                 visibility where it was defined and the declared
                 visibility of the base class where it was inherited."
                (let ((final-visibility
-                       (inherited-member-access
+                       (cpp::inherited-member-access
                         base-access
                         (@ field +access+))))
                  (with field +access+ final-visibility)))
@@ -1211,7 +1211,7 @@ inherits from."
                        base-class-specifiers
                        :initial-value field-table))
              (inherit-from-base-classes (class field-table)
-               (let ((base-class-alist (base-class-alist class)))
+               (let ((base-class-alist (cpp::base-class-alist class)))
                  (cond ((no base-class-alist)
                         field-table)
                        ((has-attribute-p class 'symbol-table)
