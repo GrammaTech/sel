@@ -1058,10 +1058,10 @@ order."
         (mapcar (op (cons (car _1) (nreverse (cdr _1))))
                 alist)))))
 
-(defun cpp::declared-virtual? (fn)
-  "Is FN declared virtual?"
+(defun cpp::declared-virtual? (ast)
+  "Is AST declared virtual?"
   (find-if (of-type 'cpp-virtual)
-           (slot-value-safe fn 'cpp-pre-specifiers)))
+           (slot-value-safe ast 'cpp-pre-specifiers)))
 
 (defun cpp::field-table-save-props (field-table)
   "For all the fields in FIELD-TABLE, record properties (member access,
