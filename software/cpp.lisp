@@ -1040,22 +1040,23 @@ class (AS-DEFINED)."
   "Return an alist from the base classes of CLASS to their
 qualifiers (public/private/protected/virtual). Maintain textual
 order."
-  (when-let (clause (cpp::derived-class? class))
-    (let ((alist
-            (reduce (lambda (child alist)
-                      (if (typep child '(or cpp-type-identifier
-                                         cpp-template-type
-                                         cpp-qualified-identifier))
-                          (acons child '() alist)
-                          (ematch alist
-                            ((cons (cons last-class quals) alist)
-                             (acons last-class (cons child quals)
-                                    alist)))))
-                    (children clause)
-                    :from-end t
-                    :initial-value nil)))
-      (mapcar (op (cons (car _1) (nreverse (cdr _1))))
-              alist))))
+  (labels ((update-base-class-alist (alist ast)
+             (if (typep ast '(or cpp-type-identifier
+                              cpp-template-type
+                              cpp-qualified-identifier))
+                 (acons ast '() alist)
+                 (ematch alist
+                   ((cons (cons last-class quals) alist)
+                    (acons last-class (cons ast quals)
+                           alist))))))
+    (when-let (clause (cpp::derived-class? class))
+      (let ((alist
+              (reduce (flip #'update-base-class-alist)
+                      (children clause)
+                      :from-end t
+                      :initial-value nil)))
+        (mapcar (op (cons (car _1) (nreverse (cdr _1))))
+                alist)))))
 
 (defun cpp::declared-virtual? (fn)
   "Is FN declared virtual?"
