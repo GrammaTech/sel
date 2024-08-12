@@ -1083,14 +1083,12 @@ virtuality) from class where they are declared."
                           (let ((access
                                   (member-access
                                    (field-id field))))
-                            (cpp::field-access field access))))
-                    (field
-                      (if (nth-value 1 (cpp::field-virtual? field))
-                          field
-                          (if (field-ast-virtual? field)
-                              (cpp::field-virtual? field t)
-                              field))))
-               field)))
+                            (cpp::field-access field access)))))
+               (if (nth-value 1 (cpp::field-virtual? field))
+                   field
+                   (if (field-ast-virtual? field)
+                       (cpp::field-virtual? field t)
+                       field)))))
     (iter (for (name fields) in-map field-table)
           (map-collect name (mapcar #'collect-properties fields)))))
 
