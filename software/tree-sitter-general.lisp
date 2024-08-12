@@ -4623,7 +4623,7 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
         map))))
 
 (defgeneric class-fields (class)
-  (:documentation "Get the fields of CLASS."))
+  (:documentation "Get the fields of CLASS as a list."))
 
 (-> adjoin-fields (fset:map (or ast list)) fset:map)
 (defun adjoin-fields (map fields)
