@@ -1587,35 +1587,15 @@ textual order."
                (field-table-ids ft :sort-root cpp)))
         (is (source-text= (first sorted-ids) "z"))))))
 
-(def +basic-inheritance-example+ (fmt "~
-struct Base
-{
-    int a, b, c;
-};
-
-// every object of type Derived includes Base as a subobject
-struct Derived : Base
-{
-    int b;
-};
-
-// every object of type Derived2 includes Derived and Base as subobjects
-struct Derived2 : Derived
-{
-    int c;
-};
-
-int main() {
-    Derived2 derived2 = Derived2{0, 1, 2};
-    derived2.a;
-    derived2.b;
-    derived2.c;
-}~%")
+(def +basic-inheritance-example+
+  (asdf:system-relative-pathname
+   :software-evolution-library
+   "test/etc/cpp-tree-sitter/basic-inheritance-example.cc")
   "Example C++ program with an inheritance hierarchy.")
 
 (deftest test-direct-field-table ()
   "Direct field tables should not include inherited fields."
-  (let* ((cpp (from-string 'cpp +basic-inheritance-example+))
+  (let* ((cpp (from-file 'cpp +basic-inheritance-example+))
          (classes (collect-if (of-type 'cpp-struct-specifier) cpp)))
     (with-attr-table cpp
       (destructuring-bind (base derived derived2) classes
@@ -1630,7 +1610,7 @@ int main() {
 
 (deftest test-basic-inheritance ()
   "Field tables should include inherited fields."
-  (let* ((cpp (from-string 'cpp +basic-inheritance-example+))
+  (let* ((cpp (from-file 'cpp +basic-inheritance-example+))
          (classes (collect-if (of-type 'cpp-struct-specifier) cpp)))
     (is (length= classes 3))
     (labels ((field-ast (table name)
@@ -1662,7 +1642,7 @@ int main() {
 (deftest test-basic-inheritance-lookup ()
   "Looking up definitions of inherited field expressions should always
 return ASTs in the class that defines the field."
-  (let ((cpp (from-string 'cpp +basic-inheritance-example+)))
+  (let ((cpp (from-file 'cpp +basic-inheritance-example+)))
     (labels ((get-enclosing-class (ast)
                (find-enclosing 'class-ast (attrs-root*) ast)))
       (with-attr-table cpp
