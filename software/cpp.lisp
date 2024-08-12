@@ -993,6 +993,8 @@ from a prior sibling \(`public:', `private:', `protected:').")
 (defun protected? (ast)
   (eql :protected (member-access ast)))
 
+(fset:define-tuple-key cpp::+access+)
+
 (fset:define-tuple-key cpp::+virtual+)
 
 (defmethod field-table ((typedef cpp-type-definition))
@@ -1077,9 +1079,9 @@ virtuality) from class where they are declared."
                       (cpp::declared-virtual? decl)))))
            (collect-properties (field)
              (let* ((field
-                      (if (@ field +access+)
+                      (if (@ field cpp::+access+)
                           field
-                          (with field +access+
+                          (with field cpp::+access+
                                 (member-access
                                  (@ field +id+)))))
                     (field
@@ -1130,7 +1132,7 @@ virtual methods."
   (let ((base-access (cpp::base-class-access derived-class quals)))
     (labels ((field-private? (field)
                "Is FIELD defined as private."
-               (eql :private (@ field +access+)))
+               (eql :private (@ field cpp::+access+)))
              (field-virtual? (field)
                "Is FIELD defined as virtual?"
                (@ field cpp::+virtual+))
@@ -1142,8 +1144,8 @@ virtual methods."
                (let ((final-visibility
                        (cpp::inherited-member-access
                         base-access
-                        (@ field +access+))))
-                 (with field +access+ final-visibility)))
+                        (@ field cpp::+access+))))
+                 (with field cpp::+access+ final-visibility)))
              (filter-fields (base-fields)
                "Remove non-virtual private fields from BASE-FIELDS."
                (mapcar #'set-final-visibility

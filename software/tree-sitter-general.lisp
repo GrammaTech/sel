@@ -4565,7 +4565,6 @@ using NAMESPACE.")
 
 ;;; Classes.
 
-(fset:define-tuple-key +access+)
 (fset:define-tuple-key +id+)
 (fset:define-tuple-key +ns+)
 
