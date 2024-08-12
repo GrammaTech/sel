@@ -4565,7 +4565,21 @@ using NAMESPACE.")
 
 ;;; Classes.
 
-(defmacro define-field-key (accessor key)
+(defmacro define-tuple-accessor (accessor key)
+  "Define a FSet tuple key and an accessor for it.
+KEY is the new tuple new.
+ACCESSOR is an (inline) function to get/set the key in a tuple.
+
+ACCESSOR is defined to take one or two arguments. With one argument,
+it looks up the value. With two arguments, it returns a new tuple with
+the key set to the second argument.
+
+    (accessor tuple) ≡ (@ tuple KEY)
+    (accessor tuple new) ≡ (with tuple KEY new)
+
+ACCESSOR is also defined as a `setf'-able place:
+
+    (setf (accessor tuple) new) ≡ (setf tuple (with tuple KEY new))"
   `(progn
      (fset:define-tuple-key ,key)
      (defsubst ,accessor (field &optional (value nil value-supplied?))
@@ -4585,6 +4599,10 @@ using NAMESPACE.")
                       ,setter
                       ,store)
                    getter))))))
+
+(defmacro define-field-key (accessor key)
+  "Alias for `define-tuple-accessor'."
+  `(define-tuple-accessor ,accessor ,key))
 
 (define-field-key field-id +id+)
 (define-field-key field-ns +ns+)
