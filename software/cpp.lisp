@@ -880,10 +880,10 @@ to look it up as `x::z' or just `z'."
 (defmethod field-adjoin ((field cpp-field-declaration) map)
   "Add nested classes and their exports (e.g. enum members) to the field
 table."
-  (let ((map (call-next-method)))
+  (let ((map-out (call-next-method)))
     (if-let (type (cpp-type field))
-      (field-adjoin type map)
-      map)))
+      (field-adjoin type map-out)
+      map-out)))
 
 (defun export-static-members (ast decls namespaces)
   "Export appropriate static members in symbol table leaving AST.
