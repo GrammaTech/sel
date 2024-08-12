@@ -993,9 +993,9 @@ from a prior sibling \(`public:', `private:', `protected:').")
 (defun protected? (ast)
   (eql :protected (member-access ast)))
 
-(fset:define-tuple-key cpp::+access+)
+(define-field-key cpp::field-access cpp::+access+)
 
-(fset:define-tuple-key cpp::+virtual+)
+(define-field-key cpp::field-virtual? cpp::+virtual+)
 
 (defmethod field-table ((typedef cpp-type-definition))
   "Given a typedef for a template type, recursively resolve the
@@ -1068,7 +1068,7 @@ order."
 (defun cpp::field-table-collect-properties (field-table)
   "For all the fields in FIELD-TABLE, record properties (member access,
 virtuality) from class where they are declared."
-  (labels ((field-virtual? (field)
+  (labels ((field-ast-virtual? (field)
              (and (eql :function (@ field +ns+))
                   (let ((ast (@ field +id+)))
                     (when-let* ((decl
@@ -1079,16 +1079,16 @@ virtuality) from class where they are declared."
                       (cpp::declared-virtual? decl)))))
            (collect-properties (field)
              (let* ((field
-                      (if (@ field cpp::+access+)
-                          field
-                          (with field cpp::+access+
-                                (member-access
-                                 (@ field +id+)))))
+                      (if (cpp::field-access field) field
+                          (let ((access
+                                  (member-access
+                                   (field-id field))))
+                            (cpp::field-access field access))))
                     (field
-                      (if (@ field cpp::+virtual+)
+                      (if (nth-value 1 (cpp::field-virtual? field))
                           field
-                          (if (field-virtual? field)
-                              (with field cpp::+virtual+ t)
+                          (if (field-ast-virtual? field)
+                              (cpp::field-virtual? field t)
                               field))))
                field)))
     (iter (for (name fields) in-map field-table)

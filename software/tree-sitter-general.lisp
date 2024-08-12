@@ -4565,8 +4565,29 @@ using NAMESPACE.")
 
 ;;; Classes.
 
-(fset:define-tuple-key +id+)
-(fset:define-tuple-key +ns+)
+(defmacro define-field-key (accessor key)
+  `(progn
+     (fset:define-tuple-key ,key)
+     (defsubst ,accessor (field &optional (value nil value-supplied?))
+       (if value-supplied?
+           (with field ,key value)
+           (@ field ,key)))
+     (define-setf-expander ,accessor (field &environment env)
+       (multiple-value-bind (temps vals stores setter getter)
+           (get-setf-expansion field env)
+         (let ((key ',key)
+               (temp (gensym))
+               (store (gensym)))
+           (values (cons temp temps)
+                   (cons field vals)
+                   (cons store stores)
+                   `(let ((,store (with ,getter ,key ,temp)))
+                      ,setter
+                      ,store)
+                   getter))))))
+
+(define-field-key field-id +id+)
+(define-field-key field-ns +ns+)
 
 (-> add-namespaced-field (fset:map symbol-table-namespace ast)
     (values fset:map &optional))
@@ -4584,8 +4605,8 @@ using NAMESPACE.")
               (key (source-text key))
               (fields (@ map key)))
     (iter (for field in fields)
-          (when (eql namespace (@ field +ns+))
-            (collect (@ field +id+))))))
+          (when (eql namespace (field-ns field))
+            (collect (field-id field))))))
 
 (defgeneric field-adjoin (field map)
   (:documentation
@@ -4649,10 +4670,10 @@ SORT-ROOT as the ancestor."
            (apply #'append (convert 'list range)))
          (fields
            (if ns-supplied?
-               (keep ns fields :key (op (@ _ +ns+)))
+               (keep ns fields :key #'field-ns)
                fields))
          (ids
-           (mapcar (op (@ _ +id+)) fields)))
+           (mapcar #'field-id fields)))
     (if sort-root
         (sort-descendants sort-root ids)
         ids)))
@@ -4662,10 +4683,10 @@ SORT-ROOT as the ancestor."
 (defun field-table-lookup (field-table key &key (ns nil ns-supplied?))
   "Look up KEY in FIELD-TABLE, optionally filtering by namespace NS."
   (let ((result (@ field-table key)))
-    (mapcar (op (@ _ +id+))
+    (mapcar #'field-id
             (if (not ns-supplied?)
                 result
-                (filter (op (eql ns (@ _ +ns+))) result)))))
+                (keep ns result :key #'field-ns)))))
 
 
 ;;; Namespace
