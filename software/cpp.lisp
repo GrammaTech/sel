@@ -1063,7 +1063,7 @@ order."
   (find-if (of-type 'cpp-virtual)
            (slot-value-safe ast 'cpp-pre-specifiers)))
 
-(defun cpp::field-table-save-props (field-table)
+(defun cpp::field-table-collect-properties (field-table)
   "For all the fields in FIELD-TABLE, record properties (member access,
 virtuality) from class where they are declared."
   (labels ((field-virtual? (field)
@@ -1075,7 +1075,7 @@ virtuality) from class where they are declared."
                                   (attrs-root*)
                                   ast)))
                       (cpp::declared-virtual? decl)))))
-           (save-props (field)
+           (collect-properties (field)
              (let* ((field
                       (if (@ field +access+)
                           field
@@ -1090,11 +1090,11 @@ virtuality) from class where they are declared."
                               field))))
                field)))
     (iter (for (name fields) in-map field-table)
-          (map-collect name (mapcar #'save-props fields)))))
+          (map-collect name (mapcar #'collect-properties fields)))))
 
 (defmethod direct-field-table :around ((ast cpp-ast))
   (when-let (map (call-next-method))
-    (cpp::field-table-save-props map)))
+    (cpp::field-table-collect-properties map)))
 
 (defun cpp::base-class-access (derived-class quals)
   "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
