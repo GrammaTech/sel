@@ -233,7 +233,8 @@ pub unsafe fn auto() -> MmapChoice {
     (is (source-text= "myfun()" ast))))
 
 (deftest rust-one-source-text-fragment-in-argument-list ()
-  "An argument list with a single source text fragment should be valid."
+  "An argument list with a single source text fragment should have a
+valid output transformation."
   (let ((args (make 'rust-arguments
                     :children (list
                                (make 'rust-integer-literal :text "1")))))
@@ -243,6 +244,15 @@ pub unsafe fn auto() -> MmapChoice {
       (with args
             (is (find-if (of-type 'rust-integer-literal) args))
             (make 'rust-source-text-fragment-variation-point))))))
+
+(deftest rust-one-source-text-fragment-in-tuple-expression ()
+  "A tuple expression with a single source text fragment should have a
+valid output transformation."
+  (finishes
+    (source-text
+     (make 'rust-tuple-expression
+           :children
+           (list (make 'rust-source-text-fragment-variation-point))))))
 
 (deftest rust-range-operators ()
   (let* ((sources

@@ -137,6 +137,38 @@ around generic-type-with-turbofish being aliased to generic-type."
        (substitute real-child id (output-transformation temp))))
     (otherwise (call-next-method))))
 
+(defmethod output-transformation :around ((ast rust-tuple-expression) &key &allow-other-keys)
+  ;; This is a workaround for children-parser not backtracking: the
+  ;; rule is `attribute_item?* expression*` ASTs. Leading alternative
+  ;; ASTs all match as attribute items. If there are no other ASTs
+  ;; after them (where the expressions should be), the output
+  ;; transformation is invalid.
+  (let ((children (direct-children ast)))
+    ;; If the child list starts with alternative ASTs, check if the
+    ;; suffix starts with an attribute item. If it does, we're OK. If
+    ;; it doesn't, add a fake expression in place of the last
+    ;; alternative-ast, compute an output transformation, then
+    ;; substitute the last alternative-ast back in.
+    (match children
+      ((list* (alternative-ast) _)
+       (let ((suffix (drop-while (of-type 'alternative-ast) children)))
+         (match suffix
+           ((list* (rust-attribute-item) _)
+            (call-next-method))
+           (otherwise
+            (let ((prefix (ldiff children suffix)))
+              (let* ((temp-id (make 'rust-identifier :text "temp"))
+                     (temp-copy
+                       (copy ast
+                             :children
+                             (append (butlast prefix)
+                                     (list temp-id)
+                                     suffix))))
+                (substitute (lastcar prefix)
+                            temp-id
+                            (output-transformation temp-copy))))))))
+      (otherwise (call-next-method)))))
+
 (defmethod convert ((to (eql 'rust-identifier))
                     (id identifier-ast)
                     &key)
