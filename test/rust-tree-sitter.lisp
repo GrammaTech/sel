@@ -148,14 +148,23 @@ fn main() {
     (dolist (expr rust-exprs)
       (is (equal "Foo" (source-text (definition-name-ast expr)))))))
 
+(deftest test-rust-declaration-type ()
+  (let ((rust-exprs
+          (list
+           (rust* "let x: Foo")
+           (rust* "let x: Foo = Foo::new()")
+           (find-if (of-type 'rust-parameter)
+                    (rust* "fn Fn(x: Foo) {}")))))
+    (dolist (expr rust-exprs)
+      (is (equal "Foo" (source-text (declaration-type expr)))))))
+
 (deftest test-function-inner-declarations ()
   (let* ((fn (rust* "fn Foo<T>(x: T) { x }"))
          (x-use (lastcar (collect-if (of-type 'identifier-ast) fn))))
     (is (equal "x" (source-text x-use)))
     (attrs:with-attr-table fn
-      (is (typep (get-declaration-ast :variable x-use) 'rust-parameter)))))
-
-
+      (is (typep (get-declaration-ast :variable x-use) 'rust-parameter))
+      (is (equal "T" (source-text (infer-type x-use)))))))
 
 
 ;;; Round Trip Tests

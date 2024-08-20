@@ -277,6 +277,12 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod definition-name-ast ((ast rust-let-declaration))
   (rust-pattern ast))
 
+(defmethod declaration-type ((ast rust-parameter))
+  (rust-type ast))
+
+(defmethod declaration-type ((ast rust-let-declaration))
+  (rust-type ast))
+
 (defun rust::pattern-variables (pattern)
   (declare (rust--pattern pattern))
   (ematch pattern
