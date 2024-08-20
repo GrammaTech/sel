@@ -8,6 +8,10 @@
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
+(eval-always
+ (uiop:add-package-local-nickname
+  :rust :software-evolution-library/software/rust))
+
 ;;;===================================================
 ;;; Generate the language definitions
 ;;;===================================================
@@ -256,7 +260,7 @@ Rust macro invocations can use (), [], and {} equivalently."
 ;;; function namespaces), but this is not actually a distinction that
 ;;; Rust makes.
 
-(defgeneric extract-rust-pattern (ast)
+(defgeneric rust::extract-pattern (ast)
   (:method ((ast rust-identifier)) ast)
   (:method ((ast rust-ast))
     (if (slot-exists-p ast 'rust-pattern)
@@ -266,18 +270,18 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod definition-name-ast ((ast rust--declaration-statement))
   (rust-name ast))
 
-(defun rust-pattern-variables (pattern)
+(defun rust::pattern-variables (pattern)
   (declare (rust--pattern pattern))
   (ematch pattern
     ((identifier-ast) (list pattern))
     ((or (rust-reference-pattern)
          (rust-tuple-pattern))
-     (mappend #'rust-pattern-variables (children pattern)))
+     (mappend #'rust::pattern-variables (children pattern)))
     ((rust-tuple-struct-pattern)
-     (mappend #'rust-pattern-variables (direct-children pattern)))))
+     (mappend #'rust::pattern-variables (direct-children pattern)))))
 
 (defmethod outer-declarations ((pat rust--pattern))
-  (let ((vars (rust-pattern-variables pat)))
+  (let ((vars (rust::pattern-variables pat)))
     (values vars
             (mapcar (constantly :variable) vars))))
 
@@ -293,8 +297,8 @@ Rust macro invocations can use (), [], and {} equivalently."
 
 (defmethod inner-declarations ((decl rust-closure-expression))
   (let ((vars
-          (mappend #'rust-pattern-variables
-                   (mapcar #'extract-rust-pattern
+          (mappend #'rust::pattern-variables
+                   (mapcar #'rust::extract-pattern
                            (children (rust-parameters decl))))))
     (values vars
             (mapcar (constantly :variable) vars))))
