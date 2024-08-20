@@ -270,7 +270,12 @@ Rust macro invocations can use (), [], and {} equivalently."
         (call-next-method))))
 
 (defmethod definition-name-ast ((ast rust--declaration-statement))
-  (rust-name ast))
+  (if (typep ast 'declaration-ast)
+      (rust-name ast)
+      (call-next-method)))
+
+(defmethod definition-name-ast ((ast rust-let-declaration))
+  (rust-pattern ast))
 
 (defun rust::pattern-variables (pattern)
   (declare (rust--pattern pattern))

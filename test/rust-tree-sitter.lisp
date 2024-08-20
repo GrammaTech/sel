@@ -133,6 +133,21 @@ fn main() {
       (is (typep (get-declaration-ast :variable id)
                  'rust-let-declaration)))))
 
+(deftest test-rust-definition-name-ast ()
+  (let ((rust-exprs
+          (list
+           (rust* "enum Foo {}")
+           (rust* "fn Foo() {}")
+           (rust* "fn Foo();")
+           (rust* "let Foo")
+           (rust* "let Foo = 1")
+           (rust* "mod Foo {}")
+           (rust* "struct Foo {}")
+           (rust* "trait Foo {}")
+           (rust* "union Foo {}"))))
+    (dolist (expr rust-exprs)
+      (is (equal "Foo" (source-text (definition-name-ast expr)))))))
+
 
 
 
