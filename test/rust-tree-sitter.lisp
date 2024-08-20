@@ -118,6 +118,23 @@ other_function();
     (attrs:with-attr-table rust
       (is (eql parameter (get-declaration-ast :variable var))))))
 
+(deftest test-variables-shadow-functions ()
+  "Variables should shadow functions in Rust"
+  (let* ((rust (rust* "fn add(x: u32, y: u32) -> u32 {
+    return x+y;
+}
+
+fn main() {
+    let add:i32 = 0;
+    println!(\"Sum: {}\", add(2,2));
+}"))
+         (id (lastcar (collect-if (of-type 'identifier-ast) rust))))
+    (attrs:with-attr-table rust
+      (is (typep (get-declaration-ast :variable id)
+                 'rust-let-declaration)))))
+
+
+
 
 ;;; Round Trip Tests
 (deftest rust-can-round-trip-_-pattern ()

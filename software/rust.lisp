@@ -255,10 +255,12 @@ Rust macro invocations can use (), [], and {} equivalently."
 ;;; Symbol table
 
 ;;; NB Rust has five namespaces: types, values, macros, labels and
-;;; lifetimes. For convenience we are also treating functions as a
-;;; namespace (function introducers introduce in both the variable and
-;;; function namespaces), but this is not actually a distinction that
-;;; Rust makes.
+;;; lifetimes. There is no separate namespace for functions. We
+;;; re-route requests for function definitions as variables.
+
+(defmethod get-declaration-ids ((ns (eql :function)) (ast rust-ast))
+  "Merge function and variable namespaces for Rust."
+  (get-declaration-ids :variable ast))
 
 (defgeneric rust::extract-pattern (ast)
   (:method ((ast rust-identifier)) ast)
@@ -313,16 +315,15 @@ Rust macro invocations can use (), [], and {} equivalently."
     (let ((params (call-next-method))
           (name (definition-name-ast fn))
           (type-params (type-params fn)))
-      (values (list* name name (append type-params params))
-              (list* :function :variable
-                     (append
-                      (mapcar (constantly :type) type-params)
-                      (mapcar (constantly :variable) params)))))))
+      (values (list* name (append type-params params))
+              (cons :variable
+                    (append
+                     (mapcar (constantly :type) type-params)
+                     (mapcar (constantly :variable) params)))))))
 
 (defmethod outer-declarations ((fn rust-function-item))
   (let ((name (definition-name-ast fn)))
-    (values (list name name)
-            '(:function :variable))))
+    (values (list name) '(:variable))))
 
 (defmethod outer-declarations ((ast rust-declaration-list))
   (outer-declarations-merge (children ast)))
