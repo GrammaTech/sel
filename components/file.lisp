@@ -17,7 +17,6 @@
   (:nicknames :sel/components/file :sel/cp/file)
   (:use :gt/full
         :software-evolution-library)
-  #-windows (:import-from :osicat :file-permissions)
   (:import-from :cl-strftime :format-time)
   (:import-from :cl-murmurhash :murmurhash)
   (:local-nicknames (:tg :trivial-garbage))

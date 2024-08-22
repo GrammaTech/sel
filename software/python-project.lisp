@@ -18,7 +18,6 @@
         :software-evolution-library/software/tree-sitter
         :software-evolution-library/software/python
         :software-evolution-library/software/directory)
-  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :python-project))
 (in-package :software-evolution-library/software/python-project)
 (in-readtable :curry-compose-reader-macros)

@@ -15,7 +15,6 @@
    :software-evolution-library/software/c-cpp-project
    :software-evolution-library/software/c-project
    :functional-trees/attrs)
-  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :test-c-project))
 (in-package :software-evolution-library/test/c-project)
 (in-readtable :curry-compose-reader-macros)

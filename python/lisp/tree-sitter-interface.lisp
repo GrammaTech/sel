@@ -22,7 +22,6 @@
         :software-evolution-library/python/lisp/utility)
   (:import-from :software-evolution-library :oid)
   (:local-nicknames (:attrs :functional-trees/attrs))
-  #-windows (:import-from :osicat)
   (:import-from :deploy
                 :define-library
                 :define-hook
@@ -61,9 +60,6 @@
     '((("port") :type integer
        :documentation "listen for requests on the given port"))
     "tree-sitter-interface command line options."))
-
-#-windows
-(define-library osicat-posix::librt :dont-open t :dont-deploy t)
 
 (defvar *external-asts* (make-hash-table)
   "Mapping of hashes to (AST . refcount) pairs for externally referenced ASTs.")

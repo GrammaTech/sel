@@ -13,7 +13,6 @@
    :software-evolution-library/software/clang
    :software-evolution-library/software/project
    :software-evolution-library/software/clang-project)
-  #-windows (:shadowing-import-from :osicat :file-permissions)
   (:export :test-clang-project))
 (in-package :software-evolution-library/test/clang-project)
 (in-readtable :curry-compose-reader-macros)
