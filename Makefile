@@ -105,6 +105,34 @@ include .cl-make/cl.mk
 bin/limit: limit.c
 	$(CC) $< -o $@
 
+bin/tree-sitter-interface: $(LISP_DEPS) $(MANIFEST)
+	@rm -f $@
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(setf uiop/image::*lisp-interaction* nil)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/run-tree-sitter-interface)' \
+	--eval '(quit)'
+	@rm -f $@
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(setf uiop/image::*lisp-interaction* nil)' \
+	--eval '(asdf:make :$(PACKAGE_NAME)/run-tree-sitter-interface :type :program :monolithic t)' \
+	--eval '(quit)'
+
+bin/tree-sitter-py-generator: $(LISP_DEPS) $(MANIFEST)
+	@rm -f $@
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(setf uiop/image::*lisp-interaction* nil)' \
+	--eval '(ql:quickload :$(PACKAGE_NAME)/run-tree-sitter-interface)' \
+	--eval '(quit)'
+	@rm -f $@
+	CC=$(CC) $(LISP_HOME) LISP=$(LISP) $(LISP) $(LISP_FLAGS) \
+	--load $(QUICK_LISP)/setup.lisp \
+	--eval '(setf uiop/image::*lisp-interaction* nil)' \
+	--eval '(asdf:make :$(PACKAGE_NAME)/run-tree-sitter-py-generator :type :program :monolithic t)' \
+	--eval '(quit)'
+
 python/asts/types.py: bin/tree-sitter-py-generator
 	$< > $@
 

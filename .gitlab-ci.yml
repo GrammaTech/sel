@@ -105,7 +105,13 @@ deploy-python-package:
   script:
     - sbcl --load "/root/quicklisp/setup.lisp"
            --eval '(ql:quickload :software-evolution-library/run-tree-sitter-py-generator)'
+           --eval '(quit)'
+    - sbcl --load "/root/quicklisp/setup.lisp"
+           --eval '(ql:quickload :software-evolution-library/run-tree-sitter-py-generator)'
            --eval '(asdf:make :software-evolution-library/run-tree-sitter-py-generator)'
+           --eval '(quit)'
+    - sbcl --load "/root/quicklisp/setup.lisp"
+           --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)'
            --eval '(quit)'
     - sbcl --load "/root/quicklisp/setup.lisp"
            --eval '(ql:quickload :software-evolution-library/deploy-tree-sitter-interface)'
