@@ -1306,8 +1306,15 @@ definitions.")
        (c/cpp-parameter-list parameters-ast)
        (c/cpp-parenthesized-expression parenthesized-expression-ast)
        (c/cpp-pointer-expression unary-ast)
-       (c/cpp-preproc-def definition-ast macro-declaration-ast)
-       (c/cpp-preproc-function-def definition-ast macro-declaration-ast)
+       (c/cpp-preproc-arg preprocessor-ast)
+       (c/cpp-preproc-def definition-ast macro-declaration-ast preprocessor-ast)
+       (c/cpp-preproc-elif preprocessor-ast)
+       (c/cpp-preproc-else preprocessor-ast)
+       (c/cpp-preproc-function-def definition-ast macro-declaration-ast preprocessor-ast)
+       (c/cpp-preproc-if preprocessor-ast)
+       (c/cpp-preproc-ifdef preprocessor-ast)
+       (c/cpp-preproc-include preprocessor-ast)
+       (c/cpp-preproc-params preprocessor-ast)
        (c/cpp-primitive-type type-ast)
        (c/cpp-return-statement return-statement-ast)
        (c/cpp--statement statement-ast)
@@ -3305,7 +3312,10 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass ecma-comment (comment-ast) ()
     (:documentation "Mix-in for comments in dialects of ECMAScript."))
 
- (defclass root-ast (ast subroot) ()
+  (defclass preprocessor-ast (ast) ()
+    (:documentation "Mix-in for ASTs representing preprocessor directives."))
+
+  (defclass root-ast (ast subroot) ()
     (:documentation "Mix-in for AST classes which are roots."))
 
  (defclass subexpression-ast (ast) ()
@@ -6302,6 +6312,11 @@ Unlike the `children` methods which collects all children of an AST from any slo
                        (string class))))
                  (collect `(progn
                              (export/tree-sitter ',class)
+                             ;; TODO This clause is to prevent
+                             ;; redefining manually-defined mixin
+                             ;; classes, but also means we need to
+                             ;; reload for generated mixin class
+                             ;; definitions to be updated.
                              (unless (find-class ',class nil)
                                (defclass ,class
                                    (,@(or (gethash class class->superclasses)

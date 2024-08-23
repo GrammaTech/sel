@@ -552,6 +552,7 @@
            :goto-ast
            :terminal-symbol
            :canonical-type
+           :preprocessor-ast
            ;; Variation points
            :variation-point
            :error-variation-point
