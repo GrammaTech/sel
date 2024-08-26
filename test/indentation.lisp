@@ -11,8 +11,9 @@
    :software-evolution-library
    :software-evolution-library/software/parseable
    :software-evolution-library/software/tree-sitter
-   :software-evolution-library/software/python
+   :software-evolution-library/software/c
    :software-evolution-library/software/go
+   :software-evolution-library/software/python
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting)
   (:export :test-indentation))
@@ -65,6 +66,15 @@ result with RESULT-FILE."
                                        :type "py"
                                        :directory +python-utility-dir+))))
     (is (equalp result-string (source-text (genome mut-obj))))))
+
+
+;;; Regression tests
+
+(deftest test-indentation-handles-defaulted-child-indent-in-parent ()
+  "Indenting shouldn't break if :indent-children is T in a parent.
+This can happen when the default is being filled in by
+`get-style-indentation'."
+  (finishes (source-text (copy (sel/sw/ts:python "fun()") :indent-children t))))
 
 
 ;;; Round-Trip Tests

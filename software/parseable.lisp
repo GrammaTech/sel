@@ -115,6 +115,7 @@
            :indent-adjustment
            :indent-children
            :get-default-indentation
+           :get-indent-children
            :get-indentation-at
            :*indent-with-tabs-p*
            :*spaces-per-tab*
@@ -1820,6 +1821,8 @@ to allow for successful mutation of SOFTWARE at PT."
 (defclass indentation ()
   ((indent-children :accessor indent-children
                     :initform nil
+                    ;; `t' means to default based on the parents.
+                    :type (or null integer (eql t))
                     :initarg :indent-children)
    (indent-adjustment :accessor indent-adjustment
                       :initform nil
@@ -1839,15 +1842,23 @@ This can be set to modify the behavior of #'source-text and #'convert")
     (declare (ignorable ast parents))
     *spaces-per-tab*))
 
+(defgeneric get-indent-children (ast parents)
+  (:documentation "Get a sane indent-children value for AST in PARENTS.")
+  (:method (ast parents)
+    (let ((indent-children (indent-children ast)))
+      (if (eql indent-children t)
+          (get-default-indentation ast parents)
+          indent-children))))
+
 (defgeneric get-indentation-at (ast parents)
   (:documentation "Get the indentation for AST given PARENTS.")
   (:method ((ast indentation) (parents list))
-    (reduce (lambda (total parent)
-              (+ total
-                 (or (indent-adjustment parent) 0)
-                 (or (indent-children parent) 0)))
-            parents
-            :initial-value (or (indent-adjustment ast) 0))))
+    (iter (for (parent . more-parents) on parents)
+          (reducing (+ (or (indent-adjustment parent) 0)
+                       (or (get-indent-children parent more-parents)
+                           0))
+                    by #'+
+                    initial-value (or (indent-adjustment ast) 0)))))
 
 (defmethod copy :around ((ast indentation)
                          &key (indent-children (indent-children ast))

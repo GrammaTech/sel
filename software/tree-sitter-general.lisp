@@ -2707,7 +2707,7 @@ on the calculated format of a particular file."))
 
 (defgeneric get-style-indentation (style software ast &key)
   (:method (style software (ast indentation) &key) (indent-children ast))
-  (:documentation "Return a the indent-children value for AST in SOFTWARE for
+  (:documentation "Return the indent-children value for AST in SOFTWARE for
 STYLE."))
 
 (defgeneric get-style-indentation-adjustment
@@ -3731,13 +3731,14 @@ with SUPERCLASS.")
   "Get the indentation at AST when it is an inner-whitespace AST. This
 is handled differently than other ASTs because it should be considered part
 of the parent."
-  (reduce (lambda (total parent)
-            (+ total
-               (or (indent-adjustment parent) 0)
-               (or (indent-children parent) 0)))
-          (cdr parents)
-          :initial-value (or (and parent (indent-adjustment parent))
-                             0)))
+  (iter (for (p . ps) on (rest parents))
+        (reducing (+ (or (indent-adjustment p) 0)
+                     (or (get-indent-children p ps)
+                         0))
+                  by #'+
+                  initial-value
+                  (or (and parent (indent-adjustment parent))
+                      0))))
 
 (defgeneric surrounding-text-transform (text)
   (:documentation "Transform VALUE into a string representation. This is useful
