@@ -1703,6 +1703,18 @@ public:
           (is (ancestor-of-p cpp def1 derived))
           (is (ancestor-of-p cpp def2 base-class)))))))
 
+(deftest test-collect-var-uses-on-field ()
+  "Fields should work with collect-var-uses."
+  (let* ((cpp (cpp* "struct S { int f; int g; }
+int fn() {
+  S a = S{};
+  S b = S{};
+  other_fun(a.f, a.g, b.f, b.g);
+}"))
+         (expr (find-if (of-type 'cpp-field-expression) cpp)))
+    (with-attr-table cpp
+      (is (length= 2 (collect-var-uses cpp expr))))))
+
 
 
 ;;; Parsing tests
