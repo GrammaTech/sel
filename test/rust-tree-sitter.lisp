@@ -105,9 +105,12 @@ other_function();
 ;;; Symbol table
 
 (deftest test-macro-invocation-has-no-outer-declarations ()
+  "Macro invocation should not add to the symbol table."
   (is (null (ts::outer-declarations (rust* "mymacro!()")))))
 
 (deftest test-rust-closure-inner-declarations ()
+  "Closure parameters should appear in the symbol table of their
+bodies."
   (let* ((rust (rust* "let expensive_closure = |num: u32| -> u32 {
         println!(\"calculating slowly...\");
         thread::sleep(Duration::from_secs(2));
@@ -119,7 +122,7 @@ other_function();
       (is (eql parameter (get-declaration-ast :variable var))))))
 
 (deftest test-variables-shadow-functions ()
-  "Variables should shadow functions in Rust"
+  "Variables should shadow functions."
   (let* ((rust (rust* "fn add(x: u32, y: u32) -> u32 {
     return x+y;
 }
@@ -134,6 +137,7 @@ fn main() {
                  'rust-let-declaration)))))
 
 (deftest test-rust-definition-name-ast ()
+  "We should be able to extract the definition-name-ast from Rust ASTs."
   (let ((rust-exprs
           (list
            (rust* "enum Foo {}")
@@ -149,6 +153,7 @@ fn main() {
       (is (equal "Foo" (source-text (definition-name-ast expr)))))))
 
 (deftest test-rust-declaration-type ()
+  "We should be able to extract the declaration type from Rust ASTs."
   (let ((rust-exprs
           (list
            (rust* "let x: Foo")
@@ -159,6 +164,8 @@ fn main() {
       (is (equal "Foo" (source-text (declaration-type expr)))))))
 
 (deftest test-function-inner-declarations ()
+  "Functions should add their parameters (including their type
+parameters) to the symbol tables of their bodies."
   (let* ((fn (rust* "fn Foo<T>(x: T) { x }"))
          (x-use (lastcar (collect-if (of-type 'identifier-ast) fn))))
     (is (equal "x" (source-text x-use)))
