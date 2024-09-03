@@ -69,9 +69,9 @@ RUN curl https://raw.githubusercontent.com/llvm-mirror/clang/master/tools/clang-
     > /usr/bin/git-lisp-format
 RUN chmod +x /usr/bin/git-lisp-format
 
-# Install pre-release version of ASDF needed for CCL package-local nicknames
+# Install up-to-date ASDF (must be >=3.3.4.8 for package-local nickname support.)
 RUN mkdir /root/common-lisp
-RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.4.8/asdf-3.3.4.8.tar.gz| tar xzC /root/common-lisp
+RUN curl https://gitlab.common-lisp.net/asdf/asdf/-/archive/3.3.7/asdf-3.3.7.tar.gz| tar xzC /root/common-lisp
 
 # Install tree-sitter and tree-sitter parsers
 COPY tools/tree-sitter-install.sh /bin
