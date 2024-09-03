@@ -20,13 +20,6 @@ RUN npm install --global prettier
 RUN python -m pip install --upgrade pip && \
     python -m pip install pytest yapf
 
-# Rebuild SBCL from scratch from git HEAD, enabling dynamic core so users
-# can expand the memory with a command line option
-RUN git clone --branch sbcl-2.2.5 https://git.code.sf.net/p/sbcl/sbcl /root/sbcl
-RUN cd /root/sbcl && bash make.sh --prefix=/usr --with-sb-linkable-runtime --with-sb-dynamic-core --dynamic-space-size=8Gb
-RUN apt-get -y remove sbcl
-RUN cd /root/sbcl && bash install.sh
-
 # # Install Clozure
 RUN mkdir /usr/share/ccl
 RUN git clone --branch=v1.12.1 https://github.com/Clozure/ccl.git /usr/share/ccl
@@ -39,6 +32,22 @@ export CCL_DEFAULT_DIRECTORY=/usr/share/ccl\n\
 exec ${CCL_DEFAULT_DIRECTORY}/lx86cl64 "$@"\n\
 ' > /usr/bin/ccl
 RUN chmod a+x /usr/bin/ccl
+
+# Install SBCL. Build SBCL ourselves to enable dynamic core so users
+# can expand the memory with a command line option. Note SBCL versions
+# <2.2.6 (such as the version included in the Ubuntu 22 APT
+# repositories) cannot be used to bootstrap newer SBCL versions, so we
+# bootstrap with Clozure CL.
+RUN rm -rf /root/sbcl && \
+    git clone --depth=1 --branch sbcl-2.4.6 https://git.code.sf.net/p/sbcl/sbcl \
+    /root/sbcl
+RUN cd /root/sbcl && \
+    bash make.sh --xc-host='ccl --batch --no-init'\
+    --prefix=/usr \
+    --with-sb-linkable-runtime --with-sb-dynamic-core \
+    --dynamic-space-size=8Gb
+RUN apt-get -y remove sbcl
+RUN cd /root/sbcl && bash install.sh && sbcl --version
 
 # Install QuickLisp
 RUN curl -O https://beta.quicklisp.org/quicklisp.lisp
