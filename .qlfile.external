@@ -1,8 +1,10 @@
-git gt https://github.com/GrammaTech/cl-utils.git
-git functional-trees https://github.com/GrammaTech/functional-trees.git
-git stefil+ https://github.com/GrammaTech/stefil-.git main
-git cl-tree-sitter https://github.com/death/cl-tree-sitter
-git serapeum https://github.com/ruricolist/serapeum
 git cl-isaac https://github.com/thephoeron/cl-isaac.git
-git overlord https://github.com/ruricolist/overlord
+git cl-tree-sitter https://github.com/death/cl-tree-sitter
 git cmd https://github.com/ruricolist/cmd
+git fset https://github.com/slburson/fset.git
+git functional-trees https://github.com/GrammaTech/functional-trees.git
+git gt https://github.com/GrammaTech/cl-utils.git
+git misc-extensions https://github.com/slburson/misc-extensions.git
+git overlord https://github.com/ruricolist/overlord
+git serapeum https://github.com/ruricolist/serapeum
+git stefil+ https://github.com/GrammaTech/stefil-.git main
