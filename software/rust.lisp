@@ -254,9 +254,10 @@ Rust macro invocations can use (), [], and {} equivalently."
 
 ;;; Symbol table
 
-;;; NB Rust has five namespaces: types, values, macros, labels and
-;;; lifetimes. There is no separate namespace for functions. We
-;;; re-route requests for function definitions as variables.
+;;; NB Rust has five namespaces: types, values (variables), macros,
+;;; labels and lifetimes. There is no separate namespace for
+;;; functions. We re-route requests for function definitions as
+;;; variables.
 
 (defmethod get-declaration-ids ((ns (eql :function)) (ast rust-ast))
   "Merge function and variable namespaces for Rust."
