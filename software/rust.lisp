@@ -290,7 +290,8 @@ Rust macro invocations can use (), [], and {} equivalently."
     ((identifier-ast) (list pattern))
     ((or (rust-reference-pattern)
          (rust-tuple-pattern))
-     (mappend #'rust::pattern-variables (children pattern)))
+     (mappend #'rust::pattern-variables
+              (children-of-type pattern 'rust--pattern)))
     ((rust-tuple-struct-pattern)
      (mappend #'rust::pattern-variables (direct-children pattern)))))
 
@@ -313,7 +314,8 @@ Rust macro invocations can use (), [], and {} equivalently."
   (let ((vars
           (mappend #'rust::pattern-variables
                    (mapcar #'rust::extract-pattern
-                           (children (rust-parameters decl))))))
+                           (children-of-type (rust-parameters decl)
+                                             'rust-parameter)))))
     (values vars
             (mapcar (constantly :variable) vars))))
 
