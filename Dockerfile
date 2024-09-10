@@ -13,7 +13,7 @@ RUN apt-get -y --fix-missing update \
 ENV LC_ALL=C.UTF-8 LANG=C.UTF-8
 
 # Install NPM
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
 RUN npm install --global prettier
 
 # Upgrade pip and install pytest, yapf
