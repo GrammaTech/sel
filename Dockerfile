@@ -22,7 +22,7 @@ RUN python -m pip install --upgrade pip && \
 
 # # Install Clozure
 RUN mkdir /usr/share/ccl
-RUN git clone --branch=v1.12.1 https://github.com/Clozure/ccl.git /usr/share/ccl
+RUN git clone --depth=1 --branch=v1.12.1 https://github.com/Clozure/ccl.git /usr/share/ccl
 RUN curl -L https://github.com/Clozure/ccl/releases/download/v1.12.1/linuxx86.tar.gz \
     | tar xzvf - -C /usr/share/ccl
 RUN cd /usr/share/ccl && echo "(ccl:rebuild-ccl :full t)" \
@@ -79,7 +79,7 @@ COPY tools/tree-sitter-install.sh /bin
 ARG NOPIN
 RUN env NOPIN=${NOPIN} WORKDIR= tree-sitter-install.sh
 # Work around bug in cl-unicode in quicklisp.
-RUN git clone https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
+RUN git clone --depth=1 https://github.com/edicl/cl-unicode.git /root/quicklisp/local-projects/cl-unicode
 
 # Pre-download and compile a number of dependency packages.
 COPY .cl-make /root/quicklisp/local-projects/sel/.cl-make
