@@ -440,13 +440,9 @@ Rust macro invocations can use (), [], and {} equivalently."
   rust-ast :|::|
   :|:| rust-ast
   :|::| rust-ast
-  :< rust-type-identifier
-  rust-type-identifier :>
-  :< rust-primitive-type
   :< rust-lifetime
   rust-lifetime :>
   :|'| rust-identifier
-  rust-primitive-type :>
   :& rust-ast
   rust-& rust-self
   rust-type-identifier rust-type-arguments
@@ -584,5 +580,29 @@ Rust macro invocations can use (), [], and {} equivalently."
      " ")
     (otherwise
      #.(string #\Newline))))
+
+(defmethod whitespace-between/parent ((parent rust-type-arguments)
+                                      (s rustfmt-style)
+                                      (x rust-ast)
+                                      (y (eql :>)))
+  "")
+
+(defmethod whitespace-between/parent ((parent rust-type-parameters)
+                                      (s rustfmt-style)
+                                      (x rust-ast)
+                                      (y (eql :>)))
+  "")
+
+(defmethod whitespace-between/parent ((parent rust-type-arguments)
+                                      (s rustfmt-style)
+                                      (x (eql :<))
+                                      (y rust-ast))
+  "")
+
+(defmethod whitespace-between/parent ((parent rust-type-parameters)
+                                      (s rustfmt-style)
+                                      (x (eql :<))
+                                      (y rust-ast))
+  "")
 
 ) ; #+:TREE-SITTER-RUST

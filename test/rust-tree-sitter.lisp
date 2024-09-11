@@ -444,4 +444,5 @@ struct MyType<T> { x: T, y: T }")
   ;; Don't add newlines around a single expression.
   (check-patch-whitespace "{ x }")
   (check-patch-whitespace (fmt "{~%~4tx();~%~4ty~%}"))
-  (check-patch-whitespace "fun()?;"))
+  (check-patch-whitespace "fun()?;")
+  (check-patch-whitespace "impl From<(i32, i32)> for Foo {}"))
