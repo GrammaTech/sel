@@ -177,6 +177,12 @@ to be modified.
 
 - Update docker image
 
+## v0.9.9 -> v0.9.10
+
+- Add support for setting the dynamic space size for the SEL interface via
+  `ASTS_SBCL_DYNAMIC_SPACE_SIZE`. See `--dynamic-space-size` in the SBCL
+  manual for more information.
+
 # Tree-sitter revisions
 
 This section contains the tree-sitter and tree-sitter language

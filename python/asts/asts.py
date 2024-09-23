@@ -639,6 +639,19 @@ class _interface:
                 else:
                     cmdline = [cmd]
 
+                # Add dynamic space size to the command line if an environment
+                # variable is available to specify it.
+                if "ASTS_SBCL_DYNAMIC_SPACE_SIZE" in os.environ:
+                    cmdline.extend(
+                        [
+                            "--dynamic-space-size",
+                            # See the SBCL manual for valid values of
+                            # --dynamic-space-size.
+                            # http://www.sbcl.org/manual/#Runtime-Options
+                            os.environ["ASTS_SBCL_DYNAMIC_SPACE_SIZE"],
+                        ]
+                    )
+
                 # Startup the interface subprocess.
                 _interface._proc = subprocess.Popen(
                     cmdline,
