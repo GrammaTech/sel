@@ -182,6 +182,7 @@ to be modified.
 - Add support for setting the dynamic space size for the SEL interface via
   `ASTS_SBCL_DYNAMIC_SPACE_SIZE`. See `--dynamic-space-size` in the SBCL
   manual for more information.
+- Fix issue with parsing unconventional Python indentation.
 
 # Tree-sitter revisions
 
