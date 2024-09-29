@@ -195,6 +195,25 @@ foo()
 "))
     (is (source-text= c-source (convert 'c-ast c-source)))
     (is (source-text= python-source (convert 'python-ast python-source)))))
+
+(deftest indentation-before-terminal-token-is-ignored ()
+  "Indentation that occurs before a terminal token is ignored instead of appying
+to all children."
+  ;; NOTE: this can be removed if inner-whitespace is expanded to handle the
+  ;;       cases where indentation can be weird from this. Note that this can
+  ;;       happen anywhere a non-terminal is followed by a terminal, so
+  ;;       inner-whitespace slots don't exist for it, and it probably wouldn't
+  ;;       make sense to have them on every object since this rarely happens.
+  (let* ((ast (convert 'python-ast "
+def f():
+    X[0
+      ] -= Y[
+        0
+    ]
+")))
+    (is (not (indent-children (find-if (of-type 'python-subscript) ast))))))
+
+
 
 ;;; Mutation Tests
 (deftest moveable-indentation-python-1 ()

@@ -156,6 +156,11 @@ act as sequence points."))
     ()
     (:documentation "Mixin for ASTs whose languages use \"normal scope\"."))
 
+  (defclass normalized-whitespace-ast ()
+    ()
+    (:documentation "Mixin for ASTs whose whitespace needs to be normalized
+to produce valid code when unconvential indentation occurs."))
+
   (defparameter *tree-sitter-software-superclasses*
     '((:c compilable normal-scope c/cpp c-like-syntax)
       (:cpp compilable normal-scope c/cpp c-like-syntax)
@@ -177,6 +182,7 @@ act as sequence points."))
       (:golang c-like-syntax-ast normal-scope-ast)
       (:java c-like-syntax-ast ltr-eval-ast)
       (:javascript ecma-ast c-like-syntax-ast normal-scope-ast ltr-eval-ast)
+      (:python normalized-whitespace-ast)
       (:rust c-like-syntax-ast normal-scope-ast ltr-eval-ast)
       (:typescript-ts typescript-ast c-like-syntax-ast ltr-eval-ast)
       (:typescript-tsx typescript-ast c-like-syntax-ast ltr-eval-ast))

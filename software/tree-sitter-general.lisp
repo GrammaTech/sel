@@ -2957,6 +2957,7 @@ the indentation slots."
               (children ast)))
            (update-indentation-slots
                (ast parents indentation text
+                &key terminal-token
                 &aux (parent (car parents))
                   (adjusted-indentation
                    ;; total - inherited
@@ -2974,6 +2975,23 @@ the indentation slots."
                  ((and only-indentation?
                        indentation-ast
                        (ancestor-of-p root indentation-ast ast)))
+                 ((and (typep ast 'normalized-whitespace-ast)
+                       terminal-token
+                       ;; child of current ast
+                       (find-if (op (eq indentation-ast _)) ast))
+                  ;; NOTE: ignore indentation that would require a terminal
+                  ;;       token to have an indent-adjustment slot. This can
+                  ;;       "ruin" the indentation in a few cases--namely,
+                  ;;       when a terminal token is the only thing that has
+                  ;;       indentation--but should normalize things for Python.
+                  ;; NOTE: this can happen anywhere a non-terminal is followed
+                  ;;       by a terminal, so inner-whitespace slots don't exist
+                  ;;       for it, and it probably wouldn't make sense to have
+                  ;;       them on every object since this rarely happens.
+                  ;; TODO: does it make sense to apply the indentation to
+                  ;;       the after-text of the indentation-ast? Probably not.
+                  (setf indentation-carryover nil
+                        indentation-ast nil))
                  ;; Don't indent if the current AST already has an
                  ;; indentation slot assigned as this will result in
                  ;; back-propagation of indentation.
@@ -3009,7 +3027,7 @@ the indentation slots."
                           indentation-ast nil)))))
            (patch-leading-indentation
                (text ast parents
-                &key before-text
+                &key before-text terminal-token
                 &aux (indentation (starts-with-indentation-p text))
                   (not-empty-string-p (not (emptyp text))))
              "Return TEXT with the leading indentation removed and
@@ -3033,7 +3051,8 @@ the indentation slots."
                   (when before-text
                     ;; NOTE: pass 0 in becase indentation-carryover should be
                     ;;       set if needed at this point.
-                    (update-indentation-slots ast parents 0 text))))
+                    (update-indentation-slots ast parents 0 text
+                                              :terminal-token terminal-token))))
                ((or indentation
                     ;; NOTE: check if text exists here so that
                     ;;       the inherited indentation can be
@@ -3046,7 +3065,8 @@ the indentation slots."
                  ast parents (+ leading-indentation
                                 (adjusted-spaces-from-tabs
                                  (subseq text 0 leading-indentation)))
-                 text)
+                 text
+                 :terminal-token terminal-token)
                 (subseq text leading-indentation))
                (t text)))
            (patch-trailing-indentation (text ast)
@@ -3069,7 +3089,7 @@ the indentation slots."
              "Patch TEXT such that it useable for inherited indentation.
               Updates AST and PARENTS slots if necessary."
              (patch-trailing-indentation
-              (patch-leading-indentation text ast parents)
+              (patch-leading-indentation text ast parents :terminal-token t)
               ast))
            (process-indentation*
                (ast &optional parents
