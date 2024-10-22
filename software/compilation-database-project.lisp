@@ -11,7 +11,9 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/project
         :software-evolution-library/software/parseable-project)
-  (:local-nicknames (:json :cl-json))
+  (:local-nicknames
+   (:dbg :software-evolution-library/utility/debug)
+   (:json :cl-json))
   (:export
     :command-object
     :compilation-database
@@ -68,6 +70,7 @@ information on the format of compilation databases.")
              (unless (find-if #'file-exists-p comp-db-paths)
                (ensure-compilation-database obj))
              (when-let (comp-db-path (find-if #'file-exists-p comp-db-paths))
+               (dbg:note :debug "Found compilation database ~a" comp-db-path)
                (with-open-file (in comp-db-path)
                  (parse-compilation-database in))))))
     (when compilation-database
