@@ -532,6 +532,10 @@ for the language.")
         (rust-parameters :reader function-parameters)
         (rust-body :reader function-body :reader body :initarg :body)
         (rust-return-type :reader return-type :initarg :return-type))
+       (rust-function-signature-item
+        (rust-name :reader function-name :reader definition-name-ast)
+        (rust-parameters :reader function-parameters)
+        (rust-return-type :reader return-type :initarg :return-type))
        (rust-if-expression
         (rust-condition :initarg :condition :reader condition)
         (rust-consequence :initarg :consequence :reader consequence)
