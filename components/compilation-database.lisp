@@ -189,12 +189,11 @@ command object."
                 ;; "All paths specified in the command or file
                 ;; fields must be either absolute or relative to
                 ;; this directory."
-                (if (absolute-pathname-p file) file
-                    (namestring
+                 (if (absolute-pathname-p file) file
                      (canonical-pathname
-                      (base-path-join directory file))))))
+                      (base-path-join directory file)))))
           (assert (absolute-pathname-p key))
-          (push entry (href dict key)))))))
+          (push entry (href dict (namestring key))))))))
 
 (defsubst lookup-in-compdb (compdb key)
   (gethash key (file-command-objects compdb)))
