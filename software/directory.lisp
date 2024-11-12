@@ -578,6 +578,7 @@ instances."
                        (next-iteration)))))
               (continue ()
                 :report "Skip evolve file"
+                (debug:note :trace "Skipping ~a" path)
                 (next-iteration)))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
