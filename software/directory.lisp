@@ -562,24 +562,28 @@ instances."
       (debug:note 2 "Inserting genomes into AST")
       (iter (for (path . software-object) in evolve-files)
             (for genome = (pop parsed-genomes))
-            (restart-case
-                (etypecase-of parsed-genome genome
-                  ((eql :lazy))
-                  (ast
-                   (insert-file obj path software-object))
-                  ((cons (eql :error) t)
-                   (restart-case
-                       (if skip-all
-                           (next-iteration)
-                           (error (cdr genome)))
-                     (skip-all-unparsed-files ()
-                       :report "Skip all unparsed files"
-                       (setf skip-all t)
-                       (next-iteration)))))
-              (continue ()
-                :report "Skip evolve file"
-                (debug:note :trace "Skipping ~a" path)
-                (next-iteration)))))))
+            (handler-bind ((error (lambda (e)
+                                    (unless uiop:*lisp-interaction*
+                                      (invoke-restart 'continue)))))
+              (restart-case
+                  (etypecase-of parsed-genome genome
+                                ((eql :lazy))
+                                (ast
+                                 (insert-file obj path software-object))
+                                ((cons (eql :error) t)
+                                 (restart-case
+                                     (if skip-all
+                                         (next-iteration)
+                                         (error (cdr genome)))
+                                   (skip-all-unparsed-files ()
+                                     :report "Skip all unparsable files"
+                                     (setf skip-all t)
+                                     (next-iteration)))))
+                (continue ()
+                  :report
+                  (lambda (s) (format s "Skip evolve file ~a" path))
+                  (debug:note :trace "Skipping ~a" path)
+                  (next-iteration))))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
