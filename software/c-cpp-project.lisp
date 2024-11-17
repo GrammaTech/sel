@@ -1052,6 +1052,11 @@ include files in all directories of the project."
                               (source-text
                                (include-ast-path-ast include-ast
                                                      :symbol-table in))))
+            (debug:lazy-note :trace
+                             "Skipping including ~a"
+                             (source-text
+                              (include-ast-path-ast include-ast
+                                                    :symbol-table in)))
             (return-from find-symbol-table-from-include
               in))
           (enable-global-search ()
