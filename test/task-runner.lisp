@@ -91,3 +91,30 @@
     ;; Ensure correct results are returned by multi-threaded task-map
     ;; (in any order).
     (mapc (lambda (result) (is (member result results))) '(2 3 4))))
+
+(defvar *in-worker*)
+
+(deftest test-worker-env ()
+  "Using `*worker-funcall*' should change the environment of tasks
+launched directly as well as tasks launched from the task thread."
+  (is (not (boundp '*in-worker*)))
+  (let* ((thread-count 4)
+         (worker-fn
+           (lambda (fn)
+             (let ((*in-worker* t))
+               (funcall fn))))
+         (*worker-funcall* worker-fn)
+         boundp)
+    (task-map thread-count
+              (lambda (x)
+                (declare (ignore x))
+                (synchronized ('boundp)
+                  (push (boundp '*in-worker*) boundp))
+                (task-map thread-count
+                          (lambda (x)
+                            (declare (ignore x))
+                            (synchronized ('boundp)
+                              (push (boundp '*in-worker*) boundp)))
+                          (make-list thread-count)))
+              (make-list thread-count))
+    (is (every (eqls t) boundp))))

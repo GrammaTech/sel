@@ -114,6 +114,7 @@
   (:export
    :task-runner
    :*task-runner*
+   :*worker-funcall*
    :task-runner-jobs
    :task-runner-workers
    :task-runner-workers-count
@@ -163,6 +164,11 @@
 
 (defparameter *task-runner* nil
   "Bind *TASK-RUNNER* for worker threads")
+
+(defparameter *worker-funcall* #'funcall
+  "Function that invokes worker loop to run.
+When this value is bound when starting a task, the value is propagated
+through to any further tasks launched from the first task, and so on.")
 
 (defclass task ()
   ((object :initarg :object :accessor task-object))
@@ -274,10 +280,13 @@
   (defun task-runner-create-worker (runner)
     "Create a new worker thread."
     (let ((*default-special-bindings*
-           (acons '*task-runner* runner
-                  *default-special-bindings*)))
+            (list* (cons '*task-runner* runner)
+                   (cons '*worker-funcall* *worker-funcall*)
+                   *default-special-bindings*)))
       (with-lock-held ((task-runner-workers-lock runner))
-        (push (make-thread 'start-worker
+        (push (make-thread
+               (lambda ()
+                 (funcall *worker-funcall* #'start-worker))
                 :name (format nil "~A-~D" "software-mutator"
                               (incf worker-id)))
               (task-runner-workers runner))))))
