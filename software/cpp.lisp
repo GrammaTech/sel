@@ -1072,6 +1072,13 @@ templated definition's field table."
        (field-table class)))
     (otherwise (call-next-method))))
 
+(defmethod field-table ((ast cpp-type-parameter-declaration))
+  ;; Look at possible types?
+  (if-let ((possible-types (possible-types ast)))
+    ;; TODO
+    (field-table (car possible-types))
+    (empty-map)))
+
 (-> cpp::inherited-member-access (member-access member-access) member-access)
 (defun cpp::inherited-member-access (as-inherited as-defined)
   "Compute the final visibility of a member give how it is inherited in
