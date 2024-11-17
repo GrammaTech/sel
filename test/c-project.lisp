@@ -110,6 +110,15 @@
                                            "c-symbol-table-project2")))))
   (:teardown (setf *project* nil)))
 
+(defixture extra-files
+  (:setup
+   (setf *project*
+         (from-file 'c-project
+                    (make-pathname
+                     :directory (append1 +etc-dir+
+                                         "c-extra-files")))))
+  (:teardown (setf *project* nil)))
+
 (defmethod test-method ((obj simple) value)
   value)
 
@@ -368,3 +377,9 @@ present in evolve-files/dependency-order."
         (mapc (lambda (ast)
                 (is (has-attribute-p ast 'symbol-table)))
               include-ast)))))
+
+(deftest c-project-initially-excludes-headers ()
+  "Projects should initially only parse files in the compilation database."
+  (with-fixture extra-files
+    (is (equal (mapcar #'car (evolve-files *project*))
+               '("hello_world.c")))))

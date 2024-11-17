@@ -1,0 +1,14 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-o",
+      "hello_world",
+      "hello_world.c"
+    ],
+    "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/c-extra-files",
+    "file": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/c-extra-files/hello_world.c",
+    "output": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/c-extra-files/hello_world"
+  }
+]

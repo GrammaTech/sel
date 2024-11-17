@@ -46,10 +46,31 @@ information on the format of compilation databases.")
           (relativize-command-objects
            compilation-database (original-path copy) (project-dir copy)))))
 
-(defmethod collect-evolve-files :before ((obj compilation-database-project))
+(defmethod collect-evolve-files :around ((obj compilation-database-project))
   "Ensure OBJ has a compilation-database populated."
-  (unless (compilation-database obj)
-    (populate-compilation-database obj)))
+  (flet ((filter-by-compilation-database (obj evolve-files)
+           (mvlet* ((db-files other-files
+                     (partition
+                      (lambda (evolve-files-entry)
+                        (destructuring-bind (file . software)
+                            evolve-files-entry
+                          (declare (ignore software))
+                          (command-object obj file)))
+                      evolve-files)))
+             (dbg:lazy-note
+              :trace
+              "Rejected ~a file~:p based on compilation database (~a kept)"
+              (length other-files)
+              (length db-files))
+             db-files)))
+    (unless (compilation-database obj)
+      (populate-compilation-database obj))
+    ;; Reject files not in compilation database.
+    (if (not (compilation-database obj))
+        (call-next-method)
+        (filter-by-compilation-database
+         obj
+         (call-next-method)))))
 
 (defun populate-compilation-database (obj)
   (let* ((supplied-path (compilation-database-path obj))
