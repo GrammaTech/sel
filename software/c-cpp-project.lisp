@@ -827,8 +827,9 @@ the including file."
                (destructuring-bind (path . software) result
                  (with-slots (genome) software
                    (unless (typep genome 'ast)
-                     (force-parse-genome path software)
-                     (insert-software-into-project path software))))))
+                     (with-simple-restart (continue "Skip inserting ~a" path)
+                       (force-parse-genome path software)
+                       (insert-software-into-project path software)))))))
       (when-let (result
                  (or (simple-relative-search)
                      (and global
