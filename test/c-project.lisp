@@ -343,3 +343,13 @@ present in evolve-files/dependency-order."
                   (mapcar #'car evolve-files)
                   (mapcar #'car evolve-files/dependency-order)
                   :test #'equal)))))))
+
+(deftest c-include-asts-have-symbol-tables ()
+  "ASTs inside include statements should have a symbol table."
+  (with-fixture include-processing
+    (let ((include-ast (is (find-if (of-type 'c-preproc-include) *project*))))
+      (with-attr-table *project*
+        (symbol-table *project*)
+        (mapc (lambda (ast)
+                (is (has-attribute-p ast 'symbol-table)))
+              include-ast)))))
