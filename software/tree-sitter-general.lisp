@@ -1566,7 +1566,7 @@ automatically removed.")
                         (outer-exits inner-exits
                          (partition (op (member _1 (get-parent-asts attrs-root root)))
                                     exits)))
-                 (dbg:note 3 "Exits for ~a: ~a" entry-points exits)
+                 (dbg:note :trace "Exits for ~a: ~a" entry-points exits)
                  (qappend final-exits outer-exits)
                  (mapc (op (walk-cfg _ final-exits visited))
                        inner-exits)))
@@ -1577,11 +1577,10 @@ automatically removed.")
                  (nub (qlist final-exits)))))
       (let ((defaults (remove nil (ensure-list (call-next-method))))
             (entry-points (entry-control-flow root)))
-        (dbg:note 3 "Default exits for ~a: ~a" root defaults)
+        (dbg:note :trace "Default exits for ~a: ~a" root defaults)
         (if (no entry-points) defaults
             (let ((final-exits (final-exits entry-points)))
-
-              (dbg:note 3 "Final exits for ~a: ~a" entry-points final-exits)
+              (dbg:note :trace "Final exits for ~a: ~a" entry-points final-exits)
               ;; If control flow returns to the root of the subgraph,
               ;; add its exits.
               (or (flatten (substitute defaults root final-exits))
