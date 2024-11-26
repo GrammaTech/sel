@@ -1072,6 +1072,16 @@ templated definition's field table."
        (field-table class)))
     (otherwise (call-next-method))))
 
+(defmethod direct-field-table ((typedef cpp-type-definition))
+  "Given a typedef for a template type, recursively resolve the
+templated definition's field table."
+  (match typedef
+    ((cpp-type-definition
+      (cpp-type (and type (cpp-template-type))))
+     (when-let (class (get-declaration-ast :type type))
+       (direct-field-table class)))
+    (otherwise (call-next-method))))
+
 (defmethod field-table ((ast cpp-type-parameter-declaration))
   ;; Look at possible types?
   (if-let ((possible-types (possible-types ast)))
