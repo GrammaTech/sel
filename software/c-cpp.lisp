@@ -338,24 +338,26 @@ Otherwise, use heuristics."
              (match d
                ((type (or c/cpp-identifier cpp-qualified-identifier))
                 (values (list d) '(:variable)))
-               ((type (or c/cpp-array-declarator c/cpp-pointer-declarator
+               ((type (or c/cpp-array-declarator
+                          c/cpp-pointer-declarator
+                          cpp-reference-declarator
                           c/cpp-function-declarator))
                 (outer-declarations d))
                ((c/cpp-init-declarator
                  (c/cpp-declarator
                   (cpp-reference-declarator
                    (direct-children (list r)))))
-                (values (list r) '(:variable)))
+                (get-declarations r))
                ((c/cpp-init-declarator
                  (c/cpp-declarator
                   (c/cpp-pointer-declarator
                    (c/cpp-declarator d))))
-                (values (list d) '(:variable)))
+                (get-declarations d))
                ((c/cpp-init-declarator
                  (c/cpp-declarator
                   (c/cpp-array-declarator
                    (c/cpp-declarator d))))
-                (values (list d) '(:variable)))
+                (get-declarations d))
                ((c/cpp-parenthesized-declarator)
                 (outer-declarations d))
                ;; Special handling for uninitialized variables.
@@ -393,6 +395,9 @@ pointer declarations which are nested on themselves."
     (if (typep declarator 'c/cpp-identifier)
         (list declarator)
         (outer-declarations declarator))))
+
+(defmethod outer-declarations ((ast c/cpp-parenthesized-declarator))
+  (outer-declarations (only-elt (children ast))))
 
 (defmethod outer-declarations ((ast c/cpp-array-declarator))
   (values (get-nested-declaration ast)

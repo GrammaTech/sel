@@ -676,6 +676,12 @@ int sum = myadd(2, 2);"))
     (is (@ field-table "y"))
     (is (@ field-table "z"))))
 
+(deftest test-nested-declarator-outer-declarations ()
+  "Nested declarators should be added to the symbol table."
+  (is (typep (car (ts::outer-declarations
+                   (c* "const double *(*arrOfPtr[5]) = y")))
+             'identifier-ast)))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
