@@ -1799,6 +1799,12 @@ int fn() {
       (is (length= 2 (collect-var-uses cpp expr))))))
 
 
+(deftest test-placeholder-type-p ()
+  "Type descriptors containing placeholder types should be placeholder types."
+  (is (placeholder-type-p
+       (find-if (of-type 'cpp-type-descriptor)
+                (cpp "x() -> auto& {}")))))
+
 
 ;;; Parsing tests
 

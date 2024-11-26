@@ -1626,6 +1626,9 @@ then the return type of the call is the return type of the field."
 (defmethod placeholder-type-p ((ast cpp-placeholder-type-specifier))
   t)
 
+(defmethod placeholder-type-p ((ast cpp-type-descriptor))
+  (placeholder-type-p (cpp-type ast)))
+
 (defmethod infer-type :context ((ast cpp-ast))
   (match (call-next-method)
     ;; Unwrap trivial type descriptors.
