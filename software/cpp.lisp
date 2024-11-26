@@ -1709,9 +1709,11 @@ types."
                   (and id (cpp-qualified-identifier))))
      (get-declaration-ast
       :type
-      (list->qualified-name
-       (butlast
-        (qualified-name->list id)))))))
+      (lret ((qname
+              (list->qualified-name
+               (butlast
+                (qualified-name->list id)))))
+        (setf (attr-proxy qname) id))))))
 
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
