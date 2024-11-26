@@ -797,22 +797,22 @@ There can be multiple classes if FIELD occurs in a template."
       ;; TODO Just ->?
       (c/cpp-argument arg))
      ;; Find the type of the argument.
-     (when-let* ((type (infer-type arg)))
-       ;; Get the declaration of the type of the argument.
-       (let ((new-type
-               (if (typep (c/cpp-operator field) 'c/cpp-->)
-                   (deref-type type)
-                   type)))
-         (filter (of-type '(and type-declaration-ast
-                            definition-ast))
-                 ;; This can include non-definitions (e.g. a type
-                 ;; parameter would be expanded as the type parameter
-                 ;; and all the classes it gets specialized on.)
-                 (get-declaration-asts
-                  ;; NB `c-tag-specifier' is a mixin class we define.
-                  (if (typep new-type 'c-tag-specifier)
-                      :tag :type)
-                  new-type)))))))
+     (when-let* ((type (infer-type arg))
+                 ;; Get the declaration of the type of the argument.
+                 (new-type
+                  (if (typep (c/cpp-operator field) 'c/cpp-->)
+                      (deref-type type)
+                      type)))
+       (filter (of-type '(and type-declaration-ast
+                          definition-ast))
+               ;; This can include non-definitions (e.g. a type
+               ;; parameter would be expanded as the type parameter
+               ;; and all the classes it gets specialized on.)
+               (get-declaration-asts
+                ;; NB `c-tag-specifier' is a mixin class we define.
+                (if (typep new-type 'c-tag-specifier)
+                    :tag :type)
+                new-type))))))
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
   (mappend (op (lookup-in-field-table _ type (c/cpp-field ast)))
