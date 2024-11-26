@@ -781,6 +781,9 @@ is the operator of a binary ast.")
        (and struct (c/cpp-classoid-specifier))))
      (field-table struct))))
 
+(defmethod direct-field-table ((ast c/cpp-enum-specifier))
+  (empty-map))
+
 (defun get-field-classes (field)
   "Find the classes that define FIELD.
 There can be multiple classes if FIELD occurs in a template."
