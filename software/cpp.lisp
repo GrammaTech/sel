@@ -1264,43 +1264,49 @@ virtual methods."
                        base-fields))
             (finally (return new-field-table))))))
 
+(-> cpp::multiple-inheritance (ast fset:map) fset:map)
 (defun cpp::multiple-inheritance (class field-table)
   "Extend FIELD-TABLE with the members of all classes FIELD-TABLE
 inherits from."
-  (let ((class-name (definition-name-ast class)))
-    (labels ((inherit-from-base-class-definition (field-table id quals)
-               (if-let ((base-class (get-declaration-ast :type id)))
-                 (cpp::single-inheritance field-table
-                                          class
-                                          base-class
-                                          quals)
-                 (progn
-                   (dbg:note :debug
-                             "No definition found for base class ~a of ~a"
-                             (source-text id)
-                             (source-text class-name))
-                   field-table)))
-             (inherit-from-base-class-specifiers
-                 (field-table base-class-specifiers)
-               ;; todo C3 linearization? Left classes do take
-               ;; precedence over right.
-               (reduce (lambda (field-table id.quals)
-                         (destructuring-bind (id . quals) id.quals
-                           (inherit-from-base-class-definition
-                            field-table id quals)))
-                       base-class-specifiers
-                       :initial-value field-table))
-             (inherit-from-base-classes (class field-table)
-               (let ((base-class-alist (cpp::base-class-alist class)))
-                 (cond ((no base-class-alist)
-                        field-table)
-                       ((has-attribute-p class 'symbol-table)
-                        (inherit-from-base-class-specifiers
-                         field-table base-class-alist))
-                       (t
-                        (error "Cannot inherit into ~a without a symbol table"
-                               class-name))))))
-      (inherit-from-base-classes class field-table))))
+  (restart-case
+      (let ((class-name (definition-name-ast class)))
+        (labels ((inherit-from-base-class-definition (field-table id quals)
+                   (if-let ((base-class (get-declaration-ast :type id)))
+                     (cpp::single-inheritance field-table
+                                              class
+                                              base-class
+                                              quals)
+                     (progn
+                       (dbg:note :debug
+                                 "No definition found for base class ~a of ~a"
+                                 (source-text id)
+                                 (source-text class-name))
+                       field-table)))
+                 (inherit-from-base-class-specifiers
+                     (field-table base-class-specifiers)
+                   ;; todo C3 linearization? Left classes do take
+                   ;; precedence over right.
+                   (reduce (lambda (field-table id.quals)
+                             (destructuring-bind (id . quals) id.quals
+                               (inherit-from-base-class-definition
+                                field-table id quals)))
+                           base-class-specifiers
+                           :initial-value field-table))
+                 (inherit-from-base-classes (class field-table)
+                   (let ((base-class-alist (cpp::base-class-alist class)))
+                     (cond ((no base-class-alist)
+                            field-table)
+                           ((has-attribute-p class 'symbol-table)
+                            (inherit-from-base-class-specifiers
+                             field-table base-class-alist))
+                           (t
+                            (error "Cannot inherit into ~a without a symbol table"
+                                   class-name))))))
+          (inherit-from-base-classes class field-table)))
+    (continue ()
+      :report "Return base field table"
+      (dbg:note :debug "Error in field table: ~a" class)
+      (return-from cpp::multiple-inheritance field-table))))
 
 (defun cpp::field-table-with-inheritance (class)
   "Return CLASS's field table, with inheritance if possible."
