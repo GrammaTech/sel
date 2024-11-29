@@ -540,6 +540,9 @@ for the language.")
         (rust-condition :initarg :condition :reader condition)
         (rust-consequence :initarg :consequence :reader consequence)
         (rust-alternative :initarg :alternative :reader alternative))
+       (rust-let-condition
+        (rust-pattern :initarg :lhs :reader lhs)
+        (rust-value :initarg :rhs :reader rhs))
        (rust-let-declaration
         (rust-pattern :initarg :lhs :reader lhs)
         (rust-value :initarg :rhs :reader rhs))
@@ -1093,6 +1096,7 @@ for the language.")
         rust-type-item
         rust-union-item)
        (:expression-ast rust--expression)
+       (:expression-statement-ast rust-expression-statement)
        (:float-ast rust-float-literal)
        (:function-declaration-ast
         rust-function-item
@@ -1115,9 +1119,17 @@ for the language.")
        (:returnable-ast rust-closure-expression rust-function-item)
        (:return-expression-ast rust-return-expression rust-implicit-return-expression)
        (:root-ast rust-source-file)
-       (:statement-ast rust--declaration-statement rust-expression-statement)
+       (:statement-ast rust--declaration-statement)
        (:string-ast rust-string-literal)
-       (:subexpression-ast rust-else-clause)
+       ;; Is rust-let-condition really a subexpression-ast?
+       (:subexpression-ast
+        rust-else-clause
+        rust-generic-type
+        rust-let-condition
+        rust-lifetime
+        rust--pattern
+        rust-reference-type
+        rust-type-arguments)
        (:subscript-ast rust-index-expression)
        (:type-ast rust--type)
        (:type-declaration-ast
@@ -1128,6 +1140,7 @@ for the language.")
        (:type-identifier-ast rust-type-identifier rust-primitive-type)
        (:unary-ast rust-unary-expression)
        (:variable-declaration-ast
+        rust-let-condition
         rust-let-declaration
         rust-const-item
         rust-static-item))
@@ -3381,7 +3394,9 @@ Superclass of every generated LANGUAGE-comment class."))
 
  (defclass subexpression-ast (ast) ()
    (:documentation "A node that can be part of a control flow graph.
-This consists of at least expressions."))
+This consists of at least expressions, but also other ASTs control
+flow should descend into as if they were expressions (e.g. argument
+lists)."))
 
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
