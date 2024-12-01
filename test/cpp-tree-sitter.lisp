@@ -3074,6 +3074,15 @@ namespace b {
     (is (equal "quux" (module-unit-partition-name m)))
     (is (equal "foo.bar:quux" (module-unit-full-name m)))))
 
+(deftest test-export-multiple-declarations ()
+  "Subsequent declarations shouldn't override an exported declaration."
+  (let ((cpp (from-string 'cpp "
+int x();
+export int x();
+int x() {}")))
+    (with-attr-table cpp
+      (is (exported? (find-if (of-type 'cpp-function-definition) cpp))))))
+
 
 ;;; Conversion tests
 

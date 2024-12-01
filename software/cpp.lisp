@@ -2631,17 +2631,18 @@ AST is exported if:
                        (exported? class))))))
            (exported-from-declaration? (ast)
              (when-let* ((decl-type (relevant-declaration-type ast))
-                         (decl (get-declaration-ast decl-type ast)))
-               (unless (eql decl ast)
+                         (decls (get-declaration-asts decl-type ast)))
+               (dolist (decl (remove ast decls))
                  (cond ((typep decl 'cpp-declaration)
                         ;; The declaration is exported.
-                        (exported? decl))
+                        (return (exported? decl)))
                        ((typep decl 'cpp-field-declaration)
-                        (and (public? decl)
-                             (exported?
-                              (find-enclosing 'c/cpp-classoid-specifier
-                                              (attrs-root*)
-                                              decl)))))))))
+                        (return
+                          (and (public? decl)
+                               (exported?
+                                (find-enclosing 'c/cpp-classoid-specifier
+                                                (attrs-root*)
+                                                decl))))))))))
     (or (directly-exported? ast)
         (exported-from-parents? ast)
         (and check-decls
