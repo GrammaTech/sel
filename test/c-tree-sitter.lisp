@@ -181,7 +181,7 @@ void f() { 17; 21U; 32l; 43UL; 'x'; \"abc\"; 67.0; 50.2f; 89.0d; }"))))
         (is (source-text= "long int" (infer-type s32)))
         (is (source-text= "unsigned long int" (infer-type s43)))
         (is (source-text= "int" (infer-type sx)))
-        (is (source-text= "char[]" (infer-type sabc)))
+        (is (source-text= "const char[4]" (infer-type sabc)))
         (is (source-text= "double" (infer-type s67)))
         (is (source-text= "float" (infer-type s50)))
         (is (source-text= "double" (infer-type s89)))))))
@@ -708,6 +708,11 @@ separators."
               "1844'6744'0737'0955'0592uLL"
               "184467'440737'0'95505'92LLU"
               :test #'=))))
+
+(deftest test-infer-escaped-string-type ()
+  (let* ((c (c* "char* x = \"foo\\nbar\";"))
+         (lit (is (find-if (of-type 'c-string-literal) c))))
+    (is (equal "const char[8]" (source-text (expression-type lit))))))
 
 
 ;;; Tests

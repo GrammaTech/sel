@@ -154,11 +154,6 @@ field."
    ((ppcre "^[0-9]+\\.[0-9]*(|[ep][0-9]+)f$" _)
     (make 'c-primitive-type :text "float"))))
 
-(defmethod expression-type ((ast c-string-literal))
-  (make 'c-type-descriptor
-        :c-type (make 'c-primitive-type :text "char")
-        :c-declarator (make 'c-abstract-array-declarator)))
-
 (defmethod expression-type ((ast c-concatenated-string))
   (make 'c-type-descriptor
         :c-type (make 'c-primitive-type :text "char")

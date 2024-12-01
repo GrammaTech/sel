@@ -1598,23 +1598,6 @@ then the return type of the call is the return type of the field."
 (defmethod expression-type ((ast cpp-new-expression))
   (cpp-type ast))
 
-(defmethod expression-type ((ast cpp-string-literal))
-  ;; TODO: handle unicode types.
-  (make 'cpp-type-descriptor
-        :cpp-declarator (make 'cpp-abstract-array-declarator
-                              :cpp-size
-                              (make 'cpp-number-literal
-                                    :text (princ-to-string
-                                           (assure (integer 0)
-                                             ;; -2 for the quotes, 1+
-                                             ;; -for the null.
-                                             (- (length (text ast)) 1)))))
-        :cpp-type (make 'cpp-primitive-type :text "char")
-        :cpp-pre-type-qualifiers
-        (list
-         (make 'cpp-type-qualifier :text "const"
-                                   :after-text " "))))
-
 (defmethod placeholder-type-p ((ast cpp-auto))
   t)
 

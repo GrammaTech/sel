@@ -803,6 +803,7 @@ for the language.")
        (:c/cpp-enumerator c-enumerator cpp-enumerator)
        (:c/cpp-enumerator-list c-enumerator-list cpp-enumerator-list)
        (:c/cpp-error c-error cpp-error)
+       (:c/cpp-escape-sequence c-escape-sequence cpp-escape-sequence)
        (:c/cpp--expression c--expression cpp--expression)
        (:c/cpp-expression-statement
         c-expression-statement cpp-expression-statement)
