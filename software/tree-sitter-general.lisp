@@ -2798,7 +2798,7 @@ That is, inherit the before and after text of the node being replaced."
              result)))
      node)))
 
-(defgeneric patch-whitespace (ast &key)
+(defgeneric patch-whitespace (ast &key &allow-other-keys)
   (:documentation "Destructively patch whitespace on AST by adding a
   space to the before-text and after-text slots that need it.")
   (:method ((ast t) &key) ast)
