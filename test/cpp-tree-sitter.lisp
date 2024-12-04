@@ -2459,6 +2459,23 @@ operator."
    'cpp-function-declarator
    :result-type 'cpp-function-declarator))
 
+(deftest test-convert-to-init-declarator/fragment-in-arguments ()
+  "`function-declarator->init-declarator' should handle source text
+fragments."
+  (let* ((cpp (cpp* "T foo(x);"))
+         (decl (car (cpp-declarator cpp)))
+         (params (cpp-parameters decl))
+         (new-params
+           (copy params
+                 :children
+                 (cons (make 'cpp-source-text-fragment-variation-point)
+                       (direct-children params))))
+         (new-decl
+           (copy decl :cpp-parameters new-params))
+         (result
+           (ts::function-declarator->init-declarator new-decl)))
+    (is (typep result 'cpp-init-declarator))))
+
 
 ;;; Canonical-type Tests
 (defmacro with-canonicalize-type-test

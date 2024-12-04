@@ -323,13 +323,15 @@ to look it up as `x::z' or just `z'."
              "Convert TARGET-AST to a type that is suited for an argument list."
              ;; TODO: this probably doesn't cover every case.
              (econd
-              ((abstract-function-parameter-p target-ast)
-               (abstract-function-parameter->call-expression target-ast))
-              ((typep target-ast 'cpp-optional-parameter-declaration)
-               (optional-parameter-declaration->assignment-expression
-                target-ast))
-              ((typep target-ast 'cpp-parameter-declaration)
-               (parameter-declaration->identifier target-ast)))))
+               ((typep target-ast 'cpp-source-text-fragment-variation-point)
+                target-ast)
+               ((abstract-function-parameter-p target-ast)
+                (abstract-function-parameter->call-expression target-ast))
+               ((typep target-ast 'cpp-optional-parameter-declaration)
+                (optional-parameter-declaration->assignment-expression
+                 target-ast))
+               ((typep target-ast 'cpp-parameter-declaration)
+                (parameter-declaration->identifier target-ast)))))
     (let ((parameters (cpp-parameters function-declarator)))
       (convert
        'cpp-ast
