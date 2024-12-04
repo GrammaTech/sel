@@ -372,6 +372,9 @@ Otherwise, use heuristics."
                 (get-declarations d))
                ((c/cpp-parenthesized-declarator)
                 (outer-declarations d))
+               ((cpp-structured-binding-declarator)
+                (let ((decls (mappend #'get-declarations (children d))))
+                  (values decls (mapcar (constantly :variable) decls))))
                ;; Special handling for uninitialized variables.
                (otherwise
                 (values (list (c/cpp-declarator d)) '(:variable))))))

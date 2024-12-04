@@ -2979,6 +2979,13 @@ int myfun() {
         (finishes
           (c/cpp-function-declaration-definitions decl))))))
 
+(deftest test-structured-binding-declarator ()
+  "Structured binding declarators should contribute to the symbol table."
+  (let ((cpp (cpp "const auto& [key, value] = result->values();")))
+    (is (equal '("key" "value")
+               (mapcar #'source-text
+                       (ts::outer-declarations cpp))))))
+
 
 ;;; Module tests
 
