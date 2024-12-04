@@ -2469,7 +2469,8 @@ operator."
                            bitfield))))
        (declare (ignorable (function test-declarator-type)
                            (function test-bitfield-type)))
-       ,@body)))
+       ,@body
+       result)))
 
 (deftest cpp-canonicalize-type-1 ()
   "Canonicalize-type returns the size in the alist of :declarator."
@@ -2503,6 +2504,12 @@ operator."
 (deftest cpp-canonicalize-type/optional-parameter ()
   "Canonicalize-type returns works on a function definition with optional parameters."
   (with-canonicalize-type-test ("int x (int x = 3, int y = 4) { return x + y; }"
+                                :target-ast-type cpp-function-definition)
+    (test-declarator-type :function 'cpp-parameter-list)))
+
+(deftest cpp-canonicalize-type/variadic-parameter ()
+  "Canonicalize-type returns works on a function definition with optional parameters."
+  (with-canonicalize-type-test ("int x (int x, int y, ...) { return x + y; }"
                                 :target-ast-type cpp-function-definition)
     (test-declarator-type :function 'cpp-parameter-list)))
 

@@ -675,6 +675,12 @@ to look it up as `x::z' or just `z'."
         :specifier (get-specifier-list ast-type declaration)
         :declarator (canonicalize-declarator (c/cpp-declarator declaration))))
 
+(defmethod canonicalize-type ((declaration cpp-variadic-parameter-declaration)
+                              &key ast-type canonical-type)
+  (make canonical-type
+        :specifier (get-specifier-list ast-type declaration)
+        :declarator (canonicalize-declarator (c/cpp-declarator declaration))))
+
 (defmethod strip-template-arguments ((template cpp-template-function))
   (match template
     ((cpp-template-function
