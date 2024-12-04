@@ -2448,6 +2448,17 @@ operator."
    :result-type 'cpp-cast-expression
    :unexpected-type '(or cpp-binary-expression cpp-parenthesized-expression)))
 
+(deftest cpp-dont-contextualize-deleted-methods ()
+  "Canonicalizing shouldn't touch `delete'."
+  (contextualization-check
+   "T c() = delete;"
+   'cpp-function-declarator
+   :result-type 'cpp-function-declarator)
+  (contextualization-check
+   "T c() = delete(\"hello\");"
+   'cpp-function-declarator
+   :result-type 'cpp-function-declarator))
+
 
 ;;; Canonical-type Tests
 (defmacro with-canonicalize-type-test

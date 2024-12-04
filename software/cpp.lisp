@@ -387,9 +387,17 @@ to look it up as `x::z' or just `z'."
            (part-of-definition-p (root ast parents)
              "Return T if AST is part of the declaration of a function
               definition."
-             (when-let ((definition (find-if (of-type 'cpp-function-definition)
-                                             parents)))
-               (shares-path-of-p root ast (cpp-declarator definition))))
+             (or
+              (when-let ((definition
+                          (find-if (of-type 'cpp-function-definition)
+                                   parents)))
+                (shares-path-of-p root ast (cpp-declarator definition)))
+              ;; void fn() = delete does not need contextualizing.
+              (when-let* ((decl
+                            (find-if (of-type 'cpp-init-declarator) parents))
+                          (value (cpp-value decl)))
+                (or (typep value 'cpp-delete-expression)
+                    (source-text= value "delete")))))
            (definitely-a-type-p (parameter-ast)
              "Return T if PARAMETER-AST definitely represents a type in
               context."
