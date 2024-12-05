@@ -522,7 +522,7 @@ This function will not signal an error due to a bad parse."
     (project evolve-files &key (progress-fn #'do-nothing))
   "Parse genomes from EVOLVE-FILES, returning `parsed-genome'
 instances."
-  (debug:note 2 "Found ~a file~:p" (length evolve-files))
+  (debug:note :trace "Found ~a file~:p" (length evolve-files))
   (let ((lazy-paths (lazy-paths project))
         (root (project-dir project)))
     (mvlet* ((files len
@@ -544,7 +544,7 @@ instances."
            files)))))
 
 (defmethod collect-evolve-files :around ((obj directory-project))
-  (debug:note 2 "Collecting files")
+  (debug:note :info "Collecting files")
   (let* ((evolve-files (call-next-method))
          (parsed-genomes
            (parallel-parse-genomes obj
@@ -561,7 +561,7 @@ instances."
                                            ((cons (eql :error) t)
                                             (format *error-output* "X"))))))))
          (skip-all nil))
-    (debug:note 2 "Inserting genomes into AST")
+    (debug:note :info "Inserting genomes into AST")
     (iter (for evolve-file in evolve-files)
           (for (path . software-object) = evolve-file)
           (for genome = (pop parsed-genomes))
@@ -574,6 +574,7 @@ instances."
                   ((eql :lazy)
                    (collecting evolve-file))
                   (ast
+                   (debug:note :debug "Inserting file AST at ~a" path)
                    (insert-file obj path software-object)
                    (collecting evolve-file))
                   ((cons (eql :error) t)

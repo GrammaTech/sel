@@ -58,10 +58,12 @@ information on the format of compilation databases.")
                           (command-object obj file)))
                       evolve-files)))
              (dbg:lazy-note
-              :trace
+              :debug
               "Rejected ~a file~:p based on compilation database (~a kept)"
               (length other-files)
               (length db-files))
+             (dbg:note :trace "Rejected:~%~{~a~^~%~}" other-files)
+             (dbg:note :trace "Kept:~%~{~a~^~%~}" other-files)
              db-files)))
     (unless (compilation-database obj)
       (populate-compilation-database obj))

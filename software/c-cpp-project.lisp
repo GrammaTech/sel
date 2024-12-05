@@ -632,7 +632,7 @@ the standard path and add it to PROJECT."))
          (last-evolve-files (evolve-files result)))
     (setf (genome result)
           (assure c/cpp-root genome))
-    (debug:note 2 "Populating headers")
+    (debug:note :info "Populating headers")
     ;; Recursively populate headers, starting with .cpp files, adding
     ;; included headers, then adding transitively included headers with
     ;; depth 1, depth 2, etc. Note this will not handle includes where
@@ -664,10 +664,13 @@ the standard path and add it to PROJECT."))
                    (find-include project file-ast header-dirs include-ast)))))
       (iter (with-attr-table result
               (let ((to-populate (collect-find-include-arglists)))
-                (debug:note 3 "Populating ~a header~:p" (length to-populate))
+                (debug:note :info "Populating ~a header~:p" (length to-populate))
                 (task:task-map
                  (parallel-parse-thread-count to-populate)
-                 (dynamic-closure '(*attrs*)
+                 (dynamic-closure '(*attrs*
+                                    *standard-output*
+                                    *trace-output*
+                                    *error-output*)
                                   #'find-include-in-project)
                  to-populate)))
             ;; Stop once a fixed point has been reached.
@@ -721,10 +724,10 @@ signals a restartable error if there are collisions."
               (enough-namestring absolute-include-path project-dir)
               (path-join file-path tweaked-include-path)))
          (include-path-string
-          (namestring (canonical-pathname relative-include-path))))
-    #+debug-fstfi
+           (namestring (canonical-pathname relative-include-path))))
     (macrolet ((%d (v)
-                 `(format t "~a = ~s~%" ',v ,v)))
+                 `(debug:note :trace "  ~a = ~s" ',v ,v)))
+      (%d base)
       (%d project-dir) (%d file-path) (%d absolute-file-path)
       (%d include-path) (%d tweaked-include-path-dir)
       (%d absolute-include-path)
@@ -763,6 +766,7 @@ signals a restartable error if there are collisions."
              (global-search ()
                "Search for the include everywhere in the project.
 This is used as a fallback when we have no header search path."
+               (debug:note :debug "Doing global search for ~a" absolute-include-path)
                (let* ((matches
                        (nest (remove-duplicate-evolve-files)
                              (prefer-full-path-matches)
@@ -815,7 +819,7 @@ the including file."
              (insert-software-into-project (path software)
                (synchronized (project)
                  (unless (lookup (genome project) path)
-                   (debug:note 2 "~%Inserting ~a (~a) into tree~%"
+                   (debug:note :debug "~%Inserting ~a (~a) into tree~%"
                                path
                                include-path)
                    (let ((temp-project (with project path software)))
@@ -905,7 +909,7 @@ paths."
   (declare (functional-tree-ast file))
   (when-let ((path-ast (include-ast-path-ast include-ast
                                              :symbol-table symbol-table)))
-    (labels ((search-header-dirs (global)
+    (labels ((search-header-dirs (&key global)
                (if (no header-dirs)
                    (get-standard-path-header
                     project path-ast)
@@ -933,8 +937,12 @@ paths."
                  (when (boundp '*attrs*)
                    (synchronized (project)
                      (setf (attr-proxy unknown-header) include-ast))))))
-      (or (search-header-dirs nil)
-          (and global (search-header-dirs :global))
+      (or (search-header-dirs)
+          (and global (search-header-dirs :global t))
+          (debug:lazy-note
+           :debug
+           "Unknown header: ~a"
+           (source-text include-ast))
           (make-unknown-header* include-ast)))))
 
 (defun find-enclosing-software (project ast &key file-ast)
