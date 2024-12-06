@@ -906,6 +906,7 @@ paths."
 (defun find-include (project file header-dirs include-ast
                      &key (global *global-search-for-include-files*)
                        symbol-table)
+  "Find an include in PROJECT. Ensure it is an evolve-file."
   (declare (functional-tree-ast file))
   (when-let ((path-ast (include-ast-path-ast include-ast
                                              :symbol-table symbol-table)))
