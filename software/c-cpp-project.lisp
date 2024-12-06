@@ -624,11 +624,41 @@ the standard path and add it to PROJECT."))
                             :system-headers (adjoin header
                                                     (system-headers genome))))))))))))
 
+(defmethod lazy-path-p ((project c/cpp-project) path &key lazy-paths root)
+  (declare (ignore lazy-paths root))
+  (or (header-file? path)
+      (call-next-method)))
+
+(defmethod collect-evolve-files :around ((project c/cpp-project))
+  "Remove non-header files not in compilation database."
+  (flet ((filter-by-compilation-database (evolve-files)
+           (mvlet* ((db-files other-files
+                     (partition
+                      (lambda (evolve-files-entry)
+                        (destructuring-bind (file . software)
+                            evolve-files-entry
+                          (declare (ignore software))
+                          (or (header-file? file)
+                              (command-object project file))))
+                      evolve-files)))
+             (debug:lazy-note
+              :debug
+              "Rejected ~a file~:p based on compilation database (~a kept)"
+              (length other-files)
+              (length db-files))
+             (debug:note :trace "Rejected:~%~{~a~^~%~}" other-files)
+             (debug:note :trace "Kept:~%~{~a~^~%~}" other-files)
+             db-files)))
+    (let ((evolve-files (call-next-method)))
+      (if (not (compilation-database project))
+          evolve-files
+          (filter-by-compilation-database evolve-files)))))
+
 (defmethod from-file :around ((project c/cpp-project) (dir t))
   (let* ((result (call-next-method))
          (genome
-          (make-instance 'c/cpp-root
-                         :project-directory (genome result)))
+           (make-instance 'c/cpp-root
+             :project-directory (genome result)))
          (last-evolve-files (evolve-files result)))
     (setf (genome result)
           (assure c/cpp-root genome))
@@ -646,9 +676,9 @@ the standard path and add it to PROJECT."))
                              (match ast
                                ((and include-ast (c/cpp-preproc-include))
                                 (let* ((file-ast
-                                        (find-enclosing 'file-ast
-                                                        (attrs-root*)
-                                                        include-ast)))
+                                         (find-enclosing 'file-ast
+                                                         (attrs-root*)
+                                                         include-ast)))
                                   (in outer
                                       (collecting
                                         (list file-ast
@@ -922,8 +952,13 @@ paths."
                                              :symbol-table symbol-table)))
     (labels ((search-header-dirs (&key global)
                (if (no header-dirs)
-                   (get-standard-path-header
-                    project path-ast)
+                   (progn
+                     (debug:lazy-note
+                      :trace
+                      "No header dirs when searching for ~a"
+                      (source-text path-ast))
+                     (get-standard-path-header
+                      project path-ast))
                    (some
                     (lambda (dir)
                       (econd ((eql dir :current)
@@ -938,6 +973,8 @@ paths."
                                project path-ast
                                :header-dirs header-dirs))
                              ((stringp dir)
+                              (debug:note :trace "Searching ~a for header ~a"
+                                          dir path-ast)
                               (get-program-header
                                project file include-ast path-ast
                                :base dir

@@ -24,26 +24,28 @@
    (:task :software-evolution-library/utility/task))
   (:shadowing-import-from :software-evolution-library/software/compilable
                           :flags :compiler :compilable)
-  (:export :file-ast
-           :directory-ast
-           :directory-project
-           :name
-           :entries
-           :contents
-           :full-pathname
-           :enclosing-file-pathname
-           :get-path
-           :evolve-files
-           :evolve-files-ref
-           :other-files
-           :ignore-paths
-           :only-paths
-           :ignore-other-paths
-           :only-other-paths
-           :all-files
-           :pick-file
-           :collect-evolve-files*
-           :parallel-parse-thread-count))
+  (:export
+    :all-files
+    :collect-evolve-files*
+    :contents
+    :directory-ast
+    :directory-project
+    :enclosing-file-pathname
+    :entries
+    :evolve-files
+    :evolve-files-ref
+    :file-ast
+    :full-pathname
+    :get-path
+    :ignore-other-paths
+    :ignore-paths
+    :lazy-path-p
+    :name
+    :only-other-paths
+    :only-paths
+    :other-files
+    :parallel-parse-thread-count
+    :pick-file))
 (in-package :software-evolution-library/software/directory)
 (in-readtable :curry-compose-reader-macros)
 
@@ -71,14 +73,18 @@
 
 - evolve-files and other-files (from project) hold software objects"))
 
-(defun lazy-path-p (path &key lazy-paths root
-                    &aux (path (canonical-pathname path)))
-  (let ((path
-         (if root
-             (enough-pathname path root)
-             path)))
-    (find-if (op (pathname-match-p path _))
-             lazy-paths)))
+(defgeneric lazy-path-p (project path &key lazy-paths root)
+  (:method ((project directory-project) path
+            &key
+              (lazy-paths (lazy-paths project))
+              (root (project-dir project))
+            &aux (path (canonical-pathname path)))
+    (let ((path
+            (if root
+                (enough-pathname path root)
+                path)))
+      (find-if (op (pathname-match-p path _))
+               lazy-paths))))
 
 (defmethod equal? ((x directory-project) (y directory-project))
   (equal? (genome x) (genome y)))
@@ -499,13 +505,16 @@ optimization settings."
 This function will not signal an error due to a bad parse."
   (lret* ((lazy?
            (or
+            (and (consp software)
+                 (eql (car software) :lazy))
             (and (typep project 'compdb-project:compilation-database-project)
                  (compdb:compilation-database project)
                  (not
                   (compdb:command-object
                    project
                    (file:original-path software))))
-            (lazy-path-p (file:original-path software)
+            (lazy-path-p project
+                         (file:original-path software)
                          :lazy-paths lazy-paths
                          :root root)))
           (genome
