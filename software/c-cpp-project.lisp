@@ -709,7 +709,7 @@ the standard path and add it to PROJECT."))
                                     (fmt "Including ~a"
                                          (source-text
                                           (include-ast-path-ast include-ast))))
-                   (find-include project file-ast header-dirs include-ast)))))
+                   (find-include project file-ast header-dirs include-ast :global t)))))
       (iter (with-attr-table result
               (let ((to-populate (collect-find-include-arglists)))
                 (debug:note :info "Populating ~a header~:p" (length to-populate))
