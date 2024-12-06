@@ -651,10 +651,20 @@ the standard path and add it to PROJECT."))
                                                         include-ast)))
                                   (in outer
                                       (collecting
-                                       (list file-ast
-                                             (file-header-dirs project ast
-                                                               :file file-ast)
-                                             include-ast))))))))))
+                                        (list file-ast
+                                              ;; TODO Project or
+                                              ;; result?
+
+                                              ;; TODO When including
+                                              ;; headers from headers,
+                                              ;; we don't have header
+                                              ;; dirs. Could we carry
+                                              ;; them forward? Or
+                                              ;; leave to the symbol
+                                              ;; table?
+                                              (file-header-dirs result ast
+                                                                :file file-ast)
+                                              include-ast))))))))))
              (find-include-in-project (args)
                (destructuring-bind (file-ast header-dirs include-ast) args
                  (with-thread-name (:name
