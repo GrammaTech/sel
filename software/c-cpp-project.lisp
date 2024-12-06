@@ -668,6 +668,14 @@ the standard path and add it to PROJECT."))
     ;; depth 1, depth 2, etc. Note this will not handle includes where
     ;; the path is a preprocessor macro (they will be populated later
     ;; during symbol table construction).
+
+    ;; The problem this solves is that symbol table computation is not
+    ;; (currently) thread-safe, so when the symbol table analysis
+    ;; discovers and inserts headers, it can only do so serially. We
+    ;; do this approximate, parallel sweep over the headers to parse
+    ;; as much as plausible in parallel in advance (but not
+    ;; everything, as vendored dependencies can pull in huge numbers
+    ;; of unwanted headers).
     (labels ((collect-find-include-arglists ()
                (iter outer
                      (for (nil . sw) in (evolve-files result))
