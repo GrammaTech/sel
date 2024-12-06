@@ -859,6 +859,8 @@ the including file."
                       (evolve-files project)
                       :test #'equal))
              (force-parse-genome (path software)
+               "If SOFTWARE isn't parsed yet, parse it. This can happen when a file
+                is only lazy-loaded."
                (with-slots (genome) software
                  (synchronized (software)
                    (unless (typep genome 'ast)
