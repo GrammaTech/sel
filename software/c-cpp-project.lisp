@@ -710,9 +710,12 @@ the standard path and add it to PROJECT."))
                                          (source-text
                                           (include-ast-path-ast include-ast))))
                    (find-include project file-ast header-dirs include-ast :global t)))))
-      (iter (with-attr-table result
+      (iter (for pass-number from 0)
+            (with-attr-table result
               (let ((to-populate (collect-find-include-arglists)))
-                (debug:note :info "Populating ~a header~:p" (length to-populate))
+                (debug:note :info "Pass ~a: Preloading ~a header~:p"
+                            pass-number
+                            (length to-populate))
                 (task:task-map
                  (parallel-parse-thread-count to-populate)
                  (dynamic-closure '(*attrs*
