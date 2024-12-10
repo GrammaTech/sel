@@ -654,13 +654,12 @@ the standard path and add it to PROJECT."))
           evolve-files
           (filter-by-compilation-database evolve-files)))))
 
-(defmethod from-file :around ((project c/cpp-project) (dir t))
-  (let* ((result (call-next-method))
-         (genome
+(defun preload-headers (project)
+  (let* ((genome
            (make-instance 'c/cpp-root
-             :project-directory (genome result)))
-         (last-evolve-files (evolve-files result)))
-    (setf (genome result)
+             :project-directory (genome project)))
+         (last-evolve-files (evolve-files project)))
+    (setf (genome project)
           (assure c/cpp-root genome))
     (debug:note :info "Populating headers")
     ;; Recursively populate headers, starting with .cpp files, adding
@@ -678,7 +677,7 @@ the standard path and add it to PROJECT."))
     ;; of unwanted headers).
     (labels ((collect-find-include-arglists ()
                (iter outer
-                     (for (nil . sw) in (evolve-files result))
+                     (for (nil . sw) in (evolve-files project))
                      (when (typep (slot-value sw 'genome) 'ast)
                        (iter (for ast in-tree (genome sw))
                              (match ast
@@ -700,7 +699,7 @@ the standard path and add it to PROJECT."))
                                               ;; them forward? Or
                                               ;; leave to the symbol
                                               ;; table?
-                                              (file-header-dirs result ast
+                                              (file-header-dirs project ast
                                                                 :file file-ast)
                                               include-ast))))))))))
              (find-include-in-project (args)
@@ -712,7 +711,7 @@ the standard path and add it to PROJECT."))
                    (find-include project file-ast header-dirs include-ast :global t)))))
       (iter (iter:with preload-count = 0)
             (for pass-number from 0)
-            (with-attr-table result
+            (with-attr-table project
               (let* ((to-populate (collect-find-include-arglists))
                      (len (length to-populate)))
                 (debug:note :info "Pass ~a: Preloading ~a header~:p"
@@ -727,11 +726,14 @@ the standard path and add it to PROJECT."))
                                   #'find-include-in-project)
                  to-populate)))
             ;; Stop once a fixed point has been reached.
-            (until (eql (evolve-files result)
-                        (shiftf last-evolve-files (evolve-files result))))
+            (until (eql (evolve-files project)
+                        (shiftf last-evolve-files (evolve-files project))))
             (finally
              (debug:note :info "Preloaded ~a header~:p" preload-count)
-             (return result))))))
+             (return project))))))
+
+(defmethod from-file :around ((project c/cpp-project) (dir t))
+  (preload-headers (call-next-method)))
 
 
 ;;; Program Headers
