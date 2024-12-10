@@ -372,7 +372,7 @@ field."
 ;;; Special handling for tag specifiers to work around the fact that
 ;;; they share a superclass with actual declarations.
 
-(defmethod resolve-type-indirection ((typedef c-type-definition))
+(defmethod type-aliasee ((typedef c-type-definition))
   "Given a typedef for a struct defined elsewhere,
 recursively resolve that struct."
   (match typedef

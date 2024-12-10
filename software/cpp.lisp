@@ -775,7 +775,7 @@ See SEL issue #359."
   (let ((name (definition-name-ast fn)))
     (if (typep name 'cpp-qualified-identifier)
         (if-let (class (friend-function-class fn))
-          (get-class-field class :function (cpp-name name))
+          (get-class-fields class :function (cpp-name name))
           (call-next-method))
         (call-next-method))))
 
@@ -1062,14 +1062,13 @@ from a prior sibling \(`public:', `private:', `protected:').")
 
 (define-field-key cpp::field-virtual? cpp::+virtual+)
 
-(defmethod resolve-type-indirection ((typedef cpp-type-definition))
+(defmethod type-aliasee ((typedef cpp-type-definition))
   (match typedef
     ((cpp-type-definition
       (cpp-type (and type (cpp-template-type))))
-     (get-declaration-ast :type type))
-    (otherwise (call-next-method))))
+     (get-declaration-ast :type type))))
 
-(defmethod resolve-type-indirection ((alias cpp-alias-declaration))
+(defmethod type-aliasee ((alias cpp-alias-declaration))
   (get-declaration-ast :type (cpp-type alias)))
 
 (defmethod field-table ((ast cpp-type-parameter-declaration))

@@ -1068,8 +1068,9 @@ there is more than one."
 \(There may be more than one if the language allows overloading.) For
 a declaration AST, return AST unchanged."
   (flet ((collect-decls (ast)
-           (let ((root (attrs-root*)))
-             (iter (for id in (get-declaration-ids type ast))
+           (let ((root (attrs-root*))
+                 (ids (get-declaration-ids type ast)))
+             (iter (for id in ids)
                    (restart-case
                        (collect (find-enclosing-declaration type root id))
                      (continue ()
@@ -4724,29 +4725,27 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
                       (op (add-namespaced-field _1 _2 id))
                       initial-value map)))))
 
-(defgeneric resolve-type-indirection (ast)
+(defgeneric type-aliasee (ast)
   (:documentation "Resolve a type alias to its actual type.")
   (:method ((ast ast))
-    ast)
-  (:method :around ((ast ast))
-    (or (call-next-method) ast)))
+    nil))
 
-(defun type-indirection? (type)
-  "If TYPE is a type indirection, return the recursively resolved type."
-  (let ((resolution
-          (repeat-until-stable #'resolve-type-indirection
-                               type
-                               :test #'eq
-                               :max-depth 100)))
-    (unless (eq resolution type)
-      resolution)))
+(defun resolve-type-aliasee (type)
+  "If TYPE is a type alias, return the recursively resolved type."
+  (let ((aliasee
+          (nlet rec ((type type))
+            (if-let (aliasee (type-aliasee type))
+              (rec aliasee)
+              type))))
+    (unless (eq type aliasee)
+      aliasee)))
 
 (defgeneric class-fields (class)
   (:documentation "Get the fields of CLASS as a list.")
-  (:method :around ((class ast))
-    (if-let (class (type-indirection? class))
-      (class-fields class)
-      (call-next-method))))
+  (:method ((alias type-alias-ast))
+    (if-let (aliasee (resolve-type-aliasee alias))
+      (class-fields aliasee)
+      (dbg:note :debug "No aliasee for ~a" alias))))
 
 (-> adjoin-fields (fset:map (or ast list)) fset:map)
 (defun adjoin-fields (map fields)
@@ -4768,21 +4767,23 @@ define multiple identifiers).
 
 There may be additional keys in the tuple to record language-specific
 information such as visibility."
-  (:method :around ((class ast))
-    (if-let (class (type-indirection? class))
-      (field-table class)
-      (call-next-method)))
-  (:method ((class class-ast))
-    (direct-field-table class)))
+  (:method ((alias type-alias-ast))
+    (if-let (aliasee (resolve-type-aliasee alias))
+      (field-table aliasee)
+      (progn
+        (dbg:note :debug "No aliasee for ~a" alias)
+        (empty-map)))))
 
 (def-attr-fun direct-field-table ()
-  (:method :around ((class ast))
-    (if-let (class (type-indirection? class))
-      (direct-field-table class)
-      (call-next-method)))
   (:method ((class class-ast))
     (adjoin-fields (empty-map)
-                   (class-fields class))))
+                   (class-fields class)))
+  (:method ((alias type-alias-ast))
+    (if-let (aliasee (resolve-type-aliasee alias))
+      (direct-field-table aliasee)
+      (progn
+        (dbg:note :debug "No aliasee for ~a" alias)
+        (empty-map)))))
 
 (-> field-table-ids (fset:map &key
                      (:ns symbol-table-namespace)
@@ -4812,13 +4813,17 @@ SORT-ROOT as the ancestor."
 (defun get-class-field (class namespace field-name)
   "Look up FIELD-NAME in NAMESPACE of the field table of CLASS."
   (declare (type symbol-table-namespace namespace))
+  (car (get-class-fields class namespace field-name :count 1)))
+
+(defun get-class-fields (class namespace field-name &key count)
+  "Look up FIELD-NAME in NAMESPACE of the field table of CLASS."
+  (declare (type symbol-table-namespace namespace))
   (when-let* ((field-table (field-table class))
-              (field-name (source-text field-name))
-              (fields (field-table-lookup field-table
-                                          field-name
-                                          :ns namespace
-                                          :count 1)))
-    (car fields)))
+              (field-name (source-text field-name)))
+    (field-table-lookup field-table
+                        field-name
+                        :ns namespace
+                        :count count)))
 
 (-> field-table-lookup (fset:map string &key
                         (:ns symbol-table-namespace)
