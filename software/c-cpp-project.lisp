@@ -710,12 +710,14 @@ the standard path and add it to PROJECT."))
                                          (source-text
                                           (include-ast-path-ast include-ast))))
                    (find-include project file-ast header-dirs include-ast :global t)))))
-      (iter (for pass-number from 0)
+      (iter (iter:with preload-count = 0)
+            (for pass-number from 0)
             (with-attr-table result
-              (let ((to-populate (collect-find-include-arglists)))
+              (let* ((to-populate (collect-find-include-arglists))
+                     (len (length to-populate)))
                 (debug:note :info "Pass ~a: Preloading ~a header~:p"
-                            pass-number
-                            (length to-populate))
+                            pass-number len)
+                (incf preload-count len)
                 (task:task-map
                  (parallel-parse-thread-count to-populate)
                  (dynamic-closure '(*attrs*
@@ -726,8 +728,10 @@ the standard path and add it to PROJECT."))
                  to-populate)))
             ;; Stop once a fixed point has been reached.
             (until (eql (evolve-files result)
-                        (shiftf last-evolve-files (evolve-files result))))))
-    result))
+                        (shiftf last-evolve-files (evolve-files result))))
+            (finally
+             (debug:note :info "Preloaded ~a header~:p" preload-count)
+             (return result))))))
 
 
 ;;; Program Headers
