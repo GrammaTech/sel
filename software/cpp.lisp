@@ -775,7 +775,7 @@ See SEL issue #359."
   (let ((name (definition-name-ast fn)))
     (if (typep name 'cpp-qualified-identifier)
         (if-let (class (friend-function-class fn))
-          (lookup-in-field-table class :function (cpp-name name))
+          (get-class-field class :function (cpp-name name))
           (call-next-method))
         (call-next-method))))
 

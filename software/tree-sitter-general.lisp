@@ -4711,29 +4711,18 @@ ACCESSOR is also defined as a `setf'-able place:
     ;; Conserve previous entry because of overloads.
     (with map key (cons data (@ map key)))))
 
-(defun lookup-in-field-table (class namespace key)
-  "Look up KEY in NAMESPACE of the field table of CLASS."
-  (declare (type symbol-table-namespace namespace))
-  (when-let* ((map (field-table class))
-              (key (source-text key))
-              (fields (@ map key)))
-    (iter (for field in fields)
-          (when (eql namespace (field-ns field))
-            (collect (field-id field))))))
-
 (defgeneric field-adjoin (field map)
   (:documentation
    "Adjoin FIELD to MAP, a field table, according to the type of FIELD.
 Note that adding FIELD may introduce multiple identifiers into MAP.")
   (:method ((field ast) map)
-    (assure fset:map
-      (multiple-value-bind (ids namespaces)
-          (outer-declarations field)
-        (iter (for id in ids)
-              (for ns in namespaces)
-              (let ((ns (or ns :variable)))
-                (setf map (add-namespaced-field map ns id))))
-        map))))
+    (multiple-value-bind (ids namespaces)
+        (outer-declarations field)
+      (iter (for id in ids)
+            (for ns in namespaces)
+            (reducing (or ns :variable) by
+                      (op (add-namespaced-field _1 _2 id))
+                      initial-value map)))))
 
 (defgeneric class-fields (class)
   (:documentation "Get the fields of CLASS as a list."))
@@ -4742,10 +4731,9 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
 (defun adjoin-fields (map fields)
   "Adjoins fields in FIELDS to MAP, a field table (see `field-table' for
 the format)."
-  (assure fset:map
-    (reduce (flip #'field-adjoin)
-            (ensure-list fields)
-            :initial-value map)))
+  (reduce (flip #'field-adjoin)
+          (ensure-list fields)
+          :initial-value map))
 
 (def-attr-fun field-table ()
   "Attribute storing a map from names to fields of a class.
@@ -4780,6 +4768,7 @@ If SORT-ROOT is non-nil, sort the IDs using `sort-descendants', with
 SORT-ROOT as the ancestor."
   (let* ((range (range field-table))
          (fields
+           ;; Flatten the fields.
            (apply #'append (convert 'list range)))
          (fields
            (if ns-supplied?
@@ -4791,15 +4780,30 @@ SORT-ROOT as the ancestor."
         (sort-descendants sort-root ids)
         ids)))
 
-(-> field-table-lookup (fset:map string &key (:ns symbol-table-namespace))
+(defun get-class-field (class namespace field-name)
+  "Look up FIELD-NAME in NAMESPACE of the field table of CLASS."
+  (declare (type symbol-table-namespace namespace))
+  (when-let* ((field-table (field-table class))
+              (field-name (source-text field-name))
+              (fields (field-table-lookup field-table
+                                          field-name
+                                          :ns namespace
+                                          :count 1)))
+    (car fields)))
+
+(-> field-table-lookup (fset:map string &key
+                        (:ns symbol-table-namespace)
+                        (:count (or null array-index)))
     (values (soft-list-of ast) &optional))
-(defun field-table-lookup (field-table key &key (ns nil ns-supplied?))
-  "Look up KEY in FIELD-TABLE, optionally filtering by namespace NS."
-  (let ((result (@ field-table key)))
-    (mapcar #'field-id
-            (if (not ns-supplied?)
-                result
-                (keep ns result :key #'field-ns)))))
+(defun field-table-lookup (field-table key &key (ns nil ns-supplied?) count)
+  "Look up KEY in FIELD-TABLE, optionally filtering by namespace NS.
+Return the matching IDs."
+  (let* ((fields (@ field-table key))
+         (fields
+           (if (not ns-supplied?)
+               fields
+               (keep ns fields :key #'field-ns :count count))))
+    (mapcar #'field-id fields)))
 
 
 ;;; Namespace

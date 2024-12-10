@@ -828,8 +828,8 @@ There can be multiple classes if FIELD occurs in a template."
                 new-type))))))
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
-  (mappend (op (lookup-in-field-table _ type (c/cpp-field ast)))
-           (get-field-classes ast)))
+  (mapcar (op (get-class-field _ type (c/cpp-field ast)))
+          (get-field-classes ast)))
 
 (defmethod get-initialization-ast ((ast c/cpp-ast) &aux (obj (attrs-root*)))
   "Find the assignment for an unitialized variable."
