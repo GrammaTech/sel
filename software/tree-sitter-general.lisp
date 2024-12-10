@@ -4724,8 +4724,29 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
                       (op (add-namespaced-field _1 _2 id))
                       initial-value map)))))
 
+(defgeneric resolve-type-indirection (ast)
+  (:documentation "Resolve a type alias to its actual type.")
+  (:method ((ast ast))
+    ast)
+  (:method :around ((ast ast))
+    (or (call-next-method) ast)))
+
+(defun type-indirection? (type)
+  "If TYPE is a type indirection, return the recursively resolved type."
+  (let ((resolution
+          (repeat-until-stable #'resolve-type-indirection
+                               type
+                               :test #'eq
+                               :max-depth 100)))
+    (unless (eq resolution type)
+      resolution)))
+
 (defgeneric class-fields (class)
-  (:documentation "Get the fields of CLASS as a list."))
+  (:documentation "Get the fields of CLASS as a list.")
+  (:method :around ((class ast))
+    (if-let (class (type-indirection? class))
+      (class-fields class)
+      (call-next-method))))
 
 (-> adjoin-fields (fset:map (or ast list)) fset:map)
 (defun adjoin-fields (map fields)
@@ -4747,10 +4768,18 @@ define multiple identifiers).
 
 There may be additional keys in the tuple to record language-specific
 information such as visibility."
+  (:method :around ((class ast))
+    (if-let (class (type-indirection? class))
+      (field-table class)
+      (call-next-method)))
   (:method ((class class-ast))
     (direct-field-table class)))
 
 (def-attr-fun direct-field-table ()
+  (:method :around ((class ast))
+    (if-let (class (type-indirection? class))
+      (direct-field-table class)
+      (call-next-method)))
   (:method ((class class-ast))
     (adjoin-fields (empty-map)
                    (class-fields class))))

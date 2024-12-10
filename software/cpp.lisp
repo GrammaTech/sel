@@ -1062,32 +1062,15 @@ from a prior sibling \(`public:', `private:', `protected:').")
 
 (define-field-key cpp::field-virtual? cpp::+virtual+)
 
-(defmethod field-table ((typedef cpp-type-definition))
-  "Given a typedef for a template type, recursively resolve the
-templated definition's field table."
+(defmethod resolve-type-indirection ((typedef cpp-type-definition))
   (match typedef
     ((cpp-type-definition
       (cpp-type (and type (cpp-template-type))))
-     (when-let (class (get-declaration-ast :type type))
-       (field-table class)))
+     (get-declaration-ast :type type))
     (otherwise (call-next-method))))
 
-(defmethod direct-field-table ((typedef cpp-type-definition))
-  "Given a typedef for a template type, recursively resolve the
-templated definition's field table."
-  (match typedef
-    ((cpp-type-definition
-      (cpp-type (and type (cpp-template-type))))
-     (when-let (class (get-declaration-ast :type type))
-       (direct-field-table class)))
-    (otherwise (call-next-method))))
-
-(defmethod direct-field-table ((alias cpp-alias-declaration))
-  "Given a typedef for a template type, recursively resolve the
-templated definition's field table."
-  (if-let (type (get-declaration-ast :type (cpp-type alias)))
-    (direct-field-table type)
-    (empty-map)))
+(defmethod resolve-type-indirection ((alias cpp-alias-declaration))
+  (get-declaration-ast :type (cpp-type alias)))
 
 (defmethod field-table ((ast cpp-type-parameter-declaration))
   ;; Look at possible types?

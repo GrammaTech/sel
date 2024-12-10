@@ -372,16 +372,14 @@ field."
 ;;; Special handling for tag specifiers to work around the fact that
 ;;; they share a superclass with actual declarations.
 
-(defmethod field-table ((typedef c-type-definition))
+(defmethod resolve-type-indirection ((typedef c-type-definition))
   "Given a typedef for a struct defined elsewhere,
-recursively resolve that struct's field table."
+recursively resolve that struct."
   (match typedef
     ((c-type-definition
       ;; NB c-tag-specifier is a mixin class we define.
       (c-type (and type (c-tag-specifier))))
-     (when-let (class (get-declaration-ast :tag type))
-       (field-table class)))
-    (otherwise (call-next-method))))
+     (get-declaration-ast :tag type))))
 
 (defun tag-specifier-outer-declarations (ast cc)
   (let ((parent (get-parent-ast (attrs-root*) ast)))

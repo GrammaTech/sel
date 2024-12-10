@@ -792,12 +792,12 @@ is the operator of a binary ast.")
       (c/cpp-body nil))
      (empty-map))))
 
-(defmethod field-table ((ast c/cpp-type-definition))
+(defmethod resolve-type-indirection ((ast c/cpp-type-definition))
   (match ast
     ((c/cpp-type-definition
       (c/cpp-type
        (and struct (c/cpp-classoid-specifier))))
-     (field-table struct))))
+     (get-declaration-ast :type struct))))
 
 (defmethod direct-field-table ((ast c/cpp-enum-specifier))
   (empty-map))
