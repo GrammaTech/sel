@@ -2246,7 +2246,9 @@ set of possible concrete specializations of that type."
   cpp-field-identifier cpp-parameter-list
   cpp-& cpp-identifier
   :|operator| cpp-ast
-  cpp-ast cpp-abstract-reference-declarator)
+  cpp-ast cpp-abstract-reference-declarator
+  cpp-module-name :|.|
+  :|.| cpp-module-name)
 
 (defmethod whitespace-between/parent ((parent cpp-namespace-definition)
                                       (style c-style-indentation)

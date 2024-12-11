@@ -3000,4 +3000,5 @@ namespace b {
   ;; Don't change spacing of reference declarator unnecessarily.
   (check-patch-whitespace "x operator-(const x& x) {}")
   (check-patch-whitespace "x operator-(const x &x) {}")
-  (check-patch-whitespace "char argv[];"))
+  (check-patch-whitespace "char argv[];")
+  (check-patch-whitespace "module foo.bar.baz;"))
