@@ -556,7 +556,9 @@ This is largely C compatibility headers for C++, which do not throw exceptions."
   (:method ((name c/cpp-string-literal))
     (make-unknown-header (trim-path-string name)))
   (:method ((name c/cpp-preproc-arg))
-    (make-unknown-header (trim-path-string name))))
+    (make-unknown-header (trim-path-string name)))
+  (:method ((name cpp-import-declaration))
+    (make-unknown-header (cpp-name name))))
 
 (defmethod original-path ((self c/cpp-system-header))
   (make-keyword (header-name self)))
