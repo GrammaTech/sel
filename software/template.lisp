@@ -245,6 +245,10 @@ Nested lists are not allowed as template arguments:~%~a"
         (simple-style-warning
          "Some placeholders in template were not parsed as ASTs: ~a"
          diff)))
+    ;; Check that placeholder paths are valid.
+    (dolist (p placeholders)
+      (dolist (target (placeholder-targets p ast))
+        (valid-ast-path ast target)))
     nil))
 
 (define-compiler-macro ast-template (&whole call template class &rest kwargs
@@ -259,11 +263,26 @@ Nested lists are not allowed as template arguments:~%~a"
 
 (defun valid-ast-path (root ast)
   (lret ((path (ast-path root ast)))
-    (assert (notany #'internal-ast? path))))
+    (dolist (step path)
+      (when (internal-ast? step)
+        (error "Path from ~a to ~a includes an internal AST: ~a"
+               root ast path)))))
 
 (defun internal-ast? (step)
-  (and (symbolp step)
-       (string*= 'internal-asts step)))
+  "Match a step that's either a symbol containg `INTERNAL-ASTS` or a
+cons whose car contains it."
+  (match step
+    ((type symbol)
+     (string*= 'internal-asts step))
+    ((cons (and step (type symbol)) _)
+     (internal-ast? step))))
+
+(defun placeholder-targets (placeholder ast)
+  "Collect ASTs in AST that PLACEHOLDER is meant to replace."
+  (collect-if (lambda (n)
+                (and (null (children n))
+                     (string= (source-text n) placeholder)))
+              ast))
 
 (defun ast-template (template class &rest args)
   "Create an AST of CLASS from TEMPLATE usings ARGS.
@@ -354,12 +373,7 @@ Note that multiple instances of the same variable unify:
    (labels ((name-placeholder (name)
               (rassocar name temp-subs :test #'string=))
             (name-subtree (name)
-              (assocdr name subs :test #'string=))
-            (placeholder-targets (placeholder ast)
-              (collect-if (lambda (n)
-                            (and (null (children n))
-                                 (string= (source-text n) placeholder)))
-                          ast))))
+              (assocdr name subs :test #'string=))))
    ;; Replace the identifiers with subtrees, taking care to copy
    ;; before and after text.
    (let* ((leading-whitespace

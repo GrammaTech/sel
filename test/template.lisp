@@ -10,6 +10,9 @@
         :software-evolution-library/software/rust
         :software-evolution-library/test/util
         :stefil+)
+  (:import-from
+    :software-evolution-library/software/tree-sitter
+    :internal-ast?)
   (:local-nicknames (:attrs :functional-trees/attrs)))
 (in-package :software-evolution-library/test/template)
 (in-readtable :curry-compose-reader-macros)
@@ -365,6 +368,10 @@ fun(r, p);")))
       (is (match ast
             ((cpp* "$_($ARG, $ARG)" :arg arg)
              arg))))))
+
+(deftest test-internal-ast-predicate ()
+  (is (internal-ast? 'cpp-internal-asts-0))
+  (is (internal-ast? '(cpp-internal-asts-0 0))))
 
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)
