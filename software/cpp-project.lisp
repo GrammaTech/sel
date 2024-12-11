@@ -96,7 +96,9 @@ partition."
                   (error "Cannot import a module partition outside a module"))
                 (string+
                  ;; Drop any trailing partition.
-                 (take-until (eqls #\:) importing-name)
+                 (take (or (position #\: importing-name :from-end t)
+                           (length importing-name))
+                       importing-name)
                  "-"
                  (drop-prefix ":" imported-name)))
                ;; Implicit import from a module partition implementation.
