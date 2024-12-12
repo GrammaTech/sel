@@ -16,6 +16,8 @@
         :software-evolution-library/software/directory)
   (:import-from :software-evolution-library/software/tree-sitter
                 :symbol-table :exported?)
+  (:local-nicknames
+   (:dbg :software-evolution-library/utility/debug))
   ;; Make sure these symbols are interned, as they are only defined
   ;; and used inside a feature guard.
   (:intern :relative-module-defaults :find-module)
@@ -90,24 +92,26 @@ partition."
   (declare (pathname importing-path)
            ((or string null) importing-name)
            (string imported-name))
-  (let ((file-name
-         (cond ((string^= ":" imported-name)
-                (unless importing-name
-                  (error "Cannot import a module partition outside a module"))
-                (string+
-                 ;; Drop any trailing partition.
-                 (take (or (position #\: importing-name :from-end t)
-                           (length importing-name))
-                       importing-name)
-                 "-"
-                 (drop-prefix ":" imported-name)))
-               ;; Implicit import from a module partition implementation.
-               ((find #\: imported-name)
-                (substitute #\- #\: imported-name))
-               (t imported-name))))
-    (make-pathname :name file-name
-                   :defaults importing-path
-                   :type nil)))
+  (let* ((importing-name
+           (substitute #\/ #\. importing-name))
+         (imported-name
+           (substitute #\/ #\. imported-name))
+         (file-name
+           (cond ((string^= ":" imported-name)
+                  (unless importing-name
+                    (error "Cannot import a module partition outside a module"))
+                  (string+
+                   ;; Drop any trailing partition.
+                   (take (or (position #\: importing-name :from-end t)
+                             (length importing-name))
+                         importing-name)
+                   "-"
+                   (drop-prefix ":" imported-name)))
+                 ;; Implicit import from a module partition implementation.
+                 ((find #\: imported-name)
+                  (substitute #\- #\: imported-name))
+                 (t imported-name))))
+    (path-join importing-path (pathname file-name))))
 
 (defun find-relative-module (defaults &key (interface t))
   "Find an imported module on the filesystem based on DEFAULTS."
