@@ -233,7 +233,7 @@ symbol table is available for AST, check for a macro definition.
 Otherwise, use heuristics."
   (when (typep ast 'identifier-ast)
     (if (has-attribute-p ast 'symbol-table)
-        (when-let* ((symbol-table (symbol-table ast)))
+        (when-let ((symbol-table (symbol-table ast)))
           (find-in-symbol-table ast :macro (source-text ast)))
         (plausible-macro-name? ast))))
 
