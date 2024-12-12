@@ -21,7 +21,8 @@
    (:attrs :functional-trees/attrs)
    (:debug :software-evolution-library/utility/debug)
    (:file :software-evolution-library/components/file)
-   (:task :software-evolution-library/utility/task))
+   (:task :software-evolution-library/utility/task)
+   (:ts :software-evolution-library/software/tree-sitter))
   (:shadowing-import-from :serapeum :~>>)
   (:export :c/cpp-project
            :get-standard-path-header
@@ -1218,9 +1219,7 @@ include files in all directories of the project."
         (call-next-method))))
 
 (defmethod symbol-table ((node c/cpp-system-header) &optional in)
-  (if-let ((root-ast (car (children node))))
-    (symbol-table root-ast in)
-    (empty-map)))
+  (ts::propagate-declarations-down node in))
 
 (defmethod symbol-table ((node c/cpp-unknown-header) &optional in)
   (declare (ignore in))
