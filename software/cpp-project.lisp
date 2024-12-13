@@ -212,23 +212,32 @@ If SYMTAB does not have interface exports, return it unchanged."
   (when-let* ((imported-name (source-text (cpp-name ast)))
               (project (attrs-root*))
               (base-path (enclosing-file-pathname ast)))
+    (dbg:note :debug "Importing module ~a from ~a"
+              imported-name base-path)
     (let* ((module (get-enclosing-module ast))
            (importing-name
-            (if module (module-unit-full-name module) ""))
+             (if module (module-unit-full-name module) ""))
            (partition? (string^= ":" imported-name))
            (exported? (exported? ast))
            (defaults
-            (relative-module-defaults base-path importing-name imported-name))
+             (relative-module-defaults base-path importing-name imported-name))
            (imported-module-software
-            (or (find-project-module project defaults)
-                (error "Could not find module with defaults ~a" defaults)))
+             (or (find-project-module project defaults)
+                 (restart-case
+                     (error "Could not find module with defaults ~a" defaults)
+                   (continue ()
+                     :report (lambda (s) (format s "Skip importing ~a from ~a"
+                                            imported-name
+                                            importing-name))
+                     (return-from module-import-symbol-table
+                       (empty-map))))))
            (imported-module (module? (genome imported-module-software))))
       (when partition? (assert module))
       (update-dependency-graph (attrs-root*) imported-module-software)
       (let* ((*dependency-stack*
-              (cons imported-module-software *dependency-stack*))
+               (cons imported-module-software *dependency-stack*))
              (symtab
-              (module-software-symbol-table imported-module-software)))
+               (module-software-symbol-table imported-module-software)))
         (cond
           ((no symtab) nil)
           ;; A re-exported partition. We can see all definitions.
@@ -270,11 +279,15 @@ If SYMTAB does not have interface exports, return it unchanged."
 
 (defun import-symbol-table (ast)
   (when-let* ((imported-name (source-text (cpp-name ast))))
-    (if (scan "^<.*>$" imported-name)
-        ;; Handle a header unit import.
-        (header-unit-import-symbol-table ast)
-        ;; Handle a module import.
-        (module-import-symbol-table ast))))
+    (restart-case
+        (if (scan "^<.*>$" imported-name)
+            ;; Handle a header unit import.
+            (header-unit-import-symbol-table ast)
+            ;; Handle a module import.
+            (module-import-symbol-table ast))
+      (continue ()
+        :report (lambda (s) (format s "Skip import ~a" imported-name))
+        (empty-map)))))
 
 (defmethod symbol-table ((ast cpp-import-declaration) &optional in)
   (let ((*dependency-stack*
