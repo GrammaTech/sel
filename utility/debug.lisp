@@ -114,6 +114,9 @@ with `cl-user:trace'."
            (error 'unknown-symbolic-note-level
                   :level level))))))
 
+(defmethod convert ((to-type (eql 'note-level)) (sym symbol) &key)
+  (numeric-note-level sym))
+
 (-> note-level () note-level)
 (defun note-level ()
   "Get the current note level (as an integer)."
