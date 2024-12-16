@@ -240,6 +240,9 @@ Otherwise, use heuristics."
 (defgeneric plausible-macro-name? (ast)
   (:documentation
    "Is AST of a class where it makes sense to check for a macro name?")
+  (:method ((id cpp-namespace-identifier))
+    ;; TODO
+    nil)
   (:method ((id c/cpp-identifier))
     (flet ((enumerator-name? (id)
              "Is ID the name of an enumerator in a enum definition?"

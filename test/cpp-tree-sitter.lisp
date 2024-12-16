@@ -2524,7 +2524,12 @@ different orders."
                       ,(fset:map
                         ("x" (list (stmt-with-text root "x")))
                         ("a::y" (list (stmt-with-text root "y")))
-                        ("a::b::z" (list (stmt-with-text root "z"))))))))))))
+                        ("a::b::z" (list (stmt-with-text root "z")))))
+                     (:namespace
+                      .
+                      ,(fset:map
+                        ("a" (list (stmt-with-text root "a")))
+                        ("a::b" (list (stmt-with-text root "b"))))))))))))
 
 (deftest cpp-symbol-table-2 ()
   "Symbol-table contains all functions that are in scope."

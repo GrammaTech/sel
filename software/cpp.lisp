@@ -1283,12 +1283,22 @@ inherits from."
                                   (direct-children ast))))
     (outer-declarations (only-elt definitions))))
 
-(defmethod outer-declarations ((ast cpp-namespace-definition))
-  (match ast
+(defmethod inner-declarations ((ast cpp-namespace-definition))
+  (when-let (name (cpp-name ast))
+    (values (list name) '(:namespace))))
+
+(defmethod outer-declarations ((ns cpp-namespace-definition))
+  (match ns
     ((cpp-namespace-definition
       (cpp-body
        (cpp-declaration-list (direct-children children))))
-     (outer-declarations-merge children))))
+     (if-let (name (cpp-name ns))
+       (receive (child-decls child-namespaces)
+           (outer-declarations-merge children)
+         (values
+          (cons (cpp-name ns) child-decls)
+          (cons :namespace child-namespaces)))
+       (outer-declarations-merge children)))))
 
 (defun conserve-outer-def-exports (ast)
   (match (cpp-body ast)
@@ -1298,8 +1308,9 @@ inherits from."
              :initial-value (empty-map)))))
 
 (defmethod outer-defs ((ast cpp-namespace-definition))
-  (or (conserve-outer-def-exports ast)
-      (call-next-method)))
+  (if-let (exports (conserve-outer-def-exports ast))
+    (symbol-table-union ast exports (call-next-method))
+    (call-next-method)))
 
 (defmethod outer-defs ((ast cpp-export-block))
   (or (conserve-outer-def-exports ast)
@@ -2418,7 +2429,7 @@ available to use at any point in a C++ AST.")
 (defmethod qualify-declared-ast-name ((type cpp-primitive-type))
   (source-text type))
 
-(defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
+(defun qualify-declared-ast-name/namespaces (declared-ast)
   (labels ((enough-source-text (declared-ast)
              "Get enough of the source text of DECLARED-AST.
               Put a reasonable limit on it in case something absurd has
@@ -2446,6 +2457,12 @@ available to use at any point in a C++ AST.")
     (if (macro-name? declared-ast)
         (enough-source-text declared-ast)
         (qualify-declared-ast-name declared-ast))))
+
+(defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
+  (qualify-declared-ast-name/namespaces declared-ast))
+
+(defmethod qualify-declared-ast-name ((id cpp-namespace-identifier))
+  (qualify-declared-ast-name/namespaces id))
 
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."
