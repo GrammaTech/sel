@@ -229,6 +229,7 @@ If PATH is a string, it is parsed using Unix syntax.")
   (error "Can only set the genome of component files of a project."))
 
 (defgeneric collect-evolve-files (project)
+  (:method-combination standard/context)
   (:documentation "Create the evolve files for PROJECT."))
 
 (defun text-file-p (p)

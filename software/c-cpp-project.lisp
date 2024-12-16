@@ -288,8 +288,11 @@ For development."
       (finally (return (reverse result))))))
 
 (defun evolve-files/dependency-order
-    (project &key (include-tree (project-dependency-tree project :allow-headers t)))
-  "Return the evolve-files of PROJECT sorted in dependency order."
+    (project &key (include-tree
+                   (project-dependency-tree project :allow-headers t))
+               (skip-unparsed t))
+  "Return the evolve-files of PROJECT sorted in dependency order.
+Skip files that have not been parsed."
   (labels ((unused-files (table &key (used-flag :visited))
              (iter
                (for (key value) in-hashtable table)
@@ -319,12 +322,18 @@ For development."
                     path project)))
           (finally
            (return
-             ;; NOTE: add header files which haven't been reached to the end.
-             ;;       Anything added here will not have any guarantees on whether
-             ;;       it's in the correct order.
-             (reverse
-              (append (unused-files evolve-files)
-                      ordered-files)))))))))
+             (let ((ordered-files
+                     ;; NOTE: add header files which haven't been
+                     ;;       reached to the end. Anything added here
+                     ;;       will not have any guarantees on whether
+                     ;;       it's in the correct order.
+                     (reverse
+                      (append (unused-files evolve-files)
+                              ordered-files))))
+               (if skip-unparsed
+                   (filter (op (typep (slot-value (cdr _) 'genome) 'ast))
+                           ordered-files)
+                   ordered-files)))))))))
 
 
 #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
@@ -629,7 +638,7 @@ the standard path and add it to PROJECT."))
   (or (header-file? path)
       (call-next-method)))
 
-(defmethod collect-evolve-files :around ((project c/cpp-project))
+(defmethod collect-evolve-files :context ((project c/cpp-project))
   "Remove non-header files not in compilation database."
   (flet ((filter-by-compilation-database (evolve-files)
            (mvlet* ((db-files other-files
