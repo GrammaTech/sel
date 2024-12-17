@@ -1302,6 +1302,8 @@ inherits from."
        (outer-declarations-merge children)))))
 
 (defun conserve-outer-def-exports (ast)
+  "Add the outer definitions of AST's children to AST's outer
+definitions."
   (match (cpp-body ast)
     ((cpp-declaration-list (direct-children children))
      (reduce (op (symbol-table-union ast _ _))
@@ -1310,6 +1312,7 @@ inherits from."
 
 (defmethod outer-defs ((ast cpp-namespace-definition))
   (if-let (exports (conserve-outer-def-exports ast))
+    ;; Add the namespace itself.
     (symbol-table-union ast exports (call-next-method))
     (call-next-method)))
 
