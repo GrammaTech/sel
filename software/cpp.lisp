@@ -2272,6 +2272,34 @@ set of possible concrete specializations of that type."
               (mappend #'possible-types type-params))
       results)))
 
+(defmethod find-enclosing-declaration ((type (eql 'function-declaration-ast))
+                                       root
+                                       (id cpp-destructor-name))
+  (let ((parents (get-parent-asts* root id)))
+    (match parents
+      ((list*
+        (cpp-function-declarator (cpp-declarator decl-name))
+        (and decl (cpp-declaration))
+        _)
+       (unless (eql decl-name id)
+         (fail))
+       decl)
+      (otherwise (call-next-method)))))
+
+(defmethod find-enclosing-declaration ((type (eql 'function-declaration-ast))
+                                       root
+                                       (id cpp-operator-name))
+  (let ((parents (get-parent-asts* root id)))
+    (match parents
+      ((list*
+        (cpp-function-declarator (cpp-declarator decl-name))
+        (and decl (cpp-field-declaration))
+        _)
+       (unless (eql decl-name id)
+         (fail))
+       decl)
+      (otherwise (call-next-method)))))
+
 
 ;;; Whitespace rules
 

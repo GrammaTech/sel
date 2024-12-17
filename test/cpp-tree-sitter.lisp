@@ -1844,6 +1844,29 @@ int fn() {
       (is (length= 2 (collect-var-uses cpp expr))))))
 
 
+(deftest test-dtor-enclosing-declaration ()
+  "Enclosing function declaration of destructor names should be found."
+  (let* ((cpp (cpp* "class C { ~C(); }"))
+         (dtor (is (find-if (of-type 'cpp-destructor-name) cpp))))
+    (is (eql
+         (find-enclosing-declaration
+          'function-declaration-ast
+          cpp
+          dtor)
+         (is (find-if (of-type 'cpp-declaration) cpp))))))
+
+(deftest test-operator-enclosing-declaration ()
+  "Enclosing function declaration of operator names should be found."
+  (let* ((cpp (cpp* "class C { C operator()(); }"))
+         (op (is (find-if (of-type 'cpp-operator-name) cpp))))
+    (is (eql
+         (with-attr-table cpp
+           (find-enclosing-declaration
+            'function-declaration-ast
+            cpp
+            op))
+         (is (find-if (of-type 'cpp-field-declaration) cpp))))))
+
 (deftest test-placeholder-type-p ()
   "Type descriptors containing placeholder types should be placeholder types."
   (is (placeholder-type-p
