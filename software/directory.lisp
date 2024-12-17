@@ -73,6 +73,9 @@
 
 - evolve-files and other-files (from project) hold software objects"))
 
+(defmethod convert ((to-type (eql 'node)) (project directory-project) &key)
+  (genome project))
+
 (defgeneric lazy-path-p (project path &key lazy-paths root)
   (:method ((project directory-project) path
             &key
