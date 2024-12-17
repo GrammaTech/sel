@@ -271,6 +271,16 @@ declarators."
         (is (equal "Whatever::x::y" (namespace (find* "z"))))
         (is (equal "Whatever" (namespace (find* "c"))))))))
 
+(deftest test-error-nodes-have-namespaces ()
+  "All reachable nodes should always have namespaces."
+  (let ((cpp
+          (from-string 'cpp
+                       "int fn() { foo;
+BAR}")))
+    (is (find-if (of-type 'source-text-fragment) cpp))
+    (with-attr-table cpp
+      (every #'namespace (convert 'list cpp)))))
+
 (deftest test-namespace-deepest-match ()
   "Check that we return the deepest matching namespace."
   (let* ((cpp
