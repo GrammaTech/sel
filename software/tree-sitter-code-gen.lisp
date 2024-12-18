@@ -6093,7 +6093,12 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                       :accessor source-text-fragment-tree
                       :initform nil
                       ,@(make-node-initargs name-prefix :source-text-fragment-tree))
-                     (child-slots :initform '((#3# . 1))
+                     ;; before-asts and after-asts need to be child
+                     ;; slots for tree traversal. We will hide them in
+                     ;; the output-transformation method.
+                     (child-slots :initform '((before-asts . 0)
+                                              (#3# . 1)
+                                              (after-asts . 0))
                                   :allocation :class))
                     (:documentation
                      "Generated for source text fragment variation points."))

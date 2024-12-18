@@ -24,7 +24,10 @@
                 :operation-matches-rule-p
                 :ordered-children
                 :blot-ranges->parse-tree-ranges
-                :insert-blots-into-parse-tree))
+                :insert-blots-into-parse-tree)
+  (:local-nicknames
+   (:attrs :functional-trees/attrs)
+   (:ts :software-evolution-library/software/tree-sitter)))
 (in-package :software-evolution-library/test/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-tree-sitter "tree-sitter representations.")
@@ -542,6 +545,21 @@ points."
          (source "#")
          (root (convert 'c-ast source)))
     (is (source-text= source root))))
+
+(deftest tree-sitter-variation-point-trees-reachable-before-and-after-asts ()
+  "Before and after ASTs of a source-text-fragment-variation-point should
+be reachable."
+  (let* ((source "#if defined(__APPLE__)
+      if (maddr == (caddr_t) -1)
+#else
+      if (maddr == (__caddr_t) -1)
+#endif")
+         (c (convert 'c-ast source))
+         (vp (find-if (of-type 'source-text-fragment-variation-point) c))
+         (else-ast (only-elt (before-asts vp))))
+    (is (attrs:reachable? else-ast :from c))
+    (is (equal source (source-text c)))
+    vp))
 
 
 ;;; Ordered Children

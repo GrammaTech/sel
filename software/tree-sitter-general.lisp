@@ -149,6 +149,11 @@ are ordered for reproduction as source text.")
   (:method ((ast variation-point) &rest rest &key &allow-other-keys)
     (declare (ignorable rest))
     `(,(before-text ast) ,@(children ast) ,(after-text ast)))
+  (:method ((ast source-text-fragment-variation-point) &rest rest &key &allow-other-keys)
+    (declare (ignorable rest))
+    ;; Ignore the before-asts and after-asts here. They still have to
+    ;; be child slots for tree traversal.
+    `(,(before-text ast) ,(source-text-fragment ast) ,(after-text ast)))
   (:method :around ((ast structured-text)
                     &rest rest &key finalized-type &allow-other-keys)
     (declare (ignorable rest))
