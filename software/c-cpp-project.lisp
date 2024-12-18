@@ -677,31 +677,30 @@ the standard path and add it to PROJECT."))
     ;; of unwanted headers).
     (labels ((collect-find-include-arglists ()
                (iter outer
-                     (for (nil . sw) in (evolve-files project))
-                     (when (typep (slot-value sw 'genome) 'ast)
-                       (iter (for ast in-tree (genome sw))
-                             (match ast
-                               ((and include-ast (c/cpp-preproc-include))
-                                (let* ((file-ast
-                                         (find-enclosing 'file-ast
-                                                         (attrs-root*)
-                                                         include-ast)))
-                                  (in outer
-                                      (collecting
-                                        (list file-ast
-                                              ;; TODO Project or
-                                              ;; result?
+                     (for (nil . sw) in (parsed-evolve-files project))
+                     (iter (for ast in-tree (genome sw))
+                           (match ast
+                             ((and include-ast (c/cpp-preproc-include))
+                              (let* ((file-ast
+                                       (find-enclosing 'file-ast
+                                                       (attrs-root*)
+                                                       include-ast)))
+                                (in outer
+                                    (collecting
+                                      (list file-ast
+                                            ;; TODO Project or
+                                            ;; result?
 
-                                              ;; TODO When including
-                                              ;; headers from headers,
-                                              ;; we don't have header
-                                              ;; dirs. Could we carry
-                                              ;; them forward? Or
-                                              ;; leave to the symbol
-                                              ;; table?
-                                              (file-header-dirs project ast
-                                                                :file file-ast)
-                                              include-ast))))))))))
+                                            ;; TODO When including
+                                            ;; headers from headers,
+                                            ;; we don't have header
+                                            ;; dirs. Could we carry
+                                            ;; them forward? Or
+                                            ;; leave to the symbol
+                                            ;; table?
+                                            (file-header-dirs project ast
+                                                              :file file-ast)
+                                            include-ast)))))))))
              (find-include-in-project (args)
                (destructuring-bind (file-ast header-dirs include-ast) args
                  (with-thread-name (:name

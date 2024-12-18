@@ -45,7 +45,8 @@
     :only-paths
     :other-files
     :parallel-parse-thread-count
-    :pick-file))
+    :pick-file
+    :parsed-evolve-files))
 (in-package :software-evolution-library/software/directory)
 (in-readtable :curry-compose-reader-macros)
 
@@ -280,7 +281,7 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
 (defun check-project-in-sync (project)
   "Iterate over PROJECT's evolve-files, making sure they're in sync with
 the project AST."
-  (iter (for (file . software) in (evolve-files project))
+  (iter (for (file . software) in (parsed-evolve-files project))
         (for genome = (slot-value software 'genome))
         (when (typep genome 'ast)
           (let ((path (ast-path project genome)))
@@ -344,7 +345,7 @@ optimization settings."
                ((not (eql old-genome new-genome)))
                (old-entry
                 (rassoc old-genome
-                        (evolve-files new-project)
+                        (parsed-evolve-files new-project)
                         :key #'genome))
                (new-entry
                 (cons (car old-entry)
@@ -655,6 +656,11 @@ instances."
                         (member (pathname-type file) extensions
                                 :test 'equal))))))
     result))
+
+(defun parsed-evolve-files (project)
+  (filter (lambda (evolve-file)
+            (typep (slot-value (cdr evolve-file) 'genome) 'ast))
+          (evolve-files project)))
 
 ;;; Override project-specific defmethods that leverage evolve-files
 ;;; and instead implement these directly against the genome.
