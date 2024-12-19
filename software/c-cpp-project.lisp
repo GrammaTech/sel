@@ -1003,6 +1003,9 @@ include files in all directories of the project."
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond
                ((null software) nil)
+               ((typep software 'c/cpp-unknown-header)
+                (update-dependency-graph project software)
+                (empty-map))
                ((member (original-path software)
                         *dependency-stack*
                         :key #'original-path
