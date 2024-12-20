@@ -1720,9 +1720,10 @@ types."
      (get-declaration-ast
       :type
       (lret ((qname
-              (list->qualified-name
-               (butlast
-                (qualified-name->list id)))))
+              (tree-copy
+               (list->qualified-name
+                (butlast
+                 (qualified-name->list id))))))
         (setf (attr-proxy qname) id))))))
 
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))

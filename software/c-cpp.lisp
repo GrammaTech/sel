@@ -1065,8 +1065,11 @@ appears as a return statement is assumed to be the type of the function."
                      (c/cpp-declarator decl)))
          (cond ((not (and type declarators))
                 (fail))
-               ((when-let* ((declarator (relevant-declarator declarators ast decl))
-                            (final-type (wrap-type-descriptor declarator type)))
+               ((when-let* ((declarator
+                             (relevant-declarator declarators ast decl))
+                            (final-type
+                             (tree-copy
+                              (wrap-type-descriptor declarator type))))
                   (unless (eql final-type type)
                     final-type)))
                (t (fail)))))
