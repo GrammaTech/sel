@@ -1562,7 +1562,7 @@ then the return type of the call is the return type of the field."
        :children (list arg)))
      (unless (equal (mapcar #'source-text (namespace-qualifiers name))
                     '("std"))
-       (trivia.fail:fail))
+       (fail))
      (infer-type arg))
     (otherwise
      (call-next-method))))
