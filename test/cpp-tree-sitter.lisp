@@ -308,6 +308,16 @@ mytype myfun3 (mytype y) { return y; }"))
                   "Wrong type for ~a: wanted ~a, got ~a"
                   node wanted-type relevant-type))))))
 
+(deftest test-field-relevant-declaration-type ()
+  "Test a field identifier in a call function is recognized as a method
+not a member."
+  (let ((cpp (cpp* "x.y()")))
+    (with-attr-table cpp
+      (is (eql (relevant-declaration-type
+                (find-if (of-type 'cpp-field-identifier)
+                         cpp))
+               'function-declaration-ast)))))
+
 (deftest test-reference-headers-available ()
   (is (directory-exists-p
        (asdf:system-relative-pathname

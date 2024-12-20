@@ -823,6 +823,19 @@ There can be multiple classes if FIELD occurs in a template."
 (defmethod relevant-declaration-type ((ast c/cpp-field-expression))
   'variable-declaration-ast)
 
+(defmethod relevant-declaration-type ((ast c/cpp-field-identifier))
+  (match (get-parent-asts* (attrs-root*) ast)
+    ((list* (and field-expr
+                 (c/cpp-field-expression
+                  (c/cpp-field (eql ast))))
+            (c/cpp-call-expression
+             (call-function fn))
+            _)
+     (unless (eql fn field-expr)
+       (fail))
+     'function-declaration-ast)
+    (otherwise (call-next-method))))
+
 (defmethod relevant-declaration-type ((ast c/cpp-field-declaration))
   nil)
 
