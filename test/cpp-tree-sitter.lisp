@@ -1843,6 +1843,15 @@ int fn() {
     (with-attr-table cpp
       (is (length= 2 (collect-var-uses cpp expr))))))
 
+(deftest test-for-range-loop-enclosing-declaration ()
+  "Enclosing variable declaration of iteration value of a for-range loop
+should be found."
+  (let* ((cpp (cpp* "for (node* const x : xs) {}"))
+         (id (is (find-if (of-type 'cpp-identifier) cpp))))
+    (is (source-text= "x" id))
+    (with-attr-table cpp
+      (let ((decl (is (find-enclosing-declaration :variable cpp id))))
+        (is (eql decl (cpp-declarator cpp)))))))
 
 (deftest test-dtor-enclosing-declaration ()
   "Enclosing function declaration of destructor names should be found."

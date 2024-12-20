@@ -2317,6 +2317,14 @@ set of possible concrete specializations of that type."
      decl)
     (otherwise (call-next-method))))
 
+(defmethod find-enclosing-declaration ((type (eql 'variable-declaration-ast))
+                                       root
+                                       (id cpp-identifier))
+  (or (call-next-method)
+      (and-let* ((for-range-loop (find-enclosing 'cpp-for-range-loop root id))
+                 ((find id (cpp-declarator for-range-loop))))
+        (cpp-declarator for-range-loop))))
+
 
 ;;; Whitespace rules
 
