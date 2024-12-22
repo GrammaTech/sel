@@ -932,6 +932,13 @@ appears as a return statement is assumed to be the type of the function."
   (:documentation "If DECLARATOR declares an indirect type, such as a
   pointer, array, or reference, then wrap TYPE in a type descriptor
   with an appropriate abstract descriptor.")
+  (:method-combination standard/context)
+  (:method :context (declarator type)
+    (let ((final-type (call-next-method)))
+      (if (eql final-type type) type
+          ;; Copy to avoid a proxy containing itself.
+          (lret ((final-type (tree-copy final-type)))
+            (setf (attr-proxy final-type) type)))))
   (:method (declarator type)
     type)
   (:method ((d c/cpp-init-declarator) type)
@@ -968,7 +975,6 @@ appears as a return statement is assumed to be the type of the function."
                ((when-let* ((declarator (relevant-declarator declarators ast decl))
                             (final-type (wrap-type-descriptor declarator type)))
                   (unless (eql final-type type)
-                    (setf (attr-proxy final-type) type)
                     final-type)))
                (t (fail)))))
       (otherwise
