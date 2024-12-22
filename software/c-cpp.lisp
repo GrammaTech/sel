@@ -1068,8 +1068,7 @@ appears as a return statement is assumed to be the type of the function."
                ((when-let* ((declarator
                              (relevant-declarator declarators ast decl))
                             (final-type
-                             (tree-copy
-                              (wrap-type-descriptor declarator type))))
+                             (wrap-type-descriptor declarator type)))
                   (unless (eql final-type type)
                     final-type)))
                (t (fail)))))
