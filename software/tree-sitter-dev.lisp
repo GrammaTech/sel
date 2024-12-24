@@ -353,3 +353,33 @@ in an existing AST.")
       (when slot-value
         (collect
             (cons (trim-prefix prefix slot) slot-value))))))
+
+(defun validate-symtab (symtab)
+  "Check for unreachable symbol table entries."
+  (iter outer
+        (for (ns map) in-map symtab)
+        (iter (for ast-list in-set (fset:range map))
+              (iter (for ast in ast-list)
+                    (unless (reachable? ast :use-cache t)
+                      (in outer (collecting (cons ns ast))))))))
+
+(defun check-symbol-table (symtab &optional message)
+  (when-let (extra (validate-symtab symtab))
+    (cerror "Return the symbol table"
+            "Invalid symtab:~@[ ~a:~]~%~a"
+            message extra))
+  symtab)
+
+(defun get-file-dependencies ()
+  (let* ((root (ft/attrs:attrs-root*))
+         (deps (ft/attrs::attrs.subroot->deps ft/attrs:*attrs*)))
+    (with-collectors (collect-deps)
+      (do-hash-table (subroot dep-list deps)
+        (let ((subroot.deps
+                (cons subroot
+                      (filter-map #'tg:weak-pointer-value dep-list))))
+          (collect-deps
+           (mapcar (lambda (x)
+                     (when (subroot? x)
+                       (find-enclosing 'sel/sw/directory:file-ast root x)))
+                   subroot.deps)))))))
