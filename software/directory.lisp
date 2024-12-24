@@ -283,14 +283,16 @@ the project AST."
             (serapeum::policy> env 'safety 'speed))
     `(check-project-in-sync ,project)))
 
-(defun verify-project-in-sync (project)
+(defun verify-project-in-sync (project &key (force t))
   "Return PROJECT after checking that it's in sync.
 The actual check may or may not be done based on compile-time
 optimization settings."
   (let ((genome (slot-value project 'genome)))
     (unless (typep genome 'ast)
       (error "Corrupt genome: ~s" genome)))
-  (assert-project-in-sync project)
+  (if force
+      (check-project-in-sync project)
+      (assert-project-in-sync project))
   project)
 
 (defun insert-software-at (project path new)
