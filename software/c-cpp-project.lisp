@@ -147,6 +147,9 @@ by the symbol-table attribute."))
   (:documentation "Superclass of synthetic headers, such as substitute system
 headers and implicit headers for command-line preprocessor macros."))
 
+(defmethod attrs:subroot? ((ast synthetic-header))
+  nil)
+
 (defmethod command-object ((project c/cpp-project) (file synthetic-header))
   nil)
 
