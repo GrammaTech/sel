@@ -278,6 +278,9 @@ Otherwise, use heuristics."
 (defmethod primitive-type-p ((ast c/cpp-type-descriptor))
   (primitive-type-p (c/cpp-type ast)))
 
+(defmethod function-body ((ast c/cpp-function-declarator))
+  nil)
+
 (defmethod function-name ((ast c/cpp-function-definition))
   (source-text (definition-name-ast ast)))
 
