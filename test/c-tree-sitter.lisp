@@ -256,6 +256,19 @@ void f(int *a, char b[]) { a[1]; b[2]; }"))))
         (is (source-text= "int" (infer-type s1)))
         (is (source-text= "char" (infer-type s2)))))))
 
+(deftest test-array-parameter-names ()
+  "Parameter names should only include identifiers in the actual
+declarator of an array declarator."
+  (let ((c (c "void f(int a, int b[i]) { a[1]; b[2]; }")))
+    (is (equal
+         '("a" "b")
+         (mapcar #'source-text
+                 (mappend #'parameter-names
+                          (function-parameters
+                           (is (find-if
+                                (of-type 'c-function-definition)
+                                c)))))))))
+
 (deftest infer-comma-expr-types ()
   (let ((c-code (from-string 'c (fmt "~
 void f(int x, float y, char z) { x,y; y,x; x,z,y; }"))))

@@ -1282,6 +1282,19 @@ Should return `:failure' in the base case.")
 (defmethod parameter-names ((ast c/cpp-identifier))
   (list ast))
 
+(defmethod parameter-names :around
+    ((param c/cpp-parameter-declaration))
+  (match param
+    ((c/cpp-parameter-declaration
+      :c/cpp-declarator
+      (c/cpp-array-declarator
+       :c/cpp-declarator
+       decl))
+     (filter (op (or (eql decl _1)
+                     (descendant-of-p param decl _1)))
+             (call-next-method)))
+    (otherwise (call-next-method))))
+
 (defmethod collect-arg-uses (sw (target c/cpp-ast)
                              &optional alias)
   (unless (typep target 'identifier-ast)
