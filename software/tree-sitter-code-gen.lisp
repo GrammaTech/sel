@@ -78,8 +78,8 @@ to parse the string.")
     (or (when-let ((env (getenv "SEL_TREE_SITTER_LANGUAGE_DIR")))
           (split-sequence #\, env))
         (remove-if-not
-         #'probe-file `("/usr/share/tree-sitter/"
-                        "/usr/local/share/tree-sitter/"
+         #'probe-file `("/usr/local/share/tree-sitter/"
+                        "/usr/share/tree-sitter/"
                         ,@(when-let (home (getenv "HOME"))
                             (list (string+ home "/.local/share/tree-sitter/")))))
         (prog1 nil (format *error-output* "No tree-sitter language directory found.")))
@@ -3179,12 +3179,12 @@ stored on the AST or external rules.")
                    (handler-case
                        (register-language
                         ,language
-                        ,(concatenate 'string "/usr/lib/" lib-name)
+                        ,(concatenate 'string "/usr/local/lib/" lib-name)
                         ,@fn-name-args)
                      (load-foreign-library-error ()
                        (register-language
                         ,language
-                        ,(concatenate 'string "/usr/local/lib/" lib-name)
+                        ,(concatenate 'string "/usr/lib/" lib-name)
                         ,@fn-name-args))))))
              (setf (gethash ,ast-superclass *superclass->language*) ,language))
          (load-foreign-library-error ()
@@ -6464,13 +6464,13 @@ Unlike the `children` methods which collects all children of an AST from any slo
        (overlord:use
         (asdf:system-relative-pathname "software-evolution-library"
                                        "software/tree-sitter-code-gen.lisp")
-        (pathname ,(format nil "/usr/share/tree-sitter/~a/node-types.json"
-                           name-string))
         (pathname ,(format nil "/usr/local/share/tree-sitter/~a/node-types.json"
                            name-string))
-        (pathname ,(format nil "/usr/share/tree-sitter/~a/grammar.json"
+        (pathname ,(format nil "/usr/share/tree-sitter/~a/node-types.json"
                            name-string))
         (pathname ,(format nil "/usr/local/share/tree-sitter/~a/grammar.json"
+                           name-string))
+        (pathname ,(format nil "/usr/share/tree-sitter/~a/grammar.json"
                            name-string))))
      ;; Generate FASL.
      (overlord:file-target ,compiled-cache-file-var
