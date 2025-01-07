@@ -360,7 +360,7 @@ in an existing AST.")
         (for (ns map) in-map symtab)
         (iter (for ast-list in-set (fset:range map))
               (iter (for ast in ast-list)
-                    (unless (reachable? ast :use-cache t)
+                    (unless (reachable? ast :use-attrs t)
                       (in outer (collecting (cons ns ast))))))))
 
 (defun check-symbol-table (symtab &optional message)
