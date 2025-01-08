@@ -1071,7 +1071,8 @@ a declaration AST, return AST unchanged."
            (let ((root (attrs-root*)))
              (iter (for id in (get-declaration-ids type ast))
                    (restart-case
-                       (collect (find-enclosing-declaration type root id))
+                       (when-let (decl (find-enclosing-declaration type root id))
+                         (collect decl))
                      (continue ()
                        :report "Ignore this ID"))))))
     (ematch* (type ast)
