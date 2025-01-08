@@ -2179,6 +2179,41 @@ are ignored by templates, whereas named ones are preserved.")
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "BLANK")) ((:TYPE . "STRING") (:VALUE . ","))))
          ((:TYPE . "STRING") (:VALUE . ")"))))
+       (:TUPLE-TYPE (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "SEQ")
+          (:MEMBERS
+           ((:TYPE . "SYMBOL") (:NAME . "_type"))
+           ((:TYPE . "CHOICE")
+            (:MEMBERS
+             ;; NOTE: prefer traililng comma for one element tuples
+             ((:TYPE . "STRING") (:VALUE . ","))
+             ((:TYPE . "REPEAT")
+              (:CONTENT (:TYPE . "SEQ")
+                        (:MEMBERS ((:TYPE . "STRING") (:VALUE . ","))
+                                  ((:TYPE . "SYMBOL") (:NAME . "_type")))))))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . ",")) ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")"))))
+       (:TUPLE-PATTERN (:TYPE . "SEQ")
+        (:MEMBERS ((:TYPE . "STRING") (:VALUE . "("))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS
+           ((:TYPE . "SEQ")
+            (:MEMBERS
+             ((:TYPE . "SYMBOL") (:NAME . "_pattern"))
+             ((:TYPE . "CHOICE")
+              (:MEMBERS
+               ;; NOTE: prefer traililng comma for one element tuples
+               ((:TYPE . "STRING") (:VALUE . ","))
+               ((:TYPE . "REPEAT")
+                (:CONTENT (:TYPE . "SEQ")
+                          (:MEMBERS ((:TYPE . "STRING") (:VALUE . ","))
+                                    ((:TYPE . "SYMBOL") (:NAME . "_pattern")))))))))
+           ((:TYPE . "BLANK"))))
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . ",")) ((:TYPE . "BLANK"))))
+         ((:TYPE . "STRING") (:VALUE . ")"))))
        (:GENERIC-TYPE-WITH-TURBOFISH (:TYPE . "SEQ")
         (:MEMBERS
          ((:TYPE . "FIELD")

@@ -365,6 +365,23 @@ valid output transformation."
                         "fn myfun(&self, x:i32) -> {}"
                         :deepest t))))))
 
+(deftest rust-tuple-type-trailing-comma-single-element ()
+  "A tuple type with a single element should maintain a trailing comma in its
+source text."
+  (let ((expected "(i32,)")
+        (tuple-type (find-if (of-type 'rust-tuple-type)
+                             (convert 'rust-ast "impl F<(i32,)> for Obj {}"))))
+    (is (source-text= tuple-type expected))))
+
+(deftest rust-tuple-pattern-trailing-comma-single-element ()
+  "A tuple pattern with a single element should maintain a trailing comma in its
+source text."
+  (let ((expected "(i32,)")
+        (tuple-type
+          (find-if (of-type 'rust-tuple-type)
+                   (convert 'rust-ast "fn f((a,): (i32,)) -> Self {}"))))
+    (is (source-text= tuple-type expected))))
+
 
 ;;; Parsing tests.
 
