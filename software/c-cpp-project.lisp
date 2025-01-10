@@ -1048,7 +1048,7 @@ paths."
                                :base dir
                                :global global))))
                     header-dirs)))
-             (make-unknown-header* (include-ast)
+             (make-unknown-header-with-proxy (include-ast)
                (lret ((unknown-header (make-unknown-header include-ast)))
                  (when (boundp '*attrs*)
                    (synchronized (project)
@@ -1059,7 +1059,7 @@ paths."
            :debug
            "Unknown header: ~a"
            (source-text include-ast))
-          (make-unknown-header* include-ast)))))
+          (make-unknown-header-with-proxy include-ast)))))
 
 (defun find-enclosing-software (project ast &key file-ast)
   "Get the software object in PROJECT that contains AST."
