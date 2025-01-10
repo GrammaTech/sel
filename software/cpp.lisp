@@ -80,12 +80,15 @@
             (declare (array-index pos)
                      ;; bracket-count is not an index since it can go
                      ;; below 0 in pathalogical cases.
-                     (fixnum bracket-count))
+                     (fixnum bracket-count)
+                     (list acc))
             (if (length>= pos string)
                 (if (> bracket-count 0)
                     ;; Not actually delimiters. E.g. operator<.
                     string
-                    (coerce (nreverse acc) 'string))
+                    (let ((s (make-array (length acc) :element-type 'character)))
+                      (replace s acc)
+                      (nreverse s)))
                 (case-let (char (vref string pos))
                   (#\< (rec (1+ pos) (1+ bracket-count) acc))
                   (#\> (rec (1+ pos) (1- bracket-count) acc))
