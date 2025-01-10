@@ -283,7 +283,7 @@ the project AST."
             (serapeum::policy> env 'safety 'speed))
     `(check-project-in-sync ,project)))
 
-(defun verify-project-in-sync (project &key (force t))
+(defun verify-project-in-sync (project &key force)
   "Return PROJECT after checking that it's in sync.
 The actual check may or may not be done based on compile-time
 optimization settings."
