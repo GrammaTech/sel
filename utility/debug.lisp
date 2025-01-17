@@ -98,21 +98,23 @@ with `cl-user:trace'."
          (assure note-level
            ,level)))
 
-(define-condition unknown-symbolic-note-level (error)
-  ((level :initarg :level :type symbol))
-  (:report (lambda (c s)
-             (with-slots (level) c
-               (format s "Unknown symbolic note level: ~s" level)))))
+(eval-always                            ;CCL
+  (define-condition unknown-symbolic-note-level (error)
+    ((level :initarg :level :type symbol))
+    (:report (lambda (c s)
+               (with-slots (level) c
+                 (format s "Unknown symbolic note level: ~s" level))))))
 
-(-> numeric-note-level ((or note-level symbol)) note-level)
-(defun numeric-note-level (level)
-  (assure note-level
-    (etypecase level
-      (note-level level)
-      (symbol
-       (or (gethash level *note-level-names*)
-           (error 'unknown-symbolic-note-level
-                  :level level))))))
+(eval-always
+  (-> numeric-note-level ((or note-level symbol)) note-level)
+  (defun numeric-note-level (level)
+    (assure note-level
+      (etypecase level
+        (note-level level)
+        (symbol
+         (or (gethash level *note-level-names*)
+             (error 'unknown-symbolic-note-level
+                    :level level)))))))
 
 (defmethod convert ((to-type (eql 'note-level)) (sym symbol) &key)
   (numeric-note-level sym))
