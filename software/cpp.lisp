@@ -1742,12 +1742,15 @@ types."
                     &key)
   (convert-terminal to id))
 
-(-> list->qualified-name ((soft-list-of cpp-ast))
+(-> list->qualified-name ((soft-list-of (or null cpp-ast)))
     (values cpp-ast &optional))
 (defun list->qualified-name (list)
   "Compose a cpp-qualified-identifier from LIST, a list of identifiers.
 
-Since the tree-sitter grammar treats the same text differently
+It is also possible for `nil' to appear in the list, meaning the
+global scope (e.g. `::ns::x`).
+
+Since the tree-sitter grammar for C++ treats the same text differently
 depending on which side of the :: of a qualified name it appears on,
 this involves handling some translations between types."
   (when (null list)
@@ -1776,7 +1779,9 @@ this involves handling some translations between types."
                 (dependent-type->dependent-name scope))
                ((or cpp-namespace-identifier
                     cpp-template-type
-                    cpp-dependent-name)
+                    cpp-dependent-name
+                    ;; Global scope.
+                    null)
                 scope)))
            (fix-name (name)
              "Make sure NAME is an AST that can appear in the name
@@ -1800,7 +1805,6 @@ this involves handling some translations between types."
              "Right-fold LIST into a qualified name."
              (reduce (lambda (scope name)
                        (cond ((typep name 'cpp-primitive-type) name)
-                             ((no scope) name)
                              (t (make 'cpp-qualified-identifier
                                       :cpp-scope (fix-scope scope)
                                       :cpp-name (fix-name name)))))

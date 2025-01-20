@@ -30,9 +30,10 @@
   (:import-from :software-evolution-library/software/tree-sitter
                 :explicit-namespace-qualifiers
                 :qualified-name-lookup-variants)
-  (:local-nicknames (:project :software-evolution-library/software/project)
-                    (:dir :software-evolution-library/software/directory)
-                    (:ts :software-evolution-library/software/tree-sitter))
+  (:local-nicknames
+   (:dir :software-evolution-library/software/directory)
+   (:project :software-evolution-library/software/project)
+   (:ts :software-evolution-library/software/tree-sitter))
   (:export :test-cpp-tree-sitter))
 (in-package :software-evolution-library/test/cpp-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -1937,6 +1938,14 @@ public:
 
 (deftest test-parse-module-qualified-name ()
   (finishes (genome (from-string 'cpp "import x.y;"))))
+
+(deftest global-qname-list-conversion-round-trip ()
+  "Check qualified names with global scope round-trip."
+  (is (equal "::ns::x"
+             (source-text
+              (ts::list->qualified-name
+               (ts::qualified-name->list
+                (cpp* "::ns::x")))))))
 
 
 ;;;; Rule Substitution tests
