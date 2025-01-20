@@ -672,6 +672,22 @@ int sum = myadd(2, 2);"))
                      (list (consequence c)
                            (alternative c)))))))
 
+(deftest test-fallthrough-control-flow ()
+  "The presence of the fallthrough attribute should not affect control
+flow analysis."
+  (let ((c (c* "switch (n) {
+  case 1:
+    g();
+    [[fallthrough]];
+  case 2:
+    return;
+}")))
+    (is (typep c 'c-switch-statement))
+    (let ((cases (children (c-body c))))
+      (with-attr-table c
+        (is (member (second cases)
+                    (exit-control-flow (first cases))))))))
+
 (deftest test-ternary-control-flow ()
   "Sequence point after condition of a ternary operator."
   (let ((c (c* "x ? y : z")))

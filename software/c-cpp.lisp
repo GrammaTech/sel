@@ -1388,6 +1388,25 @@ Should return `:failure' in the base case.")
 (defmethod entry-control-flow :around ((ast c/cpp-update-expression))
   (assignee ast))
 
+(defun fallthrough-statement-p (ast)
+  (match ast
+    ((or (c* "[[fallthrough]];")
+         (cpp* "[[fallthrough]];"))
+     t)))
+
+(defmethod exit-control-flow ((ast c/cpp-attributed-statement))
+  (cond ((fallthrough-statement-p ast)
+         (subexpression-exit-control-flow
+          (cached-parent-ast ast)
+          ast))
+        (t
+         (call-next-method))))
+
+(defmethod entry-control-flow ((ast c/cpp-attributed-statement))
+  (cond ((fallthrough-statement-p ast) nil)
+        (t
+         (call-next-method))))
+
 (defmethod ltr-eval-ast-p ((binary-ast c/cpp-binary-expression))
   (member (operator binary-ast) '(:&& #.(make-keyword "||"))))
 
