@@ -4405,7 +4405,9 @@ by MULTI-DECLARATION-KEYS."
      :allow-multiple (multi-declaration-keys root))))
 
 (defun propagate-declarations-down (ast in)
-  "Propagate the symbol table declarations down through AST's children."
+  "Propagate the symbol table declarations down through AST's children.
+Add the outer definitions of each child to the next child's symbol
+table."
   (reduce (lambda (in2 child)
             (symbol-table-union
              ast
@@ -4425,10 +4427,10 @@ by MULTI-DECLARATION-KEYS."
       ((scope-ast-p node)
        (propagate-declarations-down node in)
        in)
-      (t (mapc (op (symbol-table _ (symbol-table-union node
-                                                       in
-                                                       (inner-defs node))))
-               (children node))
+      (t (let ((parent-symtab
+                 (symbol-table-union node in (inner-defs node))))
+           (mapc (op (symbol-table _ parent-symtab))
+                 (children node)))
          in))))
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
