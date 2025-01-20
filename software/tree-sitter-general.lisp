@@ -4472,14 +4472,12 @@ table."
   (symbol-table (attrs-root *attrs*) (empty-map)))
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) (node tree-sitter-ast))
-  (labels ((extra-ast-types (language)
-             (mapcar (op (format-symbol 'sel/sw/ts "~a-~a" language _))
-                     (extra-asts language))))
-    (if (or (typep node 'source-text-fragment-variation-point)
-            (member node (extra-ast-types (make-keyword (ast-language-class node)))
-                    :test #'typep))
-        (symbol-table node (empty-map))
-        (symbol-table (attrs-root *attrs*) (empty-map)))))
+  (if (or (typep node 'source-text-fragment-variation-point)
+          (member node (extra-asts-symbols
+                        (make-keyword (ast-language-class node)))
+                  :test #'typep))
+      (symbol-table node (empty-map))
+      (symbol-table (attrs-root *attrs*) (empty-map))))
 
 (-> group-by-namespace
     ((soft-list-of ast)
