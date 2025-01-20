@@ -4475,8 +4475,9 @@ table."
   (labels ((extra-ast-types (language)
              (mapcar (op (format-symbol 'sel/sw/ts "~a-~a" language _))
                      (extra-asts language))))
-    (if (member node (extra-ast-types (make-keyword (ast-language-class node)))
-                :test #'typep)
+    (if (or (typep node 'source-text-fragment-variation-point)
+            (member node (extra-ast-types (make-keyword (ast-language-class node)))
+                    :test #'typep))
         (symbol-table node (empty-map))
         (symbol-table (attrs-root *attrs*) (empty-map)))))
 
