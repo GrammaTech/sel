@@ -2185,6 +2185,15 @@ int y() { x(); }
                (of-type 'cpp-function-definition)
                cpp)))))
 
+(deftest test-recursive-inheritance ()
+  "Test recursive inheritance doesn't result in circularity."
+  (let* ((cpp (cpp "template <typename T, size_t N, T... Ns>
+struct make_integer_sequence : make_integer_sequence<T, N - 1, N - 1, Ns...> {};"))
+         (struct (find-if (of-type 'cpp-struct-specifier) cpp)))
+    (with-attr-session (cpp)
+      (symbol-table cpp)
+      (finishes (field-table struct)))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.
