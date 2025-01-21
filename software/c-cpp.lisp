@@ -374,6 +374,11 @@ Otherwise, use heuristics."
         (apply #'merged-declarations declarations)
         (apply #'merged-namespaces namespaces)))))
 
+(defmethod symbol-table ((ast c/cpp-declaration-list) &optional in)
+  "Note this only matters if inner-declarations is not defined to merge
+all the entries' outer declarations. (True of C++ namespaces.)"
+  (propagate-declarations-down ast in))
+
 (defmethod inner-declarations ((ast c/cpp-declaration-list))
   (outer-declarations-merge (children ast)))
 

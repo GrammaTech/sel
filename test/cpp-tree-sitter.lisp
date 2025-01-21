@@ -1955,6 +1955,22 @@ public:
                 (ts::qualified-name->list
                  cpp))))))
 
+(deftest test-namespace-definition-visiblity ()
+  "Check that namespaces don't affect definition visibility."
+  (let* ((cpp (from-string 'cpp "
+
+namespace {
+// There is no declaration, x() should not be able to see y().
+int x() { y(); }
+int y() { x(); }
+}
+")))
+    (with-attr-session (cpp :shadow t)
+      (mapcar #'exception-set
+              (collect-if
+               (of-type 'cpp-function-definition)
+               cpp)))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.

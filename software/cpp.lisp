@@ -1287,6 +1287,11 @@ inherits from."
   (when-let (name (cpp-name ast))
     (values (list name) '(:namespace))))
 
+(defmethod inner-declarations ((ast cpp-declaration-list))
+  (if (typep (get-parent-ast (attrs-root*) ast) 'cpp-namespace-definition)
+      (values nil nil)
+      (call-next-method)))
+
 (defmethod outer-declarations ((ns cpp-namespace-definition))
   (match ns
     ((cpp-namespace-definition
