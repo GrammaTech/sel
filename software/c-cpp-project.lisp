@@ -648,25 +648,28 @@ the standard path and add it to PROJECT."))
                        (get-stdinc-header project path-string)))
                  (populate-header-entry (project path-string)
                    (symbol-macrolet ((cached-value
-                                      (cache-lookup *system-header-cache*
-                                                    project path-string)))
+                                       (cache-lookup *system-header-cache*
+                                                     project path-string)))
                      (or cached-value
                          (when-let (children (get-header-by-name path-string))
+                           (debug:note :trace "Found header at ~a" path-string)
                            (setf cached-value
-                                 (make-instance
-                                  'c/cpp-system-header
-                                  :header-name path-string
-                                  :children children)))))))
+                                 (make 'c/cpp-system-header
+                                       :header-name path-string
+                                       :children children)))))))
           (lret ((header
                   (or header-hash
                       (when-let (header (populate-header-entry project path-string))
                         (setf header-hash header)))))
             (when header
               (synchronized (project)
-                (setf genome
-                      (copy genome
-                            :system-headers (adjoin header
-                                                    (system-headers genome))))))))))))
+                (let ((old-headers (system-headers genome)))
+                  (unless (member header old-headers)
+                    (debug:note :trace "Collecting system header ~a" header)
+                    (setf genome
+                          (copy genome
+                                :system-headers
+                                (cons header old-headers)))))))))))))
 
 (defmethod lazy-path-p ((project c/cpp-project) path &key lazy-paths root)
   (declare (ignore lazy-paths root))
@@ -1124,8 +1127,8 @@ include files in all directories of the project."
              ;; header no matter how many times it is included (or
              ;; what headers come before it). Beside that, we also
              ;; currently don't have a way of indicating that an
-             ;; attribute depends on a prior sibling, not just a
-             ;; parent.
+             ;; subroot's attributes depend on a prior sibling, not
+             ;; just a parent.
              (declare (ignore in))
              (assert (attrs:reachable? (genome header)))
              (symbol-table (genome header) (empty-map)))
@@ -1207,6 +1210,7 @@ include files in all directories of the project."
             (retry)))))))
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
+  (debug:note :trace "Including symbol table for ~a" node)
   (let ((root (attrs-root *attrs*)))
     (if (typep root 'directory-project)
         (if-let (st (find-symbol-table-from-include root node :in in))
@@ -1219,6 +1223,7 @@ include files in all directories of the project."
         (call-next-method))))
 
 (defmethod symbol-table ((node c/cpp-system-header) &optional in)
+  (debug:note :trace "Computing symbol table for include ~a" node)
   (ts::propagate-declarations-down node in))
 
 (defmethod symbol-table ((node c/cpp-unknown-header) &optional in)
