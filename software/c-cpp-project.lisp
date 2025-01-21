@@ -1016,50 +1016,55 @@ paths."
                        symbol-table)
   "Find an include in PROJECT. Ensure it is an evolve-file."
   (declare (functional-tree-ast file))
-  (when-let ((path-ast (include-ast-path-ast include-ast
-                                             :symbol-table symbol-table)))
-    (labels ((search-header-dirs (&key global)
+  (when-let ((path-ast
+              (include-ast-path-ast
+               include-ast
+               :symbol-table symbol-table)))
+    (labels ((search-header-dir (dir &key global)
+               (econd
+                 ((eql dir :current)
+                  (get-program-header project file include-ast
+                                      path-ast
+                                      :base nil
+                                      :global global))
+                 ((member dir '(:always :system))
+                  nil)
+                 ((eql dir :stdinc)
+                  (get-standard-path-header
+                   project path-ast
+                   :header-dirs header-dirs))
+                 ((stringp dir)
+                  (debug:note :trace "Searching ~a for header ~a"
+                              dir path-ast)
+                  (get-program-header
+                   project file include-ast path-ast
+                   :base dir
+                   :global global))))
+             (search-header-dirs (&key global)
                (if (no header-dirs)
                    (progn
-                     (debug:lazy-note
-                      :trace
-                      "No header dirs when searching for ~a"
-                      (source-text path-ast))
-                     (get-standard-path-header
-                      project path-ast))
-                   (some
-                    (lambda (dir)
-                      (econd ((eql dir :current)
-                              (get-program-header project file include-ast
-                                                  path-ast
-                                                  :base nil
-                                                  :global global))
-                             ((member dir '(:always :system))
-                              nil)
-                             ((eql dir :stdinc)
-                              (get-standard-path-header
-                               project path-ast
-                               :header-dirs header-dirs))
-                             ((stringp dir)
-                              (debug:note :trace "Searching ~a for header ~a"
-                                          dir path-ast)
-                              (get-program-header
-                               project file include-ast path-ast
-                               :base dir
-                               :global global))))
-                    header-dirs)))
+                     (debug:lazy-note :trace "No header dirs when searching for ~a"
+                                      (source-text path-ast))
+                     (get-standard-path-header project path-ast))
+                   (some (op (search-header-dir _ :global global))
+                         header-dirs)))
              (make-unknown-header-with-proxy (include-ast)
                (lret ((unknown-header (make-unknown-header include-ast)))
+                 ;; Make the unknown header proxy to the include.
                  (when (boundp '*attrs*)
                    (synchronized (project)
-                     (setf (attr-proxy unknown-header) include-ast))))))
-      (or (search-header-dirs)
-          (and global (search-header-dirs :global t))
-          (debug:lazy-note
-           :debug
-           "Unknown header: ~a"
-           (source-text include-ast))
-          (make-unknown-header-with-proxy include-ast)))))
+                     (setf (attr-proxy unknown-header) include-ast)))))
+             (find-include ()
+               (or (search-header-dirs)
+                   (and global (search-header-dirs :global t))
+                   (debug:lazy-note
+                    :debug
+                    "Unknown header: ~a"
+                    (source-text include-ast))
+                   (make-unknown-header-with-proxy include-ast))))
+      (lret ((result (find-include)))
+        (debug:note :trace "Found include ~a for ~a"
+                    result include-ast)))))
 
 (defun find-enclosing-software (project ast &key file-ast)
   "Get the software object in PROJECT that contains AST."
