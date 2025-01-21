@@ -1799,7 +1799,8 @@ this involves handling some translations between types."
                     cpp-template-function
                     cpp-identifier
                     cpp-operator-name
-                    cpp-destructor-name)
+                    cpp-destructor-name
+                    cpp-template-type)
                 name)))
            (qualify (list)
              "Right-fold LIST into a qualified name."

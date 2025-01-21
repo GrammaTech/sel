@@ -1947,6 +1947,14 @@ public:
                (ts::qualified-name->list
                 (cpp* "::ns::x")))))))
 
+(deftest test-qualified-template-type ()
+  "Test we handle template types when reassembling qualified names."
+  (let ((cpp (cpp* "internal::MatcherCastImpl<T, M>::Cast")))
+    (is (equal? cpp
+               (ts::list->qualified-name
+                (ts::qualified-name->list
+                 cpp))))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.
