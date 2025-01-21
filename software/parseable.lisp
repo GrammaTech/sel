@@ -745,6 +745,9 @@ time."
                        (cons ast accum)
                        accum))
                  tree)))))
+  (:method ((type symbol) (tree ast) &key (key #'identity))
+    (if (null type) (call-next-method)
+        (collect-if (of-type type) tree :key key)))
   (:method ((predicate function) (tree parseable) &key (key #'identity))
     (collect-if predicate (genome tree) :key key)))
 
