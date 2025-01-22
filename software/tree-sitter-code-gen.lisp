@@ -1135,15 +1135,6 @@ for the language.")
        (:root-ast rust-source-file)
        (:statement-ast rust--declaration-statement)
        (:string-ast rust-string-literal)
-       ;; Is rust-let-condition really a subexpression-ast?
-       (:subexpression-ast
-        rust-else-clause
-        rust-generic-type
-        rust-let-condition
-        rust-lifetime
-        rust--pattern
-        rust-reference-type
-        rust-type-arguments)
        (:subscript-ast rust-index-expression)
        (:type-ast rust--type)
        (:type-declaration-ast
@@ -1324,7 +1315,6 @@ definitions.")
        (c/cpp-comma-expression expression-ast ltr-eval-ast)
        (c/cpp-comment comment-ast)
        (c/cpp-compound-statement compound-ast)
-       (c/cpp-condition-clause subexpression-ast)
        (c/cpp-continue-statement continue-statement-ast)
        (c/cpp-declaration statement-ast variable-declaration-ast)
        (c/cpp-declaration-list compound-ast)
@@ -1344,7 +1334,7 @@ definitions.")
        (c/cpp-goto-statement goto-statement-ast)
        (c/cpp-identifier identifier-expression-ast)
        (c/cpp-if-statement if-statement-ast)
-       (c/cpp-init-declarator variable-initialization-ast subexpression-ast)
+       (c/cpp-init-declarator variable-initialization-ast)
        (c/cpp-macro-forward-declaration macro-declaration-ast)
        (c/cpp-number-literal number-ast)
        (c/cpp-parameter-declaration parameter-ast variable-declaration-ast)
@@ -3336,7 +3326,7 @@ of an AST."))
       :allocation :class))
     (:documentation "A wrapper class for text fragments in computed text ASTs."))
 
-  (defclass source-text-fragment (computed-text subexpression-ast)
+  (defclass source-text-fragment (computed-text)
     ((text :accessor text
            :initform ""
            :initarg :text)
@@ -3406,19 +3396,13 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass root-ast (ast subroot) ()
     (:documentation "Mix-in for AST classes which are roots."))
 
- (defclass subexpression-ast (ast) ()
-   (:documentation "A node that can be part of a control flow graph.
-This consists of at least expressions, but also other ASTs control
-flow should descend into as if they were expressions (e.g. argument
-lists)."))
-
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
 
  (defclass expression-statement-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are expression statements."))
 
- (defclass expression-ast (subexpression-ast) ()
+ (defclass expression-ast () ()
     (:documentation "Mix-in for AST classes that are expressions."))
 
  (defclass parenthesized-expression-ast (expression-ast) ()
@@ -3648,7 +3632,7 @@ not declarations)."))
   (defclass call-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are calls."))
 
- (defclass arguments-ast (subexpression-ast) ()
+ (defclass arguments-ast () ()
     (:documentation "Mix-in for AST classes that are lists of arguments."))
 
   (defclass unary-ast (expression-ast) ()
