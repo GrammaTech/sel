@@ -1410,21 +1410,6 @@ Should return `:failure' in the base case.")
 (defmethod ltr-eval-ast-p ((binary-ast c/cpp-binary-expression))
   (member (operator binary-ast) '(:&& #.(make-keyword "||"))))
 
-(defmethod exit-control-flow ((case-ast c/cpp-case-statement))
-  (let* ((root (attrs-root*))
-         (switch-ast
-          (find-enclosing 'c/cpp-switch-statement root case-ast)))
-    (list
-     (if-let (break-ast
-              (iter (for ast in-tree (body case-ast))
-                    (finding ast such-that
-                             (and (typep ast 'break-ast)
-                                  (member switch-ast
-                                          (exit-control-flow ast))))))
-       switch-ast
-       (or (find-next-sibling 'c/cpp-case-statement root case-ast)
-           switch-ast)))))
-
 (defmethod subexpression-exit-control-flow ((decl c/cpp-declaration)
                                             (ast c/cpp-init-declarator))
   (or (find-next-sibling 'c/cpp-init-declarator (attrs-root*) ast)
