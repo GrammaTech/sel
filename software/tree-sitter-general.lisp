@@ -1664,7 +1664,9 @@ automatically removed.")
     (let ((parent (lookup-parent-ast (attrs-root*) ast)))
       (if (typep parent 'control-flow-fork-ast)
           parent
-          (or (find-next-sibling '(or statement-ast return-ast)
+          ;; Statements imply ordering, so we don't have to check if
+          ;; the container is LTR.
+          (or (find-next-sibling #'control-flow-node-p
                                  parent
                                  ast)
               parent))))
