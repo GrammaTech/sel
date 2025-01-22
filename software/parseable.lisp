@@ -1261,7 +1261,11 @@ otherwise.
             :test #'equalp))
   (:method ((root ast) (possible-parent-ast ast) (ast ast))
     (member possible-parent-ast (get-parent-asts root ast)
-            :test #'equalp)))
+            :test #'equalp))
+  (:method ((obj parseable)
+            (possible-parent-ast functional-tree-ast)
+            (ast functional-tree-ast))
+    (ancestor-of-p obj ast possible-parent-ast)))
 
 (defmethod get-vars-in-scope ((obj parseable) (ast ast)
                               &optional (keep-globals t))
