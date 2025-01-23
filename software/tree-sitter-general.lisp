@@ -1073,6 +1073,11 @@ a declaration AST, return AST unchanged."
 (defgeneric get-declaration-ids (type ast)
   (:documentation "Using the symbol table, find where AST is defined.")
   (:method-combination standard/context)
+  (:method :context (type ast)
+    (or (call-next-method)
+        (and (boundp '*attrs*)
+             (when-let (proxy (attr-proxy ast))
+               (get-declaration-ids type proxy)))))
   (:method ((type (eql :variable)) ast)
     (find-in-symbol-table ast type ast))
   (:method ((type (eql :function)) ast)
@@ -4580,11 +4585,10 @@ using NAMESPACE.")
   (:method-combination standard/context)
   (:method :context (type root id)
     (or (call-next-method)
-        (let ((root (attrs-root*)))
-          (error 'no-enclosing-declaration-error
-                 :type type
-                 :root root
-                 :id id))))
+        (error 'no-enclosing-declaration-error
+               :type type
+               :root root
+               :id id)))
   (:method :context (type (root software) id)
     (find-enclosing-declaration type (genome root) id))
   (:method :context ((type symbol) root id)
