@@ -193,7 +193,7 @@
 (defmethod (setf genome) :after ((new ast) (obj directory-project))
   (when-let (attrs (bound-value 'attrs:*attrs*))
     (when (eql obj (attrs:attrs-root attrs))
-      (attrs:recompute-subroot-mapping))))
+      (attrs:update-subroot-mapping))))
 
 (defmethod with ((project directory-project)
                  (old parseable)
