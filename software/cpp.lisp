@@ -1632,11 +1632,15 @@ types."
               ;; arguments) the same as the namespace of the field
               ;; type, then we synthesize a new AST from both of them
               ;; with template arguments intact.
-              (lret ((qname
-                      (list->qualified-name
-                       (append (qualified-name->list arg-type)
-                               (qualified-name->list field-type)))))
-                (setf (attr-proxy qname) field-type))
+              (let ((new-arg-type (tree-copy arg-type))
+                    (new-field-type (tree-copy field-type)))
+                (setf (attr-proxy new-arg-type) arg-type
+                      (attr-proxy new-field-type) field-type)
+                (lret ((qname
+                        (list->qualified-name
+                         (append (qualified-name->list new-arg-type)
+                                 (qualified-name->list new-field-type)))))
+                  (setf (attr-proxy qname) field-type)))
               field-type))
         field-type)))
 
@@ -1721,11 +1725,11 @@ this involves handling some translations between types."
     (error "Empty lists cannot become qualified names!"))
   (labels ((type-id->ns-id (type-id)
              "Create a namespace identifier from a text identifier."
-             (lret ((ns-id (convert 'cpp-namespace-identifier type-id)))
+             (lret ((ns-id (tree-copy (convert 'cpp-namespace-identifier type-id))))
                (setf (attr-proxy ns-id) type-id)))
            (ns-id->type-id (ns-id)
              "Create a type identifier from a namespace identifier."
-             (lret ((type-id (convert 'cpp-type-identifier ns-id)))
+             (lret ((type-id (tree-copy (convert 'cpp-type-identifier ns-id))))
                (setf (attr-proxy type-id) ns-id)))
            (dependent-type->dependent-name (dtype)
              "Create a cpp-dependent-name from a cpp-dependent-type."
