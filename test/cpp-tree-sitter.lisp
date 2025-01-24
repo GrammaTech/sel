@@ -60,6 +60,12 @@
 
 ;;; Analysis tests
 
+(deftest test-pointer-type ()
+  (let ((cpp (cpp* "void myfun (int* x) { other_fun(x); }")))
+    (with-attr-table cpp
+      (let ((var (lastcar (collect-if (op (source-text= "x" _)) cpp))))
+        (is (source-text= (infer-type var) "int*"))))))
+
 (deftest test-relevant-declaration-type-regression ()
   (let* ((software (from-string 'cpp "int x = 1;"))
          (ast (find-if (of-type 'cpp-declaration) software)))
