@@ -783,8 +783,6 @@ There can be multiple classes if FIELD occurs in a template."
                (if (typep (c/cpp-operator field) 'c/cpp-->)
                    (deref-type type)
                    type)))
-         ;; (when (not (eql type new-type))
-         ;;   (setf (attr-proxy new-type) type))
          (filter (of-type '(and type-declaration-ast
                             definition-ast))
                  ;; This can include non-definitions (e.g. a type
