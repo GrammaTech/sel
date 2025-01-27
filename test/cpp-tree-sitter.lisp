@@ -76,6 +76,21 @@ See SEL issue #359."
 
 ;;; Analysis tests
 
+(deftest test-multi-declaration-scope ()
+  "Inside a declaration, declarators should be visible from previous
+declarators."
+  (let* ((cpp (cpp* "int main () {
+  int x = 0, y = x + 1;
+  std::cout << y << std::endl;
+}"))
+         (ys (collect-if (op (source-text= _ "y")) cpp))
+         (xs (collect-if (op (source-text= _ "x")) cpp)))
+    (with-attr-table cpp
+      (is (eql (get-declaration-id :variable (second xs))
+               (first xs)))
+      (is (eql (get-declaration-id :variable (second ys))
+               (first ys))))))
+
 (deftest test-pointer-type ()
   (let ((cpp (cpp* "void myfun (int* x) { other_fun(x); }")))
     (with-attr-table cpp
@@ -1955,7 +1970,7 @@ public:
                 (ts::qualified-name->list
                  cpp))))))
 
-(deftest test-namespace-definition-visiblity ()
+(deftest test-namespace-definition-visibility ()
   "Check that namespaces don't affect definition visibility."
   (let* ((cpp (from-string 'cpp "
 
