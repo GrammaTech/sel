@@ -300,7 +300,7 @@ class AST:
         such as before/after ASTs.
         """
         lst = _interface.dispatch(AST.child_slots.__name__, self, internal) or []
-        return [_to_tuple(i) for i in lst]
+        return [(i[0], i[1]) for i in lst]
 
     # AST methods for common, simple operations
     def refcount(self) -> int:
@@ -316,7 +316,7 @@ class AST:
     ) -> List[Tuple["AST", Tuple[Tuple[int, int], Tuple[int, int]]]]:
         """Return the source ranges (line, col) for AST its recursive children"""
         lst = _interface.dispatch(AST.ast_source_ranges.__name__, self) or []
-        return [_to_tuple(i) for i in lst]
+        return [(i[0], (tuple(i[1][0]), tuple(i[1][1]))) for i in lst]
 
     def ast_path(self, child: "AST") -> List:
         """Return the path to CHILD in SELF."""
