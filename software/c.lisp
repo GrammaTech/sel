@@ -379,7 +379,8 @@ recursively resolve that struct."
     ((c-type-definition
       ;; NB c-tag-specifier is a mixin class we define.
       (c-type (and type (c-tag-specifier))))
-     (get-declaration-ast :tag type))))
+     (get-declaration-ast :tag type))
+    (otherwise (call-next-method))))
 
 (defun tag-specifier-outer-declarations (ast cc)
   (let ((parent (get-parent-ast (attrs-root*) ast)))

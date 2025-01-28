@@ -797,7 +797,9 @@ is the operator of a binary ast.")
     ((c/cpp-type-definition
       (c/cpp-type
        (and struct (c/cpp-classoid-specifier))))
-     (get-declaration-ast :type struct))))
+     (if (c/cpp-body struct)
+         struct
+         (get-declaration-ast :type struct)))))
 
 (defmethod direct-field-table ((ast c/cpp-enum-specifier))
   (empty-map))
@@ -828,8 +830,9 @@ There can be multiple classes if FIELD occurs in a template."
                 new-type))))))
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
-  (mappend (op (get-class-fields _ type ast))
-           (get-field-classes ast)))
+  (let ((field (c/cpp-field ast)))
+    (mappend (op (get-class-fields _ type field))
+             (get-field-classes ast))))
 
 (defmethod get-initialization-ast ((ast c/cpp-ast) &aux (obj (attrs-root*)))
   "Find the assignment for an unitialized variable."
