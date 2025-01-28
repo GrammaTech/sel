@@ -327,6 +327,7 @@ for the language.")
         (c-function :reader call-function :initarg :function)
         (c-arguments :reader call-arguments-ast :initarg :arguments))
        (c-while-statement
+        (c-condition :reader condition :initarg :condition)
         (c-body :reader body :initarg :body))
        (c-do-statement
         (c-condition :reader condition :initarg :condition)
