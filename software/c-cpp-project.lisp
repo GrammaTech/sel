@@ -897,7 +897,8 @@ the including file."
              (ensure-result-in-project-ast (result)
                (destructuring-bind (path . software) result
                  (with-slots (genome) software
-                   (unless (typep genome 'ast)
+                   (unless (and (typep genome 'ast)
+                                (reachable? genome :from project))
                      (block nil
                        (restart-case
                            (progn
