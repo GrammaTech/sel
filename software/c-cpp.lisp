@@ -322,8 +322,9 @@ Otherwise, use heuristics."
 
 (defmethod inner-declarations ((ast c/cpp-function-declarator))
   (let* ((declarations
-          (remove-if-not {typep _ 'c/cpp-parameter-declaration}
-                         (convert 'list (c/cpp-parameters ast))))
+           (filter (of-type 'c/cpp-parameter-declaration)
+                   ;; NB All descendants.
+                   (convert 'list (c/cpp-parameters ast))))
          (names (mappend #'parameter-names declarations)))
     (values names
             (mapcar (constantly :variable) names))))
