@@ -326,12 +326,11 @@ to the directory of the file"
   (let* ((c-code (nest
                   (from-file (make-instance 'c-project))
                   (asdf:system-relative-pathname :software-evolution-library)
-                  "test/etc/c-tree-sitter/c-include/"))
-         (types (types-in-thing c-code c-code)))
-    (is (source-text= (caar (last types)) "c"))
-    (is (source-text= (cadar (last types)) "char"))
-    (is (source-text= (caar (last types 2)) "c"))
-    (is (source-text= (cadar (last types 2)) "char"))))
+                  "test/etc/c-tree-sitter/c-include/")))
+    (with-attr-table c-code
+      (is (occurs "sub/b.h"
+                  (project-dependency-tree c-code)
+                  :test #'equal)))))
 
 ;;; Issue 264
 (deftest infer-type-sizeof ()
