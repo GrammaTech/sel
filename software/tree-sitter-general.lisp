@@ -4767,6 +4767,8 @@ define multiple identifiers).
 
 There may be additional keys in the tuple to record language-specific
 information such as visibility."
+  (:method ((ast ast))
+    (direct-field-table ast))
   (:method ((alias type-alias-ast))
     (if-let (aliasee (resolve-type-aliasee alias))
       (field-table aliasee)
