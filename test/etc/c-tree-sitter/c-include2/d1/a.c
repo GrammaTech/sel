@@ -1,3 +1,4 @@
+/* a.c */
 #include "b.h"
 
 int f() {

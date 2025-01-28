@@ -1,3 +1,4 @@
+/* c.c */
 #include "b.h"
 
 int g() {
