@@ -3402,7 +3402,7 @@ Superclass of every generated LANGUAGE-comment class."))
  (defclass expression-statement-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are expression statements."))
 
- (defclass expression-ast () ()
+ (defclass expression-ast (ast) ()
     (:documentation "Mix-in for AST classes that are expressions."))
 
  (defclass parenthesized-expression-ast (expression-ast) ()
@@ -3668,7 +3668,7 @@ not declarations)."))
  (defclass decrement-operator-ast (operator-ast) ()
    (:documentation "Mix-in for --."))
 
-  (defclass terminal-symbol ()
+  (defclass terminal-symbol (ast)
     ()
     (:documentation "Mix-in for terminal symbols. Note that this won't fully
 cover every terminal symbol, only the ones that aren't named.")
