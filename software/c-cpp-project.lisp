@@ -923,17 +923,6 @@ the including file."
                    (unless (typep genome 'ast)
                      (with-thread-name (:name (fmt "Parsing ~a" path))
                        (genome software))))))
-             (insert-software-into-project (path software)
-               (synchronized (project)
-                 (unless (lookup (genome project) path)
-                   (debug:note :debug "~%Inserting ~a (~a) into tree~%"
-                               path
-                               include-path)
-                   (let ((temp-project (with project path software)))
-                     (setf (genome project)
-                           (genome temp-project)
-                           (evolve-files project)
-                           (evolve-files temp-project))))))
              (ensure-result-in-project-ast (result)
                (destructuring-bind (path . software) result
                  (with-slots (genome) software
@@ -943,7 +932,8 @@ the including file."
                        (restart-case
                            (progn
                              (force-parse-genome path software)
-                             (insert-software-into-project path software))
+                             (insert-software-into-project
+                              project path include-path software))
                          (continue ()
                            :report (lambda (s) (format s "Skip inserting ~a" path))
                            (withf (project-parse-failures project) path)
@@ -954,6 +944,19 @@ the including file."
                           (global-search))))
         (ensure-result-in-project-ast result)
         (cdr result)))))
+
+(defun insert-software-into-project (project path include-path software)
+  (synchronized (project)
+    (unless (lookup (genome project) path)
+      (debug:note :debug "~%Inserting ~a (~a) into tree~%"
+                  path
+                  include-path)
+      (let ((temp-project (with project path software)))
+        (setf (genome project)
+              (genome temp-project)
+              (evolve-files project)
+              (evolve-files temp-project))))
+    project))
 
 
 ;;; Includes Symbol Table
