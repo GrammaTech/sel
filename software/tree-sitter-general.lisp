@@ -1607,6 +1607,7 @@ return whether they are equal.")
 (defgeneric control-flow-node-p (ast)
   ;; TODO Generate methods for extra-ast types?
   (:method ((ast ast)) t)
+  (:method ((ast terminal-symbol)) nil)
   (:method ((ast comment-ast)) nil)
   (:method ((ast inner-whitespace)) nil)
   (:method ((ast error-variation-point)) nil))
