@@ -198,28 +198,29 @@
       (attrs:update-subroot-mapping))))
 
 (defmethod with ((project directory-project)
-                 (old parseable)
+                 (old-file parseable)
                  &optional new)
   "When updating an evolve-file, update the genome too."
   (unless (typep new 'parseable)
     (return-from with (call-next-method)))
-  (let ((old-root (genome old))
-        (new-root (genome new)))
-    (if-let (ast-path (ast-path project old-root))
-      (copy project
-            :evolve-files
-            (mapcar (lambda (cons)
-                      (if (eql (cdr cons) old)
-                          (cons (car cons) new)
-                          cons))
-                    (evolve-files project))
-            :genome
-            (with (genome project)
-                  ast-path
-                  new-root))
-      (if-let* ((path (rassocar old (evolve-files project))))
-        (insert-software-at project path new)
-        (error "Replacing unknown evolve-file: ~a" old)))))
+  (verify-project-in-sync
+   (let ((old-root (genome old-file))
+         (new-root (genome new)))
+     (if-let (ast-path (ast-path project old-root))
+       (copy project
+             :evolve-files
+             (mapcar (lambda (cons)
+                       (if (eql (cdr cons) old-file)
+                           (cons (car cons) new)
+                           cons))
+                     (evolve-files project))
+             :genome
+             (with (genome project)
+                   ast-path
+                   new-root))
+       (if-let* ((path (rassocar old-file (evolve-files project))))
+         (insert-software-at project path new)
+         (error "Replacing unknown evolve-file: ~a" old-file))))))
 
 (defun extract-tld (root)
   "Get the top-level directory from ROOT."
@@ -314,11 +315,11 @@ optimization settings."
   (unless (typep new 'software)
     (return-from with
       (call-next-method)))
-  (verify-project-in-sync
-   (if-let (old-obj (evolve-files-ref project path))
-     ;; We are replacing a software object.
-     (with project old-obj new)
-     ;; We are adding new software.
+  (if-let (old-obj (evolve-files-ref project path))
+    ;; We are replacing a software object.
+    (with project old-obj new)
+    ;; We are adding new software.
+    (verify-project-in-sync
      (insert-software-at project path new))))
 
 (defun sync-changed-file! (new-project old-project changed-file &key (verify t))
@@ -354,23 +355,23 @@ optimization settings."
 (defmethod with :around ((project directory-project)
                          old &optional new)
   "When updating the genome, update the evolve files too."
-  (verify-project-in-sync
-   (if (typep new 'ast)
+  (if (typep new 'ast)
+      (verify-project-in-sync
        (let* ((result (call-next-method))
               (changed-file
-               (or (find-enclosing 'file-ast result new)
-                   ;; If for some reason the new AST is not in
-                   ;; the tree (CRAM AST fragment), look where
-                   ;; the old AST was.
-                   (when-let* ((path
-                                (if (typep old 'ast)
-                                    (ast-path project old)
-                                    old))
-                               (new-ast
-                                (lookup result path)))
-                     (find-enclosing 'file-ast result new-ast)))))
-         (sync-changed-file! result project changed-file))
-       (call-next-method))))
+                (or (find-enclosing 'file-ast result new)
+                    ;; If for some reason the new AST is not in
+                    ;; the tree (CRAM AST fragment), look where
+                    ;; the old AST was.
+                    (when-let* ((path
+                                 (if (typep old 'ast)
+                                     (ast-path project old)
+                                     old))
+                                (new-ast
+                                 (lookup result path)))
+                      (find-enclosing 'file-ast result new-ast)))))
+         (sync-changed-file! result project changed-file)))
+      (call-next-method)))
 
 (defmethod less :around ((project directory-project) (old ast) &optional val)
   "When updating the genome, update the evolve files too."
