@@ -153,16 +153,19 @@ object (e.g., the original program).")
     (iter (for (k . v) in (evolve-files project))
           (fn k v))))
 
-(defun (setf evolve-files-ref) (value software path)
-  "Make PATH point to VALUE in SOFTWARE."
-  (check-type value software)
+(defun (setf evolve-files-ref) (file software path)
+  "Make PATH point to FILE in SOFTWARE."
+  (check-type file software)
   ;; Update without mutating in case of shared structure with other
   ;; projects.
-  (setf (evolve-files software)
-        (acons path value
-               (remove path (evolve-files software)
-                       :key #'car
-                       :test #'equal))))
+  (let ((old-evolve-files (evolve-files software))
+        (old-entry (assoc path (evolve-files software) :test #'equal)))
+    (if (eql (cdr old-entry) file)
+        old-evolve-files
+        (setf (evolve-files software)
+              (acons path file
+                     (remove old-entry old-evolve-files :count 1))))
+    file))
 
 (defgeneric ignored-evolve-path-p (software path)
   (:documentation "Check if PATH is an ignored evolve path in SOFTWARE.")
