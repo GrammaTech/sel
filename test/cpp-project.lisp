@@ -173,35 +173,35 @@ make_config(const std::string& path_prefix,
 
 #+tree-sitter-cpp
 (deftest test-relative-module-defaults ()
-  (is (equal "BasicPlane.Figures"
-             (pathname-name
-              (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
-                                        nil
-                                        "BasicPlane.Figures")))))
+  (is (search "BasicPlane/Figures"
+              (namestring
+               (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
+                                         nil
+                                         "BasicPlane.Figures")))))
 
 #+tree-sitter-cpp
 (deftest test-relative-partition-defaults ()
-  (is (equal "BasicPlane.Figures-Point"
-             (pathname-name
-              (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.ixx"
-                                        "BasicPlane.Figures:Rectangle"
-                                        ":Point")))))
+  (is (search "BasicPlane/Figures-Point"
+              (namestring
+               (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.ixx"
+                                         "BasicPlane.Figures:Rectangle"
+                                         ":Point")))))
 
 #+tree-sitter-cpp
 (deftest test-relative-module-defaults/partition ()
-  (is (equal "BasicPlane.Figures-Rectangle"
-             (pathname-name
-              (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
-                                        "BasicPlane.Figures"
-                                        ":Rectangle")))))
+  (is (search "BasicPlane/Figures-Rectangle"
+              (namestring
+               (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
+                                         "BasicPlane.Figures"
+                                         ":Rectangle")))))
 
 #+tree-sitter-cpp
 (deftest test-relative-module-defaults/implicit ()
-  (is (equal "BasicPlane.Figures-Rectangle"
-             (pathname-name
-              (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.cpp"
-                                        "BasicPlane.Figures:Rectangle"
-                                        "BasicPlane.Figures:Rectangle")))))
+  (is (search "BasicPlane/Figures-Rectangle"
+              (namestring
+               (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.cpp"
+                                         "BasicPlane.Figures:Rectangle"
+                                         "BasicPlane.Figures:Rectangle")))))
 
 #+tree-sitter-cpp
 (deftest test-find-module ()
@@ -209,7 +209,7 @@ make_config(const std::string& path_prefix,
              (cdr
               (find-module (relative-module-defaults
                             #p"main.cpp" nil "BasicPlane.Figures")
-                           '(("somewhere/BasicPlane.Figures.cppm" . :figures))
+                           '(("somewhere/BasicPlane/Figures.cppm" . :figures))
                            :key #'car)))))
 
 #+tree-sitter-cpp
@@ -220,8 +220,8 @@ make_config(const std::string& path_prefix,
                             #p"BasicPlane\\.Figures.cpp"
                             "BasicPlane.Figures"
                             "BasicPlane.Figures-Rectangle")
-                           '(("somewhere/BasicPlane.Figures.cppm" . :figures)
-                             ("somewhere/BasicPlane.Figures-Rectangle.cppm" . :rectangle))
+                           '(("somewhere/BasicPlane/Figures.cppm" . :figures)
+                             ("somewhere/BasicPlane/Figures-Rectangle.cppm" . :rectangle))
                            :key #'car)))))
 
 (deftest test-restrict-map ()
