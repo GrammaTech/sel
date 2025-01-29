@@ -645,6 +645,7 @@ circular dependencies."
 
 (defmethod infer-type ((ast c/cpp-field-expression)
                        &aux (obj (attrs-root*)))
+  "Return the inferred field type."
   (flet ((function-position? ()
            (when-let ((call (find-enclosing 'call-ast obj ast)))
              (eql (call-function call) ast))))

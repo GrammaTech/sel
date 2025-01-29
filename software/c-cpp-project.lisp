@@ -1250,9 +1250,10 @@ include files in all directories of the project."
     (if (typep root 'directory-project)
         (if-let (st (find-symbol-table-from-include root node :in in))
           ;; Return file's symbol table as the symbol table of the
-          ;; include, but also ensure the ASTs in the include have
-          ;; their own symbol table.
+          ;; include.
           (prog1 (symbol-table-union node in st)
+            ;; Ensure the ASTs in the include have their own symbol
+            ;; table.
             (call-next-method))
           (call-next-method))
         (call-next-method))))

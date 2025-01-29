@@ -631,7 +631,7 @@ double myfun(std::list<Point>& pts) {
 (deftest test-infer-field-call-type ()
   "Test that we correctly infer the type of a field expression call
 both when it uses a dot (not a dereference) and when it dereferences
-with an arrow, even when the infererence passes through both."
+with an arrow, even when the inference passes through both."
   (let* ((sw (from-string 'cpp-project +iterator-container-type-sw+))
          (file-ast (find-if (of-type 'dir:file-ast) (genome sw)))
          (calls (collect-if (of-type 'call-ast) file-ast)))
