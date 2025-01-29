@@ -21,6 +21,8 @@
   ;; Make sure these symbols are interned, as they are only defined
   ;; and used inside a feature guard.
   (:intern :relative-module-defaults :find-module)
+  (:local-nicknames
+   (:dbg :software-evolution-library/utility/debug))
   (:export :cpp-project))
 (in-package :software-evolution-library/software/cpp-project)
 (in-readtable :curry-compose-reader-macros)
