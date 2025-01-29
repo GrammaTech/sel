@@ -423,6 +423,15 @@ should already have been computed as part of their compilation units."
   ;; Enables the use of the `@' macro directly against projects.
   (lookup (project-directory obj) key))
 
+(defmethod lookup :around ((obj c/cpp-project) (key string))
+  "Compute the symbol table if we can't load a header."
+  (or (call-next-method)
+      (and (header-file? key)
+           (attrs:with-attr-table obj
+             (debug:note :trace "Loading symbol table to find ~a" key)
+             (symbol-table obj))
+           (call-next-method))))
+
 (defmethod symbol-table :context ((ast c/cpp-translation-unit) &optional in)
   (let ((root (attrs-root*)))
     (or (and-let* (((typep root 'c/cpp-project))
