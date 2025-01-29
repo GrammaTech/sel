@@ -370,7 +370,8 @@ present in evolve-files/dependency-order."
     (with-attr-session (*project*)
       (let* ((evolve-files (evolve-files *project*))
              (evolve-files/dependency-order
-               (evolve-files/dependency-order *project*)))
+               (evolve-files/dependency-order *project*
+                                              :skip-unparsed nil)))
         (is (length= evolve-files evolve-files/dependency-order))
         ;; Same files
         (is (not (set-exclusive-or
