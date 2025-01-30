@@ -225,12 +225,10 @@ field."
     ast))
 
 (defmethod to-file ((c c) file)
-  (with-open-file (out file :direction :output :if-exists :supersede)
-    (let ((copy (copy c :genome (tree-copy (genome c)))))
-      (patch-whitespace (genome copy) :recursive t)
-      (fix-nil-internal-asts-slots (genome copy))
-      (setf c copy)
-      (call-next-method))))
+  (let ((copy (copy c :genome (tree-copy (genome c)))))
+    (patch-whitespace (genome copy) :recursive t)
+    (fix-nil-internal-asts-slots (genome copy))
+    (call-next-method copy file)))
 
 (defmethod enclosing-definition ((sw c) (ast t))
   (find-enclosing '(or definition-ast c-primitive-type)
