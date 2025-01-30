@@ -26,6 +26,7 @@
            :no-ast-path
            :ast-path
            :ast-annotation
+           :ast-annotate
            :ast-annotations
            :ast-hash
            :ast-stored-hash
@@ -266,6 +267,12 @@ If 0, do not print object source text.")
   (:documentation "Return given AST ANNOTATION.")
   (:method ((ast ast) (annotation symbol))
     (aget annotation (ast-annotations ast))))
+
+(defgeneric ast-annotate (ast key value)
+  (:method ((ast ast) (key symbol) (value t))
+    (copy ast
+          :annotations
+          (acons key value (ast-annotations ast)))))
 
 (define-condition no-ast-path (error)
   ((root :initarg :root)
