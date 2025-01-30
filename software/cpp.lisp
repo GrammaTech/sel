@@ -2263,8 +2263,6 @@ set of possible concrete specializations of that type."
   cpp-. cpp-field-identifier
   cpp-field-expression cpp-argument-list
   cpp-identifier cpp-initializer-list
-  cpp-identifier cpp-preproc-params
-  cpp-preproc-params cpp-preproc-arg
   cpp-module-qualified-name cpp-module-partition
   cpp-this cpp-->
   cpp-this cpp-.

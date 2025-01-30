@@ -1600,6 +1600,14 @@ when its surrounding text is removed."
     (is (= (length (mapcar #'car annotations))
            (length (remove-duplicates (mapcar #'car annotations)))))))
 
+(defun check-patch-whitespace (c)
+  (let ((ast (convert 'c-ast c :deepest t)))
+    (is (not (typep ast 'source-text-fragment)))
+    (is (equal c (source-text (patch-whitespace ast :prettify t))))))
+
+(deftest test-c-patch-whitespace ()
+  (check-patch-whitespace (fmt "#define IDENTITY(x) x~%")))
+
 
 ;;;; Rule Substitution tests
 (deftest c-labeled-statement-rule-substitution ()
