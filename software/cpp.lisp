@@ -802,6 +802,10 @@ See SEL issue #359."
      'function-declaration-ast)
     (otherwise (call-next-method))))
 
+(defmethod outer-declarations ((decl cpp-reference-declarator))
+  (values (get-nested-declaration decl)
+          '(:variable)))
+
 (defmethod outer-declarations ((field cpp-field-declaration))
   (match field
     ;; Functions.
