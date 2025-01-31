@@ -2640,8 +2640,9 @@ available to use at any point in a C++ AST.")
     ;; If memory is an issue, the shorter ones could be displaced
     ;; arrays.
     (canon-string
-     (qualified-name-lookup-variants
-      (qualify-declared-ast-name declared-ast)))))
+     (coerce (qualified-name-lookup-variants
+              (qualify-declared-ast-name declared-ast))
+             'vector))))
 
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."

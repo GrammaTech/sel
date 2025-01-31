@@ -4630,7 +4630,7 @@ with debug settings it can be traced."
     (when-let* ((symbol-table (symbol-table ast))
                 (ns-table (lookup-namespace symbol-table namespace)))
       (values (symbol-table-lookup ns-table query))))
-  (:method ((ast ast) (namespace symbol) (query list))
+  (:method ((ast ast) (namespace symbol) (query sequence))
     (some (op (find-in-symbol-table ast namespace _))
           query)))
 
