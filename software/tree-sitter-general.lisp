@@ -3889,9 +3889,11 @@ for ASTs which need to appear in the surrounding text slots.")
    are gone we can never detect that new calls with this string (up to string=)
    reused that previous object.")
 
-(defun canon-string (string &key (synchronize task:*task-runner*))
-  "Canonize STRING using `*string-canon-table*'.
-STRING is also converted to a `base-string', if possible.
+(defun canon-string (string/s &key (synchronize task:*task-runner*))
+  "Canonize STRING/S (string or sequence of strings).
+
+Canonized strings are stored in `*string-canon-table*', as
+`base-string' instances if possible.
 
 Note STRING is canonized regardless of length. Duplication of long
 strings is actually common in large projects (due for example to
@@ -3904,12 +3906,21 @@ copyright notices reproduced across many files)."
                 (if (every (of-type 'base-char) string)
                     (coerce string 'simple-base-string)
                     (coerce string 'simple-string)))))
-           (canon-string (string)
-             (ensure-gethash string *string-canon-table* (simplify-string string))))
+           (simplify-and-store (string)
+             (ensure-gethash string
+                             *string-canon-table*
+                             (simplify-string string)))
+           (canon-string (string/s)
+             (if (stringp string/s)
+                 (simplify-and-store string/s)
+                 (map-into (copy-seq string/s)
+                           #'simplify-and-store
+                           string/s))))
     (if synchronize
         (synchronized ('*string-canon-table*)
-          (canon-string string))
-        (canon-string string))))
+          (canon-string string/s))
+        (canon-string string/s))
+    string/s))
 
 ;;; TODO: with unindentable ASTs, we still want to know if the last thing seen
 ;;;       was a newline or not.

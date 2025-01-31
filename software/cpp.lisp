@@ -2639,9 +2639,9 @@ available to use at any point in a C++ AST.")
   (:method ((declared-ast cpp-ast))
     ;; If memory is an issue, the shorter ones could be displaced
     ;; arrays.
-    (mapcar #'canon-string
-            (qualified-name-lookup-variants
-             (qualify-declared-ast-name declared-ast)))))
+    (canon-string
+     (qualified-name-lookup-variants
+      (qualify-declared-ast-name declared-ast)))))
 
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."
