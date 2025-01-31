@@ -15,6 +15,9 @@
    :software-evolution-library/software/c-cpp-project
    :software-evolution-library/software/c-project
    :functional-trees/attrs)
+  (:import-from
+    :software-evolution-library/components/compilation-database
+    :compilation-database)
   (:export :test-c-project))
 (in-package :software-evolution-library/test/c-project)
 (in-readtable :curry-compose-reader-macros)
@@ -222,6 +225,7 @@
   (with-fixture grep-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
+    (is (null (compilation-database *project*)))
     (is (equal 14 (length (evolve-files *project*))))
     (is (member "grep.c" (evolve-files *project*) :test 'equal :key 'car))
     (is (equal "gcc"
