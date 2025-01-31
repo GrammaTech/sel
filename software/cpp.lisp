@@ -2565,7 +2565,23 @@ available to use at any point in a C++ AST.")
 (defmethod qualify-declared-ast-name ((type cpp-primitive-type))
   (source-text type))
 
-(defgeneric qualify-declared-ast-name/namespaces (ast))
+(def-attr-fun cpp::cached-namespace-qualified-name (name)
+  (:method ((ast cpp-ast) &optional name)
+    name))
+
+(defgeneric qualify-declared-ast-name/namespaces (ast)
+  (:method-combination standard/context)
+  (:method :context ((ast cpp-ast))
+    ;; This gets us the behavior of only caching names on ASTs that
+    ;; are not proxied. TODO: Should there be an option on
+    ;; def-attr-fun for this?
+    (if (attr-proxy ast)
+        (call-next-method)
+        (if (has-attribute-p ast 'cpp::cached-namespace-qualified-name)
+            (cpp::cached-namespace-qualified-name ast)
+            (cpp::cached-namespace-qualified-name
+             ast
+             (call-next-method))))))
 
 (defmethod qualify-declared-ast-name/namespaces ((declared-ast cpp-ast))
   (labels ((enough-source-text (declared-ast)
@@ -2603,7 +2619,23 @@ available to use at any point in a C++ AST.")
 (defmethod qualify-declared-ast-name ((id cpp-namespace-identifier))
   (qualify-declared-ast-name/namespaces id))
 
+(def-attr-fun cpp::cached-qualified-names (names)
+  (:method ((ast cpp-ast) &optional names)
+    names))
+
 (defgeneric cpp::qualified-names (ast)
+  (:method-combination standard/context)
+  (:method :context ((ast cpp-ast))
+    ;; This gets us the behavior of only caching names on ASTs that
+    ;; are not proxied. TODO: Should there be an option on
+    ;; def-attr-fun for this?
+    (if (attr-proxy ast)
+        (call-next-method)
+        (if (has-attribute-p ast 'cpp::cached-qualified-names)
+            (cpp::cached-qualified-names ast)
+            (cpp::cached-qualified-names
+             ast
+             (call-next-method)))))
   (:method ((declared-ast cpp-ast))
     ;; If memory is an issue, the shorter ones could be displaced
     ;; arrays.
