@@ -605,4 +605,11 @@ Rust macro invocations can use (), [], and {} equivalently."
                                       (y rust-ast))
   "")
 
+(defmethod whitespace-between/parent ((parent rust-const-item)
+                                      (s rustfmt-style)
+                                      (x (eql :|:|))
+                                      (y rust-ast))
+  "Force whitespace after a colon in a const item."
+  " ")
+
 ) ; #+:TREE-SITTER-RUST
