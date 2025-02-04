@@ -15,6 +15,7 @@
    :software-evolution-library/software/c-cpp-project
    :software-evolution-library/software/c-project
    :functional-trees/attrs)
+  (:import-from :cmd)
   (:import-from
     :software-evolution-library/components/compilation-database
     :compilation-database)
@@ -61,6 +62,11 @@
 
 (defixture grep-project
   (:setup
+   ;; Ensure the directory is clean
+   (cmd:cmd! "git clean -xdf"
+             (make-pathname :directory +grep-prj-dir+)
+             :in
+             (make-pathname :directory +grep-prj-dir+))
    (setf *project*
          (from-file-as-temporary-project
           (make-instance 'c-project
