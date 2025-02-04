@@ -364,16 +364,15 @@ to the directory of the file"
 (deftest include-with-same-name ()
   "Test that include files with the same name are still handled
 properly if the includes are from files in the same directory"
-  (let* ((*global-search-for-include-files* t)
-         (c-code (nest
-                  (from-file (make-instance 'c-project))
-                  (asdf:system-relative-pathname :software-evolution-library)
-                  "test/etc/c-tree-sitter/c-include2/")))
-     (with-attr-table c-code
-       (let ((sxp (stmt-with-text c-code "x.p"))
-             (syp (stmt-with-text c-code "y.p")))
-         (is (source-text= "int" (infer-type sxp)))
-         (is (source-text= "float" (infer-type syp)))))))
+  (let ((c-code (nest
+                 (from-file (make-instance 'c-project))
+                 (asdf:system-relative-pathname :software-evolution-library)
+                 "test/etc/c-tree-sitter/c-include2/")))
+    (with-attr-table c-code
+      (let ((sxp (stmt-with-text c-code "x.p"))
+            (syp (stmt-with-text c-code "y.p")))
+        (is (source-text= "int" (infer-type sxp)))
+        (is (source-text= "float" (infer-type syp)))))))
 
 (deftest test-struct-forward-declaration ()
   (let* ((c (from-string 'c (fmt "~
