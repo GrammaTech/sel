@@ -25,20 +25,6 @@
 (in-package :software-evolution-library/software/cpp-project)
 (in-readtable :curry-compose-reader-macros)
 
-(defparameter *cpp-module-extensions*
-  '(;; Module unit extensions. Visual Studio uses .ixx, Clang
-    ;; uses the extensions ending with -m.
-    "ixx" "cppm" "ccm" "cxxm" "c++m"))
-
-(defparameter *cpp-implementation-extensions*
-  '("cpp" "cp" "cc" "cxx"))
-
-(defparameter *cpp-extensions*
-  (append *header-extensions*
-          *cpp-implementation-extensions*
-          *cpp-module-extensions*)
-  "List of extensions we will consider for evolving.")
-
 (define-software cpp-project (c/cpp-project)
   ()
   (:documentation "Project specialization for c++ software objects."))

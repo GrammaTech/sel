@@ -41,6 +41,9 @@
            :file-dependency-tree
            :find-include
            :*header-extensions*
+           :*cpp-module-extensions*
+           :*cpp-implementation-extensions*
+           :*cpp-extensions*
            :evolve-files/dependency-order
            :included-headers
            :including-files
@@ -64,7 +67,21 @@
 (defparameter *stdinc-dirs*
   '("/usr/local/include/" "/usr/include/"))
 
-(defgeneric header-path (header)
+(defparameter *cpp-module-extensions*
+  '(;; Module unit extensions. Visual Studio uses .ixx, Clang
+    ;; uses the extensions ending with -m.
+    "ixx" "cppm" "ccm" "cxxm" "c++m"))
+
+(defparameter *cpp-implementation-extensions*
+  '("cpp" "cp" "cc" "cxx"))
+
+(defparameter *cpp-extensions*
+  (append *header-extensions*
+          *cpp-implementation-extensions*
+          *cpp-module-extensions*)
+  "List of extensions we will consider for evolving.")
+
+(defgeneric include-path (header)
   (:documentation "Extract the path from HEADER.")
   (:method ((file string))
     (pathname file))
@@ -81,8 +98,13 @@
     (original-path sw)))
 
 (defun header-file? (file)
-  (member (pathname-type (header-path file))
+  (member (pathname-type (include-path file))
           *header-extensions*
+          :test #'equal))
+
+(defun module-file? (file)
+  (member (pathname-type (include-path file))
+          *cpp-module-extensions*
           :test #'equal))
 
 (defclass c/cpp-project
@@ -233,7 +255,7 @@ For development."
 (defun who-includes? (project header)
   (let* ((genome (genome project))
          (including-files (including-files genome))
-         (path (header-path header))
+         (path (include-path header))
          (path (pathname-relativize (project-dir project) path)))
     (symbol-table project)
     (labels ((who-includes? (path)
@@ -655,6 +677,12 @@ the standard path and add it to PROJECT."))
                      (partition
                       (lambda (entry &aux (file (car entry)))
                         (or (header-file? file)
+                            ;; TODO This solves the problem of
+                            ;; loading the project after translating
+                            ;; to modules. It would be wrong if we
+                            ;; were ever expecting modularized input
+                            ;; projects.
+                            (module-file? file)
                             (command-object project file)))
                       evolve-files)))
              (debug:lazy-note
