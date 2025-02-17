@@ -4609,7 +4609,10 @@ This is used when looking up symbols in the symbol table.")
   (:method ((ast ast))
     (list (qualify-declared-ast-name ast)))
   (:method ((ast alternative-ast))
-    (mappend #'qualify-declared-ast-names-for-lookup (children ast))))
+    (apply #'concatenate
+           'list
+           (mapcar #'qualify-declared-ast-names-for-lookup
+                   (children ast)))))
 
 (defsubst symbol-table-lookup (symbol-table query)
   "Lookup QUERY in SYMBOL-TABLE.
