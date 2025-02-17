@@ -4312,17 +4312,18 @@ Otherwise, return PARSE-TREE."
   '(nil
     :variable
     ;; Note for convenience we may use the function namespace even for
-    ;; languages that don't actually have one. Functions get added the
+    ;; languages where functions actually share the same namespace as
+    ;; variables. In that case functions get added to both the
     ;; :function and :variable namespaces.
     :function
     :type
-    ;; C (not C++) has separate tag and type namespaces.
+    ;; C (but not C++) has separate tag and type namespaces.
     :tag
     :macro
     :namespace
     ;; Go treats methods differently than functions.
     :method
-    ;; Rust
+    ;; Rust-specific.
     :label
     :lifetime))
 
