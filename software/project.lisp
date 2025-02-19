@@ -192,7 +192,7 @@ object (e.g., the original program).")
                     :only-paths (only-other-paths obj))))
 
 (defgeneric project-relative-pathname (project path)
-  (:documentation "Reinterpret PATH as relative to PROJECT.
+  (:documentation "Return an absolute pathname from PROJECT to PATH.
 Like `asdf:system-relative-pathname' for projects.
 
 If PATH is a string, it is parsed using Unix syntax.")
