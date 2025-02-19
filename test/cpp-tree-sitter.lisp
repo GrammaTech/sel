@@ -295,6 +295,14 @@ declarators."
                (ts::list->qualified-name
                 (list id desc))))))
 
+(deftest test-dont-qualify-sized-type ()
+  (let* ((id (make 'cpp-type-identifier :text "SomeType"))
+         (type (cpp-type (cpp* "long long x"))))
+    (is (primitive-type-p type))
+    (is (equal type
+               (ts::list->qualified-name
+                (list id type))))))
+
 (def +trim-front-types+
   '(("trim_front" . "std::list<Point>")
     ("pts" . "std::list<Point>&")
@@ -1578,6 +1586,13 @@ unqualified."
                     :cpp-type (cpp* "void"))))
     (is (primitive-type-p desc))
     (is (source-text= desc (unqualified-name desc)))))
+
+(deftest test-unqualify-sized-type ()
+  "Type descriptors for sized should always be treated as
+unqualified."
+  (let ((type (cpp-type (cpp* "long long x"))))
+    (is (primitive-type-p type))
+    (is (source-text= type (unqualified-name type)))))
 
 (deftest test-unqualify-operator-name ()
   "Operator names should be preserved when unqualifying."
