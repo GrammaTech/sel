@@ -1962,6 +1962,14 @@ public:
                (ts::qualified-name->list
                 (cpp* "::ns::x")))))))
 
+(deftest qualified-names-from-dependent-types ()
+  "Test we can extract qualified names from dependent types."
+  (let ((cpp (cpp* "typename iterator_type::value m_type")))
+    (is (equal '("iterator_type" "value")
+               (mapcar #'source-text
+                       (ts::qualified-name->list
+                        (cpp-type cpp)))))))
+
 (deftest test-qualified-template-type ()
   "Test we handle template types when reassembling qualified names."
   (let ((cpp (cpp* "internal::MatcherCastImpl<T, M>::Cast")))

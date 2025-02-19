@@ -1730,7 +1730,12 @@ types."
     (list ast))
   (:method ((ast cpp-qualified-identifier))
     (cons (cpp-scope ast)
-          (qualified-name->list (cpp-name ast)))))
+          (qualified-name->list (cpp-name ast))))
+  (:method ((ast cpp-dependent-type))
+    ;; "The keyword typename may only be used in this way before
+    ;; qualified names (e.g. T::x)."
+    (mappend #'qualified-name->list
+             (children ast))))
 
 (define-condition unqualifiable-ast-error (error)
   ((asts :initarg :asts :type (soft-list-of ast)
@@ -1783,20 +1788,12 @@ this involves handling some translations between types."
              "Create a type identifier from a namespace identifier."
              (lret ((type-id (tree-copy (convert 'cpp-type-identifier ns-id))))
                (setf (attr-proxy type-id) ns-id)))
-           (dependent-type->dependent-name (dtype)
-             "Create a cpp-dependent-name from a cpp-dependent-type."
-             ;; TODO cpp-dependent-type is an alias for
-             ;; cpp-dependent-name; should this be automatic?
-             (lret ((dname (change-class (copy dtype) 'cpp-dependent-name)))
-               (setf (attr-proxy dname) dtype)))
            (fix-scope (scope)
              "Make sure SCOPE is an AST that can appear in the scope
               slot of a qualified identifier."
              (etypecase scope
                (cpp-type-identifier
                 (type-id->ns-id scope))
-               (cpp-dependent-type
-                (dependent-type->dependent-name scope))
                ((or cpp-namespace-identifier
                     cpp-template-type
                     cpp-dependent-name
@@ -1809,8 +1806,6 @@ this involves handling some translations between types."
              (etypecase name
                (cpp-namespace-identifier
                 (ns-id->type-id name))
-               (cpp-dependent-type
-                (dependent-type->dependent-name name))
                (cpp-type-descriptor
                 (cpp-type name))
                ((or cpp-dependent-name
