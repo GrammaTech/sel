@@ -1552,7 +1552,7 @@ automatically removed.")
                (assert (notany (op (ancestor-of-p attrs-root root _))
                                entry-points))
                ;; NB While attributes are implicitly cached, we still
-               ;; need to track which ones have been seen to avoid
+               ;; need to track which ASTs have been seen to avoid
                ;; infinite loops between siblings in languages without
                ;; left-to-right evaluation order.
                (mvlet* ((entry-points
