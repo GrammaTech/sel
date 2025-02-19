@@ -617,6 +617,7 @@
            :expression-type
            :placeholder-type-p
            :boolean-type-p
+           :primitive-type-p
            :resolve-declaration-type
            :declaration-type
            :find-enclosing

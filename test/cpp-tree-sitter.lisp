@@ -284,6 +284,17 @@ declarators."
                      (mapcar #'qualify-declared-ast-name
                              vars))))))))
 
+(deftest test-dont-qualify-primitive-type-descriptor ()
+  (let* ((id (make 'cpp-type-identifier :text "SomeType"))
+         (desc (make 'cpp-type-descriptor
+                     :cpp-type (cpp* "void")
+                     :cpp-declarator
+                     (make 'cpp-abstract-pointer-declarator))))
+    (is (primitive-type-p desc))
+    (is (equal desc
+               (ts::list->qualified-name
+                (list id desc))))))
+
 (def +trim-front-types+
   '(("trim_front" . "std::list<Point>")
     ("pts" . "std::list<Point>&")
@@ -1557,6 +1568,16 @@ AbstractBase::~AbstractBase() {}};"))
   (let ((int (cpp* "int")))
     (is (typep int 'cpp-primitive-type))
     (is (source-text= int (unqualified-name int)))))
+
+(deftest test-unqualify-primitive-type-descriptor ()
+  "Type descriptors for primitive types should always be treated as
+unqualified."
+  (let ((desc (make 'cpp-type-descriptor
+                    :cpp-declarator
+                    (make 'cpp-abstract-pointer-declarator)
+                    :cpp-type (cpp* "void"))))
+    (is (primitive-type-p desc))
+    (is (source-text= desc (unqualified-name desc)))))
 
 (deftest test-unqualify-operator-name ()
   "Operator names should be preserved when unqualifying."

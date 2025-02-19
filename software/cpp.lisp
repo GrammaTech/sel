@@ -1675,8 +1675,9 @@ types."
   (let* ((field-type (call-next-method))
          (arg-type (infer-type (cpp-argument ast))))
     (if (and arg-type field-type)
-        (let ((field-ns (namespace field-type)))
-          (if (equal field-ns (qualify-declared-ast-name arg-type))
+        (let ((field-ns (namespace field-type))
+              (qualified-arg-type (qualify-declared-ast-name arg-type)))
+          (if (equal field-ns qualified-arg-type)
               ;; If the type of the argument is (modulo template
               ;; arguments) the same as the namespace of the field
               ;; type, then we synthesize a new AST from both of them
@@ -1820,7 +1821,7 @@ this involves handling some translations between types."
            (qualify (list)
              "Right-fold LIST into a qualified name."
              (reduce (lambda (scope name)
-                       (cond ((typep name 'cpp-primitive-type) name)
+                       (cond ((primitive-type-p name) name)
                              (t (make 'cpp-qualified-identifier
                                       :cpp-scope (fix-scope scope)
                                       :cpp-name (fix-name name)))))
@@ -1913,6 +1914,11 @@ namespace and `A::B::x` resolves to `A::B::A::B::x`, not `A::B::x`."
   (:documentation "Remove namespace qualifications from NAME.
 COUNT controls how many levels of qualification to remove \(if for
 instance we only want to remove one).")
+  (:method ((ast cpp-ast) &key count)
+    (declare (ignore count))
+    (if (primitive-type-p ast)
+        ast
+        (call-next-method)))
   (:method ((ast cpp-identifier) &key count)
     (declare (ignore count))
     ast)
