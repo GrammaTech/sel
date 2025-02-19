@@ -58,6 +58,21 @@
    "test/etc/"))
 
 
+;;; Unit tests
+
+(deftest condition-clause-declaration-alias-workaround ()
+  "Check we work around cpp-value not being in the child slots of a declaration in a condition clause.
+See SEL issue #359."
+  (let* ((cpp (convert 'cpp-ast "if (node pNode = get_idx()) {
+  return pNode;
+}"))
+         (decl (find-if (of-type 'cpp-declaration) cpp))
+         (call (find-if (of-type 'call-ast) cpp)))
+    (is (eql call (cpp-value decl)))
+    (is (ast-path decl call))
+    (is (ast-path cpp call))))
+
+
 ;;; Analysis tests
 
 (deftest test-pointer-type ()

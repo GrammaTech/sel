@@ -691,6 +691,35 @@ to look it up as `x::z' or just `z'."
 
 ;;; Methods common to all software objects
 
+(defmethod child-slots ((ast cpp-declaration))
+  "Work around unusual alias in cpp-condition-clause.
+See SEL issue #359."
+  (let ((child-slots (call-next-method)))
+    (assert (not (find 'cpp-value child-slots :key #'car))
+      () "Workaround is obsolete")
+    (if (slot-value ast 'cpp-value)
+        (let ((tail (member 'children child-slots :key #'car)))
+          (append (ldiff child-slots tail)
+                  (list '(cpp-value . 1))
+                  tail))
+        child-slots)))
+
+(defmethod child-slot-specifiers ((ast cpp-declaration))
+  "Work around unusual alias in cpp-condition-clause.
+See SEL issue #359."
+  (let ((specs (call-next-method)))
+    (if (slot-value ast 'cpp-value)
+        ;; Don't add it if it's already there.
+        (if (find 'cpp-value specs :key #'ft::slot-specifier-slot)
+            specs
+            (cons (load-time-value
+                   (make 'ft::slot-specifier
+                         :class t
+                         :slot 'cpp-value
+                         :arity 1))
+                  specs))
+        specs)))
+
 
 ;;;; Methods for tree-sitter generics
 
