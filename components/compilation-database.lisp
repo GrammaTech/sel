@@ -6,30 +6,32 @@
    (:json :cl-json))
   (:shadow :path :macro-name)
   (:import-from :shlex)
-  (:export :parse-compilation-database
-           :normalize-flags
-           :normalize-flags-string
-           :compilation-database
-           :command-objects
-           :disk-path
-           :file-command-objects
-           :command-object
-           :command-directory
-           :command-file
-           :command-arguments
-           :command-string
-           :command-output
-           :command-flags
-           :command-compiler
-           :command-preproc-defs
-           :command-header-dirs
-           :command-isysroot
-           :parse-macro-def
-           :compute-header-dirs
-           :header-dir
-           :header-dirs
-           :*default-header-dirs*
-           :preproc-macro-source)
+  (:export
+    :*default-header-dirs*
+    :command-arguments
+    :command-compiler
+    :command-directory
+    :command-file
+    :command-flags
+    :command-header-dirs
+    :command-isysroot
+    :command-object
+    :command-objects
+    :command-output
+    :command-preproc-defs
+    :command-string
+    :compilation-database
+    :compute-header-dirs
+    :disk-path
+    :file-command-key
+    :file-command-objects
+    :header-dir
+    :header-dirs
+    :normalize-flags
+    :normalize-flags-string
+    :parse-compilation-database
+    :parse-macro-def
+    :preproc-macro-source)
   (:nicknames
    :sel/components/compilation-database
    :sel/components/compdb
@@ -176,6 +178,26 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
   (setf (slot-value self 'file-command-objects)
         (file-command-table self)))
 
+(-> file-command-key (directory-pathname file-pathname)
+    string)
+(defun file-command-key (directory file)
+  "Return a string key suitable for looking up FILE in a
+compilation database.
+
+If FILE is not absolute, merge it with DIRECTORY."
+  ;; "All paths specified in the command or file
+  ;; fields must be either absolute or relative to
+  ;; this directory."
+  (assert (or
+           (typep directory 'absolute-directory-pathname)
+           (typep file 'absolute-file-pathname)))
+  (namestring
+   (assure absolute-file-pathname
+     (canonical-pathname
+      (if (absolute-pathname-p file)
+          file
+          (base-path-join directory file))))))
+
 (defun file-command-table (compdb)
   "Compute a table from paths to command objects in COMPDB.
 The path is computed by merging the directory and file keys of the
@@ -185,15 +207,8 @@ command object."
       (with-slots (directory file) entry
         (let* ((directory (uiop:ensure-directory-pathname (pathname directory)))
                (file (pathname file))
-               (key
-                ;; "All paths specified in the command or file
-                ;; fields must be either absolute or relative to
-                ;; this directory."
-                 (if (absolute-pathname-p file) file
-                     (canonical-pathname
-                      (base-path-join directory file)))))
-          (assert (absolute-pathname-p key))
-          (push entry (href dict (namestring key))))))))
+               (key (file-command-key directory file)))
+          (push entry (href dict key)))))))
 
 (defsubst lookup-in-compdb (compdb key)
   (gethash key (file-command-objects compdb)))

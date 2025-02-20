@@ -165,9 +165,7 @@ relative to NEW-PATH."
   (:method ((obj compilation-database-project)
             (path pathname))
     (if-let (db (compilation-database obj))
-      (let* ((key (if (absolute-pathname-p path)
-                      path
-                      (project-relative-pathname obj path))))
+      (let* ((key (file-command-key (project-dir obj) path)))
         (multiple-value-bind (found found?)
             (lookup db (namestring key))
           ;; If there are multiple command objects, just use the
