@@ -31,7 +31,6 @@
            :system-headers
            :implicit-headers
            :c/cpp-root
-           :*global-search-for-include-files*
            :include-not-found-warning
            :include-conflict-error
            :include-conflict-error.ast
@@ -756,7 +755,9 @@ the standard path and add it to PROJECT."))
                                     (fmt "Including ~a"
                                          (source-text
                                           (include-ast-path-ast include-ast))))
-                   (find-include project file-ast header-dirs include-ast :global t)))))
+                   (find-include project file-ast include-ast
+                                 :global t
+                                 :header-dirs header-dirs)))))
       (iter (iter:with preload-count = 0)
             (for pass-number from 0)
             (with-attr-table project
@@ -786,62 +787,85 @@ the standard path and add it to PROJECT."))
 
 ;;; Program Headers
 
-(defparameter *global-search-for-include-files* nil
-  "When true, search for include files in the entire directory tree
-of a project.  Used to set default value of the :GLOBAL keyword
-arg of FIND-SYMBOL-TABLE-FROM-INCLUDE.  If there are duplicates
-but the file is available locally, prioritize the local file.")
+(defun ensure-header-in-project-ast (project path software)
+  "Ensure SOFTWARE is present in PROJECT's AST at PATH."
+  (labels ((force-parse-genome (software)
+             "If SOFTWARE isn't parsed yet, parse it. This can happen when a
+              file is only lazy-loaded."
+             (with-slots (genome) software
+               (synchronized (software)
+                 (unless (typep genome 'ast)
+                   (with-thread-name (:name (fmt "Parsing ~a" path))
+                     (genome software))))))
+           (insert-software-into-project (project path software)
+             (synchronized (project)
+               (unless (lookup (genome project) path)
+                 (debug:note :debug "~%Inserting ~a into tree~%"
+                             path)
+                 (let ((temp-project (with project path software)))
+                   (setf (genome project)
+                         (genome temp-project)
+                         (evolve-files project)
+                         (evolve-files temp-project))))
+               project))
+           (insert-program-header (project path software)
+             (with-slots (genome) software
+               (unless (and (typep genome 'ast)
+                            (reachable? genome :from project))
+                 (restart-case
+                     (progn
+                       (force-parse-genome software)
+                       (insert-software-into-project
+                        project path software))
+                   (continue ()
+                     :report (lambda (s) (format s "Skip inserting ~a" path))
+                     (withf (project-parse-failures project) path)))))))
+    (etypecase software
+      (c/cpp-system-header project)
+      (c/cpp-unknown-header project)
+      (c/cpp (insert-program-header project path software)))))
 
-(defmethod get-program-header ((project c/cpp-project)
-                               file
-                               include-ast
-                               path-ast
-                               &key
-                                 (global *global-search-for-include-files*)
-                                 base)
-  "Look for a header designated by a program include.
-This does not search in standard directories.
-
-When we have a search path \(from a compilation database) this is used
-as a subroutine and called for every directory in the search path.
-
-If we don't have a search path, this function does the entire search;
-if GLOBAL is true, it searches through all files in the project, and
-signals a restartable error if there are collisions."
+(defun include-path-string (project file path-ast base)
   (let* ((project-dir (project-dir project))
-         (file-path (make-pathname :name nil :type nil
-                                   :directory
-                                   (cons :relative
-                                         (mapcar #'sel/sw/directory::name
-                                                 (cdr (reverse (get-parent-asts* project file)))))
-                                   :defaults project-dir))
+         (file-path
+           (make-pathname
+            :name nil
+            :type nil
+            :directory
+            (cons :relative
+                  (mapcar #'sel/sw/directory::name
+                          (cdr (reverse (get-parent-asts* project file)))))
+            :defaults project-dir))
          (absolute-file-path (path-join project-dir file-path))
          (include-path (pathname (trim-path-string path-ast)))
          ;; CANONICAL-PATHNAME does not remove :BACK, so convert to :UP
          ;; Warn about this below if this happened.
-         (tweaked-include-path-dir (substitute :up :back (pathname-directory include-path)))
-         (tweaked-include-path (make-pathname :directory tweaked-include-path-dir
-                                              :defaults include-path))
+         (tweaked-include-path-dir
+           (substitute :up :back (pathname-directory include-path)))
+         (tweaked-include-path
+           (make-pathname :directory tweaked-include-path-dir
+                          :defaults include-path))
          (absolute-include-path
           (path-join (or base absolute-file-path) tweaked-include-path))
          (relative-include-path
-          (if base
-              (enough-namestring absolute-include-path project-dir)
-              (path-join file-path tweaked-include-path)))
-         (include-path-string
-           (namestring (canonical-pathname relative-include-path))))
-    (macrolet ((%d (v)
-                 `(debug:note :trace "  ~a = ~s" ',v ,v)))
-      (%d base)
-      (%d project-dir) (%d file-path) (%d absolute-file-path)
-      (%d include-path) (%d tweaked-include-path-dir)
-      (%d absolute-include-path)
-      (%d relative-include-path)
-      (%d include-path-string))
+           (if base
+               (enough-namestring absolute-include-path project-dir)
+               (path-join file-path tweaked-include-path))))
     (unless (equal (pathname-directory include-path) tweaked-include-path-dir)
-      (warn "~A in ~A may be interpreted incorrectly in the presence of symlinks"
-            (remove #\Newline (source-text include-ast))
+      (warn "~A may be interpreted incorrectly in the presence of symlinks"
             (namestring file-path)))
+    (values (namestring (canonical-pathname relative-include-path))
+            include-path
+            tweaked-include-path
+            absolute-include-path)))
+
+(defun global-search-include (project file path-ast base)
+  (receive (include-path-string
+            include-path
+            tweaked-include-path
+            absolute-include-path)
+      (include-path-string project file path-ast base)
+    (declare (ignore include-path-string))
     (labels ((restrict-headers-by-name-and-type (evolve-files)
                (let ((include-name (pathname-name include-path))
                      (include-type (pathname-type include-path)))
@@ -863,100 +887,71 @@ signals a restartable error if there are collisions."
                          evolve-files))
                    evolve-files))
              (remove-duplicate-evolve-files (evolve-files)
-               (nub evolve-files
-                    :test
-                    (lambda (file1 file2)
-                      (file= (path-join project-dir (car file1))
-                             (path-join project-dir (car file2))))))
-             (global-search ()
-               "Search for the include everywhere in the project.
-This is used as a fallback when we have no header search path."
-               (debug:note :debug "Doing global search for ~a" absolute-include-path)
-               (let* ((matches
-                       (nest (remove-duplicate-evolve-files)
-                             (prefer-full-path-matches)
-                             (restrict-headers-by-name-and-type)
-                             (evolve-files project))))
-                 (if (null (cdr matches))
-                     (car matches)
-                     (or
-                      ;; If one of the matches is in the directory
-                      ;; targeted by the include relative to the
-                      ;; including file, choose it even if there are
-                      ;; files elsewhere with the same name.
-                      (find absolute-include-path matches
-                            :key (op (original-path (cdr _)))
-                            :test #'equal)
-                      (restart-case
-                          (error 'include-conflict-error
-                                 :ast path-ast
-                                 :candidates matches)
-                        (ignore ()
-                          :report "Ignore the conflict, return nil"
-                          nil)
-                        (first ()
-                          :report "Return the first candidate"
-                          (car matches))
-                        (whichever ()
-                          :report "Pick one at random"
-                          (random-elt matches))
-                        (use-value (match)
-                          :report "Specify the header to use"
-                          (assert (member match matches))
-                          match))))))
-             (simple-relative-search ()
-               "Do a search relative to BASE, if supplied, or the location of
-the including file."
-               ;; Search only relative to the location of the file
-               ;; containing the include-ast.  TODO: add a set
-               ;; of paths to search in. TODO: Allow searching
-               ;; up through grandparent directories (as some
-               ;; compilers do).
-               (assoc include-path-string
-                      (evolve-files project)
-                      :test #'equal))
-             (force-parse-genome (path software)
-               "If SOFTWARE isn't parsed yet, parse it. This can happen when a file
-                is only lazy-loaded."
-               (with-slots (genome) software
-                 (synchronized (software)
-                   (unless (typep genome 'ast)
-                     (with-thread-name (:name (fmt "Parsing ~a" path))
-                       (genome software))))))
-             (ensure-result-in-project-ast (result)
-               (destructuring-bind (path . software) result
-                 (with-slots (genome) software
-                   (unless (and (typep genome 'ast)
-                                (reachable? genome :from project))
-                     (block nil
-                       (restart-case
-                           (progn
-                             (force-parse-genome path software)
-                             (insert-software-into-project
-                              project path include-path software))
-                         (continue ()
-                           :report (lambda (s) (format s "Skip inserting ~a" path))
-                           (withf (project-parse-failures project) path)
-                           (return)))))))))
-      (when-let (result
-                 (or (simple-relative-search)
-                     (and global
-                          (global-search))))
-        (ensure-result-in-project-ast result)
-        (cdr result)))))
+               (let ((project-dir (project-dir project)))
+                 (nub evolve-files
+                      :test
+                      (lambda (file1 file2)
+                        (file= (path-join project-dir (car file1))
+                               (path-join project-dir (car file2))))))))
+      (debug:note :debug "Doing global search for ~a" absolute-include-path)
+      (let* ((matches
+               (remove-duplicate-evolve-files
+                (prefer-full-path-matches
+                 (restrict-headers-by-name-and-type
+                  (evolve-files project))))))
+        (if (null (cdr matches))
+            (car matches)
+            (or
+             ;; If one of the matches is in the directory
+             ;; targeted by the include relative to the
+             ;; including file, choose it even if there are
+             ;; files elsewhere with the same name.
+             (find absolute-include-path matches
+                   :key (op (original-path (cdr _)))
+                   :test #'equal)
+             (restart-case
+                 (error 'include-conflict-error
+                        :ast path-ast
+                        :candidates matches)
+               (ignore ()
+                 :report "Ignore the conflict, return nil"
+                 nil)
+               (first ()
+                 :report "Return the first candidate"
+                 (car matches))
+               (whichever ()
+                 :report "Pick one at random"
+                 (random-elt matches))
+               (use-value (match)
+                 :report "Specify the header to use"
+                 (assert (member match matches))
+                 match))))))))
 
-(defun insert-software-into-project (project path include-path software)
-  (synchronized (project)
-    (unless (lookup (genome project) path)
-      (debug:note :debug "~%Inserting ~a (~a) into tree~%"
-                  path
-                  include-path)
-      (let ((temp-project (with project path software)))
-        (setf (genome project)
-              (genome temp-project)
-              (evolve-files project)
-              (evolve-files temp-project))))
-    project))
+(defmethod get-program-header ((project c/cpp-project)
+                               file
+                               include-ast
+                               path-ast
+                               &key global base)
+  "Look for a header designated by a program include.
+This does not search in standard directories.
+
+When we have a search path \(from a compilation database) this is used
+as a subroutine and called for every directory in the search path.
+
+If we don't have a search path, this function does the entire search;
+if GLOBAL is true, it searches through all files in the project, and
+signals a restartable error if there are collisions."
+  (let ((include-path-string
+          (include-path-string project file path-ast base)))
+    (or (assoc include-path-string
+               (evolve-files project)
+               :test #'equal)
+        (and global
+             (global-search-include
+              project
+              file
+              path-ast
+              base)))))
 
 
 ;;; Includes Symbol Table
@@ -1014,8 +1009,49 @@ paths."
      ;; TODO
      nil)))
 
-(defun find-include (project file header-dirs include-ast
-                     &key (global *global-search-for-include-files*)
+(defun collect-potential-includes (project file
+                                   include-ast
+                                   path-ast
+                                   header-dirs
+                                   global)
+  (declare
+   (file-ast file)
+   (ast include-ast path-ast)
+   (list header-dirs))
+  (labels ((search-header-dir (dir &key global)
+             (econd
+              ((eql dir :current)
+               (let ((path (dir:full-pathname file)))
+                 (get-program-header project file include-ast
+                                     path-ast
+                                     :base (pathname-directory-pathname path)
+                                     :global global)))
+              ((member dir '(:always :system))
+               nil)
+              ((eql dir :stdinc)
+               (get-standard-path-header
+                project path-ast
+                :header-dirs header-dirs))
+              ((stringp dir)
+               (debug:note :trace "Searching ~a for header ~a"
+                           dir path-ast)
+               (get-program-header
+                project file include-ast path-ast
+                :base dir
+                :global global))))
+           (search-header-dirs (&key global)
+             (if (no header-dirs)
+                 (progn
+                   (debug:lazy-note :trace "No header dirs when searching for ~a"
+                                    (source-text path-ast))
+                   (get-standard-path-header project path-ast))
+                 (filter-map (op (search-header-dir _ :global global))
+                             header-dirs))))
+    (search-header-dirs :global global)))
+
+(defun find-include (project file include-ast
+                     &key global
+                       header-dirs
                        symbol-table)
   "Find an include in PROJECT. Ensure it is an evolve-file."
   (declare (functional-tree-ast file))
@@ -1023,51 +1059,37 @@ paths."
               (include-ast-path-ast
                include-ast
                :symbol-table symbol-table)))
-    (labels ((search-header-dir (dir &key global)
-               (econd
-                 ((eql dir :current)
-                  (get-program-header project file include-ast
-                                      path-ast
-                                      :base nil
-                                      :global global))
-                 ((member dir '(:always :system))
-                  nil)
-                 ((eql dir :stdinc)
-                  (get-standard-path-header
-                   project path-ast
-                   :header-dirs header-dirs))
-                 ((stringp dir)
-                  (debug:note :trace "Searching ~a for header ~a"
-                              dir path-ast)
-                  (get-program-header
-                   project file include-ast path-ast
-                   :base dir
-                   :global global))))
-             (search-header-dirs (&key global)
-               (if (no header-dirs)
-                   (progn
-                     (debug:lazy-note :trace "No header dirs when searching for ~a"
-                                      (source-text path-ast))
-                     (get-standard-path-header project path-ast))
-                   (some (op (search-header-dir _ :global global))
-                         header-dirs)))
-             (make-unknown-header-with-proxy (include-ast)
+    (labels ((make-unknown-header-with-proxy (include-ast)
                (lret ((unknown-header (make-unknown-header include-ast)))
                  ;; Make the unknown header proxy to the include.
                  (when (boundp '*attrs*)
                    (synchronized (project)
                      (setf (attr-proxy unknown-header) include-ast)))))
+             (collect-potential-includes* (global)
+               (collect-potential-includes
+                project
+                file
+                include-ast
+                path-ast
+                header-dirs
+                global))
              (find-include ()
-               (or (search-header-dirs)
-                   (and global (search-header-dirs :global t))
+               (or (first (collect-potential-includes* nil))
+                   (and global (first (collect-potential-includes* t)))
                    (debug:lazy-note
                     :debug
                     "Unknown header: ~a"
                     (source-text include-ast))
                    (make-unknown-header-with-proxy include-ast))))
-      (lret ((result (find-include)))
-        (debug:note :trace "Found include ~a for ~a"
-                    result include-ast)))))
+      (ematch (find-include)
+        ((and include (or (c/cpp-unknown-header)
+                          (c/cpp-system-header)))
+         include)
+        ((cons path software)
+         (ensure-header-in-project-ast project path software)
+         (debug:note :trace "Found include ~a for ~a"
+                     software include-ast)
+         software)))))
 
 (defun find-enclosing-software (project ast &key file-ast)
   "Get the software object in PROJECT that contains AST."
@@ -1117,7 +1139,7 @@ is included by."
 
 (defun find-symbol-table-from-include (project include-ast
                                        &key (in (empty-map))
-                                         (global *global-search-for-include-files*)
+                                         global
                                          (header-dirs nil header-dirs-supplied?))
   "Find the symbol table in PROJECT for the include file
 included by INCLUDE-AST.  IN is the symbol table before entry
@@ -1185,8 +1207,9 @@ include files in all directories of the project."
                        (cpp-import-declaration))
                    (safe-symbol-table
                     (or
-                     (find-include project file *header-dirs*
+                     (find-include project file
                                    include-ast
+                                   :header-dirs *header-dirs*
                                    :symbol-table in)
                      (error "Could not resolve ~a"
                             (source-text
@@ -1207,14 +1230,7 @@ include files in all directories of the project."
               (debug:note :trace "Skipping including ~a" path)
               (withf (project-parse-failures project) path)
               (return-from find-symbol-table-from-include
-                in)))
-          (enable-global-search ()
-            :report "Enable global (within project) search for include files"
-            :test (lambda (c)
-                    (declare (ignore c))
-                    (null *global-search-for-include-files*))
-            (setq *global-search-for-include-files* t)
-            (retry)))))))
+                in))))))))
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (debug:note :trace "Including symbol table for ~a" node)
