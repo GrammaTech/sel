@@ -20,6 +20,7 @@
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:debug :software-evolution-library/utility/debug)
+   (:dir :software-evolution-library/software/directory)
    (:file :software-evolution-library/components/file)
    (:task :software-evolution-library/utility/task)
    (:ts :software-evolution-library/software/tree-sitter))
