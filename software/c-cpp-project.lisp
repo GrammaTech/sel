@@ -172,7 +172,7 @@ headers and implicit headers for command-line preprocessor macros."))
 (defmethod attrs:subroot? ((ast synthetic-header))
   nil)
 
-(defmethod command-object ((project c/cpp-project) (file synthetic-header))
+(defmethod get-command-objects ((project c/cpp-project) (file synthetic-header))
   nil)
 
 (defun trim-path-string (path-ast &aux (text (text path-ast)))
@@ -687,7 +687,7 @@ the standard path and add it to PROJECT."))
                             ;; eagerly load module files. (Probably
                             ;; but not necessarily true.)
                             (module-file? file)
-                            (command-object project file)))
+                            (get-command-objects project file)))
                       evolve-files)))
              (debug:lazy-note
               :debug

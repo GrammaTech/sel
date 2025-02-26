@@ -15,11 +15,11 @@
    (:dbg :software-evolution-library/utility/debug)
    (:json :cl-json))
   (:export
-    :command-object
     :compilation-database
     :compilation-database-path
     :compilation-database-project
-    :ensure-compilation-database))
+    :ensure-compilation-database
+    :get-command-objects))
 (in-package :software-evolution-library/software/compilation-database-project)
 
 (eval-always
@@ -154,28 +154,28 @@ relative to NEW-PATH."
   (:method ((obj compilation-database-project))
     nil))
 
-(defgeneric command-object (obj file)
+(defgeneric get-command-objects (obj file)
   (:documentation "Get FILE's command object in OBJ's compilation database.")
   (:method ((obj compilation-database-project)
             (file string))
-    (command-object obj (pathname file)))
+    (get-command-objects obj (pathname file)))
   (:method ((obj compilation-database-project)
             (file software))
-    (command-object obj (original-path file)))
+    (get-command-objects obj (original-path file)))
   (:method ((obj compilation-database-project)
             (path pathname))
-    (if-let (db (compilation-database obj))
-      (let* ((key (file-command-key (project-dir obj) path)))
-        (multiple-value-bind (found found?)
-            (lookup db (namestring key))
-          ;; If there are multiple command objects, just use the
-          ;; first. This is the behavior of the LLVM compilation
-          ;; database tooling (e.g. clangd).
-          (multiple-value-prog1 (values (car found) found?)
-            (when (rest found)
-              (dbg:lazy-note
-               :debug
-               "~a compilation database entr~:@p for ~a"
-               (length found)
-               path)))))
-      (values nil nil))))
+    (when-let (db (compilation-database obj))
+      (lookup db (file-command-key (project-dir obj) path)))))
+
+(defun command-object (obj file)
+  (when-let (command-objects (get-command-objects obj file))
+    ;; If there are multiple command objects, just use the first. This
+    ;; is the behavior of the LLVM compilation database tooling (e.g.
+    ;; clangd).
+    (prog1 (first command-objects)
+      (when (rest command-objects)
+        (dbg:lazy-note
+         :debug
+         "~a compilation database entr~:@p for ~a"
+         (length found)
+         path)))))

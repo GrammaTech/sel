@@ -120,8 +120,9 @@
   "Get the pathname of the enclosing file."
   (full-pathname (find-enclosing 'file-ast root ast)))
 
-(defmethod compdb-project:command-object ((obj directory-project) (file file-ast))
-  (compdb-project:command-object obj (full-pathname file)))
+(defmethod compdb-project:get-command-objects ((obj directory-project)
+                                               (file file-ast))
+  (compdb-project:get-command-objects obj (full-pathname file)))
 
 (defmethod print-object ((obj directory-or-file-ast) stream)
   (if *print-readably*
@@ -513,7 +514,7 @@ This function will not signal an error due to a bad parse."
             (and (typep project 'compdb-project:compilation-database-project)
                  (compdb:compilation-database project)
                  (not
-                  (compdb:command-object
+                  (compdb:get-command-objects
                    project
                    (file:original-path software))))
             (lazy-path-p project

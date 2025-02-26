@@ -25,6 +25,7 @@
     :disk-path
     :file-command-key
     :file-command-objects
+    :get-command-objects
     :header-dir
     :header-dirs
     :normalize-flags
