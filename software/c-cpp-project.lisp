@@ -703,86 +703,85 @@ the standard path and add it to PROJECT."))
           (filter-by-compilation-database evolve-files)))))
 
 (defun preload-headers (project)
-  (let* ((genome
-           (make-instance 'c/cpp-root
-             :project-directory (genome project)))
-         (last-evolve-files (evolve-files project)))
-    (setf (genome project)
-          (assure c/cpp-root genome))
-    (debug:note :info "Populating headers")
-    ;; Recursively populate headers, starting with .cpp files, adding
-    ;; included headers, then adding transitively included headers with
-    ;; depth 1, depth 2, etc. Note this will not handle includes where
-    ;; the path is a preprocessor macro (they will be populated later
-    ;; during symbol table construction).
+  (debug:note :info "Populating headers")
+  ;; Recursively populate headers, starting with .cpp files, adding
+  ;; included headers, then adding transitively included headers with
+  ;; depth 1, depth 2, etc. Note this will not handle includes where
+  ;; the path is a preprocessor macro (they will be populated later
+  ;; during symbol table construction).
 
-    ;; The problem this solves is that symbol table computation is not
-    ;; (currently) thread-safe, so when the symbol table analysis
-    ;; discovers and inserts headers, it can only do so serially. We
-    ;; do this approximate, parallel sweep over the headers to parse
-    ;; as much as plausible in parallel in advance (but not
-    ;; everything, as vendored dependencies can pull in huge numbers
-    ;; of unwanted headers).
-    (labels ((collect-find-include-arglists ()
-               (iter outer
-                     (for (nil . sw) in (parsed-evolve-files project))
-                     (iter (for ast in-tree (genome sw))
-                           (match ast
-                             ((and include-ast (c/cpp-preproc-include))
-                              (let* ((file-ast
-                                       (find-enclosing 'file-ast
-                                                       (attrs-root*)
-                                                       include-ast)))
-                                (in outer
-                                    (collecting
-                                      (list file-ast
-                                            ;; TODO Project or
-                                            ;; result?
+  ;; The problem this solves is that symbol table computation is not
+  ;; (currently) thread-safe, so when the symbol table analysis
+  ;; discovers and inserts headers, it can only do so serially. We
+  ;; do this approximate, parallel sweep over the headers to parse
+  ;; as much as plausible in parallel in advance (but not
+  ;; everything, as vendored dependencies can pull in huge numbers
+  ;; of unwanted headers).
+  (labels ((collect-find-include-arglists ()
+             (iter outer
+                   (for (nil . sw) in (parsed-evolve-files project))
+                   (iter (for ast in-tree (genome sw))
+                         (match ast
+                           ((and include-ast (c/cpp-preproc-include))
+                            (let* ((file-ast
+                                     (find-enclosing 'file-ast
+                                                     (attrs-root*)
+                                                     include-ast)))
+                              (in outer
+                                  (collecting
+                                    (list file-ast
+                                          ;; TODO Project or
+                                          ;; result?
 
-                                            ;; TODO When including
-                                            ;; headers from headers,
-                                            ;; we don't have header
-                                            ;; dirs. Could we carry
-                                            ;; them forward? Or
-                                            ;; leave to the symbol
-                                            ;; table?
-                                            (file-header-dirs project ast
-                                                              :file file-ast)
-                                            include-ast)))))))))
-             (find-include-in-project (args)
-               (destructuring-bind (file-ast header-dirs include-ast) args
-                 (with-thread-name (:name
-                                    (fmt "Including ~a"
-                                         (source-text
-                                          (include-ast-path-ast include-ast))))
-                   (find-include project file-ast include-ast
-                                 :global t
-                                 :header-dirs header-dirs)))))
-      (iter (iter:with preload-count = 0)
-            (for pass-number from 0)
-            (with-attr-table project
-              (let* ((to-populate (collect-find-include-arglists))
-                     (len (length to-populate)))
-                (debug:note :info "Pass ~a: Preloading ~a header~:p"
-                            pass-number len)
-                (incf preload-count len)
-                (task:task-map
-                 (parallel-parse-thread-count to-populate)
-                 (dynamic-closure '(*attrs*
-                                    *standard-output*
-                                    *trace-output*
-                                    *error-output*)
-                                  #'find-include-in-project)
-                 to-populate)))
-            ;; Stop once a fixed point has been reached.
-            (until (eql (evolve-files project)
-                        (shiftf last-evolve-files (evolve-files project))))
-            (finally
-             (debug:note :info "Preloaded ~a header~:p" preload-count)
-             (return project))))))
+                                          ;; TODO When including
+                                          ;; headers from headers,
+                                          ;; we don't have header
+                                          ;; dirs. Could we carry
+                                          ;; them forward? Or
+                                          ;; leave to the symbol
+                                          ;; table?
+                                          (file-header-dirs project ast
+                                                            :file file-ast)
+                                          include-ast)))))))))
+           (find-include-in-project (args)
+             (destructuring-bind (file-ast header-dirs include-ast) args
+               (with-thread-name (:name
+                                  (fmt "Including ~a"
+                                       (source-text
+                                        (include-ast-path-ast include-ast))))
+                 (find-include project file-ast include-ast
+                               :global t
+                               :header-dirs header-dirs)))))
+    (iter (iter:with preload-count = 0)
+          (iter:with last-evolve-files = (evolve-files project))
+          (for pass-number from 0)
+          (with-attr-table project
+            (let* ((to-populate (collect-find-include-arglists))
+                   (len (length to-populate)))
+              (debug:note :info "Pass ~a: Preloading ~a header~:p"
+                          pass-number len)
+              (incf preload-count len)
+              (task:task-map
+               (parallel-parse-thread-count to-populate)
+               (dynamic-closure '(*attrs*
+                                  *standard-output*
+                                  *trace-output*
+                                  *error-output*)
+                                #'find-include-in-project)
+               to-populate)))
+          ;; Stop once a fixed point has been reached.
+          (until (eql (evolve-files project)
+                      (shiftf last-evolve-files (evolve-files project))))
+          (finally
+           (debug:note :info "Preloaded ~a header~:p" preload-count)
+           (return project)))))
 
 (defmethod from-file :around ((project c/cpp-project) (dir t))
-  (preload-headers (call-next-method)))
+  (let ((project (call-next-method)))
+    (setf (genome project)
+          (make 'c/cpp-root
+                :project-directory (genome project)))
+    (preload-headers project)))
 
 
 ;;; Program Headers
@@ -1015,16 +1014,18 @@ paths."
                                    header-dirs
                                    global)
   (declare
-   (file-ast file)
-   (ast include-ast path-ast)
+   (ast file include-ast path-ast)
    (list header-dirs))
   (labels ((search-header-dir (dir &key global)
              (econd
               ((eql dir :current)
-               (let ((path (dir:full-pathname file)))
+               (let ((base
+                       (and-let* (((typep file 'file-ast))
+                                  (path (dir:full-pathname file)))
+                         (pathname-directory-pathname path))))
                  (get-program-header project file include-ast
                                      path-ast
-                                     :base (pathname-directory-pathname path)
+                                     :base base
                                      :global global)))
               ((member dir '(:always :system))
                nil)
