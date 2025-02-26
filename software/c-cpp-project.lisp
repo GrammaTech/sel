@@ -427,9 +427,10 @@ should already have been computed as part of their compilation units."
   "Compute the symbol table if we can't load a header."
   (or (call-next-method)
       (and (header-file? key)
-           (attrs:with-attr-table obj
-             (debug:note :trace "Loading symbol table to find ~a" key)
-             (symbol-table obj))
+           (unless (boundp 'attrs:*attrs*)
+             (attrs:with-attr-table obj
+               (debug:note :trace "Loading symbol table to find ~a" key)
+               (symbol-table obj)))
            (call-next-method))))
 
 (defmethod symbol-table :context ((ast c/cpp-translation-unit) &optional in)
