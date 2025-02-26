@@ -740,8 +740,9 @@ the standard path and add it to PROJECT."))
                                           ;; them forward? Or
                                           ;; leave to the symbol
                                           ;; table?
-                                          (file-header-dirs project ast
-                                                            :file file-ast)
+                                          (or (file-header-dirs project ast
+                                                                :file file-ast)
+                                              *default-header-dirs*)
                                           include-ast)))))))))
            (find-include-in-project (args)
              (destructuring-bind (file-ast header-dirs include-ast) args
