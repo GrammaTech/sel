@@ -2228,38 +2228,46 @@ functions.")
                                  args)))
                   ;; NB This excludes optional type parameters.
                   (notevery (of-type 'cpp-type-parameter-declaration)
-                            arg-decls)))))
+                            arg-decls)))
+              (node-template-and-arguments (node)
+                (match node
+                  ;; Collect specializations from types.
+                  ((cpp-template-type
+                    (cpp-name type)
+                    (cpp-arguments arguments))
+                   (when-let* ((type-def (get-declaration-ast :type type)))
+                     (values (find-enclosing-template type-def)
+                             arguments)))
+                  ;; Collect specializations from invocations.
+                  ((call-ast
+                    (call-function (cpp-field-expression)))
+                   nil)
+                  ((call-ast
+                    (call-function
+                     (and fn
+                          (cpp-template-function)))
+                    (call-arguments-ast arguments))
+                   (when-let* ((fn-def (get-declaration-ast :function fn)))
+                     (values (find-enclosing-template fn-def)
+                             arguments)))
+                  ((call-ast
+                    (call-function (and fn (identifier-ast)))
+                    (call-arguments-ast arguments))
+                   (and-let* (((not (get-declaration-id :macro fn)))
+                              (id (get-declaration-id :function fn)))
+                     (values (find-enclosing-template id)
+                             arguments)))))))
      (let ((template-descendants
              (set-hash-table
               (convert 'list template)))))
      (iter (for node in-tree (genome root)))
      (unless (gethash node template-descendants))
-     (match node
-       ;; Collect specializations from types.
-       ((cpp-template-type
-         (cpp-name type)
-         (cpp-arguments arguments))
-        (and-let* ((type-def (get-declaration-ast :type type))
-                   ((eql template (find-enclosing-template type-def)))
-                   ((specialized? arguments)))
-          (collect node)))
-       ;; Collect specializations from invocations.
-       ((call-ast
-         (call-function (cpp-field-expression)))
-        nil)
-       ((call-ast
-         (call-function
-          (and fn
-               (cpp-template-function)))
-         (call-arguments-ast arguments))
-        (when (specialized? arguments)
-          (collect fn)))
-       ((call-ast
-         (call-function (and fn (identifier-ast))))
-        (unless (get-declaration-id :macro fn)
-          (when-let* ((id (get-declaration-id :function fn))
-                      (template (find-enclosing-template id)))
-            (collect fn))))))))
+     (multiple-value-bind (node-template arguments)
+         (node-template-and-arguments node)
+       (and template arguments
+            (eql node-template template)
+            (specialized? arguments)
+            (collect node))))))
 
 (defun param-possible-types (decl &optional default)
   (labels ((param-offset (template decl)

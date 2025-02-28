@@ -1954,6 +1954,25 @@ using foo_t = Foo;")))
         (is (equal? (direct-field-table class)
                     (direct-field-table alias)))))))
 
+(deftest test-template-call-specializations ()
+  "Template function calls should be assigned to the proper template when "
+  (let ((cpp (from-file
+              'cpp
+              (path-join
+               +test-data-dir+
+               "cpp-templates/multiple_template_functions.cc"))))
+    (with-attr-table cpp
+      (let* ((templates (collect-if (of-type 'cpp-template-declaration) cpp))
+             (calls (last (collect-if (of-type 'cpp-call-expression) cpp) 2)))
+        (is (length= templates 2))
+        (is (length= calls 2))
+        (let ((specializations (template-specializations (first templates))))
+          (is (single specializations))
+          (is (eql (first specializations) (first calls))))
+        (let ((specializations (template-specializations (second templates))))
+          (is (single specializations))
+          (is (eql (first specializations) (second calls))))))))
+
 
 ;;; Parsing tests
 
