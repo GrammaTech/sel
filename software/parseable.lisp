@@ -594,6 +594,8 @@ modulo +AST-HASH-BASE+.  0 values in ARGS are skipped."
 
 (defun source-text-take-lines (n ast)
   "Return (at most) N lines of the source text of AST in constant time."
+  (when (zerop n)
+    (return-from source-text-take-lines '()))
   (let ((dest (make-string-output-stream)))
     (tagbody
        (source-text
