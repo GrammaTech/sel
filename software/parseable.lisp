@@ -216,28 +216,38 @@ PRINT-OBJECT method on AST structures.")
 (defparameter *inline-newline-escape* "⏎"
   "String to substitute for a newline when printing an AST.")
 
-(def +print-object-source-text+ t
-  "Flag to control whether to print source text for an object.
+(declaim (type (integer 0) *ast-source-text-lines*))
+(defparameter *ast-source-text-lines* 1
+  "Number of lines of an object's source text to print.
+If 0, do not print object source text.")
 
-Provided to make it easier to debug problems with AST printing.")
-
-(defmethod print-object ((obj functional-tree-ast) stream
-                         &aux (cutoff *ast-print-cutoff*)
-                           (min *ast-print-min*))
-  (if *print-readably*
-      (call-next-method)
-      (print-unreadable-object (obj stream :type t)
-        (format stream "~a~@[ :TEXT ~s~]"
-                (serial-number obj)
-                (and +print-object-source-text+
-                     (ellipsize
-                      (if-let (first-line (first (source-text-take-lines 1 obj)))
-                        (if (length> first-line min) first-line
-                            (string-replace-all (string #\Newline)
-                                                (source-text-take min obj)
-                                                *inline-newline-escape*))
-                        "<NIL>")
-                      cutoff))))))
+(defmethod print-object ((obj functional-tree-ast) stream)
+  (flet ((get-enough-text (obj)
+             (let* ((cutoff *ast-print-cutoff*)
+                    (min *ast-print-min*)
+                    (lines *ast-source-text-lines*)
+                    (newline-escape *inline-newline-escape*)
+                    (lines (source-text-take-lines lines obj))
+                    (text
+                      (if (no lines)
+                          "<NIL>"
+                          (string-join lines newline-escape)))
+                    (text
+                      ;; If the first line or lines is too short, take
+                      ;; from the raw text of the AST.
+                      (if (length> text min) text
+                          (string-replace-all
+                           (string #\Newline)
+                           (source-text-take min obj)
+                           newline-escape))))
+               (ellipsize text cutoff))))
+    (declare (inline get-enough-text))
+    (if *print-readably*
+        (call-next-method)
+        (print-unreadable-object (obj stream :type t)
+          (format stream "~a~@[ :TEXT ~s~]"
+                  (serial-number obj)
+                  (get-enough-text obj))))))
 
 (defmethod print-object ((obj conflict-ast) stream)
   (if *print-readably*
