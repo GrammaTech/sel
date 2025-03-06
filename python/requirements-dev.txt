@@ -5,5 +5,7 @@ mypy
 pre-commit
 pyright
 pytest
+# types-setuptools no longer includes pkg_resources types. Get a new
+# enough setuptools for pkg_resources to be typed.
+setuptools>=71.1
 twine
-types-setuptools
