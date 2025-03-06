@@ -70,34 +70,58 @@ Like `fset:restrict', but recursive."
 (defun relative-module-defaults (importing-path
                                  importing-name
                                  imported-name)
-  "Compute the base pathname (no extension) for an imported module in
-the same directory as IMPORTING-PATH.
+  "Compute a list of potential base pathnames (no extension) for an
+imported module in the same directory as IMPORTING-PATH.
+
+For dotted modules (x.y) we look in both in ./x/y and ./x.y.
 
 Note IMPORTING-NAME is only needed when IMPORTED-NAME is a module
 partition."
   (declare (pathname importing-path)
            ((or string null) importing-name)
            (string imported-name))
-  (let* ((importing-name
-           (substitute #\/ #\. importing-name))
-         (imported-name
-           (substitute #\/ #\. imported-name))
-         (file-name
-           (cond ((string^= ":" imported-name)
-                  (unless importing-name
-                    (error "Cannot import a module partition outside a module"))
-                  (string+
-                   ;; Drop any trailing partition.
-                   (take (or (position #\: importing-name :from-end t)
-                             (length importing-name))
-                         importing-name)
-                   "-"
-                   (drop-prefix ":" imported-name)))
-                 ;; Implicit import from a module partition implementation.
-                 ((find #\: imported-name)
-                  (substitute #\- #\: imported-name))
-                 (t imported-name))))
-    (path-join importing-path (pathname file-name))))
+  (labels ((move-extension-to-name (pathname)
+             "If PATHNAME has an extension, make it part of the file name."
+             (with-accessors ((type pathname-type)
+                              (name pathname-name))
+                 pathname
+               (if type
+                   (make-pathname
+                    :defaults pathname
+                    :type nil
+                    :name (string+ name "." type))
+                   pathname)))
+           (relative-module-defaults (dot-replacement)
+             (let* ((dot-replacement (character dot-replacement))
+                    (importing-name
+                      (substitute dot-replacement #\. importing-name))
+                    (imported-name
+                      (substitute dot-replacement #\. imported-name))
+                    (module-file-name
+                      (cond ((string^= ":" imported-name)
+                             (unless importing-name
+                               (error "Cannot import a module partition outside a module"))
+                             (string+
+                              ;; Drop any trailing partition.
+                              (take (or (position #\: importing-name :from-end t)
+                                        (length importing-name))
+                                    importing-name)
+                              "-"
+                              (drop-prefix ":" imported-name)))
+                            ;; Implicit import from a module partition implementation.
+                            ((find #\: imported-name)
+                             (substitute #\- #\: imported-name))
+                            (t imported-name)))
+                    (module-pathname
+                      ;; Don't override the extension of
+                      ;; importing-path if there are dots in
+                      ;; module-file-name.
+                      (move-extension-to-name
+                       (pathname module-file-name))))
+               (path-join importing-path module-pathname))))
+    (nub (list
+          (relative-module-defaults "/")
+          (relative-module-defaults ".")))))
 
 (defun find-relative-module (defaults &key (interface t))
   "Find an imported module on the filesystem based on DEFAULTS."
@@ -111,18 +135,21 @@ partition."
 
 (defun find-module (defaults list &key (key #'identity))
   "Find a module based on DEFAULTS in LIST, a list of pathname designators."
-  (let ((target-name (pathname-name defaults))
-        (extensions *cpp-module-extensions*))
-    (block nil
-      (with-item-key-function (key)
-        (dolist (item list)
-          (let ((path (pathname (key item))))
-            (when (and (equal (pathname-name path)
-                              target-name)
-                       (member (pathname-type path)
-                               extensions
-                               :test #'equal))
-              (return item))))))))
+  (labels ((find-module (defaults list)
+             (let ((target-name (pathname-name defaults))
+                   (extensions *cpp-module-extensions*))
+               (block nil
+                 (with-item-key-function (key)
+                   (dolist (item list)
+                     (let ((path (pathname (key item))))
+                       (when (and (equal (pathname-name path)
+                                         target-name)
+                                  (member (pathname-type path)
+                                          extensions
+                                          :test #'equal))
+                         (return item)))))))))
+    (some (op (find-module _ list))
+          (ensure-list defaults))))
 
 (defun find-project-module (project defaults)
   "Find a module that satisfies DEFAULTS in PROJECT."
@@ -149,15 +176,18 @@ partition."
     ;; need to guard against self-inclusion.
     (when (typep module 'implementation-unit)
       (let* ((*dependency-stack*
-              (or *dependency-stack*
-                  (list (find-enclosing-software (attrs-root*) ast))))
+               (or *dependency-stack*
+                   (list (find-enclosing-software (attrs-root*) ast))))
              (defaults
-              (relative-module-defaults
-               (enclosing-file-pathname ast)
-               (module-unit-full-name module)
-               (module-unit-full-name (module? ast))))
+               (relative-module-defaults
+                (enclosing-file-pathname ast)
+                (module-unit-full-name module)
+                (module-unit-full-name (module? ast))))
              (module
-              (find-project-module (attrs-root*) defaults)))
+               (or (some (op (find-project-module (attrs-root*) _))
+                         defaults)
+                   (warn "Could not find module with defaults:~%~a"
+                         defaults))))
         (unless (eql (genome module)
                      (find-enclosing 'root-ast (attrs-root*) ast))
           (update-dependency-graph (attrs-root*) module)
@@ -212,7 +242,8 @@ If SYMTAB does not have interface exports, return it unchanged."
            (defaults
              (relative-module-defaults base-path importing-name imported-name))
            (imported-module-software
-             (or (find-project-module project defaults)
+             (or (some (op (find-project-module project _))
+                       defaults)
                  (restart-case
                      (error "Could not find module with defaults ~a" defaults)
                    (continue ()

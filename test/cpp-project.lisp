@@ -173,35 +173,31 @@ make_config(const std::string& path_prefix,
 
 #+tree-sitter-cpp
 (deftest test-relative-module-defaults ()
-  (is (search "BasicPlane/Figures"
-              (namestring
-               (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
-                                         nil
-                                         "BasicPlane.Figures")))))
+  (is (some (op (search "BasicPlane/Figures" (namestring _)))
+            (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
+                                      nil
+                                      "BasicPlane.Figures"))))
 
 #+tree-sitter-cpp
 (deftest test-relative-partition-defaults ()
-  (is (search "BasicPlane/Figures-Point"
-              (namestring
-               (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.ixx"
-                                         "BasicPlane.Figures:Rectangle"
-                                         ":Point")))))
+  (is (some (op (search "BasicPlane/Figures-Point" (namestring _)))
+            (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.ixx"
+                                      "BasicPlane.Figures:Rectangle"
+                                      ":Point"))))
 
 #+tree-sitter-cpp
 (deftest test-relative-module-defaults/partition ()
-  (is (search "BasicPlane/Figures-Rectangle"
-              (namestring
-               (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
-                                         "BasicPlane.Figures"
-                                         ":Rectangle")))))
+  (is (some (op (search "BasicPlane/Figures-Rectangle" (namestring _)))
+            (relative-module-defaults #p"files/BasicPlane.Figures.ixx"
+                                      "BasicPlane.Figures"
+                                      ":Rectangle"))))
 
 #+tree-sitter-cpp
 (deftest test-relative-module-defaults/implicit ()
-  (is (search "BasicPlane/Figures-Rectangle"
-              (namestring
-               (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.cpp"
-                                         "BasicPlane.Figures:Rectangle"
-                                         "BasicPlane.Figures:Rectangle")))))
+  (is (some (op (search "BasicPlane/Figures-Rectangle" (namestring _)))
+            (relative-module-defaults #p"files/BasicPlane.Figures-Rectangle.cpp"
+                                      "BasicPlane.Figures:Rectangle"
+                                      "BasicPlane.Figures:Rectangle"))))
 
 #+tree-sitter-cpp
 (deftest test-find-module ()
