@@ -9,6 +9,7 @@
         :software-evolution-library/software/clang-project
         :software-evolution-library/software/clang-w-fodder
         :software-evolution-library/test/util)
+  (:import-from :cmd)
   (:export :clang-available-p
            :+etc-dir+
            :+gcd-dir+
@@ -438,6 +439,11 @@
 
 (defixture grep-bear-project
   (:setup
+   ;; Ensure the directory is clean
+   (cmd:cmd! "git clean -xdf"
+             (make-pathname :directory +grep-prj-dir+)
+             :in
+             (make-pathname :directory +grep-prj-dir+))
    (setf *project*
          (from-file (make-instance 'clang-project
                       :build-command "make grep"
