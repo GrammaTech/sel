@@ -51,7 +51,7 @@ information on the format of compilation databases.")
   (unless (compilation-database obj)
     (populate-compilation-database obj)))
 
-(defun populate-compilation-database (obj)
+(defun populate-compilation-database (obj &key (ensure t))
   (let* ((supplied-path (compilation-database-path obj))
          (default-compdb-paths
            (mapcar (op (project-relative-pathname obj _))
@@ -75,11 +75,14 @@ information on the format of compilation databases.")
                    (with-open-file (in comp-db-path)
                      (parse-compilation-database in)))
                  (progn
+                   (when ensure
+                     (ensure-compilation-database obj)
+                     (return-from populate-compilation-database
+                       (populate-compilation-database obj :ensure nil)))
                    (dbg:note
                     :debug
                     "No compilation database: checked ~{~a~^, ~}"
-                    comp-db-paths)
-                   (ensure-compilation-database obj))))))
+                    comp-db-paths))))))
     (when compilation-database
       (let ((project-dir (truename (project-dir obj)))
             (build-path (maybe-build-path compilation-database)))
