@@ -1973,6 +1973,17 @@ using foo_t = Foo;")))
           (is (single specializations))
           (is (eql (first specializations) (second calls))))))))
 
+(deftest test-template-possible-types ()
+  (let* ((src (path-join +test-data-dir+ "cpp-templates/generics_and_traits.cc"))
+         (cpp (from-file 'cpp src))
+         (template (find-if (of-type 'cpp-template-declaration) cpp))
+         (params-ast (cpp-parameters template))
+         (params (children params-ast)))
+    (with-attr-table cpp
+      (is (equal '("Rectangle")
+                 (mapcar #'source-text
+                         (possible-types (first params))))))))
+
 
 ;;; Parsing tests
 
