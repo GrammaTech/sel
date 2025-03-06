@@ -87,6 +87,7 @@ build-python-no-tree-sitter:
     - LISP=$LISP GT=yes make python-check
     - pyright --version
     - pyright
+    - mypy --version
     - mypy python/
 
 test-python-sbcl:
