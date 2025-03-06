@@ -82,6 +82,7 @@ build-python-no-tree-sitter:
   script:
     - pip install -r python/requirements-dev.txt
     - pip install -r python/requirements.txt
+    - pip freeze
     - pre-commit install
     - pre-commit run --all-files
     - LISP=$LISP GT=yes make python-check
