@@ -127,6 +127,27 @@ to look it up as `x::z' or just `z'."
 #+:TREE-SITTER-CPP
 (progn
 
+(defun sort-qualifiers (qualifiers)
+  "Sort the potential qualifiers of a function canonically."
+  (stable-sort (copy-seq qualifiers)
+               (load-time-value
+                (ordering '(cpp-attribute-specifier
+                            cpp-type-qualifier
+                            cpp-ref-qualifier
+                            cpp-throw-specifier
+                            cpp-empty-throw-specifier
+                            cpp-noexcept
+                            cpp-attribute-declaration
+                            cpp-trailing-return-type
+                            cpp-virtual-specifier
+                            cpp-requires-clause))
+                t)
+               :key #'tree-sitter-class-name))
+
+(defmethod initialize-instance :after
+    ((cpp cpp-function-declarator) &key &allow-other-keys)
+  (callf #'sort-qualifiers (direct-children cpp)))
+
 (defmethod initialize-instance :after ((cpp cpp)
                                        &key &allow-other-keys)
   "If no compiler was specified, default to cc."

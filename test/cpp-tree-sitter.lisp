@@ -90,6 +90,23 @@ See SEL issue #359."
            (mapcar #'source-text (extra-binop-operands cpp))
            (list "2" "2"))))))
 
+(deftest test-sort-function-qualifiers ()
+  "Test that function qualifiers are always sorted canonically."
+  (let*
+      ((monster
+         ;; This is a function with all possible qualifiers.
+         (cpp*
+          "myfun() __attribute__(()) const & [[nodiscard]] -> int final {}"))
+       (decl (cpp-declarator monster)))
+    (is (length= 6 (direct-children decl)))
+    (iter
+      (repeat 100)
+      (is (source-text=
+           decl
+           (copy decl
+                 :children
+                 (map 'list #'tree-copy (reshuffle (direct-children decl)))))))))
+
 
 ;;; Analysis tests
 
