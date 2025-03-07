@@ -4909,25 +4909,30 @@ PROPERTY-AST."
       (copy/structure (make to :text (source-text term))
                       term)))
 
-(defun tree-sitter-class-name (class &key ignore-named)
-  "If CLASS is a choice subclass, or the name of a choice subclass,
+(defun tree-sitter-class-name (x &key ignore-named)
+  "If X is a choice subclass, or the name of a choice subclass,
 then get the tree-sitter class that that is its supertype, unless the
-choice subclass has been given a name."
-  (econd ((classp class)
-          (tree-sitter-class-name (class-name class)))
-         ((and (symbolp class)
-               (or ignore-named
-                   (scan "-\\d+$" (symbol-name class))))
-          (if-let* ((class (find-class-safe class))
-                    (superclass-slot
-                     (find-if [{eql 'choice-superclass}
-                               #'slot-definition-name]
-                              (progn (ensure-finalized class)
-                                     (class-slots class))))
-                    (quoted-value
-                     (slot-definition-initform superclass-slot)))
-            (ematch quoted-value
-              ((list 'quote (and symbol (type symbol)))
-               symbol))
-            class))
-         ((symbolp class) class)))
+choice subclass has been given a name.
+
+If X is a tree-sitter-ast instance, return its class."
+  (econd
+    ((classp x)
+     (tree-sitter-class-name (class-name x)))
+    ((and (symbolp x)
+          (or ignore-named
+              (scan "-\\d+$" (symbol-name x))))
+     (if-let* ((x (find-class-safe x))
+               (superclass-slot
+                (find-if [{eql 'choice-superclass}
+                          #'slot-definition-name]
+                         (progn (ensure-finalized x)
+                                (class-slots x))))
+               (quoted-value
+                (slot-definition-initform superclass-slot)))
+       (ematch quoted-value
+         ((list 'quote (and symbol (type symbol)))
+          symbol))
+       x))
+    ((symbolp x) x)
+    ((typep x 'tree-sitter-ast)
+     (tree-sitter-class-name (class-of x)))))
