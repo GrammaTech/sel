@@ -465,7 +465,10 @@ void f() { FOO; }~%")))))
    (let ((foo (lastcar
                (collect-if (op (source-text= "FOO" _))
                            c))))
+     (is (source-text= "FOO" (get-declaration-id :variable foo)))
      (is (source-text= "FOO" (get-declaration-ast :variable foo)))
+     (is (typep (get-declaration-ast :variable foo)
+                'c-enumerator))
      (is (source-text= "f" (infer-type foo))))))
 
 (deftest test-infer-type-on-enum/typedef ()
