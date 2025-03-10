@@ -2222,13 +2222,10 @@ functions.")
   (:method ((template cpp-template-declaration) &aux (root (attrs-root*)))
     (nest
      (labels ((specialized? (arguments-ast)
-                (let* ((args (children arguments-ast))
-                       (arg-decls
-                         (mapcar (op (get-declaration-ast :type _))
-                                 args)))
-                  ;; NB This excludes optional type parameters.
-                  (notevery (of-type 'cpp-type-parameter-declaration)
-                            arg-decls)))
+                ;; NB This excludes optional type parameters.
+                (iter (for arg in (children arguments-ast))
+                      (for decl = (get-declaration-ast :type arg))
+                      (thereis (not (typep decl 'cpp-type-parameter-declaration)))))
               (node-template-and-arguments (node)
                 (match node
                   ;; Collect specializations from types.
