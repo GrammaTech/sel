@@ -2269,26 +2269,29 @@ functions.")
             (specialized? arguments)
             (collect node))))))
 
+(def-attr-fun specialization-type-arguments ()
+  (:method ((specialization ast))
+    (ematch specialization
+      ((or (cpp-template-type
+            (cpp-arguments type-args))
+           (cpp-template-function
+            (cpp-arguments type-args)))
+       (children type-args))
+      ((call-ast (call-function (cpp-field-expression)))
+       nil)
+      ((call-ast (call-function (and fn (cpp-template-function))))
+       (param-possible-types fn))
+      ((and call (call-ast))
+       (mapcar #'infer-type (call-arguments call)))
+      ;; Handle implicit specialization of a
+      ;; call.
+      ((and id (identifier-ast))
+       (when-let ((call (find-enclosing 'call-ast (attrs-root*) id)))
+         (specialization-type-arguments call))))))
+
 (defun param-possible-types (decl &optional default)
   (labels ((param-offset (template decl)
-             (position decl (children (cpp-parameters template))))
-           (specialization-type-arguments (specialization)
-             "Get the type arguments from a template specialization. "
-             (ematch specialization
-               ((or (cpp-template-type
-                     (cpp-arguments type-args))
-                    (cpp-template-function
-                     (cpp-arguments type-args)))
-                (children type-args))
-               ((call-ast (call-function (and fn (cpp-template-function))))
-                (param-possible-types fn))
-               ((and call (call-ast))
-                (mapcar #'infer-type (call-arguments call)))
-               ;; Handle implicit specialization of a
-               ;; call.
-               ((and id (identifier-ast))
-                (when-let ((call (find-enclosing 'call-ast (attrs-root*) id)))
-                  (specialization-type-arguments call))))))
+             (position decl (children (cpp-parameters template)))))
     (when-let* ((template (find-enclosing-template decl))
                 (offset (param-offset template decl)))
       (let* ((specializations (template-specializations template))
