@@ -155,7 +155,7 @@ LEVEL may be a symbolic level defined with `define-note-level-name'."
   (let ((level (numeric-note-level level)))
     (when (<= level *note-level*)
       (let ((*print-pretty* nil))
-        (mapcar
+        (mapc
          #'finish-output
          (mapc
           (lambda (stream)
