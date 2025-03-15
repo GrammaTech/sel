@@ -620,12 +620,17 @@ to look it up as `x::z' or just `z'."
   (flet ((cpp-declarator* (child)
            (or (slot-value-safe child 'cpp-declarator)
                child)))
-    (let ((children (children ast)))
+    (let ((children (direct-children ast)))
       (if (single children)
           (cpp-declarator* (first children))
           (if-let ((first-non-terminal
-                    (find-if-not (of-type 'terminal-symbol)
-                                 children)))
+                    ;; TODO How to deal with the general case of
+                    ;; alternative-ast instances hiding what they
+                    ;; contain?
+                    (find-if-not (of-type '(or terminal-symbol
+                                            alternative-ast))
+                                 children
+                                 :key (op (get-representative-ast _ ast)))))
             (cpp-declarator* first-non-terminal)
             (call-next-method))))))
 
