@@ -247,7 +247,10 @@ If 0, do not print object source text.")
         (print-unreadable-object (obj stream :type t)
           (format stream "~a~@[ :TEXT ~s~]"
                   (serial-number obj)
-                  (get-enough-text obj))))))
+                  (handler-case
+                      (get-enough-text obj)
+                    (error (e)
+                      (fmt "ERROR: ~a" e))))))))
 
 (defmethod print-object ((obj conflict-ast) stream)
   (if *print-readably*
