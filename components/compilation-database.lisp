@@ -73,6 +73,14 @@ headers."
 (defparameter *default-header-dirs*
   '(:current :always :system :stdinc))
 
+(defparameter *default-c-compiler*
+  "clang"
+  "The compiler to use when only `cc' is specified.")
+
+(defparameter *default-c++-compiler*
+  "clang++"
+  "The compiler to use when only `c++' is specified.")
+
 (progn
   (defparameter *standard-macros*
     ;; These are valid values.
@@ -95,7 +103,11 @@ headers."
   (defparameter *compiler-macros*
     '(((:gcc :g++)
        ("__GNUC__" . "1"))
-      ((:clang :clang++))))
+      ((:clang :clang++)
+       ("__GNUC__". "1")
+       ("_MSC_VER" . "1933")
+       ("_MSC_FULL_VER" . "193300000")
+       )))
 
   (defun compiler-specific-macros (compiler)
     (aget compiler *compiler-macros*
@@ -300,8 +312,17 @@ command object."
                          (self command-object)
                          (slot-name (eql 'compiler)))
   "Lazily parse out the compiler."
-  (setf (slot-value self 'compiler)
-        (first (command-arguments self))))
+  (let* ((compiler
+           (first (command-arguments self)))
+         (compiler
+           (lastcar (split-sequence "/" compiler)))
+         (compiler
+           ;; Default compiler.
+           (string-case compiler
+             (("c++") *default-c++-compiler*)
+             (("cc") *default-c-compiler*)
+             (t compiler))))
+    (setf (slot-value self 'compiler) compiler)))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
