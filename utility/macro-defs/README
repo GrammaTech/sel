@@ -1,0 +1,2 @@
+This directory contains dumps of predefined macro definitions as a
+fallback when we can't extract them from the compilers.
