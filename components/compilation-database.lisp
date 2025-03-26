@@ -31,7 +31,7 @@
     :normalize-flags
     :normalize-flags-string
     :parse-compilation-database
-    :parse-macro-def
+    :parse-macro-def-arg
     :preproc-macro-source)
   (:nicknames
    :sel/components/compilation-database
@@ -401,12 +401,15 @@ PATH is a fallback to use for the path slot.")
 
 ;;; Algorithms
 
-(-> parse-macro-def (string)
-    (values macro-name macro-def))
-(defun parse-macro-def (string)
-  "Parse STRING, a macro definition.
+(-> parse-macro-def-arg (string)
+    (cons macro-name macro-def))
+(defun parse-macro-def-arg (string)
+  "Parse STRING, a macro definition as an argument.
 
-Return the macro name and macro definition as two values."
+Return the macro name and macro definition as a cons.
+
+If STRING is a function-like macro, the name is a list of (name .
+args...)."
   (if-let (pos (position #\= string))
     (let ((name (take pos string))
           (definition
@@ -419,7 +422,7 @@ Return the macro name and macro definition as two values."
         (if (whitespacep (aref name (1- lparen)))
             ;; A space between the name and the arg means this is not
             ;; actually a function-like macro.
-            (values
+            (cons
              (take (position-if #'whitespacep name) name)
              (string+ (subseq name lparen)
                       #\Space
@@ -432,10 +435,10 @@ Return the macro name and macro definition as two values."
                      (args (mapcar #'trim-whitespace
                                    (split-sequence #\, arg-string
                                                    :remove-empty-subseqs t))))
-                (values (cons name args) definition))))
-        (values name definition)))
+                (cons (cons name args) definition))))
+        (cons name definition)))
     ;; A definition without a value has an implicit value of 1.
-    (values string "1")))
+    (cons string "1")))
 
 (defun preproc-macro-source (mname mdef)
   "Return the source code for a macro."
@@ -465,8 +468,7 @@ actual name and the arguments."
          (for p previous f)
          (cond ((equal p "-D")
                 (collecting
-                 (multiple-value-call #'cons
-                   (parse-macro-def f))))
+                 (parse-macro-def-arg f)))
                ((equal p "-U")
                 (collect (cons f nil)))))))
 

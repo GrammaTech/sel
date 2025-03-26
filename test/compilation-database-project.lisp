@@ -1,6 +1,8 @@
 ;;;; clang-project.lisp --- Project tests.
 (defpackage :software-evolution-library/test/compilation-database-project
   (:nicknames :sel/test/compilation-database-project)
+  (:local-nicknames
+   (:compdb :software-evolution-library/components/compilation-database))
   (:use
     :gt/full
     #+gt :testbot
@@ -82,26 +84,26 @@
              (normalize-flags-string "" "-D 'name'"))))
 
 (deftest test-parse-function-like-macro-def ()
-  (is (equal (multiple-value-list (parse-macro-def "name(arg)=x"))
-             '(("name" "arg") "x")))
-  (is (equal (multiple-value-list (parse-macro-def "name()=x"))
-             '(("name") "x")))
-  (is (equal (multiple-value-list (parse-macro-def "name(...)=x"))
-             '(("name" "...") "x")))
-  (is (equal (multiple-value-list (parse-macro-def "name(x,y)=x"))
-             '(("name" "x" "y") "x")))
-  (is (equal (multiple-value-list (parse-macro-def "name(x,y,...)=x"))
-             '(("name" "x" "y" "...") "x"))))
+  (is (equal (parse-macro-def-arg "name(arg)=x")
+             '(("name" "arg") . "x")))
+  (is (equal (parse-macro-def-arg "name()=x")
+             '(("name") . "x")))
+  (is (equal (parse-macro-def-arg "name(...)=x")
+             '(("name" "...") . "x")))
+  (is (equal (parse-macro-def-arg "name(x,y)=x")
+             '(("name" "x" "y") . "x")))
+  (is (equal (parse-macro-def-arg "name(x,y,...)=x")
+             '(("name" "x" "y" "...") . "x"))))
 
-(Deftest test-parse-bad-function-like-macro-def ()
+(deftest test-parse-bad-function-like-macro-def ()
   ;; If you put a space before the arguments to a macro, it treats the
   ;; arguments as part of the definition. Try it for yourself:
 
   ;; `echo 'x' | cpp -D'x (y)=z=1'`
-  (is (equal (multiple-value-list (parse-macro-def "x (y)=z"))
-             '("x" "(y) z")))
-  (is (equal (multiple-value-list (parse-macro-def "x (y)=z=1"))
-             '("x" "(y) z=1"))))
+  (is (equal (parse-macro-def-arg "x (y)=z")
+             '("x" . "(y) z")))
+  (is (equal (parse-macro-def-arg "x (y)=z=1")
+             '("x" . "(y) z=1"))))
 
 (deftest test-command-object-definitions ()
   (is (subsetp `(("_U_" . "a")
@@ -211,3 +213,8 @@
                '("--sysroot=/sysroot"
                  "-I"
                  "=/mydir"))))))
+
+(deftest test-dump-compiler-macros ()
+  (when (resolve-executable "gcc")
+    (is (assoc "__GNUC__" (compdb::compiler-dump-predefined-macros "gcc")
+               :test #'equal))))
