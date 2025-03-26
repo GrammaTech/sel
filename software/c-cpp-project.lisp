@@ -391,6 +391,158 @@ should already have been computed as part of their compilation units."
     (call-next-method)))
 
 
+;;; Built-in headers
+
+(defparameter *default-c-compiler*
+  :clang
+  "The compiler to use when only `cc' is specified.")
+
+(defparameter *default-c++-compiler*
+  :clang++
+  "The compiler to use when only `c++' is specified.")
+
+(defun compiler-name (input)
+  "Return the canonical compiler name."
+  (declare ((or keyword string) input))
+  (etypecase input
+    (keyword
+     (case input
+       (:cc *default-c-compiler*)
+       (:c++ *default-c++-compiler*)
+       (otherwise input)))
+    (string
+     (cond
+       ((emptyp input)
+        (error "Empty compiler name"))
+       ((find #\/ input)
+        (compiler-name (lastcar (split-sequence #\/ input))))
+       ((find #\\ input)
+        (compiler-name (lastcar (split-sequence #\\ input))))
+       (t
+        (let ((name (find-keyword (string-upcase input))))
+          (if name
+              (compiler-name name)
+              (progn
+                (warn "Unknown compiler: ~a" name)
+                *default-c-compiler*))))))))
+
+(defparameter *standard-macros*
+  ;; These are valid values.
+  '(("__DATE__" . "??? ?? ????")
+    ("__TIME__" . "??:??:??")
+    ("__STDC__" . "1")))
+
+(defparameter *platform-macros*
+  '(((:linux)
+     ("linux" . "1")
+     ("unix" . "1")
+     ("__linux" . "1")
+     ("__linux__" . "1")
+     ("__GNU__" . "1")
+     ("__GLIBC__" . "1"))))
+
+(defun platform-specific-macros (platform)
+  (aget platform *platform-macros*
+        :test (op (member _ _ :test #'string-equal))))
+
+(defun parse-macro-defs (string)
+  "Parse macro definitions in STRING.
+STRING is a source file consisting of only unconditional top-level
+macro definitions."
+  (labels ((parse-def (d)
+             (etypecase d
+               (c-preproc-def
+                (cons
+                 (source-text (c-name d))
+                 (trim-whitespace (source-text (c-value d)))))
+               (c-preproc-function-def
+                (let* ((name (source-text (c-name d)))
+                       (param-asts
+                         (filter
+                          (of-type 'identifier-ast)
+                          (children
+                           (c-parameters d))))
+                       (params
+                         (mapcar #'source-text param-asts))
+                       (values
+                         (trim-whitespace
+                          (source-text
+                           (c-value d)))))
+                  (cons (cons name params)
+                        values))))))
+    (let* ((c (from-string 'c string))
+           (defs
+             (filter (of-type 'preprocessor-ast)
+                     (children (genome c)))))
+      (mapcar #'parse-def defs))))
+
+(defun dump-predefined-macros (compiler)
+  "Invoke COMPILER to dump its predefined macros."
+  (labels ((get-from-compiler (compiler lang)
+             (when (resolve-executable compiler)
+               (let ((output
+                       (cmd:$cmd
+                        (list compiler)
+                        "-dM -E -x"
+                        (list lang)
+                        "-" :input nil)))
+                 (parse-macro-defs
+                  (string-join
+                   (filter (op (string^= "#define" _))
+                           (lines output))
+                   #\Newline))))))
+    (case (compiler-name compiler)
+      (:clang (get-from-compiler "clang" "c"))
+      (:clang++ (get-from-compiler "clang" "c++"))
+      (:gcc (get-from-compiler "gcc" "c"))
+      (:g++ (get-from-compiler "gcc" "c++"))
+      (otherwise nil))))
+
+(defun default-predefined-macros-file (compiler)
+  (when-let ((prefix
+              (case (compiler-name compiler)
+                ((:clang) "clang-c")
+                ((:clang++) "clang-cpp")
+                ((:cc :gcc) "gcc-c")
+                ((:c++ :g++) "gcc-cpp"))))
+    (asdf:system-relative-pathname
+     :software-evolution-library
+     (fmt "utility/macro-defs/~a-predefined-macros.txt"
+          prefix))))
+
+(defun default-predefined-macros (compiler)
+  "Load default predefined macros for COMPILER."
+  (when-let ((file (default-predefined-macros-file compiler)))
+    (parse-macro-defs
+     (read-file-into-string
+      file))))
+
+(let ((cached-macros (empty-map)))
+  (defun predefined-macros (compiler)
+    (callf #'compiler-name compiler)
+    (labels ((compiler-specific-macros (compiler)
+               (handler-case
+                   (or (dump-predefined-macros compiler)
+                       (default-predefined-macros compiler))
+                 (cmd:cmd-error ()
+                   (default-predefined-macros compiler)))))
+      (or (@ cached-macros compiler)
+          (synchronized ()
+            (lret ((macros (compiler-specific-macros compiler)))
+              (withf cached-macros
+                     compiler
+                     macros)))))))
+
+(defun implicit-preproc-defs (compiler platform)
+  (remove-duplicates
+   (append
+    (predefined-macros compiler)
+    *standard-macros*
+    (platform-specific-macros platform))
+   :key #'car
+   :test #'equal))
+
+
 ;;; Implicit Headers
 
 (defgeneric command-implicit-header (command lang)
@@ -398,24 +550,28 @@ should already have been computed as part of their compilation units."
 Implicit headers give us a place to inject code \"as if\" it had been
 included in a header.")
   (:method ((co command-object) lang)
-    (when-let (alist (command-preproc-defs co))
+    (when-let (alist
+               (append (implicit-preproc-defs
+                        (command-compiler co)
+                        (command-platform co))
+                       (command-preproc-defs co)))
       (let* ((alist
-              (if (eql lang 'cpp)
-                  (cons '("__cplusplus" . "1") alist)
-                  alist))
+               (if (eql lang 'cpp)
+                   (cons '("__cplusplus" . "1") alist)
+                   alist))
              (source
-              (mapconcat (lambda (cons)
-                           (preproc-macro-source (car cons) (cdr cons)))
-                         (reverse alist)
-                         ""))
+               (mapconcat (lambda (cons)
+                            (preproc-macro-source (car cons) (cdr cons)))
+                          (reverse alist)
+                          ""))
              (children
-              (collect-if
-               (of-type '(or c/cpp-preproc-def c/cpp-preproc-function-def))
-               (from-string lang source)))
+               (collect-if
+                (of-type '(or c/cpp-preproc-def c/cpp-preproc-function-def))
+                (from-string lang source)))
              (root-class
-              (ecase lang
-                (c 'c-translation-unit)
-                (cpp 'cpp-translation-unit))))
+               (ecase lang
+                 (c 'c-translation-unit)
+                 (cpp 'cpp-translation-unit))))
         (make 'implicit-header
               :source-file (command-file co)
               :children
@@ -430,6 +586,10 @@ included in a header.")
   (:method ((project c/cpp-project) (file string))
     (get-implicit-header project (pathname file)))
   (:method ((project c/cpp-project) (file pathname))
+    (unless (relative-pathname-p file)
+      (setf file
+            (enough-pathname file
+                             (project-relative-pathname project ""))))
     (assert (relative-pathname-p file))
     (when-let ((co (command-object project file)))
       (let* ((genome (genome project))
@@ -1263,6 +1423,4 @@ include files in all directories of the project."
 
 (defmethod symbol-table ((node c/cpp-unknown-header) &optional in)
   (declare (ignore in))
-  (empty-map))
-
-) ; #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
+  (empty-map))) ; #+(or :TREE-SITTER-C :TREE-SITTER-CPP)

@@ -1,8 +1,6 @@
 ;;;; clang-project.lisp --- Project tests.
 (defpackage :software-evolution-library/test/compilation-database-project
   (:nicknames :sel/test/compilation-database-project)
-  (:local-nicknames
-   (:compdb :software-evolution-library/components/compilation-database))
   (:use
     :gt/full
     #+gt :testbot
@@ -213,8 +211,3 @@
                '("--sysroot=/sysroot"
                  "-I"
                  "=/mydir"))))))
-
-(deftest test-dump-compiler-macros ()
-  (when (resolve-executable "gcc")
-    (is (assoc "__GNUC__" (compdb::compiler-dump-predefined-macros "gcc")
-               :test #'equal))))

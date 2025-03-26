@@ -5,6 +5,7 @@
   (:local-nicknames
    (:json :cl-json))
   (:shadow :path :macro-name)
+  (:import-from :cmd)
   (:import-from :shlex)
   (:export
     :*default-header-dirs*
@@ -18,6 +19,7 @@
     :command-object
     :command-objects
     :command-output
+    :command-platform
     :command-preproc-defs
     :command-string
     :compilation-database
@@ -72,48 +74,6 @@ headers."
 (declaim (type header-dirs *default-header-dirs*))
 (defparameter *default-header-dirs*
   '(:current :always :system :stdinc))
-
-(defparameter *default-c-compiler*
-  "clang"
-  "The compiler to use when only `cc' is specified.")
-
-(defparameter *default-c++-compiler*
-  "clang++"
-  "The compiler to use when only `c++' is specified.")
-
-
-;;; Compiler macros
-
-(defparameter *standard-macros*
-  ;; These are valid values.
-  '(("__DATE__" . "??? ?? ????")
-    ("__TIME__" . "??:??:??")
-    ("__STDC__" . "1")))
-
-(defparameter *platform-macros*
-  '(((:linux)
-     ("linux" . "1")
-     ("__linux" . "1")
-     ("__linux__" . "1")
-     ("__GNU__" . "1")
-     ("__GLIBC__" . "1"))))
-
-(defun platform-specific-macros (platform)
-  (aget platform *platform-macros*
-        :test (op (member _ _ :test #'string-equal))))
-
-(defparameter *compiler-macros*
-  '(((:gcc :g++)
-     ("__GNUC__" . "1"))
-    ((:clang :clang++)
-     ("__GNUC__". "1")
-     ("_MSC_VER" . "1933")
-     ("_MSC_FULL_VER" . "193300000")
-     )))
-
-(defun compiler-specific-macros (compiler)
-  (aget compiler *compiler-macros*
-        :test (op (member _ _ :test #'string-equal))))
 
 
 ;;; Compiler flags
@@ -322,13 +282,7 @@ command object."
   (let* ((compiler
            (first (command-arguments self)))
          (compiler
-           (lastcar (split-sequence "/" compiler)))
-         (compiler
-           ;; Default compiler.
-           (string-case compiler
-             (("c++") *default-c++-compiler*)
-             (("cc") *default-c-compiler*)
-             (t compiler))))
+           (lastcar (split-sequence "/" compiler))))
     (setf (slot-value self 'compiler) compiler)))
 
 (defmethod slot-unbound ((class t)
@@ -343,11 +297,7 @@ command object."
                          (slot-name (eql 'preprocessor-definitions)))
   "Lazily compute preprocessor definitions."
   (setf (slot-value self 'preprocessor-definitions)
-        (append
-         (compiler-specific-macros (command-compiler self))
-         (platform-specific-macros (command-platform self))
-         (preprocessor-definition-alist-from-flags (command-flags self))
-         *standard-macros*)))
+        (preprocessor-definition-alist-from-flags (command-flags self))))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)

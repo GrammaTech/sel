@@ -18,7 +18,11 @@
   (:import-from :cmd)
   (:import-from
     :software-evolution-library/components/compilation-database
-    :compilation-database)
+    :compilation-database
+    :macro-name
+    :macro-def)
+  (:local-nicknames
+   (:c/cpp-project :software-evolution-library/software/c-cpp-project))
   (:export :test-c-project))
 (in-package :software-evolution-library/test/c-project)
 (in-readtable :curry-compose-reader-macros)
@@ -438,3 +442,58 @@ present in evolve-files/dependency-order."
         (is (not (eq x1-decl x2-decl)))
         (is (source-text= (c-value (car (c-declarator x1-decl))) "1"))
         (is (source-text= (c-value (car (c-declarator x2-decl))) "2"))))))
+
+(deftest c-project-implicit-headers ()
+  "Test implicit headers are incorporated into file symbol tables."
+  (with-fixture extra-files
+    (let* ((file (cdar (evolve-files *project*))))
+      (is (get-implicit-header *project* file))
+      (with-attr-table *project*
+        (let ((symtab (symbol-table (genome file))))
+          (is symtab)
+          (is (lookup (lookup symtab :macro) "NULL")))))))
+
+(deftest test-parse-predefined-macros ()
+  "Test we parse all predefined macros."
+  (iter (for compiler in '(:gcc :g++ :clang :clang++))
+        (mvlet* ((file
+                  (c/cpp-project::default-predefined-macros-file
+                   compiler))
+                 (string (read-file-into-string file))
+                 (defs
+                  (c/cpp-project::default-predefined-macros compiler)))
+          (is defs)
+          (is (length= defs (remove-if #'emptyp (lines string))))
+          (is (every (of-type
+                      '(cons macro-name macro-def))
+                     defs)))))
+
+(deftest test-dump-compiler-macros ()
+  "Test we actually get compiler-specific macros."
+  (when (resolve-executable "gcc")
+    (is (not (assoc "__clang__"
+                    (c/cpp-project::dump-predefined-macros "gcc")
+                    :test #'equal))))
+  (when (resolve-executable "clang")
+    (is (assoc "__clang__"
+               (c/cpp-project::dump-predefined-macros "clang")
+               :test #'equal))))
+
+(deftest test-dump-predefined-macros ()
+  "Test we can dump predefined macros."
+  (let ((compilers '(:gcc :g++ :clang :clang++))
+        (dumps '()))
+    (dolist (compiler compilers)
+      (when (resolve-executable (string-downcase compiler))
+        (let ((defs (c/cpp-project::dump-predefined-macros compiler)))
+          (is defs)
+          (is (every (of-type
+                      '(cons macro-name macro-def))
+                     defs))
+          (push defs dumps))))
+    (is (length=
+         dumps
+         (remove-duplicates
+          dumps
+          :test
+          (op (set-equal _ _ :test #'equal)))))))
