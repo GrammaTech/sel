@@ -685,6 +685,24 @@ int sum = myadd(2, 2);"))
                    (c* "const double *(*arrOfPtr[5]) = y")))
              'identifier-ast)))
 
+(deftest test-constant-fold-zero ()
+  (= (constant-fold (c* "0")) 0))
+
+(deftest test-constant-fold-integers ()
+  (is (same
+       #'constant-fold
+       (mapcar (op (make 'cpp-number-literal :text _))
+               '("42" "052" "0x2a" "0X2A" "0b101010"))
+       :test #'=)))
+
+(deftest test-constant-fold-integer-with-separators ()
+  (is (same #'constant-fold
+            '("18446744073709550592ull"
+              "18'446'744'073'709'550'592llu"
+              "1844'6744'0737'0955'0592uLL"
+              "184467'440737'0'95505'92LLU"
+              :test #'=))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

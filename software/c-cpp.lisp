@@ -1255,7 +1255,27 @@ Should return `:failure' in the base case.")
 
 (defmethod convert ((to-type (eql 'integer))
                     (ast c/cpp-number-literal) &key)
-  (parse-integer (text ast)))
+  (mvlet* ((text (text ast))
+           (text (remove #\' text))
+           (text
+            (string-right-trim "uUlLzZ" text))
+           (radix start
+            (cond
+              ((string-prefix-p "0x" text)
+               (values 16 2))
+              ((string-prefix-p "0b" text)
+               (values 2 2))
+              ;; C23?
+              ((string-prefix-p "0o" text)
+               (values 8 2))
+              ((and
+                (length> text 1)
+                (string-prefix-p "0" text))
+               (values 8 1))
+              (t (values 10 0)))))
+    (declare ((integer 2 36) radix)
+             (array-index start))
+    (parse-integer text :radix radix :start start)))
 
 (defmethod convert ((to-type (eql 'float))
                     (ast c/cpp-number-literal) &key)
@@ -1263,7 +1283,8 @@ Should return `:failure' in the base case.")
 
 (defmethod convert ((to-type (eql 'number))
                     (ast c/cpp-number-literal) &key)
-  (parse-number (text ast)))
+  (or (ignore-errors (convert 'integer ast))
+      (ignore-errors (convert 'float ast))))
 
 (defmethod entry-control-flow ((switch-ast c/cpp-switch-statement))
   (children (body switch-ast)))
