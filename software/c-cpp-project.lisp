@@ -25,35 +25,36 @@
    (:task :software-evolution-library/utility/task)
    (:ts :software-evolution-library/software/tree-sitter))
   (:shadowing-import-from :serapeum :~>>)
-  (:export :c/cpp-project
-           :get-standard-path-header
-           :header-name
-           :system-headers
-           :implicit-headers
-           :c/cpp-root
-           :include-not-found-warning
-           :include-conflict-error
-           :include-conflict-error.ast
-           :include-conflict-error.candidates
-           :get-implicit-header
-           :command-implicit-header
-           :project-dependency-tree
-           :who-includes?
-           :file-dependency-tree
-           :find-include
-           :*header-extensions*
-           :*cpp-module-extensions*
-           :*cpp-implementation-extensions*
-           :*cpp-extensions*
-           :evolve-files/dependency-order
-           :included-headers
-           :including-files
-           :find-enclosing-software
-           :*dependency-stack*
-           :update-dependency-graph
-           :find-symbol-table-from-include
-           :skip-include
-           :c/cpp-system-header))
+  (:export
+    :*cpp-extensions*
+    :*cpp-implementation-extensions*
+    :*cpp-module-extensions*
+    :*dependency-stack*
+    :*header-extensions*
+    :c/cpp-project
+    :c/cpp-root
+    :c/cpp-system-header
+    :command-implicit-header
+    :evolve-files/dependency-order
+    :file-dependency-tree
+    :find-enclosing-software
+    :find-include
+    :find-symbol-table-from-include
+    :get-implicit-header
+    :get-standard-path-header
+    :header-name
+    :implicit-headers
+    :include-conflict-error
+    :include-conflict-error.ast
+    :include-conflict-error.candidates
+    :include-not-found-warning
+    :included-headers
+    :including-files
+    :project-dependency-tree
+    :skip-include
+    :system-headers
+    :update-dependency-graph
+    :who-includes?))
 
 (in-package :software-evolution-library/software/c-cpp-project)
 (in-readtable :curry-compose-reader-macros)
@@ -548,6 +549,8 @@ available, or from a predefined list."
     (platform-specific-macros platform))
    :key #'car
    :test #'equal))
+
+
 
 
 ;;; Implicit Headers

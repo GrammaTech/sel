@@ -217,6 +217,16 @@
            (propagate-declarations-down node in)
            ;; Make new definitions visible, but only inside the ifdef.
            (handle-disabled node)))
+      ((or (c/cpp-preproc-if
+            (c/cpp-condition condition))
+           (c/cpp-preproc-elif
+            (c/cpp-condition condition)))
+       (when-let (env (lookup in :macro))
+         (if (interpret-preprocessor-expression-p
+              condition
+              :macros env)
+             (propagate-declarations-down node in)
+             (handle-disabled node))))
       ((c/cpp-preproc-ifdef
         (children (list* (c/cpp-#ifndef) _))
         (c/cpp-name (and name (identifier-ast))))
@@ -233,7 +243,7 @@
   (propagate-declarations-down node in))
 
 
-;;; Macro heuristics
+;;; Macro handling
 
 (defun macro-name? (ast)
   "Does AST look like a macro name (that should not be qualified)? If a
@@ -279,6 +289,130 @@ Otherwise, use heuristics."
                       (digit-char-p char)
                       (eql char #\_)))
                 string))))
+
+(-> interpret-preprocessor-expression
+    ((or string c-ast) &key (:macros fset:map))
+    integer)
+(defun interpret-preprocessor-expression (expr &key (macros (empty-map)))
+  "Interpret the subset of C allowed in an `#if` directive.
+MACROS is a map from macro names to expansions."
+  (let ((true 1)
+        (false 0))
+    (labels ((true? (x)
+               (not (eql x false)))
+             (false? (x)
+               (eql x false))
+             (interpret (expr)
+               ;; Macrolet is a shorthand that doesn't make backtraces
+               ;; unreadable.
+               (macrolet ((rec (x) `(interpret ,x)))
+                 (ematch expr
+                   ((c-number-literal)
+                    (let ((num (convert 'integer expr)))
+                      (if (typep num 'integer)
+                          num
+                          (error "Non-integer constant in preprocessor expression: ~a"
+                                 expr))))
+                   ((c-char-literal)
+                    (char-code
+                     (character
+                      (string-trim
+                       "'"
+                       (text expr)))))
+                   ;; Not strictly allowed, but makes testing easier.
+                   ((c* "($X)" :x x)
+                    (rec x))
+                   ((c* "!$X" :x x)
+                    (if (false? (rec x))
+                        true
+                        false))
+                   ((c* "$X + $Y" :x x :y y)
+                    (+ (rec x) (rec y)))
+                   ((c* "$X - $Y" :x x :y y)
+                    (- (rec x) (rec y)))
+                   ((c-binary-expression
+                     (c-left x)
+                     (c-right y)
+                     (c-operator (c-*)))
+                    (* (rec x) (rec y)))
+                   ((c* "$X / $Y" :x x :y y)
+                    (/ (rec x) (rec y)))
+                   ((c* "$X & $Y" :x x :y y)
+                    (logand (rec x) (rec y)))
+                   ((c* "$X | $Y" :x x :y y)
+                    (logior (rec x) (rec y)))
+                   ((c* "$X ^ $Y" :x x :y y)
+                    (logxor (rec x) (rec y)))
+                   ((c* "~$X" :x x)
+                    (lognot (rec x)))
+                   ((c* "$X << $Y" :x x :y y)
+                    (ash (rec x) (rec y)))
+                   ((c* "$X >> $Y" :x x :y y)
+                    (ash (rec x) (- (rec y))))
+                   ((c* "$X < $Y" :x x :y y)
+                    (if (< (rec x) (rec y))
+                        true false))
+                   ((c* "$X > $Y" :x x :y y)
+                    (if (> (rec x) (rec y))
+                        true false))
+                   ((c* "$X <= $Y" :x x :y y)
+                    (if (<= (rec x) (rec y))
+                        true false))
+                   ((c* "$X >= $Y" :x x :y y)
+                    (if (>= (rec x) (rec y))
+                        true false))
+                   ((c* "$X == $Y" :x x :y y)
+                    (if (= (rec x) (rec y))
+                        true false))
+                   ((c* "$X != $Y" :x x :y y)
+                    (if (/= (rec x) (rec y))
+                        true false))
+                   ((c* "$X && $Y" :x x :y y)
+                    (if (true? (rec x))
+                        (if (true? (rec y))
+                            true
+                            false)
+                        false))
+                   ((c* "$X || $Y" :x x :y y)
+                    (cond ((true? (rec x))
+                           true)
+                          ((true? (rec y))
+                           true)
+                          (t false)))
+                   ((or (c-preproc-defined (children (list x)))
+                        (c* "defined($X)" :x x))
+                    (if (lookup macros (source-text x))
+                        true
+                        false))
+                   ((c-identifier)
+                    (if-let (expansion
+                             (lookup macros
+                                     (source-text expr)))
+                      (rec (convert 'c-ast expansion :deepest t :tolerant t))
+                      ;; TODO -Wundef?
+                      0))
+                   ((c-error)
+                    (let ((parsed (c* (source-text expr))))
+                      (if (typep parsed 'c-error)
+                          (error "Unparseable error node: ~a" expr)
+                          (rec parsed))))))))
+      (etypecase expr
+        (string
+         ;; TODO Expand first?
+         (interpret-preprocessor-expression
+          (convert 'c-ast expr :deepest t :tolerant t)))
+        (c-ast
+         (interpret expr))))))
+
+(-> interpret-preprocessor-expression-p (c-ast &key (:macros fset:map))
+    boolean)
+(defun interpret-preprocessor-expression-p (expr &key (macros (empty-map)))
+  "Cast result of `interpet-preprocessor-expression' to a LISP boolean."
+  (let ((result
+          (interpret-preprocessor-expression
+           expr
+           :macros macros)))
+    (not (zerop result))))
 
 
 ;;; Generics and Transformations

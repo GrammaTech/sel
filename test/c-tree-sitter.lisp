@@ -20,6 +20,8 @@
   (:local-nicknames
    (:ts :software-evolution-library/software/tree-sitter))
   (:import-from :software-evolution-library/software/tree-sitter
+                :interpret-preprocessor-expression
+                :interpret-preprocessor-expression-p
                 :outer-defs
                 :blot)
   (:export :test-c-tree-sitter))
@@ -2008,3 +2010,103 @@ before-text of the following AST if one exists."
 #endif
 #include <stdio.h>
 "))))
+
+
+;;; Preprocessor expressions.
+
+(deftest test-interpret-preprocessor-expression ()
+  "Preprocess expressions should evaluate correctly."
+  (is (eql 1  (interpret-preprocessor-expression (c* "1"))))
+  (is (eql 97 (interpret-preprocessor-expression (c* "'a'"))))
+  (is (eql 2  (interpret-preprocessor-expression (c* "1+1"))))
+  (is (eql 0  (interpret-preprocessor-expression (c* "1-1"))))
+  (is (eql 2  (interpret-preprocessor-expression (c* "(1*2)"))))
+  (is (eql 3  (interpret-preprocessor-expression (c* "9/3"))))
+  (is (eql -2 (interpret-preprocessor-expression (c* "~1"))))
+  (is (eql 16 (interpret-preprocessor-expression (c* "16 & 31"))))
+  (is (eql 3  (interpret-preprocessor-expression (c* "1 | 2"))))
+  (is (eql 2  (interpret-preprocessor-expression (c* "1 ^ 3"))))
+  (is (eql 32 (interpret-preprocessor-expression (c* "16 << 1"))))
+  (is (eql 8  (interpret-preprocessor-expression (c* "16 >> 1")))))
+
+(deftest test-interpret-preprocessor-expression-p ()
+  "Preprocessor expressions should correctly evaluate to booleans."
+  (is (interpret-preprocessor-expression-p (c* "0 || 1")))
+  (is (interpret-preprocessor-expression-p (c* "1 && 1")))
+  (is (interpret-preprocessor-expression-p (c* "1 < 2")))
+  (is (interpret-preprocessor-expression-p (c* "1 <= 2")))
+  (is (interpret-preprocessor-expression-p (c* "1 || 0")))
+  (is (interpret-preprocessor-expression-p (c* "1 || 1")))
+  (is (interpret-preprocessor-expression-p (c* "2 <= 2")))
+  (is (interpret-preprocessor-expression-p (c* "2 > 1")))
+  (is (interpret-preprocessor-expression-p (c* "2 >= 1")))
+  (is (interpret-preprocessor-expression-p (c* "2 >= 2")))
+  (is (not (interpret-preprocessor-expression-p (c* "0 && 1"))))
+  (is (not (interpret-preprocessor-expression-p (c* "1 && 0"))))
+  (is (not (interpret-preprocessor-expression-p (c* "2 < 2"))))
+  (is (not (interpret-preprocessor-expression-p (c* "2 >= 3")))))
+
+(deftest test-interpret-preprocessor-expression/macros ()
+  "We should be able to call defined on macros."
+  (is (not (interpret-preprocessor-expression-p (c* "defined(FOO)"))))
+  (is (interpret-preprocessor-expression-p (c* "!defined(FOO)")))
+  (is (interpret-preprocessor-expression-p
+       (c* "defined(FOO)")
+       :macros (fset:map ("FOO" "1"))))
+  (is (not (interpret-preprocessor-expression-p
+            (c* "!defined(FOO)")
+            :macros (fset:map ("FOO" "1")))))
+  (is (not (interpret-preprocessor-expression-p
+            (c* "defined(FOO)")
+            :macros (fset:map ("FOO" nil))))))
+
+(deftest test-interpret-preprocessor-expression/complex-expr-1 ()
+  "We should be able to handle real-world expressions."
+  (let* ((preproc-if (c* "#if defined(_MSC_VER) || \\
+(defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \\
+(__GNUC__ >= 4))
+#pragma once
+#endif"))
+         (condition
+           (c-condition preproc-if)))
+    (is (not (interpret-preprocessor-expression-p condition)))
+    (is (interpret-preprocessor-expression-p
+         condition
+         :macros
+         (fset:map ("_MSC_VER" "1"))))
+    (is (not (interpret-preprocessor-expression-p
+              condition
+              :macros
+              (fset:map ("__GNUC__" "3")
+                        ("__GNUC_MINOR__" "3")))))
+    (is (interpret-preprocessor-expression-p
+         condition
+         :macros
+         (fset:map ("__GNUC__" "3")
+                   ("__GNUC_MINOR__" "4"))))))
+
+(deftest test-interpret-preprocessor-expression/complex-expr-2 ()
+  "We should be able to handle real-world expressions."
+  (let* ((c (c* "#if defined(__cpp_constexpr) && __cpp_constexpr >= 201304L
+    #define JKJ_HAS_CONSTEXPR14 1
+#elif __cplusplus >= 201402L
+    #define JKJ_HAS_CONSTEXPR14 1
+#elif defined(_MSC_VER) && _MSC_VER >= 1910 && _MSVC_LANG >= 201402L
+    #define JKJ_HAS_CONSTEXPR14 1
+#else
+    #define JKJ_HAS_CONSTEXPR14 0
+#endif"))
+         (conditions
+           (mapcar #'c-condition
+                   (collect-if (of-type '(or c-preproc-if c-preproc-elif))
+                               c))))
+    (is (length= 3 conditions))
+    (is (notany #'interpret-preprocessor-expression-p conditions))
+    (let ((env (fset:map ("__cpp_constexpr" "201304L"))))
+      (is (interpret-preprocessor-expression-p (first conditions) :macros env))
+      (is (not (interpret-preprocessor-expression-p
+                (second conditions)
+                :macros env)))
+      (is (not (interpret-preprocessor-expression-p
+                (third conditions)
+                :macros env))))))
