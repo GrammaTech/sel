@@ -2060,13 +2060,17 @@ before-text of the following AST if one exists."
             (c* "defined(FOO)")
             :macros (fset:map ("FOO" nil))))))
 
-(deftest test-interpret-preprocessor-expression/complex-expr-1 ()
-  "We should be able to handle real-world expressions."
-  (let* ((preproc-if (c* "#if defined(_MSC_VER) || \\
+(def +complex-preproc-expr-1+
+  "#if defined(_MSC_VER) || \\
 (defined(__GNUC__) && (__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || \\
 (__GNUC__ >= 4))
 #pragma once
-#endif"))
+#endif")
+
+(deftest test-interpret-preprocessor-expression/complex-expr-1 ()
+  "A complex preprocessor condition should be interpreted properly based
+on the macro environment."
+  (let* ((preproc-if (c* +complex-preproc-expr-1+))
          (condition
            (c-condition preproc-if)))
     (is (not (interpret-preprocessor-expression-p condition)))
@@ -2085,17 +2089,24 @@ before-text of the following AST if one exists."
          (fset:map ("__GNUC__" "3")
                    ("__GNUC_MINOR__" "4"))))))
 
-(deftest test-interpret-preprocessor-expression/complex-expr-2 ()
-  "We should be able to handle real-world expressions."
-  (let* ((c (c* "#if defined(__cpp_constexpr) && __cpp_constexpr >= 201304L
+(def +complex-preproc-expr-2+
+  "#if defined(__cpp_constexpr) && __cpp_constexpr >= 201304L
     #define JKJ_HAS_CONSTEXPR14 1
+    foo1();
 #elif __cplusplus >= 201402L
-    #define JKJ_HAS_CONSTEXPR14 1
+    #define JKJ_HAS_CONSTEXPR14 2
+    foo2();
 #elif defined(_MSC_VER) && _MSC_VER >= 1910 && _MSVC_LANG >= 201402L
-    #define JKJ_HAS_CONSTEXPR14 1
+    #define JKJ_HAS_CONSTEXPR14 3
+    foo3();
 #else
     #define JKJ_HAS_CONSTEXPR14 0
-#endif"))
+    foo4();
+#endif")
+
+(deftest test-interpret-preprocessor-expression/complex-expr-2 ()
+  "We should be able to handle real-world expressions."
+  (let* ((c (c* +complex-preproc-expr-2+))
          (conditions
            (mapcar #'c-condition
                    (collect-if (of-type '(or c-preproc-if c-preproc-elif))
@@ -2110,3 +2121,42 @@ before-text of the following AST if one exists."
       (is (not (interpret-preprocessor-expression-p
                 (third conditions)
                 :macros env))))))
+
+(deftest test-preprocessor-if-internal-symbol-tables ()
+  "Branches of an if/else should only see macros defined in that branch."
+  (let ((c (c* +complex-preproc-expr-2+)))
+    (with-attr-table c
+      (let ((calls
+              ;; TODO Not sure why I need reverse here.
+              (reverse
+               (collect-if (of-type 'call-ast) c))))
+        (is (length= calls 4))
+        (iter (for call in calls)
+              (for value in '(1 2 3 0))
+              (is (equal
+                   (ts::macro-ref
+                    (lookup (symbol-table call) :macro)
+                    "JKJ_HAS_CONSTEXPR14")
+                   (princ-to-string value))))))))
+
+(deftest test-preprocessor-if-symbol-table ()
+  "The right #define should end up in the symbol table given different
+sets of starting definitions."
+  (let ((c (c*
+            (fmt "#define __cpp_constexpr 201304L~%~a"
+                 +complex-preproc-expr-2+))))
+    (with-attr-table c
+      (let ((macros (lookup (symbol-table c) :macro)))
+        (is (equal "1" (ts::macro-ref macros "JKJ_HAS_CONSTEXPR14"))))))
+  (let ((c (c*
+            (fmt "#define __cplusplus 201402L~%~a"
+                 +complex-preproc-expr-2+))))
+    (with-attr-table c
+      (let ((macros (lookup (symbol-table c) :macro)))
+        (is (equal "2" (ts::macro-ref macros "JKJ_HAS_CONSTEXPR14"))))))
+  (let ((c (c*
+            (fmt "#define _MSC_VER 1920~%#define _MSVC_LANG 201402L~%~a"
+                 +complex-preproc-expr-2+))))
+    (with-attr-table c
+      (let ((macros (lookup (symbol-table c) :macro)))
+        (is (equal "3" (ts::macro-ref macros "JKJ_HAS_CONSTEXPR14")))))))

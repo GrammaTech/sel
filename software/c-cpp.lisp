@@ -191,11 +191,7 @@
 (defmethod symbol-table-union ((root c/cpp) table-1 table-2 &key)
   (symbol-table-union (genome root) table-1 table-2))
 
-(defmethod symbol-table ((node c/cpp-preproc-if) &optional in)
-  (propagate-declarations-down node in))
-
 (defmethod symbol-table ((node c/cpp-preproc-ifdef) &optional in)
-  ;; TODO Extend to #if defined and #elif defined.
   (flet ((defined? (name)
            (let ((macro-ns (lookup in :macro)))
              (and macro-ns
@@ -217,16 +213,6 @@
            (propagate-declarations-down node in)
            ;; Make new definitions visible, but only inside the ifdef.
            (handle-disabled node)))
-      ((or (c/cpp-preproc-if
-            (c/cpp-condition condition))
-           (c/cpp-preproc-elif
-            (c/cpp-condition condition)))
-       (when-let (env (lookup in :macro))
-         (if (interpret-preprocessor-expression-p
-              condition
-              :macros env)
-             (propagate-declarations-down node in)
-             (handle-disabled node))))
       ((c/cpp-preproc-ifdef
         (children (list* (c/cpp-#ifndef) _))
         (c/cpp-name (and name (identifier-ast))))
@@ -236,8 +222,42 @@
       (otherwise
        (propagate-declarations-down node in)))))
 
+(defun handle-preproc-branching (node symtab)
+  (let* ((macro-ns (lookup symtab :macro))
+         (macro-ns
+           (or macro-ns
+               (progn
+                 (warn "No macro environment for #if")
+                 (empty-map))))
+         (alternative (c/cpp-alternative node)))
+    (if macro-ns
+        (if (interpret-preprocessor-expression-p
+             (c/cpp-condition node)
+             :macros macro-ns)
+            (progn
+              (when alternative
+                ;; The symbol table in the alternative shouldn't include
+                ;; definitions from this branch.
+                (symbol-table alternative symtab))
+              (propagate-declarations-down
+               node
+               symtab
+               :children (remove alternative (children node))))
+            (if alternative
+                (prog1 (symbol-table alternative symtab)
+                  (propagate-declarations-down
+                   node
+                   symtab
+                   :children (remove alternative (children node))))
+                (prog1 symtab
+                  (propagate-declarations-down node symtab))))
+        (propagate-declarations-down node symtab))))
+
+(defmethod symbol-table ((node c/cpp-preproc-if) &optional in)
+  (handle-preproc-branching node in))
+
 (defmethod symbol-table ((node c/cpp-preproc-elif) &optional in)
-  (propagate-declarations-down node in))
+  (handle-preproc-branching node in))
 
 (defmethod symbol-table ((node c/cpp-preproc-else) &optional in)
   (propagate-declarations-down node in))
@@ -289,6 +309,24 @@ Otherwise, use heuristics."
                       (digit-char-p char)
                       (eql char #\_)))
                 string))))
+
+(-> macro-ref (fset:map t) (or string null))
+(defun macro-ref (macros name)
+  "Get the expansion of NAME in MACRO-MAP."
+  (flet ((expand-from-ast (ast)
+           (and-let* ((preproc-def
+                       (lookup-parent-ast (attrs-root*) ast))
+                      ((typep preproc-def 'c-preproc-def)))
+             (trim-whitespace
+              (source-text
+               (c-value preproc-def))))))
+    (and-let* ((name (source-text name))
+               (result (lookup macros name)))
+      (ematch result
+        ((ast) (expand-from-ast result))
+        ((type string) result)
+        ((list (and ast (ast)))
+         (expand-from-ast ast))))))
 
 (-> interpret-preprocessor-expression
     ((or string c-ast) &key (:macros fset:map))
@@ -379,6 +417,7 @@ MACROS is a map from macro names to expansions."
                           ((true? (rec y))
                            true)
                           (t false)))
+                   ;; TODO Function calls must be macros.
                    ((or (c-preproc-defined (children (list x)))
                         (c* "defined($X)" :x x))
                     (if (lookup macros (source-text x))
@@ -386,9 +425,8 @@ MACROS is a map from macro names to expansions."
                         false))
                    ((c-identifier)
                     (if-let (expansion
-                             (lookup macros
-                                     (source-text expr)))
-                      (rec (convert 'c-ast expansion :deepest t :tolerant t))
+                             (macro-ref macros expr))
+                      (rec (c* expansion))
                       ;; TODO -Wundef?
                       0))
                    ((c-error)
@@ -400,7 +438,7 @@ MACROS is a map from macro names to expansions."
         (string
          ;; TODO Expand first?
          (interpret-preprocessor-expression
-          (convert 'c-ast expr :deepest t :tolerant t)))
+          (c* expr)))
         (c-ast
          (interpret expr))))))
 
@@ -2049,6 +2087,4 @@ array, function parameter, parens, and pointer information.")
          (declarator= (declarator canonical-type-1)
                       (declarator canonical-type-2))
          (bitfield= (bitfield canonical-type-1)
-                    (bitfield canonical-type-2)))))
-
-) ; #+(or :tree-sitter-c :tree-sitter-cpp)
+                    (bitfield canonical-type-2)))))) ; #+(or :tree-sitter-c :tree-sitter-cpp)

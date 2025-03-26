@@ -4481,8 +4481,8 @@ by MULTI-DECLARATION-KEYS."
      table-1 table-2
      :allow-multiple (multi-declaration-keys root))))
 
-(defun propagate-declarations-down (ast in)
-  "Propagate the symbol table declarations down through AST's children.
+(defun propagate-declarations-down (ast in &key (children (children ast)))
+  "Propagate the symbol table declarations down through CHILDREN.
 Add the outer definitions of each child to the next child's symbol
 table."
   (reduce (lambda (in2 child)
@@ -4490,7 +4490,7 @@ table."
              ast
              (symbol-table child in2)
              (outer-defs child)))
-          (children ast)
+          children
           :initial-value (symbol-table-union ast in (inner-defs ast))))
 
 (def-attr-fun symbol-table (in)
