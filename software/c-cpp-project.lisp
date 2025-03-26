@@ -393,6 +393,9 @@ should already have been computed as part of their compilation units."
 
 ;;; Built-in headers
 
+(deftype known-compiler ()
+  '(member :gcc :g++ :clang :clang++))
+
 (defparameter *default-c-compiler*
   :clang
   "The compiler to use when only `cc' is specified.")
@@ -401,6 +404,7 @@ should already have been computed as part of their compilation units."
   :clang++
   "The compiler to use when only `c++' is specified.")
 
+(-> compiler-name ((or string keyword)) known-compiler)
 (defun compiler-name (input)
   "Return the canonical compiler name."
   (declare ((or keyword string) input))
@@ -491,7 +495,7 @@ macro definitions."
                    (filter (op (string^= "#define" _))
                            (lines output))
                    #\Newline))))))
-    (case (compiler-name compiler)
+    (case-of known-compiler (compiler-name compiler)
       (:clang (get-from-compiler "clang" "c"))
       (:clang++ (get-from-compiler "clang" "c++"))
       (:gcc (get-from-compiler "gcc" "c"))
@@ -500,11 +504,11 @@ macro definitions."
 
 (defun default-predefined-macros-file (compiler)
   (when-let ((prefix
-              (case (compiler-name compiler)
-                ((:clang) "clang-c")
-                ((:clang++) "clang-cpp")
-                ((:cc :gcc) "gcc-c")
-                ((:c++ :g++) "gcc-cpp"))))
+              (ecase-of known-compiler (compiler-name compiler)
+                (:clang "clang-c")
+                (:clang++ "clang-cpp")
+                (:gcc "gcc-c")
+                (:g++ "gcc-cpp"))))
     (asdf:system-relative-pathname
      :software-evolution-library
      (fmt "utility/macro-defs/~a-predefined-macros.txt"
@@ -519,6 +523,9 @@ macro definitions."
 
 (let ((cached-macros (empty-map)))
   (defun predefined-macros (compiler)
+    "Get the predefined macros for COMPILER.
+The predefined macros are obtained either by invoking COMPILER, if
+available, or from a predefined list."
     (callf #'compiler-name compiler)
     (labels ((compiler-specific-macros (compiler)
                (handler-case
