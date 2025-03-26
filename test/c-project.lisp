@@ -196,7 +196,7 @@
   (is (sel/sw/project::ignored-path-p
        "./src/foo" :only-paths '("etc/*"))))
 
-(deftest project-copy-preserves-permissions ()
+(deftest (project-copy-preserves-permissions :long-running) ()
   ;; Ensure `to-file' preserves permissions on executable files.
   (nest
    (with-fixture grep-project)
@@ -227,7 +227,7 @@
                                        (namestring bin))))
             "copied multiple-artifacts failed to run")))))
 
-(deftest c-project-test ()
+(deftest (c-project-test :long-running) ()
   (with-fixture grep-project
     (is (equal "make grep" (build-command *project*)))
     (is (equalp '("grep") (artifacts *project*)))
@@ -246,7 +246,7 @@
     (is (equal (compiler *project*) "gcc"))
     (is (equal (flags *project*) '("-ansi" "-v")))))
 
-(deftest c-project-can-build ()
+(deftest (c-project-can-build :long-running) ()
   (with-fixture grep-project
     (is (phenome *project*))))
 
