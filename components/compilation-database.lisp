@@ -81,63 +81,70 @@ headers."
   "clang++"
   "The compiler to use when only `c++' is specified.")
 
-(progn
-  (defparameter *standard-macros*
-    ;; These are valid values.
-    '(("__DATE__" . "??? ?? ????")
-      ("__TIME__" . "??:??:??")
-      ("__STDC__" . "1")))
+
+;;; Compiler macros
 
-  (defparameter *platform-macros*
-    '(((:linux)
-       ("linux" . "1")
-       ("__linux" . "1")
-       ("__linux__" . "1")
-       ("__GNU__" . "1")
-       ("__GLIBC__" . "1"))))
+(defparameter *standard-macros*
+  ;; These are valid values.
+  '(("__DATE__" . "??? ?? ????")
+    ("__TIME__" . "??:??:??")
+    ("__STDC__" . "1")))
 
-  (defun platform-specific-macros (platform)
-    (aget platform *platform-macros*
-          :test (op (member _ _ :test #'string-equal))))
+(defparameter *platform-macros*
+  '(((:linux)
+     ("linux" . "1")
+     ("__linux" . "1")
+     ("__linux__" . "1")
+     ("__GNU__" . "1")
+     ("__GLIBC__" . "1"))))
 
-  (defparameter *compiler-macros*
-    '(((:gcc :g++)
-       ("__GNUC__" . "1"))
-      ((:clang :clang++)
-       ("__GNUC__". "1")
-       ("_MSC_VER" . "1933")
-       ("_MSC_FULL_VER" . "193300000")
-       )))
+(defun platform-specific-macros (platform)
+  (aget platform *platform-macros*
+        :test (op (member _ _ :test #'string-equal))))
 
-  (defun compiler-specific-macros (compiler)
-    (aget compiler *compiler-macros*
-          :test (op (member _ _ :test #'string-equal)))))
+(defparameter *compiler-macros*
+  '(((:gcc :g++)
+     ("__GNUC__" . "1"))
+    ((:clang :clang++)
+     ("__GNUC__". "1")
+     ("_MSC_VER" . "1933")
+     ("_MSC_FULL_VER" . "193300000")
+     )))
 
-(progn
-  (defparameter *path-flags*
-    '("-L"
-      "-I" "--include-directory"
-      "-isystem" "-cxx-isystem"
-      "-iquote"
-      "-idirafter" "--include-directory-after"
-      "-iprefix"
-      "-isysroot" "--sysroot"))
-  "Flags whose values are paths to be resolved."
+(defun compiler-specific-macros (compiler)
+  (aget compiler *compiler-macros*
+        :test (op (member _ _ :test #'string-equal))))
 
-  (defparameter *path-flags-table*
-    (set-hash-table *path-flags* :test #'equal))
+
+;;; Compiler flags
 
-  (defparameter *normalizable-flags*
-    (stable-sort (append *path-flags* '("-D" "-U")) #'length>)
-    "Flags to normalize, in descending order of length.
+(defparameter *path-flags*
+  '("-L"
+    "-I" "--include-directory"
+    "-isystem" "-cxx-isystem"
+    "-iquote"
+    "-idirafter" "--include-directory-after"
+    "-iprefix"
+    "-isysroot" "--sysroot"))
+"Flags whose values are paths to be resolved."
+
+(defparameter *path-flags-table*
+  (set-hash-table *path-flags* :test #'equal))
+
+(defparameter *normalizable-flags*
+  (stable-sort (append *path-flags* '("-D" "-U")) #'length>)
+  "Flags to normalize, in descending order of length.
 
 To normalize a flag is first to split it, if it is a single (shell)
 token with its argument:
     \"-Idir\" -> '\(\"-I\" \"-dir\")
 Then, if the argument is a directory, it is made absolute.")
 
-  (defparameter *normalizable-flags-table*
-    (set-hash-table *normalizable-flags* :test #'equal)))
+(defparameter *normalizable-flags-table*
+  (set-hash-table *normalizable-flags* :test #'equal))
+
+
+;;; Compilation databases
 
 ;;; Define classes for compile_commands.json and its command objects.
 ;;; This lets us pretend they are uniform by lazily computing any
@@ -390,6 +397,9 @@ PATH is a fallback to use for the path slot.")
                     (apply #'make 'command-object
                            (alist-plist args)))
                   source))))
+
+
+;;; Algorithms
 
 (-> parse-macro-def (string)
     (values macro-name macro-def))
