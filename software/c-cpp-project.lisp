@@ -82,6 +82,10 @@
           *cpp-module-extensions*)
   "List of extensions we will consider for evolving.")
 
+(defvar *dependency-stack* nil
+  "Stack of include file names currently being processed during type
+inference.  Used to prevent circular attr propagation.")
+
 (defgeneric include-path (header)
   (:documentation "Extract the path from HEADER.")
   (:method ((file string))
@@ -985,10 +989,6 @@ signals a restartable error if there are collisions."
   (:report (lambda (c s)
              (with-slots (include-ast) c
                (format s "Not found: ~a" (source-text include-ast))))))
-
-(defparameter *dependency-stack* nil
-  "Stack of include file names currently being processed during type
-inference.  Used to prevent circular attr propagation.")
 
 (defun include-ast-path-ast (include-ast &key symbol-table)
   "Extract the path AST from INCLUDE-AST.
