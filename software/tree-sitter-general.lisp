@@ -4353,6 +4353,11 @@ Otherwise, return PARSE-TREE."
   (assure symbol-table-namespace
     (rassocar type +namespace-decl-type-table+)))
 
+(defun lookup-namespace (symbol-table namespace)
+  (declare (fset:map symbol-table))
+  (check-type namespace symbol-table-namespace)
+  (lookup symbol-table namespace))
+
 (defgeneric multi-declaration-keys (root)
   (:documentation "MULTI-DECLARATION-KEYS returns a list of keys which should not
  choose one value over another when there is a conflict between two keys in a
@@ -4552,7 +4557,7 @@ with debug settings it can be traced."
     (find-in-symbol-table ast ns (qualify-declared-ast-names-for-lookup query)))
   (:method ((ast ast) (namespace symbol) (query string))
     (when-let* ((symbol-table (symbol-table ast))
-                (ns-table (lookup symbol-table namespace)))
+                (ns-table (lookup-namespace symbol-table namespace)))
       (values (symbol-table-lookup ns-table query))))
   (:method ((ast ast) (namespace symbol) (query list))
     (some (op (find-in-symbol-table ast namespace _))
@@ -4577,7 +4582,7 @@ using NAMESPACE.")
   (:method ((ast ast) (namespace symbol) (query string))
     (assert (keywordp namespace))
     (when-let* ((defs (outer-and-inner-defs ast))
-                (ns-table (lookup defs namespace)))
+                (ns-table (lookup-namespace defs namespace)))
       (values (lookup ns-table query)))))
 
 (define-condition no-enclosing-declaration-error (error)
