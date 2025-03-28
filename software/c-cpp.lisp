@@ -329,7 +329,7 @@ Otherwise, use heuristics."
          (expand-from-ast ast))))))
 
 (-> interpret-preprocessor-expression
-    ((or string c-ast) &key (:macros fset:map))
+    ((or string c-ast cpp-ast) &key (:macros fset:map))
     integer)
 (defun interpret-preprocessor-expression (expr &key (macros (empty-map)))
   "Interpret the subset of C allowed in an `#if` directive.
@@ -439,10 +439,13 @@ MACROS is a map from macro names to expansions."
          ;; TODO Expand first?
          (interpret-preprocessor-expression
           (c* expr)))
+        (cpp-ast
+         (interpret (c* (source-text expr))))
         (c-ast
          (interpret expr))))))
 
-(-> interpret-preprocessor-expression-p (c-ast &key (:macros fset:map))
+(-> interpret-preprocessor-expression-p ((or c-ast cpp-ast)
+                                         &key (:macros fset:map))
     boolean)
 (defun interpret-preprocessor-expression-p (expr &key (macros (empty-map)))
   "Cast result of `interpet-preprocessor-expression' to a LISP boolean."
