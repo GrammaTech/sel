@@ -224,34 +224,29 @@
 
 (defun handle-preproc-branching (node symtab)
   (let* ((macro-ns (lookup symtab :macro))
-         (macro-ns
-           (or macro-ns
-               (progn
-                 (warn "No macro environment for #if")
-                 (empty-map))))
          (alternative (c/cpp-alternative node)))
-    (if macro-ns
-        (if (interpret-preprocessor-expression-p
-             (c/cpp-condition node)
-             :macros macro-ns)
-            (progn
-              (when alternative
-                ;; The symbol table in the alternative shouldn't include
-                ;; definitions from this branch.
-                (symbol-table alternative symtab))
-              (propagate-declarations-down
-               node
-               symtab
-               :children (remove alternative (children node))))
-            (if alternative
-                (prog1 (symbol-table alternative symtab)
-                  (propagate-declarations-down
-                   node
-                   symtab
-                   :children (remove alternative (children node))))
-                (prog1 symtab
-                  (propagate-declarations-down node symtab))))
-        (propagate-declarations-down node symtab))))
+    (cond ((not macro-ns)
+           (warn "No macro environment for #if")
+           (propagate-declarations-down node symtab))
+          ((interpret-preprocessor-expression-p
+            (c/cpp-condition node)
+            :macros macro-ns)
+           (when alternative
+             ;; The symbol table in the alternative shouldn't include
+             ;; definitions from this branch.
+             (symbol-table alternative symtab))
+           (propagate-declarations-down
+            node
+            symtab
+            :children (remove alternative (children node))))
+          (alternative
+           (prog1 (symbol-table alternative symtab)
+             (propagate-declarations-down
+              node
+              symtab
+              :children (remove alternative (children node)))))
+          (t (prog1 symtab
+               (propagate-declarations-down node symtab))))))
 
 (defmethod symbol-table ((node c/cpp-preproc-if) &optional in)
   (handle-preproc-branching node in))
