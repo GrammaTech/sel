@@ -547,7 +547,7 @@ available, or from a predefined list."
                      compiler
                      macros)))))))
 
-(defun implicit-preproc-defs (compiler platform)
+(defun default-preproc-defs (compiler platform)
   (remove-duplicates
    (append
     (predefined-macros compiler)
@@ -555,8 +555,6 @@ available, or from a predefined list."
     (platform-specific-macros platform))
    :key #'car
    :test #'equal))
-
-
 
 
 ;;; Implicit Headers
@@ -567,7 +565,7 @@ Implicit headers give us a place to inject code \"as if\" it had been
 included in a header.")
   (:method ((co command-object) lang)
     (when-let (alist
-               (append (implicit-preproc-defs
+               (append (default-preproc-defs
                         (command-compiler co)
                         (command-platform co))
                        (command-preproc-defs co)))
