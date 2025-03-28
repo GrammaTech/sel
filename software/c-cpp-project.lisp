@@ -1345,7 +1345,22 @@ include files in all directories of the project."
              ;; just a parent.
              (declare (ignore in))
              (assert (attrs:reachable? (genome header)))
-             (symbol-table (genome header) (empty-map)))
+             (symbol-table
+              (genome header)
+              ;; We *do* still need the "implicit" macro environment
+              ;; (compiler predefined macros, macros from the
+              ;; compilation database). Current workaround here is to
+              ;; look up the dependency stack for a file with a
+              ;; command object, and use its implicit header.
+              (or (some
+                   (lambda (includer)
+                     (when-let
+                         (implicit-header
+                          (get-implicit-header project includer))
+                       (implicit-header-symbol-table implicit-header)))
+                   (remove-if (of-type 'c/cpp-system-header)
+                              *dependency-stack*))
+                  (empty-map))))
            (safe-symbol-table (software)
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond

@@ -1,0 +1,26 @@
+[
+  {
+    "arguments": [
+      "cc",
+      "-c",
+      "-DMYMACRO=1",
+      "-o",
+      "file",
+      "file.c"
+    ],
+    "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/c-symbol-table-project-with-db",
+    "file": "file.c"
+  },
+  {
+    "arguments": [
+      "cc",
+      "-c",
+      "-DMYMACRO=1",
+      "-o",
+      "main",
+      "main.c"
+    ],
+    "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/c-symbol-table-project-with-db",
+    "file": "main.c"
+  }
+]

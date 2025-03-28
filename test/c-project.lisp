@@ -453,6 +453,22 @@ present in evolve-files/dependency-order."
           (is symtab)
           (is (lookup (lookup symtab :macro) "NULL")))))))
 
+(deftest test-header-implicit-header ()
+  "Headers should inherit the \"implicit\" headers of (some of) their
+includers."
+  (let* ((path (base-path-join
+                (make-pathname :directory +etc-dir+)
+                "c-symbol-table-project-with-db/"))
+         (project (from-file 'c-project path)))
+    (with-attr-table project
+      (symbol-table project)
+      (let ((file.h (is (evolve-files-ref project "file.h"))))
+        (is (@ (@ (symbol-table (first (children (genome file.h)))) :macro)
+               "MYMACRO"))
+        (dolist (sh (is (system-headers (genome project))))
+          (is (@ (@ (symbol-table (first (children sh))) :macro)
+                 "MYMACRO")))))))
+
 (deftest test-parse-predefined-macros ()
   "Test we parse all predefined macros."
   (iter (for compiler in '(:gcc :g++ :clang :clang++))
