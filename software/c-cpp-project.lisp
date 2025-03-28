@@ -435,7 +435,13 @@ should already have been computed as part of their compilation units."
   ;; These are valid values.
   '(("__DATE__" . "??? ?? ????")
     ("__TIME__" . "??:??:??")
-    ("__STDC__" . "1")))
+    ("__TIMESTAMP__" . "??? ??? ?? ??:??:?? ????")
+    ("__STDC__" . "1")
+    ;; What should these be?
+    ("__COUNTER__" . "0")
+    ("__BASE_FILE__" . "UNKNOWN")
+    ("__FILE_NAME__" . "UNKNOWN")
+    ("__INCLUDE_LEVEL__" . "0")))
 
 (defparameter *platform-macros*
   '(((:linux)
