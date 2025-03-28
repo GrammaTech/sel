@@ -620,7 +620,7 @@ included in a header.")
 
 (defun implicit-header-symbol-table (header)
   (with-attr-session (header :inherit nil)
-    (symbol-table (first (children header)))))
+    (symbol-table (assure root-ast (first (children header))))))
 
 (defmethod lookup ((obj c/cpp-root) (key string))
   ;; Enables the use of the `@' macro directly against projects.
