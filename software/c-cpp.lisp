@@ -417,12 +417,23 @@ MACROS is a map from macro names to expansions."
                           ((true? (rec y))
                            true)
                           (t false)))
-                   ;; TODO Function calls must be macros.
                    ((or (c-preproc-defined (children (list x)))
                         (c* "defined($X)" :x x))
                     (if (lookup macros (source-text x))
                         true
                         false))
+                   ((or
+                     (c* "__has_builtin($_)")
+                     (c* "__has_include($_)")
+                     (c* "__has_warning($_)"))
+                    ;; Assume true for now. TODO: Look at CBMC for
+                    ;; information about compiler builtins.
+                    true)
+                   ((call-ast)
+                    ;; TODO Decide how best to handle this. Hand off
+                    ;; to preprocessor for expansion? Default to false
+                    ;; or true?
+                    false)
                    ((c-identifier)
                     (if-let (expansion
                              (macro-ref macros expr))
