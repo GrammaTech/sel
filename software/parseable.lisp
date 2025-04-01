@@ -223,24 +223,26 @@ If 0, do not print object source text.")
 
 (defmethod print-object ((obj functional-tree-ast) stream)
   (flet ((get-enough-text (obj)
-             (let* ((cutoff *ast-print-cutoff*)
-                    (min *ast-print-min*)
-                    (lines *ast-source-text-lines*)
-                    (newline-escape *inline-newline-escape*)
-                    (lines (source-text-take-lines lines obj))
-                    (text
-                      (if (no lines)
-                          "<NIL>"
-                          (string-join lines newline-escape)))
-                    (text
-                      ;; If the first line or lines is too short, take
-                      ;; from the raw text of the AST.
-                      (if (length> text min) text
-                          (string-replace-all
-                           (string #\Newline)
-                           (source-text-take min obj)
-                           newline-escape))))
-               (ellipsize text cutoff))))
+           (when (zerop *ast-source-text-lines*)
+             (return-from get-enough-text ""))
+           (let* ((cutoff *ast-print-cutoff*)
+                  (min *ast-print-min*)
+                  (lines *ast-source-text-lines*)
+                  (newline-escape *inline-newline-escape*)
+                  (lines (source-text-take-lines lines obj))
+                  (text
+                    (if (no lines)
+                        "<NIL>"
+                        (string-join lines newline-escape)))
+                  (text
+                    ;; If the first line or lines is too short, take
+                    ;; from the raw text of the AST.
+                    (if (length> text min) text
+                        (string-replace-all
+                         (string #\Newline)
+                         (source-text-take min obj)
+                         newline-escape))))
+             (ellipsize text cutoff))))
     (declare (inline get-enough-text))
     (if *print-readably*
         (call-next-method)
