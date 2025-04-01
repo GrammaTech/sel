@@ -434,6 +434,8 @@ for the language.")
        (cpp-class-specifier
         (cpp-body :reader body :initarg :body))
        (cpp-struct-specifier
+        (cpp-body :reader body :initarg :body))
+       (cpp-namespace-definition
         (cpp-body :reader body :initarg :body)))
       (:golang
        (golang-call-expression
@@ -552,7 +554,8 @@ for the language.")
        (rust-macro-invocation
         (rust-macro :reader call-function))
        (rust-mod-item
-        (rust-name :reader definition-name-ast))
+        (rust-name :reader definition-name-ast)
+        (rust-body :reader body :initarg :body))
        (rust-parameter
         (rust-type :reader parameter-type))
        (rust-range-expression
