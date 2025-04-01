@@ -414,7 +414,7 @@ Rust macro invocations can use (), [], and {} equivalently."
 
 (defmethod exception-set ((ast rust-macro-invocation))
   (string-case (source-text (call-function ast))
-    ("panic" +exception-bottom-type+)
+    (("panic" "assert") +exception-bottom-type+)
     ;; Roof error handling.
     ("throw" +exception-top-type+)
     ;; TODO Filter by error type.
