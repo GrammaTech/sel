@@ -201,10 +201,33 @@ Rust macro invocations can use (), [], and {} equivalently."
                     &key)
   (convert-terminal to id))
 
+(def +rust-primitive-integer-types+
+  '("u8" "i8"
+    "u16" "i16"
+    "u32" "i32"
+    "u64" "i64"
+    "u128" "i128"
+    "usize" "isize"))
+
 (defmethod convert ((to (eql 'integer))
                     (ast rust-integer-literal)
                     &key)
-  (parse-integer (text ast) :junk-allowed t))
+  (mvlet* ((text (text ast))
+           (text (remove #\_ text))
+           (text
+            (reduce (flip #'drop-suffix)
+                    +rust-primitive-integer-types+
+                    :initial-value text))
+           (radix start
+            (case-using (flip #'string-prefix-p)
+                text
+              ("0x" (values 16 2))
+              ("0o" (values 8 2))
+              ("0b" (values 2 2))
+              (t (values 10 0)))))
+    (declare ((member 16 10 8 2) radix)
+             (array-index start))
+    (parse-integer text :radix radix :start start)))
 
 (defmethod convert ((to (eql 'float))
                     (ast rust-float-literal) &key)

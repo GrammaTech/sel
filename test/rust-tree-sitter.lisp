@@ -31,6 +31,24 @@
   (is (eql 5 (constant-fold (rust* "{ 2+2 }+1"))))
   (is (eql 7 (constant-fold (rust* "2*3+1")))))
 
+(deftest test-parse-rust-integer ()
+  (flet ((all-equal? (xs)
+           (same #'=
+                 (mapcar (op (convert 'integer (rust* _)))
+                         xs))))
+    (is (all-equal?
+         '("123"
+           "123i32"
+           "123u32"
+           "123_u32")))
+    (is (all-equal? '("0xff" "0xff_u8")))
+    (is (all-equal? '("0o70" "0x70_i16")))
+    (is (all-equal?
+         '("0b1111_1111_1001_0000"
+           "0b1111_1111_1001_0000i64")))
+    (is (all-equal?
+         '("0" "0usize")))))
+
 
 ;;; Analysis test
 
