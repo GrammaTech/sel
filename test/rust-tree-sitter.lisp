@@ -49,6 +49,45 @@
     (is (all-equal?
          '("0" "0usize")))))
 
+(deftest test-convert-rust-negative-literal ()
+  "Converting negative literals should work."
+  (is (typep (convert 'rust-negative-literal (rust* "-1"))
+             'rust-negative-literal))
+  (is (source-text= (convert 'rust-negative-literal (rust* "-1"))
+                    "-1"))
+  (is (typep (convert 'rust-negative-literal (rust* "-1.0"))
+             'rust-negative-literal))
+  (is (source-text= (convert 'rust-negative-literal (rust* "-1.0"))
+                    "-1.0")))
+
+(deftest test-insert-negative-literal ()
+  "Test we can insert negative numbers into match patterns.
+Match patterns use a different AST type (`rust-negative-literal') to
+represent negative numbers than elsewhere in Rust (where they are
+simply of type `rust-unary-expression')."
+  (let* ((match1 (rust* "match i { 1 => { \"negative!\" }}"))
+         (int (rust* "-1"))
+         (match2 (with match1
+                       (is (find-if (of-type 'rust-integer-literal)
+                                    match1))
+                       int)))
+    (is (typep int 'rust-unary-expression))
+    (is (source-text= match2 (rust* "match i { -1 => { \"negative!\" }}")))))
+
+(deftest test-insert-negative-literal-disjunction ()
+  "Test we can insert negative numbers into match pattern disjunctions.
+Match patterns use a different AST type (`rust-negative-literal') to
+represent negative numbers than elsewhere in Rust (where they are
+simply of type `rust-unary-expression')."
+  (let* ((match1 (rust* "match i { 1 | -2 => { \"negative!\" }}"))
+         (int (rust* "-1"))
+         (match2 (with match1
+                       (is (find-if (of-type 'rust-integer-literal)
+                                    match1))
+                       int)))
+    (is (typep int 'rust-unary-expression))
+    (is (source-text= match2 (rust* "match i { -1 | -2 => { \"negative!\" }}")))))
+
 
 ;;; Analysis test
 

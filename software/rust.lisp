@@ -133,6 +133,22 @@ Rust macro invocations can use (), [], and {} equivalently."
     ((:|(| :|[| :|{|) (label-as :left-delimiter))
     ((:|)| :|]| :|}|) (label-as :right-delimiter))))
 
+(defmethod initialize-instance :after ((self rust-match-pattern) &key)
+  (when-let (replacement
+             (ignore-errors
+              (convert 'rust-negative-literal
+                       (only-elt
+                        (direct-children self)))))
+    (setf (slot-value self 'children) (list replacement))))
+
+(defmethod initialize-instance :after ((self rust-or-pattern) &key)
+  (setf (slot-value self 'children)
+        (mapcar (lambda (ast)
+                  (or (ignore-errors
+                       (convert 'rust-negative-literal ast))
+                      ast))
+                (slot-value self 'children))))
+
 
 ;;; Methods for tree-sitter generics
 
@@ -180,6 +196,30 @@ Rust macro invocations can use (), [], and {} equivalently."
                             temp-id
                             (output-transformation temp-copy))))))))
       (otherwise (call-next-method)))))
+
+(defmethod convert ((to (eql 'rust-negative-literal))
+                    (ast rust-unary-expression)
+                    &key)
+  (match ast
+    ((rust-unary-expression
+      (rust-operator (rust--))
+      (rust-argument
+       (and lit
+            (or (rust-integer-literal)
+                (rust-float-literal)))))
+     (make 'rust-negative-literal
+           :before-text (before-text ast)
+           :after-text (after-text ast)
+           :before-asts (before-asts ast)
+           :after-asts (after-asts ast)
+           :children
+           (list
+            (copy lit
+                  :before-text nil
+                  :after-text nil
+                  :before-asts nil
+                  :after-asts nil))))
+    (otherwise (call-next-method))))
 
 (defmethod convert ((to (eql 'rust-identifier))
                     (id identifier-ast)
