@@ -191,62 +191,59 @@
 (defmethod symbol-table-union ((root c/cpp) table-1 table-2 &key)
   (symbol-table-union (genome root) table-1 table-2))
 
-(defmethod symbol-table ((node c/cpp-preproc-ifdef) &optional in)
-  (flet ((defined? (name)
-           (let ((macro-ns (lookup in :macro)))
+(defgeneric preprocessor-condition-true-p (proc-macro macro-ns)
+  (:method ((macro c/cpp-preproc-ifdef) macro-ns)
+    (flet ((defined? (name)
              (and macro-ns
                   (lookup macro-ns (source-text name)))))
-         (handle-disabled (node)
-           "Make definitions in disabled ifdefs only visible inside the ifdef."
-           (prog1 in
-             ;; Suppress circular include errors in disabled ifdefs.
-             (handler-bind ((circular-inclusion
-                             (lambda (e)
-                               (declare (ignore e))
-                               (maybe-invoke-restart 'skip-include))))
-               (propagate-declarations-down node in)))))
-    (match node
-      ((c/cpp-preproc-ifdef
-        (children (list* (c/cpp-#ifdef) _))
-        (c/cpp-name (and name (identifier-ast))))
-       (if (defined? name)
-           (propagate-declarations-down node in)
-           ;; Make new definitions visible, but only inside the ifdef.
-           (handle-disabled node)))
-      ((c/cpp-preproc-ifdef
-        (children (list* (c/cpp-#ifndef) _))
-        (c/cpp-name (and name (identifier-ast))))
-       (if (defined? name)
-           (handle-disabled node)
-           (propagate-declarations-down node in)))
-      (otherwise
-       (propagate-declarations-down node in)))))
+      (etypecase (first (children macro))
+        (c/cpp-#ifdef (defined? (c/cpp-name macro)))
+        (c/cpp-#ifndef (not (defined? (c/cpp-name macro)))))))
+  (:method ((macro c/cpp-preproc-if) macro-ns)
+    (interpret-preprocessor-expression-p
+     (c/cpp-condition macro)
+     :macros (or macro-ns (empty-map))))
+  (:method ((macro c/cpp-preproc-elif) macro-ns)
+    (interpret-preprocessor-expression-p
+     (c/cpp-condition macro)
+     :macros (or macro-ns (empty-map)))))
 
 (defun handle-preproc-branching (node symtab)
-  (let* ((macro-ns (lookup symtab :macro))
-         (alternative (c/cpp-alternative node)))
-    (cond ((not macro-ns)
-           (warn "No macro environment for #if")
-           (propagate-declarations-down node symtab))
-          ((interpret-preprocessor-expression-p
-            (c/cpp-condition node)
-            :macros macro-ns)
-           (when alternative
-             ;; The symbol table in the alternative shouldn't include
-             ;; definitions from this branch.
-             (symbol-table alternative symtab))
-           (propagate-declarations-down
-            node
-            symtab
-            :children (remove alternative (children node))))
-          (alternative
-           (prog1 (symbol-table alternative symtab)
-             (propagate-declarations-down
-              node
-              symtab
-              :children (remove alternative (children node)))))
-          (t (prog1 symtab
-               (propagate-declarations-down node symtab))))))
+  (nest
+   (macrolet ((with-circular-inclusion-suppressed ((&key) &body body)
+                ;; Suppress circular include errors in disabled ifdefs.
+                `(handler-bind ((circular-inclusion
+                                  (lambda (e)
+                                    (declare (ignore e))
+                                    (maybe-invoke-restart 'skip-include))))
+                   ,@body))))
+   (let* ((macro-ns (lookup symtab :macro))
+          (alternative (alternative node)))
+     (unless macro-ns
+       (warn "No macro environment for ~a" (type-of node))))
+   (cond ((preprocessor-condition-true-p node macro-ns)
+          (when alternative
+            ;; The symbol table in the alternative shouldn't include
+            ;; definitions from this branch.
+            (with-circular-inclusion-suppressed ()
+              (symbol-table alternative symtab)))
+          (propagate-declarations-down
+           node
+           symtab
+           :children (remove alternative (children node))))
+         (alternative
+          (prog1 (symbol-table alternative symtab)
+            (with-circular-inclusion-suppressed ()
+              (propagate-declarations-down
+               node
+               symtab
+               :children (remove alternative (children node))))))
+         (t (prog1 symtab
+              (with-circular-inclusion-suppressed ()
+                (propagate-declarations-down node symtab)))))))
+
+(defmethod symbol-table ((node c/cpp-preproc-ifdef) &optional in)
+  (handle-preproc-branching node in))
 
 (defmethod symbol-table ((node c/cpp-preproc-if) &optional in)
   (handle-preproc-branching node in))
