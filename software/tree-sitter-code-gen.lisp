@@ -371,7 +371,13 @@ for the language.")
         (c-body :reader body :initarg :body))
        (c-function-definition
         (c-body :reader function-body)
-        (c-type :reader return-type :initarg :return-type)))
+        (c-type :reader return-type :initarg :return-type))
+       (c-preproc-ifdef
+        (c-alternative :reader alternative :initarg :alternative))
+       (c-preproc-if
+        (c-alternative :reader alternative :initarg :alternative))
+       (c-preproc-elif
+        (c-alternative :reader alternative :initarg :alternative)))
       (:cpp
        (cpp-init-declarator
         (cpp-declarator :initarg :lhs :reader lhs)
@@ -436,7 +442,13 @@ for the language.")
        (cpp-struct-specifier
         (cpp-body :reader body :initarg :body))
        (cpp-namespace-definition
-        (cpp-body :reader body :initarg :body)))
+        (cpp-body :reader body :initarg :body))
+       (cpp-preproc-ifdef
+        (cpp-alternative :reader alternative :initarg :alternative))
+       (cpp-preproc-if
+        (cpp-alternative :reader alternative :initarg :alternative))
+       (cpp-preproc-elif
+        (cpp-alternative :reader alternative :initarg :alternative)))
       (:golang
        (golang-call-expression
         (golang-arguments :reader call-arguments-ast :initarg :arguments))
