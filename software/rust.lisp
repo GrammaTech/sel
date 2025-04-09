@@ -680,4 +680,11 @@ Rust macro invocations can use (), [], and {} equivalently."
   "Force whitespace after a colon in a const item."
   " ")
 
+(defmethod whitespace-between/parent ((parent rust-let-declaration)
+                                      (s rustfmt-style)
+                                      (x (eql :|:|))
+                                      (y rust-generic-type))
+  "Force whitespace between a colon and a generic type."
+  " ")
+
 ) ; #+:TREE-SITTER-RUST

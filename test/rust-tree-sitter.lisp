@@ -483,9 +483,9 @@ source text."
   (check-patch-whitespace "let x:mytype = y;")
   ;; No spaces around colon for a generic type, or betwen the type
   ;; identifier and the type arguments.
-  (check-patch-whitespace "let x:Vec<T> = y;")
+  (check-patch-whitespace "let x: Vec<T> = y;")
   ;; Generic with a primitive type argument.
-  (check-patch-whitespace "let x:Vec<i32> = y;")
+  (check-patch-whitespace "let x: Vec<i32> = y;")
   ;; No spaces around :: for a class method.
   (check-patch-whitespace "Point::new();")
   ;; No space before &.
@@ -518,4 +518,5 @@ struct MyType<T> { x: T, y: T }")
   (check-patch-whitespace (fmt "{~%~4tx();~%~4ty~%}"))
   (check-patch-whitespace "fun()?;")
   (check-patch-whitespace "impl From<(i32, i32)> for Foo {}")
-  (check-patch-whitespace "const x: f64 = 42.0;"))
+  (check-patch-whitespace "const x: f64 = 42.0;")
+  (check-patch-whitespace "let mut x: foo<bar>;"))
