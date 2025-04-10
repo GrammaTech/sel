@@ -191,19 +191,19 @@
 (defmethod symbol-table-union ((root c/cpp) table-1 table-2 &key)
   (symbol-table-union (genome root) table-1 table-2))
 
-(defgeneric preprocessor-condition-true-p (proc-macro macro-ns)
-  (:method ((macro c/cpp-preproc-ifdef) macro-ns)
+(defgeneric preprocessor-condition-true-p (proc-macro &key macro-ns)
+  (:method ((macro c/cpp-preproc-ifdef) &key macro-ns)
     (flet ((defined? (name)
              (and macro-ns
                   (lookup macro-ns (source-text name)))))
       (etypecase (first (children macro))
         (c/cpp-#ifdef (defined? (c/cpp-name macro)))
         (c/cpp-#ifndef (not (defined? (c/cpp-name macro)))))))
-  (:method ((macro c/cpp-preproc-if) macro-ns)
+  (:method ((macro c/cpp-preproc-if) &key macro-ns)
     (interpret-preprocessor-expression-p
      (c/cpp-condition macro)
      :macros (or macro-ns (empty-map))))
-  (:method ((macro c/cpp-preproc-elif) macro-ns)
+  (:method ((macro c/cpp-preproc-elif) &key macro-ns)
     (interpret-preprocessor-expression-p
      (c/cpp-condition macro)
      :macros (or macro-ns (empty-map)))))
@@ -221,7 +221,7 @@
           (alternative (alternative node)))
      (unless macro-ns
        (warn "No macro environment for ~a" (type-of node))))
-   (cond ((preprocessor-condition-true-p node macro-ns)
+   (cond ((preprocessor-condition-true-p node :macro-ns macro-ns)
           (when alternative
             ;; The symbol table in the alternative shouldn't include
             ;; definitions from this branch.
