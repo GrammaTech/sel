@@ -2016,6 +2016,7 @@ before-text of the following AST if one exists."
 
 (deftest test-interpret-preprocessor-expression ()
   "Preprocess expressions should evaluate correctly."
+  (is (eql 0  (interpret-preprocessor-expression (c* "0"))))
   (is (eql 1  (interpret-preprocessor-expression (c* "1"))))
   (is (eql 97 (interpret-preprocessor-expression (c* "'a'"))))
   (is (eql 2  (interpret-preprocessor-expression (c* "1+1"))))
