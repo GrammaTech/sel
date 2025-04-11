@@ -1265,6 +1265,8 @@ uncertainty.")
 
 Differs from `same-variable-p' in that it takes references and
 pointers into account in languages that support them.")
+  (:method ((ast1 ast) (ast2 ast))
+    nil)
   (:method ((id1 identifier-ast) (id2 identifier-ast))
     (let ((aliasee1 (or (aliasee id1) id1))
           (aliasee2 (or (aliasee id2) id2)))
