@@ -2516,7 +2516,7 @@ available to use at any point in a C++ AST.")
   ((declaration :initarg :declaration :type ast :reader module-unit-declaration)
    (module-name :type string :initarg :module-name :reader module-unit-module-name))
   (:documentation "A translation unit with a module declaration.")
-  (:metaclass abstract-class))
+  (:metaclass abstract-standard-class))
 
 (defmethod module-unit-full-name ((m module-unit))
   (module-unit-module-name m))
@@ -2528,23 +2528,23 @@ available to use at any point in a C++ AST.")
 (defclass importable-module-unit (module-unit)
   ()
   (:documentation "A module unit that can be imported (by clang).")
-  (:metaclass abstract-class))
+  (:metaclass abstract-standard-class))
 
 (defclass module-interface-unit (importable-module-unit)
   ()
   (:documentation "An exported module unit.")
-  (:metaclass abstract-class))
+  (:metaclass abstract-standard-class))
 
 (defclass implementation-unit (module-unit)
   ()
-  (:metaclass abstract-class))
+  (:metaclass abstract-standard-class))
 
 (defclass module-partition-unit (module-unit)
   ((partition-name
     :type string
     :initarg :partition-name
     :reader module-unit-partition-name))
-  (:metaclass abstract-class))
+  (:metaclass abstract-standard-class))
 
 (defmethod module-unit-full-name ((p module-partition-unit))
   (fmt "~a:~a"

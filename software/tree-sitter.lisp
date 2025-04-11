@@ -406,7 +406,6 @@
   (:import-from :cffi :translate-camelcase-name :load-foreign-library-error)
   (:import-from :functional-trees :map-children)
   (:import-from :trivial-garbage :make-weak-hash-table)
-  (:import-from :abstract-classes :abstract-class)
   #.(if (asdf:find-system :cl-tree-sitter nil)
         '(:import-from :cl-tree-sitter :register-language)
         (values))
