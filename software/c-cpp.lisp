@@ -608,9 +608,10 @@ all the entries' outer declarations. (True of C++ namespaces.)"
   "Get the declaration nested in AST. This is useful for array and
 pointer declarations which are nested on themselves."
   (let ((declarator (c/cpp-declarator ast)))
-    (if (typep declarator 'c/cpp-identifier)
-        (list declarator)
-        (outer-declarations declarator))))
+    (cond ((typep declarator 'c/cpp-identifier)
+           (list declarator))
+          (declarator
+           (outer-declarations declarator)))))
 
 (defmethod outer-declarations ((ast c/cpp-parenthesized-declarator))
   (outer-declarations (only-elt (children ast))))
