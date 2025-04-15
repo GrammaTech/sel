@@ -443,11 +443,16 @@ MACROS is a map from macro names to expansions."
          (interpret-preprocessor-expression
           (c* expr)))
         (cpp-ast
-         (interpret (c* (source-text expr))))
+         (interpret
+          (c-condition
+           (assure c-preproc-if
+             (c*
+              (fmt "#if ~a~%#endif"
+                   (source-text expr)))))))
         (c-ast
          (interpret expr))))))
 
-(-> interpret-preprocessor-expression-p ((or c-ast cpp-ast)
+(-> interpret-preprocessor-expression-p ((or string c-ast cpp-ast)
                                          &key (:macros fset:map))
     boolean)
 (defun interpret-preprocessor-expression-p (expr &key (macros (empty-map)))
