@@ -2123,6 +2123,16 @@ on the macro environment."
                 (third conditions)
                 :macros env))))))
 
+(deftest test-interpret-defined-without-parens ()
+  "We should evaluate conditions when defined is used without parens."
+  (let* ((c (c* (fmt "#if defined FOO~%#endif")))
+         (condition (is (c-condition c))))
+    (is (typep c 'c-preproc-if))
+    (is (null (interpret-preprocessor-expression-p condition)))
+    (is (interpret-preprocessor-expression-p
+         condition
+         :macros (fset:map ("FOO" "1"))))))
+
 (deftest test-preprocessor-if-internal-symbol-tables ()
   "Branches of an if/else should only see macros defined in that branch."
   (let ((c (c* +complex-preproc-expr-2+)))
