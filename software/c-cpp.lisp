@@ -321,7 +321,7 @@ Otherwise, use heuristics."
          (expand-from-ast ast))))))
 
 (-> interpret-preprocessor-expression
-    ((or string c-ast cpp-ast) &key (:macros fset:map))
+    ((or string c/cpp-ast) &key (:macros fset:map))
     integer)
 (defun interpret-preprocessor-expression (expr &key (macros (empty-map)))
   "Interpret the subset of C allowed in an `#if` directive.
@@ -337,87 +337,95 @@ MACROS is a map from macro names to expansions."
                ;; unreadable.
                (macrolet ((rec (x) `(interpret ,x)))
                  (ematch expr
-                   ((c-number-literal)
+                   ((c/cpp-number-literal)
                     (let ((num (convert 'integer expr)))
                       (if (typep num 'integer)
                           num
                           (error "Non-integer constant in preprocessor expression: ~a"
                                  expr))))
-                   ((c-char-literal)
+                   ((c/cpp-char-literal)
                     (char-code
                      (character
                       (string-trim
                        "'"
                        (text expr)))))
                    ;; Not strictly allowed, but makes testing easier.
-                   ((c* "($X)" :x x)
+                   ((c/cpp* "($X)" :x x)
                     (rec x))
-                   ((c* "!$X" :x x)
+                   ((c/cpp* "!$X" :x x)
                     (if (false? (rec x))
                         true
                         false))
-                   ((c* "$X + $Y" :x x :y y)
+                   ((c/cpp* "$X + $Y" :x x :y y)
                     (+ (rec x) (rec y)))
-                   ((c* "$X - $Y" :x x :y y)
+                   ((c/cpp* "$X - $Y" :x x :y y)
                     (- (rec x) (rec y)))
-                   ((c-binary-expression
-                     (c-left x)
-                     (c-right y)
-                     (c-operator (c-*)))
+                   ((c/cpp-binary-expression
+                     (c/cpp-left x)
+                     (c/cpp-right y)
+                     (c/cpp-operator (c/cpp-*)))
                     (* (rec x) (rec y)))
-                   ((c* "$X / $Y" :x x :y y)
+                   ((c/cpp* "$X / $Y" :x x :y y)
                     (/ (rec x) (rec y)))
-                   ((c* "$X & $Y" :x x :y y)
+                   ((or (c* "$X & $Y" :x x :y y)
+                        (cpp-binary-expression
+                         (cpp-left x)
+                         (cpp-right y)
+                         (cpp-operator (cpp-&))))
                     (logand (rec x) (rec y)))
-                   ((c* "$X | $Y" :x x :y y)
+                   ((c/cpp* "$X | $Y" :x x :y y)
                     (logior (rec x) (rec y)))
-                   ((c* "$X ^ $Y" :x x :y y)
+                   ((c/cpp* "$X ^ $Y" :x x :y y)
                     (logxor (rec x) (rec y)))
-                   ((c* "~$X" :x x)
+                   ((c/cpp* "~$X" :x x)
                     (lognot (rec x)))
-                   ((c* "$X << $Y" :x x :y y)
+                   ((c/cpp* "$X << $Y" :x x :y y)
                     (ash (rec x) (rec y)))
-                   ((c* "$X >> $Y" :x x :y y)
+                   ((c/cpp* "$X >> $Y" :x x :y y)
                     (ash (rec x) (- (rec y))))
-                   ((c* "$X < $Y" :x x :y y)
+                   ((c/cpp* "$X < $Y" :x x :y y)
                     (if (< (rec x) (rec y))
                         true false))
-                   ((c* "$X > $Y" :x x :y y)
+                   ((c/cpp* "$X > $Y" :x x :y y)
                     (if (> (rec x) (rec y))
                         true false))
-                   ((c* "$X <= $Y" :x x :y y)
+                   ((c/cpp* "$X <= $Y" :x x :y y)
                     (if (<= (rec x) (rec y))
                         true false))
-                   ((c* "$X >= $Y" :x x :y y)
+                   ((c/cpp* "$X >= $Y" :x x :y y)
                     (if (>= (rec x) (rec y))
                         true false))
-                   ((c* "$X == $Y" :x x :y y)
+                   ((c/cpp* "$X == $Y" :x x :y y)
                     (if (= (rec x) (rec y))
                         true false))
-                   ((c* "$X != $Y" :x x :y y)
+                   ((c/cpp* "$X != $Y" :x x :y y)
                     (if (/= (rec x) (rec y))
                         true false))
-                   ((c* "$X && $Y" :x x :y y)
+                   ((or (c* "$X && $Y" :x x :y y)
+                        (cpp-binary-expression
+                         (cpp-left x)
+                         (cpp-right y)
+                         (cpp-operator (cpp-&&))))
                     (if (true? (rec x))
                         (if (true? (rec y))
                             true
                             false)
                         false))
-                   ((c* "$X || $Y" :x x :y y)
+                   ((c/cpp* "$X || $Y" :x x :y y)
                     (cond ((true? (rec x))
                            true)
                           ((true? (rec y))
                            true)
                           (t false)))
-                   ((or (c-preproc-defined (children (list x)))
-                        (c* "defined($X)" :x x))
+                   ((or (c/cpp-preproc-defined (children (list x)))
+                        (c/cpp* "defined($X)" :x x))
                     (if (lookup macros (source-text x))
                         true
                         false))
                    ((or
-                     (c* "__has_builtin($_)")
-                     (c* "__has_include($_)")
-                     (c* "__has_warning($_)"))
+                     (c/cpp* "__has_builtin($_)")
+                     (c/cpp* "__has_include($_)")
+                     (c/cpp* "__has_warning($_)"))
                     ;; Assume true for now. TODO: Look at CBMC for
                     ;; information about compiler builtins.
                     true)
@@ -426,15 +434,21 @@ MACROS is a map from macro names to expansions."
                     ;; to preprocessor for expansion? Default to false
                     ;; or true?
                     false)
-                   ((c-identifier)
+                   ((c/cpp-identifier)
                     (if-let (expansion
                              (macro-ref macros expr))
-                      (rec (c* expansion))
+                      (rec
+                       (etypecase expr
+                         (c-ast (c* expansion))
+                         (cpp-ast (cpp* expansion))))
                       ;; TODO -Wundef?
                       0))
-                   ((c-error)
-                    (let ((parsed (c* (source-text expr))))
-                      (if (typep parsed 'c-error)
+                   ((c/cpp-error)
+                    (let ((parsed
+                            (etypecase expr
+                              (c-ast (c* (source-text expr)))
+                              (cpp-ast (cpp* (source-text expr))))))
+                      (if (typep parsed 'c/cpp-error)
                           (error "Unparseable error node: ~a" expr)
                           (rec parsed))))))))
       (etypecase expr
@@ -442,14 +456,7 @@ MACROS is a map from macro names to expansions."
          ;; TODO Expand first?
          (interpret-preprocessor-expression
           (c* expr)))
-        (cpp-ast
-         (interpret
-          (c-condition
-           (assure c-preproc-if
-             (c*
-              (fmt "#if ~a~%#endif"
-                   (source-text expr)))))))
-        (c-ast
+        (c/cpp-ast
          (interpret expr))))))
 
 (-> interpret-preprocessor-expression-p ((or string c-ast cpp-ast)

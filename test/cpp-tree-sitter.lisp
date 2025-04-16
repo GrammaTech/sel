@@ -2033,8 +2033,8 @@ specializations."
          "#ifdef" (source-text (elt (children (genome *soft*)) 0))))))
 
 (deftest test-interpret-preprocessor-expression ()
-  (let ((cpp (cpp* #.(fmt "#ifdef defined(FOO)~%#endif"))))
-    (is (not (interpret-preprocessor-expression-p (cpp-condition cpp))))))
+  (let ((cpp (cpp* #.(fmt "#if defined(FOO)~%#endif"))))
+    (is (not (ts::interpret-preprocessor-expression-p (cpp-condition cpp))))))
 
 (deftest compound-operator-test-1 () ;; sel issue #137
   (let ((*soft* (from-string (make-instance 'cpp) 
