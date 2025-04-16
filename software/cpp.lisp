@@ -835,6 +835,12 @@ See SEL issue #359."
       (cpp-declarator
        (list (and declarator (cpp-function-declarator)))))
      (declarator-name-ast declarator))
+    ((cpp-field-declaration
+      (cpp-declarator
+       (list (cpp-pointer-declarator
+              (cpp-declarator
+               (and decl (cpp-function-declarator)))))))
+     (declarator-name-ast decl))
     (otherwise (call-next-method))))
 
 (defmethod function-name ((field cpp-field-declaration))

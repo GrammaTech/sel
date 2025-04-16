@@ -1997,6 +1997,16 @@ specializations."
                  (mapcar #'source-text
                          (possible-types (first params))))))))
 
+(deftest test-pointer-declarator-declaration-names ()
+  "Names should be extracted from fields with pointer declarators."
+  (let ((cpp (cpp* "class Foo {
+  const value_type* data() const noexcept;
+}")))
+    (is (source-text=
+         "data"
+         (definition-name-ast
+          (find-if (of-type 'cpp-field-declaration) cpp))))))
+
 
 ;;; Parsing tests
 
