@@ -477,6 +477,8 @@
            :c/cpp-function-declaration-definitions
            :*morally-noexcept*
            ;; C/Cpp
+           :c/cpp
+           :c/cpp*
            :c/cpp-canonical-type
            :specifier
            :declarator

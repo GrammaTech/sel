@@ -61,6 +61,14 @@
              (with-slots (header) c
                (format s "Circular inclusion of ~a" header)))))
 
+(defpattern c/cpp (&rest args)
+  "Match complete C or C++ ASTs."
+  `(or (c ,@args) (cpp ,@args)))
+
+(defpattern c/cpp* (&rest args)
+  "Match C or C++ AST fragments."
+  `(or (c* ,@args) (cpp* ,@args)))
+
 #+(or :tree-sitter-c :tree-sitter-cpp)
 (progn
 

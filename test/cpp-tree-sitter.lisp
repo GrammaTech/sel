@@ -73,6 +73,23 @@ See SEL issue #359."
     (is (ast-path decl call))
     (is (ast-path cpp call))))
 
+#+(and tree-sitter-c tree-sitter-cpp)
+(deftest test-match-c/cpp ()
+  "Using c/cpp patterns should match C and C++ ASTs."
+  (let* ((src "2+2")
+         (c (c* src))
+         (cpp (cpp* src)))
+    (is (typep c 'c-ast))
+    (is (typep cpp 'cpp-ast))
+    (flet ((extra-binop-operands (x)
+             (match x
+               ((c/cpp* "$X + $Y" :x x :y y)
+                (list x y)))))
+      (is (equal*
+           (mapcar #'source-text (extra-binop-operands c))
+           (mapcar #'source-text (extra-binop-operands cpp))
+           (list "2" "2"))))))
+
 
 ;;; Analysis tests
 
