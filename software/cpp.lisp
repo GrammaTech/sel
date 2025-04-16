@@ -917,6 +917,9 @@ See SEL issue #359."
       (call-next-method)
       "..."))
 
+(defmethod parameter-name ((ast cpp-optional-type-parameter-declaration))
+  (source-text (cpp-name ast)))
+
 (defmethod get-declaration-ids ((ns (eql :tag)) (ast cpp-ast))
   "Merge the tag and type namespaces for C++."
   (get-declaration-ids :type ast))
