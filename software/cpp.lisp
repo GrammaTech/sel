@@ -926,6 +926,14 @@ See SEL issue #359."
 (defmethod parameter-name ((ast cpp-optional-type-parameter-declaration))
   (source-text (cpp-name ast)))
 
+(defmethod parameter-names ((ast cpp-variadic-parameter-declaration))
+  (match ast
+    ((cpp-variadic-parameter-declaration
+      :cpp-declarator
+      (cpp-variadic-declarator
+       :children (list (and name (cpp-identifier)))))
+     (list name))))
+
 (defmethod get-declaration-ids ((ns (eql :tag)) (ast cpp-ast))
   "Merge the tag and type namespaces for C++."
   (get-declaration-ids :type ast))
