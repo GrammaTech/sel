@@ -1742,25 +1742,29 @@ types."
 (defmethod infer-type :around ((ast cpp-field-expression))
   (let* ((field-type (call-next-method))
          (arg-type (infer-type (cpp-argument ast))))
-    (if (and arg-type field-type)
-        (let ((field-ns (namespace field-type))
-              (qualified-arg-type (qualify-declared-ast-name arg-type)))
-          (if (equal field-ns qualified-arg-type)
-              ;; If the type of the argument is (modulo template
-              ;; arguments) the same as the namespace of the field
-              ;; type, then we synthesize a new AST from both of them
-              ;; with template arguments intact.
-              (let ((new-arg-type (tree-copy arg-type))
-                    (new-field-type (tree-copy field-type)))
-                (setf (attr-proxy new-arg-type) arg-type
-                      (attr-proxy new-field-type) field-type)
-                (lret ((qname
-                        (list->qualified-name
-                         (append (qualified-name->list new-arg-type)
-                                 (qualified-name->list new-field-type)))))
-                  (setf (attr-proxy qname) field-type)))
-              field-type))
-        field-type)))
+    (cond
+      ((placeholder-type-p field-type)
+       field-type)
+      ((and arg-type field-type)
+       (let ((field-ns (namespace field-type))
+             (qualified-arg-type (qualify-declared-ast-name arg-type)))
+         (if (equal field-ns qualified-arg-type)
+             ;; If the type of the argument is (modulo template
+             ;; arguments) the same as the namespace of the field
+             ;; type, then we synthesize a new AST from both of them
+             ;; with template arguments intact.
+             (let ((new-arg-type (tree-copy arg-type))
+                   (new-field-type (tree-copy field-type)))
+               (setf (attr-proxy new-arg-type) arg-type
+                     (attr-proxy new-field-type) field-type)
+               (lret ((qname
+                       (list->qualified-name
+                        (append (qualified-name->list new-arg-type)
+                                (qualified-name->list new-field-type)))))
+                 (setf (attr-proxy qname) field-type)))
+             field-type)))
+          (t
+           field-type))))
 
 (defmethod infer-expression-type ((ast cpp-initializer-list))
   (match (lookup-parent-ast (attrs-root*) ast)
