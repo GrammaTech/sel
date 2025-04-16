@@ -2007,6 +2007,16 @@ specializations."
          (definition-name-ast
           (find-if (of-type 'cpp-field-declaration) cpp))))))
 
+(deftest test-const-field-pointers-are-const ()
+  "Pointers to const functions should be recognized as const."
+  (let ((cpp (cpp* "class FunClass {
+  int * fn() const;
+};")))
+    (is (ts::const-field-declaration?
+         (is (find-if (of-type 'cpp-field-declaration)
+                      cpp))
+         "fn"))))
+
 
 ;;; Parsing tests
 

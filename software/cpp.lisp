@@ -1430,12 +1430,17 @@ definitions."
      (let ((declarators (ensure-list declarator/s)))
        (iter (for field-decl in declarators)
              (match field-decl
-               ((and
-                 (cpp-function-declarator
-                  (cpp-declarator (source-text= fn)))
-                 ;; TODO Should the type-qualifiers be in a
-                 ;; post-specifiers slot?
-                 (access #'direct-children children))
+               ((or (cpp-function-declarator
+                     :cpp-declarator (source-text= fn)
+                     ;; TODO Should the type-qualifiers be in a
+                     ;; post-specifiers slot?
+                     :children children)
+                    (cpp-pointer-declarator
+                     (cpp-declarator
+                      (and
+                       (cpp-function-declarator
+                        :cpp-declarator (source-text= fn)
+                        :children children)))))
                 (thereis
                  (some (op (match _ ((cpp-type-qualifier :text "const") t)))
                        children)))))))))
