@@ -249,6 +249,7 @@ to produce valid code when unconvential indentation occurs."))
        (cpp-sized-type-specifier (:modifiers (:multiple . t)))
        (cpp-access-specifier (:keyword))
        (cpp-type-parameter-declaration (:keyword))
+       (cpp-abstract-reference-declarator (:valueness))
        (cpp-reference-declarator (:valueness))
        (cpp-variadic-reference-declarator (:valueness)))
       (:java
@@ -2620,13 +2621,19 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "."))
            ((:TYPE . "STRING") (:VALUE . "->"))))
          :as "operator"))
+       (:abstract-reference-declarator
+        (:label
+          ((:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "&"))
+                     ((:TYPE . "STRING") (:VALUE . "&&"))))
+          :as "valueness"))
        (:access-specifier
         (:label
-         ((:TYPE . "CHOICE")
-          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "public"))
-           ((:TYPE . "STRING") (:VALUE . "private"))
-           ((:TYPE . "STRING") (:VALUE . "protected"))))
-         :as "keyword"))
+          ((:TYPE . "CHOICE")
+           (:MEMBERS ((:TYPE . "STRING") (:VALUE . "public"))
+                     ((:TYPE . "STRING") (:VALUE . "private"))
+                     ((:TYPE . "STRING") (:VALUE . "protected"))))
+          :as "keyword"))
        (:type-parameter-declaration
         (:label
          ((:TYPE . "CHOICE")

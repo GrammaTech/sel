@@ -108,6 +108,17 @@ See SEL issue #359."
                   (mapcar #'tree-copy children)))))
      (direct-children decl))))
 
+(deftest test-abstract-reference-declarator-valueness ()
+  "Abstract reference declarators should preserve & vs &&."
+  (is (typep (cpp-valueness
+              (is (find-if (of-type 'cpp-abstract-reference-declarator)
+                           (cpp* "void process(int &);"))))
+             'cpp-&))
+  (is (typep (cpp-valueness
+              (is (find-if (of-type 'cpp-abstract-reference-declarator)
+                           (cpp* "void process(int &&);"))))
+             'cpp-&&)))
+
 
 ;;; Analysis tests
 

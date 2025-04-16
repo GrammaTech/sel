@@ -573,6 +573,12 @@ to look it up as `y::z' or just `z'."
     ((:& :&&) (label-as :valueness))))
 
 (defmethod transform-parse-tree
+    ((language (eql :cpp)) (class (eql 'cpp-abstract-reference-declarator))
+     parse-tree &key)
+  (with-modify-parse-tree (parse-tree)
+    ((:& :&&) (label-as :valueness))))
+
+(defmethod transform-parse-tree
     ((language (eql :cpp)) (class (eql 'cpp-variadic-reference-declarator))
      parse-tree &key)
   (with-modify-parse-tree (parse-tree)
@@ -2057,8 +2063,9 @@ instance we only want to remove one).")
 (defmethod wrap-type-descriptor ((d cpp-reference-declarator) type)
   ;; type
   (make 'cpp-type-descriptor
-        :cpp-declarator (make 'cpp-abstract-reference-declarator
-                              :text "&")
+        :cpp-declarator
+        (make 'cpp-abstract-reference-declarator
+              :cpp-valueness (cpp-valueness d))
         :cpp-type type))
 
 (defmethod ltr-eval-ast-p ((ast cpp-binary-expression))
