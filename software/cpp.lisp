@@ -1714,7 +1714,9 @@ then the return type of the call is the return type of the field."
                                   (attrs-root*)
                                   type-def))
                  (template-param-names
-                  (mapcar #'parameter-name (cpp-parameters template)))
+                  (mapcar #'parameter-name
+                          (children
+                           (cpp-parameters template))))
                  (offset
                   (position type2 template-param-names
                             :test #'source-text=)))
