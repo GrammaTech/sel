@@ -833,6 +833,7 @@ for the language.")
        (:c/cpp-preproc-arg c-preproc-arg cpp-preproc-arg)
        (:c/cpp-preproc-call c-preproc-call cpp-preproc-call)
        (:c/cpp-preproc-def c-preproc-def cpp-preproc-def)
+       (:c/cpp-preproc-defined c-preproc-defined cpp-preproc-defined)
        (:c/cpp-preproc-elif c-preproc-elif cpp-preproc-elif)
        (:c/cpp-preproc-else c-preproc-else cpp-preproc-else)
        (:c/cpp-preproc-function-def
