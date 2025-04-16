@@ -4677,12 +4677,12 @@ using NAMESPACE.")
   declarations at the AST level.")
   (:method-combination standard/context)
   (:method :context (type root id)
-    (or (call-next-method)
-        (warn
-         'no-enclosing-declaration
-         :type type
-         :root root
-         :id id)))
+    (cond ((primitive-type-p id) nil)
+          ((call-next-method))
+          (t (warn 'no-enclosing-declaration
+                   :type type
+                   :root root
+                   :id id))))
   (:method :context (type (root software) id)
     (find-enclosing-declaration type (genome root) id))
   (:method :context ((type symbol) root id)
@@ -4697,10 +4697,10 @@ using NAMESPACE.")
        ;; Check if this identifier is part of a declaration before
        ;; checking the symbol table to avoid returning a shadowed variable.
        (iter
-        (for parent in (lookup-parent-asts* (attrs-root*) id))
-        (finding parent such-that
-                 (and (typep parent type)
-                      (find-in-defs parent ns id-string))))
+         (for parent in (lookup-parent-asts* (attrs-root*) id))
+         (finding parent such-that
+                  (and (typep parent type)
+                       (find-in-defs parent ns id-string))))
        (call-next-method))))
   (:method ((type symbol) root id)
     (find-enclosing type (attrs-root*) id)))

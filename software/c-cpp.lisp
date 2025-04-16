@@ -784,10 +784,14 @@ circular dependencies."
   "Primitive types don't have declarations."
   nil)
 
+(defmethod get-declaration-ids :context (type (ast c/cpp-sized-type-specifier))
+  "Primitive types don't have declarations."
+  nil)
+
 (defmethod get-declaration-ids :around (type (ast c/cpp-pointer-expression))
   (get-declaration-ids type (c/cpp-argument ast)))
 
-(defmethod get-declaration-ids :around (type (ast c/cpp-type-descriptor))
+(defmethod get-declaration-ids :context (type (ast c/cpp-type-descriptor))
   (get-declaration-ids type (c/cpp-type ast)))
 
 (defmethod get-declaration-ids ((type (eql :function))

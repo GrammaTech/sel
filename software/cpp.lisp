@@ -2322,12 +2322,13 @@ functions.")
              ;; TODO Circularity?
              (ids (mappend
                    (lambda (type)
-                     (or (get-declaration-ids :type type)
-                         (match type
+                     (or (match type
                            ((or (cpp-primitive-type)
                                 (cpp-type-descriptor
-                                 (cpp-type (cpp-primitive-type))))
-                            (list type)))))
+                                 (cpp-type (cpp-primitive-type)))
+                                (cpp-sized-type-specifier))
+                            (list type)))
+                         (get-declaration-ids :type type)))
                    parameter-arguments)))
         (nub ids)))))
 
