@@ -1751,6 +1751,8 @@ types."
     (cond
       ((placeholder-type-p field-type)
        field-type)
+      ((typep field-type 'cpp-decltype)
+       field-type)
       ((and arg-type field-type)
        (let ((field-ns (namespace field-type))
              (qualified-arg-type (qualify-declared-ast-name arg-type)))
