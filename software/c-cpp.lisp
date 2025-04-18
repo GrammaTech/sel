@@ -443,13 +443,24 @@ MACROS is a map from macro names to expansions."
                          (cpp-ast (cpp* expansion))))
                       ;; TODO -Wundef?
                       0))
-                   ((c/cpp-error)
+                   ((or (c/cpp-error)
+                        (source-text-fragment-variation-point))
                     (let ((parsed
-                            (etypecase expr
-                              (c-ast (c* (source-text expr)))
-                              (cpp-ast (cpp* (source-text expr))))))
-                      (if (typep parsed 'c/cpp-error)
-                          (error "Unparseable error node: ~a" expr)
+                            (handler-case
+                                (etypecase expr
+                                  (c-ast (c* (source-text expr)))
+                                  (cpp-ast (cpp* (source-text expr))))
+                              ((or rule-matching-error type-error) ()
+                                (warn
+                                 "Unparseable error node in preprocessor condition: ~a"
+                                 expr)
+                                expr))))
+                      (if (typep
+                           parsed
+                           '(or
+                             c/cpp-error
+                             source-text-fragment-variation-point))
+                          false
                           (rec parsed))))))))
       (etypecase expr
         (string
