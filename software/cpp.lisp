@@ -923,8 +923,11 @@ See SEL issue #359."
       (call-next-method)
       "..."))
 
-(defmethod parameter-name ((ast cpp-optional-type-parameter-declaration))
-  (source-text (cpp-name ast)))
+(defmethod parameter-names ((ast cpp-optional-type-parameter-declaration))
+  (list (cpp-name ast)))
+
+(defmethod parameter-names ((ast cpp-optional-parameter-declaration))
+  (identifiers (cpp-declarator ast)))
 
 (defmethod parameter-names ((ast cpp-variadic-parameter-declaration))
   (match ast
