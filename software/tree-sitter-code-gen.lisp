@@ -449,7 +449,9 @@ for the language.")
        (cpp-preproc-if
         (cpp-alternative :reader alternative :initarg :alternative))
        (cpp-preproc-elif
-        (cpp-alternative :reader alternative :initarg :alternative)))
+        (cpp-alternative :reader alternative :initarg :alternative))
+       (cpp-optional-parameter-declaration
+        (cpp-type :reader parameter-type)))
       (:golang
        (golang-call-expression
         (golang-arguments :reader call-arguments-ast :initarg :arguments))
