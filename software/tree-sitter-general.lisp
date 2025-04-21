@@ -1318,6 +1318,13 @@ more than one thing (destructuring).")
     (when-let (assignee (assignee ast))
       (list assignee))))
 
+(defun synthesize-attribute (ast attr &key (union-fn #'append))
+  (declare (function attr union-fn))
+  (reduce (op (map-union _ _ union-fn))
+          (children ast)
+          :key attr
+          :initial-value (empty-map)))
+
 (def-attr-fun assignees-table ()
   "Build a lookup table from assignees to their assigners."
   ;; This is a "synthesized attribute", built from the bottom-up.
@@ -1332,10 +1339,7 @@ more than one thing (destructuring).")
                      (assignees assigner))
             :initial-value (call-next-method)))
   (:method ((ast ast))
-    (reduce (op (map-union _ _ #'append))
-            (children ast)
-            :key #'assignees-table
-            :initial-value (empty-map))))
+    (synthesize-attribute ast #'assignees-table)))
 
 (defmethod attr-missing ((attr (eql 'assignees-table)) node)
   (assignees-table (attrs-root*)))

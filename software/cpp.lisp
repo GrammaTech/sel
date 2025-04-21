@@ -2260,56 +2260,68 @@ the definitions of the declared function."
 (defun find-enclosing-template (ast)
   (find-enclosing 'cpp-template-declaration (attrs-root*) ast))
 
-(def-attr-fun template-specializations ()
-  (:documentation "Return all specializations of a template.
+(defun arguments-ast-specialized-p (args)
+  (declare (arguments-ast args))
+  ;; NB This excludes optional type parameters.
+  (iter (for arg in (children args))
+        (for decl = (get-declaration-ast :type arg))
+        (thereis (not (typep decl 'cpp-type-parameter-declaration)))))
+
+;;; TODO An fset relation?
+(def-attr-fun template-specializations-table ()
+  "Synthesize attribute for getting the specializations of a template."
+  (:method ((software parseable))
+    (template-specializations-table (genome software)))
+  (:method :context ((ast ast))
+    (assure fset:map (call-next-method)))
+  (:method ((ast ast))
+    (synthesize-attribute
+     ast
+     #'template-specializations-table))
+  (:method ((type cpp-template-type))
+    (or (and-let* ((decl (get-declaration-ast :type (cpp-name type)))
+                   (template (find-enclosing-template decl))
+                   (args (cpp-arguments type))
+                   ((arguments-ast-specialized-p args)))
+          (fset:map (template (list type))))
+        (empty-map)))
+  (:method ((call call-ast))
+    (flet ((template+args (call)
+             (match call
+               ((call-ast
+                 (call-function (cpp-field-expression)))
+                nil)
+               ((call-ast
+                 (call-function
+                  (and fn
+                       (cpp-template-function)))
+                 (call-arguments-ast arguments))
+                (when-let* ((fn-def (get-declaration-ast :function fn)))
+                  (values (find-enclosing-template fn-def)
+                          arguments)))
+               ((call-ast
+                 (call-function (and fn (identifier-ast)))
+                 (call-arguments-ast arguments))
+                (and-let* (((not (get-declaration-id :macro fn)))
+                           (id (get-declaration-id :function fn)))
+                  (values (find-enclosing-template id)
+                          arguments))))))
+      (multiple-value-bind (template args)
+          (template+args call)
+        (if (and args (arguments-ast-specialized-p args))
+            (fset:map (template (list call)))
+            (empty-map))))))
+
+(defmethod attr-missing ((attr (eql 'template-specializations-table)) node)
+  (template-specializations-table (attrs-root*)))
+
+(defun template-specializations (template &aux (root (attrs-root*)))
+  "Return all specializations of a template.
 Specializations are both template types and calls of template
-functions.")
-  (:method ((template cpp-template-declaration) &aux (root (attrs-root*)))
-    (nest
-     (labels ((specialized? (arguments-ast)
-                ;; NB This excludes optional type parameters.
-                (iter (for arg in (children arguments-ast))
-                      (for decl = (get-declaration-ast :type arg))
-                      (thereis (not (typep decl 'cpp-type-parameter-declaration)))))
-              (node-template-and-arguments (node)
-                (match node
-                  ;; Collect specializations from types.
-                  ((cpp-template-type
-                    (cpp-name type)
-                    (cpp-arguments arguments))
-                   (when-let* ((type-def (get-declaration-ast :type type)))
-                     (values (find-enclosing-template type-def)
-                             arguments)))
-                  ;; Collect specializations from invocations.
-                  ((call-ast
-                    (call-function (cpp-field-expression)))
-                   nil)
-                  ((call-ast
-                    (call-function
-                     (and fn
-                          (cpp-template-function)))
-                    (call-arguments-ast arguments))
-                   (when-let* ((fn-def (get-declaration-ast :function fn)))
-                     (values (find-enclosing-template fn-def)
-                             arguments)))
-                  ((call-ast
-                    (call-function (and fn (identifier-ast)))
-                    (call-arguments-ast arguments))
-                   (and-let* (((not (get-declaration-id :macro fn)))
-                              (id (get-declaration-id :function fn)))
-                     (values (find-enclosing-template id)
-                             arguments)))))))
-     (let ((template-descendants
-             (set-hash-table
-              (convert 'list template)))))
-     (iter (for node in-tree (genome root)))
-     (unless (gethash node template-descendants))
-     (multiple-value-bind (node-template arguments)
-         (node-template-and-arguments node)
-       (and template arguments
-            (eql node-template template)
-            (specialized? arguments)
-            (collect node))))))
+functions."
+  (declare (cpp-template-declaration template))
+  (lookup (template-specializations-table root)
+          template))
 
 (def-attr-fun specialization-type-arguments ()
   "Get the type arguments from a template specialization."
