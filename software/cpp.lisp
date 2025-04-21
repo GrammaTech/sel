@@ -2261,11 +2261,11 @@ the definitions of the declared function."
   (find-enclosing 'cpp-template-declaration (attrs-root*) ast))
 
 (defun arguments-ast-specialized-p (args)
-  (declare (arguments-ast args))
-  ;; NB This excludes optional type parameters.
-  (iter (for arg in (children args))
-        (for decl = (get-declaration-ast :type arg))
-        (thereis (not (typep decl 'cpp-type-parameter-declaration)))))
+  (when (typep args 'arguments-ast)
+    ;; NB This excludes optional type parameters.
+    (iter (for arg in (children args))
+          (for decl = (get-declaration-ast :type arg))
+          (thereis (not (typep decl 'cpp-type-parameter-declaration))))))
 
 ;;; TODO An fset relation?
 (def-attr-fun template-specializations-table ()
@@ -2376,17 +2376,17 @@ functions."
   (:method ((decl cpp-optional-type-parameter-declaration))
     (param-possible-types decl (cpp-default-type decl))))
 
-(defmethod get-declaration-ids :around ((type (eql :type)) (ast cpp-ast))
+(defmethod resolve-possible-types ((type cpp-type-parameter-declaration))
   "When the declaration of a type is a type parameter, include the
 set of possible concrete specializations of that type."
-  (let ((results (call-next-method type ast)))
-    (if-let (type-params
-             (filter-map
-              (op (find-enclosing 'cpp-type-parameter-declaration (attrs-root*) _))
-              results))
-      (append results
-              (mappend #'possible-types type-params))
-      results)))
+  (let ((root (attrs-root*)))
+    (filter-map
+     (op (find-enclosing-declaration :type root _))
+     (possible-types type))))
+
+(defmethod get-declaration-ids :around ((type (eql :type)) (ast cpp-ast))
+
+  (call-next-method))
 
 (defmethod find-enclosing-declaration ((type (eql 'function-declaration-ast))
                                        root

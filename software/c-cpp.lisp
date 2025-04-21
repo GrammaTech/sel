@@ -1018,6 +1018,12 @@ is the operator of a binary ast.")
 (defmethod direct-field-table ((ast c/cpp-enum-specifier))
   (empty-map))
 
+(defgeneric resolve-possible-types (ast)
+  (:method ((asts list))
+    (mappend #'resolve-possible-types asts))
+  (:method ((ast ast))
+    nil))
+
 (defun get-field-classes (field)
   "Find the classes that define FIELD.
 There can be multiple classes if FIELD occurs in a template."
@@ -1031,17 +1037,23 @@ There can be multiple classes if FIELD occurs in a template."
                  (new-type
                   (if (typep (c/cpp-operator field) 'c/cpp-->)
                       (deref-type type)
-                      type)))
-       (filter (of-type '(and type-declaration-ast
-                          definition-ast))
-               ;; This can include non-definitions (e.g. a type
-               ;; parameter would be expanded as the type parameter
-               ;; and all the classes it gets specialized on.)
-               (get-declaration-asts
-                ;; NB `c-tag-specifier' is a mixin class we define.
-                (if (typep new-type 'c-tag-specifier)
-                    :tag :type)
-                new-type))))))
+                      type))
+                 (decls
+                  (get-declaration-asts
+                   ;; NB `c-tag-specifier' is a mixin class we define.
+                   (if (typep new-type 'c-tag-specifier)
+                       :tag :type)
+                   new-type)))
+       (etypecase field
+         (c-ast decls)
+         (cpp-ast
+          ;; This can include non-definitions (e.g. a type
+          ;; parameter would be expanded as the type parameter
+          ;; and all the classes it gets specialized on.)
+          (filter (of-type '(and type-declaration-ast
+                             definition-ast))
+                  (append decls
+                          (resolve-possible-types decls)))))))))
 
 (defmethod get-declaration-ids :around (type (ast c/cpp-field-expression))
   (let ((field (c/cpp-field ast)))
