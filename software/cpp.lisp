@@ -927,7 +927,8 @@ See SEL issue #359."
   (list (cpp-name ast)))
 
 (defmethod parameter-names ((ast cpp-optional-parameter-declaration))
-  (identifiers (cpp-declarator ast)))
+  (when-let (d (cpp-declarator ast))
+    (identifiers d)))
 
 (defmethod parameter-names ((ast cpp-variadic-parameter-declaration))
   (match ast
