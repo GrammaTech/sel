@@ -6016,7 +6016,11 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                     (,@(or (get-supertypes-for-type type)
                            `(,ast-superclass))
                      terminal-symbol)
-                  ()
+                  ((child-slots
+                    :initform
+                    '((before-asts . 0)
+                      (after-asts . 0))
+                    :allocation :class))
                   (:documentation
                    ,(format nil "Generated for terminal symbol '~a'" type))))
              (create-node-class

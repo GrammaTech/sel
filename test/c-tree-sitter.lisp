@@ -913,6 +913,17 @@ int sum = myadd(2, 2);"))
   (let ((source "[[noreturn]] void fun();"))
     (is (source-text= source (convert 'c-ast source)))))
 
+(deftest terminal-symbol-comments-dont-disappear ()
+  "Comments attached to terminal symbols should still be part of the
+tree."
+  (let* ((c (c* "x /*q*/ < y"))
+         (op-sym (c-operator c)))
+    (is (typep op-sym 'terminal-symbol))
+    (is (children op-sym))
+    (let ((comment (only-elt (children op-sym))))
+      (is (typep comment 'c-comment))
+      (is (ast-path op-sym comment)))))
+
 
 ;;;; Parsing test
 
