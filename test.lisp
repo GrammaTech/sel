@@ -6,6 +6,7 @@
         :curry-compose-reader-macros
         #+gt :testbot
         :stefil+
+        :software-evolution-library/test/ada-tree-sitter
         :software-evolution-library/test/adaptive-mutation
         :software-evolution-library/test/all-tree-sitter
         :software-evolution-library/test/ancestral-git

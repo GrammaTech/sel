@@ -14,7 +14,7 @@ fi
 
 # Withheld languages: agda c-sharp julia ocaml/interface ocaml/ocaml php ql ruby scala
 declare -ar default_languages=(
-    commonlisp bash c cpp css go html java javascript jsdoc json python regex rust
+    ada bash c commonlisp cpp css go html java javascript jsdoc json python regex rust
     typescript/tsx typescript/typescript
     yaml
 )
@@ -25,6 +25,7 @@ NOPIN=${NOPIN:-}
 declare -A pins
 pins[tree-sitter]=efe009f4
 
+pins[ada]=e8e2515
 pins[bash]=275effd
 pins[c]=f357890
 pins[commonlisp]=c7e8149
@@ -48,6 +49,7 @@ pins[typescript/tsx]=${pins[typescript]}
 
 # Declared repositories.
 declare -A repos
+repos[ada]=https://github.com/briot/tree-sitter-ada.git
 repos[commonlisp]=https://github.com/theHamsta/tree-sitter-commonlisp.git
 repos[cpp]=https://github.com/ruricolist/tree-sitter-cpp.git
 repos[yaml]=https://github.com/ikatyang/tree-sitter-yaml.git

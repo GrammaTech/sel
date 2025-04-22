@@ -25,6 +25,7 @@
            :+python-utility-dir+
            :+include-processing-dir+
            ;; Other functions
+           :ada-tree-sitter-available-p
            :c-tree-sitter-available-p
            :cpp-tree-sitter-available-p
            :cl-tree-sitter-available-p
@@ -199,6 +200,10 @@
 
 
 ;;;; Helper functions.
+(defun ada-tree-sitter-available-p ()
+  (handler-case (progn (make-instance 'sel/sw/tree-sitter::ada))
+    (error (e) (declare (ignorable e)) nil)))
+
 (defun c-tree-sitter-available-p ()
   (handler-case (progn (make-instance 'sel/sw/tree-sitter::c))
     (error (e) (declare (ignorable e)) nil)))

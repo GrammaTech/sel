@@ -7,6 +7,7 @@
    :gt/full
    :software-evolution-library
    :software-evolution-library/software/tree-sitter
+   :software-evolution-library/software/ada
    :software-evolution-library/software/agda
    :software-evolution-library/software/bash
    :software-evolution-library/software/c
