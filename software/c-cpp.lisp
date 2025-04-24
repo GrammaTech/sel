@@ -222,7 +222,12 @@
    (let* ((macro-ns (lookup symtab :macro))
           (alternative (alternative node)))
      (unless macro-ns
-       (warn "No macro environment for ~a" (type-of node))))
+       (warn "No macro environment for ~a: ~a"
+             (type-of node)
+             (string-replace-all
+              (string #\Newline)
+              (source-text-take 100 node)
+              "\\n"))))
    (cond ((preprocessor-condition-true-p node :macro-ns macro-ns)
           (when alternative
             ;; The symbol table in the alternative shouldn't include
