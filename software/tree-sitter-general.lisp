@@ -1325,7 +1325,37 @@ more than one thing (destructuring).")
           :key attr
           :initial-value (empty-map)))
 
-(def-attr-fun assignees-table ()
+(defmacro define-synthesized-attribute (name args &body body)
+  "Define a synthesize attribute.
+A synthesized attribute is a table (FSet map) built bottom-up rather than top-down.
+
+Usually synthesize attributes contain information used by other
+attributes to avoid repeated tree traversal.
+
+Going up the tree, the maps returned by each child are unioned using
+`map-union' with `synthesized-attribute-union' as its union function.
+You can override this for your own synthesized attributes."
+  (let* ((docstring (and (stringp (car body)) (pop body)))
+         (union-fn-option (assoc :union-fn body))
+         (body (remove union-fn-option body)))
+    `(progn
+       (def-attr-fun ,name ,args
+         ,@(unsplice docstring)
+         (:method :context ((ast ast))
+           (assure fset:map (call-next-method)))
+         (:method ((software parseable))
+           (,name (genome software)))
+         (:method ((ast ast))
+           (synthesize-attribute
+            ast
+            #',name
+            ,@union-fn-option))
+         ,@body)
+       (defmethod attr-missing ((attr (eql ',name)) node)
+         (declare (ignore node))
+         (,name (attrs-root*))))))
+
+(define-synthesized-attribute assignees-table ()
   "Build a lookup table from assignees to their assigners."
   ;; This is a "synthesized attribute", built from the bottom-up.
   (:method ((software parseable))
@@ -1337,12 +1367,7 @@ more than one thing (destructuring).")
                        (filter-map (op (get-declaration-id :variable _))
                                    (identifiers assignee)))
                      (assignees assigner))
-            :initial-value (call-next-method)))
-  (:method ((ast ast))
-    (synthesize-attribute ast #'assignees-table)))
-
-(defmethod attr-missing ((attr (eql 'assignees-table)) node)
-  (assignees-table (attrs-root*)))
+            :initial-value (call-next-method))))
 
 (def-attr-fun assignments ()
   "Return a list of ASTs that assign to TARGET.
@@ -1370,14 +1395,8 @@ For languages without pointers, this will always return nil."
   (:method ((target t))
     nil))
 
-(def-attr-fun arg-usage-table ()
-  (:method ((sw parseable))
-    (arg-usage-table (genome sw)))
-  (:method ((ast ast))
-    (synthesize-attribute
-     ast
-     #'arg-usage-table
-     :union-fn #'union))
+(define-synthesized-attribute arg-usage-table ()
+  (:union-fn #'union)
   (:method ((ast call-ast))
     (match ast
       ((call-ast (call-arguments (and args (type list))))
@@ -1397,9 +1416,6 @@ For languages without pointers, this will always return nil."
                              (or (lookup map decl) (empty-set))
                              (cons :alias arg))
                             into map)))))))
-
-(defmethod attr-missing ((attr (eql 'arg-usage-table)) node)
-  (arg-usage-table node))
 
 (defgeneric collect-arg-uses (software target &optional alias)
   (:documentation "Collect function calls in SOFTWARE with TARGET as an argument.

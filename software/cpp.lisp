@@ -2268,16 +2268,8 @@ the definitions of the declared function."
           (thereis (not (typep decl 'cpp-type-parameter-declaration))))))
 
 ;;; TODO An fset relation?
-(def-attr-fun template-specializations-table ()
+(define-synthesized-attribute template-specializations-table ()
   "Synthesize attribute for getting the specializations of a template."
-  (:method ((software parseable))
-    (template-specializations-table (genome software)))
-  (:method :context ((ast ast))
-    (assure fset:map (call-next-method)))
-  (:method ((ast ast))
-    (synthesize-attribute
-     ast
-     #'template-specializations-table))
   (:method ((type cpp-template-type))
     (or (and-let* ((decl (get-declaration-ast :type (cpp-name type)))
                    (template (find-enclosing-template decl))
@@ -2311,9 +2303,6 @@ the definitions of the declared function."
         (if (and args (arguments-ast-specialized-p args))
             (fset:map (template (list call)))
             (empty-map))))))
-
-(defmethod attr-missing ((attr (eql 'template-specializations-table)) node)
-  (template-specializations-table (attrs-root*)))
 
 (defun template-specializations (template &aux (root (attrs-root*)))
   "Return all specializations of a template.
