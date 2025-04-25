@@ -1318,7 +1318,7 @@ more than one thing (destructuring).")
     (when-let (assignee (assignee ast))
       (list assignee))))
 
-(defun synthesize-attribute (ast attr &key (union-fn #'append))
+(defun synthesize-attribute (ast attr &key (union-fn #'append-longest))
   (declare (function attr union-fn))
   (reduce (op (map-union _ _ union-fn))
           (children ast)
@@ -1370,25 +1370,67 @@ For languages without pointers, this will always return nil."
   (:method ((target t))
     nil))
 
-(defgeneric collect-arg-uses (software ast &optional alias)
+(def-attr-fun arg-usage-table ()
+  (:method ((sw parseable))
+    (arg-usage-table (genome sw)))
+  (:method ((ast ast))
+    (synthesize-attribute
+     ast
+     #'arg-usage-table
+     :union-fn #'union))
+  (:method ((ast call-ast))
+    (match ast
+      ((call-ast (call-arguments (and args (type list))))
+       (iter (for arg in args)
+             (unless (typep arg 'identifier-ast)
+               (next-iteration))
+             (when-let (decl (get-declaration-id :variable arg))
+               (map-collect decl
+                            (with
+                             (or (lookup map decl) (empty-set))
+                             arg)
+                            into map))
+             (when-let* ((alias (aliasee arg))
+                         (decl (get-declaration-id :variable alias)))
+               (map-collect decl
+                            (with
+                             (or (lookup map decl) (empty-set))
+                             (cons :alias arg))
+                            into map)))))))
+
+(defmethod attr-missing ((attr (eql 'arg-usage-table)) node)
+  (arg-usage-table node))
+
+(defgeneric collect-arg-uses (software target &optional alias)
   (:documentation "Collect function calls in SOFTWARE with TARGET as an argument.
+
+Note TARGET should be a specific ID being declared in a AST.
 
 If ALIAS is non-nil, resolve aliases during the search.")
   (:method (obj (target identifier-ast) &optional alias)
-    (flet ((get-decl (var)
-             (get-declaration-id :variable
-                                 (or (and alias (aliasee var))
-                                     var))))
-      (let ((target (get-decl target)))
-        (iter (for ast in-tree (genome obj))
-              ;; The outer loop will recurse, so we don't
-              ;; need to recurse here.
-              (match ast
-                ((call-ast (call-arguments (and args (type list))))
-                 (when (member target
-                               (filter (of-type 'identifier-ast) args)
-                               :key (op (get-decl _)))
-                   (collect ast)))))))))
+    (mvlet* ((target
+              (get-declaration-id
+               :variable
+               (or (and alias (aliasee target))
+                   target)))
+             (root (attrs-root*))
+             (uses
+              (lookup (arg-usage-table (attrs-root*)) target))
+             (uses (convert 'list uses))
+             (alias-uses uses
+              (partition (lambda (use)
+                           (match use
+                             ((cons :alias _) t)
+                             (otherwise nil)))
+                         uses))
+             (uses
+              (if alias
+                  (append (mapcar #'cdr alias-uses) uses)
+                  uses)))
+      (filter-map
+       (compose (distinct)
+                (op (find-enclosing 'call-ast root _)))
+       uses))))
 
 (defmethod convert ((to-type (eql 'integer))
                     (ast integer-ast) &key)

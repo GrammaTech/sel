@@ -1524,42 +1524,42 @@ Should return `:failure' in the base case.")
              (call-next-method)))
     (otherwise (call-next-method))))
 
-(defmethod collect-arg-uses (sw (target c/cpp-ast)
-                             &optional alias)
-  (unless (typep target 'identifier-ast)
-    (return-from collect-arg-uses
-      (call-next-method)))
-  (labels ((identifier-use? (arg)
-             "Is ARG an identifier use (identifier, or dereference of an identifier)?"
-             (typecase arg
-               (identifier-ast arg)
-               (c/cpp-pointer-expression
-                (when (source-text= "*" (c/cpp-operator arg))
-                  (identifier-use? (c/cpp-argument arg))))))
-           (get-decl (var)
-             (get-declaration-id :variable
-                                 (or (and alias (aliasee var))
-                                     var)))
-           (occurs-as-object? (ast target)
-             (match ast
-               ((call-ast
-                 (call-function
-                  (c/cpp-field-expression
-                   (c/cpp-argument arg))))
-                (eql (get-decl arg) target))))
-           (occurs-as-arg? (ast target)
-             (match ast
-               ((call-ast (call-arguments (and args (type list))))
-                (member target
-                        (filter-map #'identifier-use? args)
-                        :key (op (get-decl _)))))))
-    (let ((target (get-decl target)))
-      (iter (for ast in-tree (genome sw))
-            ;; The outer loop will recurse, so we don't
-            ;; need to recurse here.
-            (when (or (occurs-as-object? ast target)
-                      (occurs-as-arg? ast target))
-              (collect ast))))))
+(defmethod arg-usage-table ((ast c/cpp-call-expression))
+  (let ((table (empty-map)))
+    (labels ((identifier-use? (arg)
+               "Is ARG an identifier use (identifier, or dereference of an identifier)?"
+               (typecase arg
+                 (identifier-ast arg)
+                 (c/cpp-pointer-expression
+                  (when (source-text= "*" (c/cpp-operator arg))
+                    (identifier-use? (c/cpp-argument arg))))))
+             (collect-arg-for-decl (decl arg)
+               (withf table decl
+                      (with (or (lookup table decl) (empty-set))
+                            arg)))
+             (collect-decls (arg)
+               (when (identifier-use? arg)
+                 (when-let (decl (get-declaration-id :variable arg))
+                   (collect-arg-for-decl decl arg))
+                 (when-let* ((alias (aliasee arg))
+                             (decl (get-declaration-id :variable alias)))
+                   (collect-arg-for-decl decl (cons :alias arg)))
+                 table)))
+      (match ast
+        ((call-ast
+          (call-function fn)
+          (call-arguments (and args (type list))))
+         (match fn
+           ((c/cpp-field-expression
+             (c/cpp-argument arg))
+            (collect-decls arg)))
+         (dolist (arg args)
+           (collect-decls arg)))))
+    table))
+
+(defmethod collect-arg-uses (sw (target c/cpp-pointer-expression) &optional alias)
+  (when (source-text= "*" (c/cpp-operator target))
+    (collect-arg-uses (c/cpp-argument target) alias)))
 
 (defmethod convert ((to-type (eql 'integer))
                     (ast c/cpp-number-literal) &key)

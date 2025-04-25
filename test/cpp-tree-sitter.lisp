@@ -1609,10 +1609,12 @@ X<char> var = fn();")
          (cpp (from-string 'cpp src))
          (template (is (find-if (of-type 'cpp-template-declaration) cpp))))
     (with-attr-table cpp
-      (is (equal '("S" "char")
-                 (mapcar #'source-text (possible-types (first (children (cpp-parameters template)))))))
-      (is (equal '("char" "int")
-                 (mapcar #'source-text (possible-types (second (children (cpp-parameters template))))))))))
+      (is (set-equal '("S" "char")
+                     (mapcar #'source-text (possible-types (first (children (cpp-parameters template)))))
+                     :test #'equal))
+      (is (set-equal '("char" "int")
+                     (mapcar #'source-text (possible-types (second (children (cpp-parameters template)))))
+                     :test #'equal)))))
 
 (deftest test-unqualify-cpp-destructor-name ()
   "Destructor names should be preserved when unqualifying."
