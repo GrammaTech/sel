@@ -726,6 +726,7 @@
            :+exception-top-type+
            :+exception-bottom-type+
            :specified-noexcept?
+           :resolve-possible-types
            ;; Field tables
            :add-namespaced-field
            :adjoin-fields
