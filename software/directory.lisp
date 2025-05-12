@@ -266,9 +266,10 @@ copied, inserting NEW-ENTRY as an entry of the last directory."
                                             child-dir
                                             (entries parent))))
                         (let ((new-dir (make 'directory-ast :name dir-name)))
-                          (copy parent
-                                :entries (cons (rec new-dir (rest path))
-                                               (entries parent)))))))))
+                          (rec
+                           (copy parent
+                                 :entries (cons new-dir (entries parent)))
+                           path)))))))
        (let* ((genome (genome project))
               (tld (extract-tld genome))
               (new-tld (rec tld path))
