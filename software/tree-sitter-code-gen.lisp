@@ -3770,10 +3770,10 @@ of fields needs to be determined at parse-time."
                     ;;       and are the only ones that should be considered
                     ;;       when searching for fields that may be down the line
                     ;;       in different rules.
-                    (when-let ((name (and (eql #\_ (aref name-string 0))
+                    (when-let ((rule (and (eql #\_ (aref name-string 0))
                                           (not (member name visited-rules))
                                           (aget name grammar-rules))))
-                      (handle-rule name
+                      (handle-rule rule
                                    preceding-fields
                                    (cons name visited-rules))))))))
       ;; NOTE: tree-sitter/cli/src/generate/grammar-schema.json
