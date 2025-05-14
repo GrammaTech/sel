@@ -1,0 +1,27 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DNDEBUG=1",
+      "-c",
+      "-o",
+      "hello",
+      "hello.c"
+    ],
+    "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/duplicate-compile-commands",
+    "file": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/duplicate-compile-commands/hello.c",
+    "output": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/duplicate-compile-commands/hello"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-o",
+      "hello",
+      "../hello.c"
+    ],
+    "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/duplicate-compile-commands/test",
+    "file": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/duplicate-compile-commands/hello.c",
+    "output": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/duplicate-compile-commands/test/hello"
+  }
+]

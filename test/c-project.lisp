@@ -82,6 +82,16 @@
          (directories-of-header-files *project*)))
   (:teardown (setf *project* nil)))
 
+(defixture duplicate-compile-commands-project
+  (:setup
+   (setf *project*
+         (from-file
+          (make-instance 'c-project)
+          (make-pathname
+           :directory
+           (append1 +etc-dir+ "duplicate-compile-commands")))))
+  (:teardown (setf *project* nil)))
+
 (defixture symbol-table-project
   (:setup
    (setf *project*
@@ -249,6 +259,11 @@
                      ("f1.c"
                       ("lib/f2.h")
                       ("f1.h")))))))))
+
+(deftest duplicate-compile-commands ()
+  (with-fixture duplicate-compile-commands-project
+    (with-attr-table *project*
+      (finishes (symbol-table *project*)))))
 
 
 ;;; System Headers
