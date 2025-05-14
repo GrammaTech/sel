@@ -323,7 +323,7 @@ command object."
         (extract-isysroot (command-flags self))))
 
 (defmethod initialize-instance :after ((self command-object) &key command arguments)
-  "Require that at least one of command or arguments is provided."
+  "Require that at least one of COMMAND or ARGUMENTS is provided."
   (unless (or command arguments)
     (error "Either ~s or ~s is required for a command object."
            :arguments
