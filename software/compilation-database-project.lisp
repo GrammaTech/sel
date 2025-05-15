@@ -158,5 +158,16 @@ relative to NEW-PATH."
       (let* ((key (if (absolute-pathname-p path)
                       path
                       (project-relative-pathname obj path))))
-        (lookup db (namestring key)))
+        (multiple-value-bind (found found?)
+            (lookup db (namestring key))
+          ;; If there are multiple command objects, just use the
+          ;; first. This is the behavior of the LLVM compilation
+          ;; database tooling (e.g. clangd).
+          (multiple-value-prog1 (values (car found) found?)
+            (when (rest found)
+              (dbg:lazy-note
+               :debug
+               "~a compilation database entr~:@p for ~a"
+               (length found)
+               path)))))
       (values nil nil))))

@@ -399,8 +399,7 @@ the correct binding."
                            (is (find-if (op (source-text= "MYCONST" _))
                                         (genome software)))))
                      (is (sel/cp/compdb:command-header-dirs
-                          (only-elt
-                           (is (sel/cp/compdb:command-object project file)))))
+                          (is (sel/cp/compdb:command-object project file))))
                      (with-attr-table project
                        (let* ((decl (is (get-declaration-ast :variable ast)))
                               (assignment

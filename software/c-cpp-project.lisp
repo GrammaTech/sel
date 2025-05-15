@@ -162,7 +162,7 @@ headers and implicit headers for command-line preprocessor macros."))
   "Get a header search path for FILE from PROJECT's compilation database."
   (when (and project file)
     (when-let ((co (command-object project file)))
-      (command-header-dirs (only-elt co)))))
+      (command-header-dirs co))))
 
 (define-node-class implicit-header (synthetic-header
                                     ;; Inherit symbol-table-union
@@ -393,8 +393,7 @@ should already have been computed as part of their compilation units."
     (get-implicit-header project (pathname file)))
   (:method ((project c/cpp-project) (file pathname))
     (assert (relative-pathname-p file))
-    (when-let* ((cos (command-object project file))
-                (co (only-elt cos)))
+    (when-let ((co (command-object project file)))
       (let* ((genome (genome project))
              (table (implicit-headers-table genome))
              (lang (component-class project)))
