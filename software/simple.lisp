@@ -387,7 +387,7 @@ value is passed to TEST."
 ;;;
 ;;; @texi{range}
 (define-software sw-range (simple)
-  ((reference :initarg :reference :initform nil))
+  ((reference :initarg :reference :initform nil :reader reference))
   (:documentation
    "Alternative to SIMPLE software objects which should use less memory.
 Instead of directly holding code in the GENOME, each GENOME is a list

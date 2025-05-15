@@ -283,7 +283,7 @@ See also: https://clang.llvm.org/docs/FAQ.html#id2.")
     :initarg :asts :reader asts :initform nil :copier :direct
     :type list :documentation "Deprecated: List of all ASTs.")
    ;; Clang tests expect the genome to be copied.
-   (genome :copier nil)
+   (genome :copier nil :reader genome)
    (includes
     :initarg :includes :accessor includes
     :initform nil :copier :direct
