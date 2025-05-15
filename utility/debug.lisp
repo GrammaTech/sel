@@ -94,9 +94,10 @@ with `cl-user:trace'."
 
 (defmacro define-symbolic-note-level (name level)
   "Register LEVEL as a symbolic note level."
-  `(setf (gethash (assure symbol ',name) *note-level-names*)
-         (assure note-level
-           ,level)))
+  `(eval-always
+     (setf (gethash (assure symbol ',name) *note-level-names*)
+           (assure note-level
+             ,level))))
 
 (eval-always                            ;CCL
   (define-condition unknown-symbolic-note-level (error)
