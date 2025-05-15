@@ -34,7 +34,6 @@
            :include-conflict-error
            :include-conflict-error.ast
            :include-conflict-error.candidates
-           :file-preproc-defs
            :get-implicit-header
            :command-implicit-header
            :project-dependency-tree
@@ -164,12 +163,6 @@ headers and implicit headers for command-line preprocessor macros."))
   (when (and project file)
     (when-let ((co (command-object project file)))
       (command-header-dirs (only-elt co)))))
-
-(defun file-preproc-defs (project ast &key (file (find-enclosing 'file-ast project ast)))
-  "Get preprocessor definitions for FILE from PROJECT's compilation database."
-  (when (and project file)
-    (when-let ((co (command-object project file)))
-      (command-preproc-defs co))))
 
 (define-node-class implicit-header (synthetic-header
                                     ;; Inherit symbol-table-union
