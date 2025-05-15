@@ -204,26 +204,32 @@ slot in DIRECT-SLOTS may be one of the following:
               &allow-other-keys)
              (let ((copy (call-next-method)))
                ,@(mapcar
-                  (lambda (name keyword-supplied-p copier)
-                    `(if ,keyword-supplied-p
-                         (setf (slot-value copy ',name) ,name)
-                         ,(case copier
-                            (:none nil)
-                            (:direct
-                             `(setf (slot-value copy ',name)
-                                    (with-slots (,name) obj
-                                      ,name)))
-                            (otherwise
-                             `(setf (slot-value copy ',name)
-                                    ,(if copier
-                                         `(funcall ,(if (symbolp copier)
-                                                        `',copier
-                                                        copier)
-                                                   (,name obj))
-                                         `(,name obj)))))))
-                  direct-slot-names
-                  (mapcar {symbol-cat _ 'supplied-p} direct-slot-names)
-                  (mapcar [{plist-get :copier} #'cdr] direct-slots))
+                  (lambda (direct-slot)
+                    (let* ((name (car direct-slot))
+                           (keyword-supplied-p (symbol-cat name 'supplied-p))
+                           (plist (cdr direct-slot))
+                           (reader (or (plist-get :reader plist)
+                                       (plist-get :accessor plist)
+                                       (error "No reader for ~a" name)))
+                           (copier (plist-get :copier plist)))
+                      `(if ,keyword-supplied-p
+                           (setf (slot-value copy ',name) ,name)
+                           ,(case copier
+                              (:none nil)
+                              (:direct
+                               `(setf (slot-value copy ',name)
+                                      (with-slots (,name) obj
+                                        ,name)))
+                              (otherwise
+                               `(setf (slot-value copy ',name)
+                                      ,(if copier
+                                           `(funcall ,(if (symbolp copier)
+                                                          `',copier
+                                                          copier)
+                                                     (,reader obj))
+                                           `(,reader obj))))))))
+                  direct-slots
+)
                copy))))
      (find-class ',name)))
 
