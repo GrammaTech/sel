@@ -106,7 +106,12 @@ Paths may contain wildcards.")
    (project-dir :initarg :project-dir
                 :accessor project-dir
                 :initform nil
-                :documentation "Source directory containing the project."))
+                :documentation "Source directory containing the project.")
+   (annotations
+    :initarg :annotations
+    :accessor project-annotations
+    :initform nil
+    :documentation "Alist of annotations"))
   (:default-initargs
    :ignore-paths *default-ignore-paths*
    :ignore-other-paths *default-ignore-paths*)
