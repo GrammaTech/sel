@@ -10,6 +10,8 @@
         :software-evolution-library/software/parseable)
   (:import-from :functional-trees/attrs
                 :subroot)
+  (:import-from :software-evolution-library/software/parseable-project
+                :project-parse-failures)
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:compdb
@@ -563,6 +565,7 @@ instances."
       (iter (for (path . software-object) in evolve-files)
             (for genome = (pop parsed-genomes))
             (handler-bind ((error (lambda (e)
+                                    (declare (ignore e))
                                     (unless uiop:*lisp-interaction*
                                       (invoke-restart 'continue)))))
               (restart-case
@@ -580,9 +583,9 @@ instances."
                                      (setf skip-all t)
                                      (next-iteration)))))
                 (continue ()
-                  :report
-                  (lambda (s) (format s "Skip evolve file ~a" path))
+                  :report (lambda (s) (format s "Skip evolve file ~a" path))
                   (debug:note :trace "Skipping ~a" path)
+                  (withf (project-parse-failures obj) path)
                   (next-iteration))))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)

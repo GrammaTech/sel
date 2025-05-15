@@ -10,11 +10,20 @@
         :software-evolution-library/software/parseable
         :software-evolution-library/software/project)
   (:import-from :functional-trees/attrs :attrs-root)
-  (:export :parseable-project))
+  (:export
+    :parseable-project
+    :project-parse-failures))
 (in-package :software-evolution-library/software/parseable-project)
 (in-readtable :curry-compose-reader-macros)
 
-(define-software parseable-project (project attrs-root) ()
+(define-software parseable-project (project attrs-root)
+  ((parse-failures
+    :accessor project-parse-failures
+    :reader parse-failures              ;For copying.
+    :initform (empty-set)
+    :initarg :parse-failures
+    :type fset:set
+    :documentation "Set of paths we were not able to parse."))
   (:documentation "Abstract project specialization for parseable software
 objects."))
 

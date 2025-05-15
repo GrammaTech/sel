@@ -827,9 +827,15 @@ the including file."
                (destructuring-bind (path . software) result
                  (with-slots (genome) software
                    (unless (typep genome 'ast)
-                     (with-simple-restart (continue "Skip inserting ~a" path)
-                       (force-parse-genome path software)
-                       (insert-software-into-project path software)))))))
+                     (block nil
+                       (restart-case
+                           (progn
+                             (force-parse-genome path software)
+                             (insert-software-into-project path software))
+                         (continue ()
+                           :report (lambda (s) (format s "Skip inserting ~a" path))
+                           (withf (project-parse-failures project) path)
+                           (return)))))))))
       (when-let (result
                  (or (simple-relative-search)
                      (and global
@@ -1053,13 +1059,14 @@ include files in all directories of the project."
                               (source-text
                                (include-ast-path-ast include-ast
                                                      :symbol-table in))))
-            (debug:lazy-note :trace
-                             "Skipping including ~a"
-                             (source-text
-                              (include-ast-path-ast include-ast
-                                                    :symbol-table in)))
-            (return-from find-symbol-table-from-include
-              in))
+            (let ((path
+                    (source-text
+                     (include-ast-path-ast include-ast
+                                           :symbol-table in))))
+              (debug:note :trace "Skipping including ~a" path)
+              (withf (project-parse-failures project) path)
+              (return-from find-symbol-table-from-include
+                in)))
           (enable-global-search ()
             :report "Enable global (within project) search for include files"
             :test (lambda (c)
