@@ -849,7 +849,10 @@ for the language.")
        (:c/cpp-sized-type-specifier
         c-sized-type-specifier cpp-sized-type-specifier)
        (:c/cpp-sizeof-expression c-sizeof-expression cpp-sizeof-expression)
-       (c/cpp--statement c--statement cpp--statement)
+       (:c/cpp--statement c--statement cpp--statement)
+       (:c/cpp-source-text-fragment-variation-point
+        c-source-text-fragment-variation-point
+        cpp-source-text-fragment-variation-point)
        (:c/cpp-storage-class-specifier c-storage-class-specifier
         cpp-storage-class-specifier)
        (:c/cpp-string-literal c-string-literal cpp-string-literal)
