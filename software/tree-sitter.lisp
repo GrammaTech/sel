@@ -558,6 +558,7 @@
            :variation-point
            :error-variation-point
            :source-text-fragment-variation-point
+           :source-text-fragment-tree
            :*use-variation-point-tree*
            ;; Generics
            ;; TODO: should this be in parseable?
