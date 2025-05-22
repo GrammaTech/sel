@@ -15,6 +15,7 @@
     :command-file
     :command-flags
     :command-header-dirs
+    :command-include-args
     :command-isysroot
     :command-object
     :command-objects
@@ -237,7 +238,12 @@ command object."
       :documentation "Preprocessor definition alist.")
      (header-dirs
       :type header-dirs
-      :reader command-header-dirs)
+      :reader command-header-dirs
+      :documentation "Symbolic search path")
+     (include-args
+      :type (soft-list-of string)
+      :reader command-include-args
+      :documentation "Arguments configuring the search path")
      (isysroot
       :type (or null string)
       :reader command-isysroot)
@@ -300,8 +306,21 @@ command object."
                          (self command-object)
                          (slot-name (eql 'header-dirs)))
   "Lazily compute header search path."
-  (setf (slot-value self 'header-dirs)
-        (compute-header-dirs (command-flags self))))
+  (values
+   (setf (values
+          (slot-value self 'header-dirs)
+          (slot-value self 'include-args))
+         (compute-header-dirs (command-flags self)))))
+
+(defmethod slot-unbound ((class t)
+                         (self command-object)
+                         (slot-name (eql 'include-args)))
+  "Lazily compute arguments affecting the include search path."
+  (setf (values
+         (slot-value self 'header-dirs)
+         (slot-value self 'include-args))
+        (compute-header-dirs (command-flags self)))
+  (slot-value self 'include-args))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
@@ -521,28 +540,32 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
    (rest (command-arguments entry))))
 
 (-> compute-header-dirs ((soft-list-of string))
-    (values header-dirs &optional))
+    (values header-dirs (soft-list-of string) &optional))
 (defun compute-header-dirs (flags)
-  "Compute the header search path from FLAGS."
+  "Compute the header search path from FLAGS.
+As a second value, return all arguments influencing the search path."
   (let ((current? t)
         (stdinc? t)
         iquote-dirs
         i-dirs
         isystem-dirs
         idirafter-dirs
-        (iprefix ""))
+        (iprefix "")
+        (include-args (queue)))
     (nlet rec ((flags flags))
       (match flags
         ((list))
-        ((list* (or "-nostdinc" "-nostdinc++") rest)
+        ((list* (and arg (or "-nostdinc" "-nostdinc++")) rest)
          (setf stdinc? nil)
+         (enq arg include-args)
          (rec rest))
         ;; "Split the include path".
-        ((list* (or "-I-" "--include-barrier") rest)
+        ((list* (and arg (or "-I-" "--include-barrier")) rest)
          (setf current? nil
                iquote-dirs
                (nconc (shiftf i-dirs nil)
                       iquote-dirs))
+         (enq arg include-args)
          (rec rest))
         ((list* (and p (type string))
                 (and f (type string))
@@ -552,34 +575,50 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
          (string-case p
            ("-iquote"
             (push f iquote-dirs)
+            (enq p include-args)
+            (enq f include-args)
             (rec rest))
            (("-I" "--include-directory")
             (push f i-dirs)
+            (enq p include-args)
+            (enq f include-args)
             (rec rest))
            ;; TODO Is this Clang-specific.
            (("-isystem" "-cxx-isystem")
             (push f isystem-dirs)
+            (enq p include-args)
+            (enq f include-args)
             (rec rest))
            (("-idirafter" "--include-directory-after")
             (push f idirafter-dirs)
+            (enq p include-args)
+            (enq f include-args)
             (rec rest))
            ("-iprefix"
             (setf iprefix f)
+            (enq p include-args)
+            (enq f include-args)
             (rec rest))
            ("-iwithprefixbefore"
             (push (string+ iprefix f) i-dirs)
+            (enq p include-args)
+            (enq f include-args)
             (rec rest))
            ("-iwithprefix"
             (push (string+ iprefix f) idirafter-dirs)
+            (enq p include-args)
+            (enq f include-args)
             (rec rest))
            (otherwise (rec (rest flags)))))
         ((list* _ rest)
          (rec rest))))
-    (nconc (and current? (list :current))
-           (nreverse iquote-dirs)
-           (list :always)
-           (nreverse i-dirs)
-           (list :system)
-           (nreverse isystem-dirs)
-           (and stdinc? (list :stdinc))
-           (nreverse idirafter-dirs))))
+    (values
+     (nconc (and current? (list :current))
+            (nreverse iquote-dirs)
+            (list :always)
+            (nreverse i-dirs)
+            (list :system)
+            (nreverse isystem-dirs)
+            (and stdinc? (list :stdinc))
+            (nreverse idirafter-dirs))
+     (qlist include-args))))
