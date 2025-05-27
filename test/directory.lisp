@@ -12,6 +12,8 @@
    :software-evolution-library/software/javascript-project
    :software-evolution-library/software/cpp-project
    :software-evolution-library/software/json)
+  (:import-from :software-evolution-library/software/directory
+                :*verify-project-in-sync*)
   (:import-from :software-evolution-library/software/parseable
                 :collect-if
                 :source-text
@@ -134,7 +136,8 @@
 (deftest can-replace-file-in-directory ()
   "Test that the AST and evolve files remain in sync when updating."
   (with-fixture fib-project-javascript
-    (let* ((new-source (fmt "~
+    (let* ((*verify-project-in-sync* t)
+           (new-source (fmt "~
 module.exports = {
     fibonacci: function(num) {
       if ((num == 0) || (num == 1))
@@ -163,7 +166,8 @@ module.exports = {
 
 (deftest test-can-remove-file-by-name ()
   "Removing a file by name should remove both the file-ast and evolve files entry."
-  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+  (let* ((*verify-project-in-sync* t)
+         (sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
          (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
          (project (is (from-file (make 'cpp-project) project-dir))))
     (is (assoc "my_class.h" (evolve-files project) :test #'equal))
@@ -180,7 +184,8 @@ module.exports = {
 
 (deftest test-can-remove-file-ast ()
   "Removing a file-ast should remove the corresponding evolve files entry."
-  (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+  (let* ((*verify-project-in-sync* t)
+         (sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
          (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
          (project (is (from-file (make 'cpp-project) project-dir)))
          (file-ast
@@ -201,7 +206,8 @@ module.exports = {
   `(deftest ,name ,args
      (labels ((file-root (file-ast)
                 (only-elt (contents file-ast))))
-       (let* ((sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+       (let* ((*verify-project-in-sync* t)
+              (sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
               (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
               (project (is (from-file (make 'cpp-project) project-dir)))
               (hpp-file (lookup project "my_class.h"))
