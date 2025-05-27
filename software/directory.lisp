@@ -47,6 +47,9 @@
 (in-package :software-evolution-library/software/directory)
 (in-readtable :curry-compose-reader-macros)
 
+(defvar *verify-project-in-sync* nil
+  "If non-nil, dynamically verify projects are in sync.")
+
 (defparameter *directory-project-parallel-minimum* 100
   "If a project has fewer files than this, do not bother
   parallelizing.")
@@ -278,27 +281,20 @@ the project AST."
               (unless (eql genome tree-genome)
                 (error "Evolve file is out of sync: ~a" file)))))))
 
-(defmacro assert-project-in-sync (project &environment env)
-  "Given appropriate debug/safety settings, check PROJECT is in sync."
-  (when (or (serapeum::policy> env 'debug 'speed)
-            (serapeum::policy> env 'safety 'speed))
-    `(check-project-in-sync ,project)))
-
-(defun verify-project-in-sync (project &key force)
+(defun verify-project-in-sync (project &key (force *verify-project-in-sync*))
   "Return PROJECT after checking that it's in sync.
 The actual check may or may not be done based on compile-time
 optimization settings."
   (let ((genome (slot-value project 'genome)))
     (unless (typep genome 'ast)
       (error "Corrupt genome: ~s" genome)))
-  (if force
-      (check-project-in-sync project)
-      (assert-project-in-sync project))
+  (when force
+    (check-project-in-sync project))
   project)
 
 (defun insert-software-at (project path new)
   "Insert NEW, a software object, into PROJECT at PATH."
-  (declare (parseable new) (optimize debug))
+  (declare (parseable new))
   (lret* ((pathname (pathname path))
           (filename (nth-value 1 (pathname-to-list pathname)))
           (file-ast (make 'file-ast
@@ -322,7 +318,8 @@ optimization settings."
     (verify-project-in-sync
      (insert-software-at project path new))))
 
-(defun sync-changed-file! (new-project old-project changed-file &key (verify t))
+(defun sync-changed-file! (new-project old-project changed-file
+                           &key (verify *verify-project-in-sync*))
   "Update NEW-PROJECT's evolve-files with CHANGED-FILE."
   (prog1 new-project
     (and-let* (((typep changed-file 'file-ast))
