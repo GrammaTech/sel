@@ -73,7 +73,7 @@
             :build-command "make grep"
             :artifacts '("grep")
             :compiler "gcc"
-            :flags "-v")
+            :flags '("-ansi" "-v"))
           (make-pathname :directory +grep-prj-dir+))
          *mutation-stats* (make-hash-table :test 'equal)))
   (:teardown
@@ -237,14 +237,14 @@
     (is (equal "gcc"
                (compiler (cdar (member "grep.c" (evolve-files *project*)
                                        :test 'equal :key 'car)))))
-    (is (equal "-v"
+    (is (equal '("-ansi" "-v")
                (flags (cdar (member "grep.c" (evolve-files *project*)
                                        :test 'equal :key 'car)))))
     ;; Don't include binaries in `other-files'.
     (is (not (member "support/inputs/grepBinary"
                      (mapcar #'car (other-files *project*)) :test #'equalp)))
     (is (equal (compiler *project*) "gcc"))
-    (is (equal (flags *project*) "-v"))))
+    (is (equal (flags *project*) '("-ansi" "-v")))))
 
 (deftest c-project-can-build ()
   (with-fixture grep-project
