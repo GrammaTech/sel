@@ -657,6 +657,7 @@ instances."
     result))
 
 (defun parsed-evolve-files (project)
+  "Return evolve files in PROJECT that are currently parsed."
   (filter (lambda (evolve-file)
             (typep (slot-value (cdr evolve-file) 'genome) 'ast))
           (evolve-files project)))
