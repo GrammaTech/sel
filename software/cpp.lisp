@@ -499,6 +499,12 @@ to look it up as `y::z' or just `z'."
   (transform-c-declaration-specifiers parse-tree))
 
 (defmethod transform-parse-tree
+    ((language (eql ':cpp)) (class (eql 'cpp-variadic-parameter-declaration))
+     parse-tree
+     &key)
+  (transform-c-declaration-specifiers parse-tree))
+
+(defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-type-descriptor)) parse-tree &key)
   (transform-c-type-qualifiers parse-tree))
 
