@@ -2078,6 +2078,8 @@ this involves handling some translations between types."
                 (ns-id->type-id name))
                (cpp-type-descriptor
                 (cpp-type name))
+               (cpp-union-specifier
+                (cpp-name name))
                ((or cpp-dependent-name
                     cpp-type-identifier
                     cpp-qualified-identifier
