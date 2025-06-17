@@ -374,6 +374,9 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod parameter-names ((param rust-parameter))
   (outer-declarations (rust-pattern param)))
 
+(defmethod parameter-names ((param rust-self-parameter))
+  (list (find-if (of-type 'rust-self) (direct-children param))))
+
 (defmethod outer-declarations ((decl rust-let-declaration))
   (outer-declarations (rust-pattern decl)))
 

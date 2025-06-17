@@ -156,6 +156,13 @@ other_function();
     (attrs:with-attr-table rust
       (is (null (exit-control-flow stmt))))))
 
+(deftest test-self-parameter-names ()
+  "Calling `parameter-names' should work on a self parameter."
+  (is (equal "self"
+             (parameter-name
+              (car (children
+                    (rust-parameters (rust* "fn myfun(&mut self) {}"))))))))
+
 
 ;;; Symbol table
 
