@@ -116,6 +116,16 @@
    (child-slots :initform '(contents) :allocation :class))
   (:documentation "FT Node to hold a file entry."))
 
+(defmethod source-text ((ast file-ast) &rest kwargs &key)
+  ;; A file AST is not an indentation AST, so source-text will act
+  ;; strangely if you call on the file-ast directly.
+  (apply #'source-text (only-elt (children ast)) kwargs))
+
+(defmethod ast-source-ranges ((ast file-ast))
+  ;; A file AST is not an indentation AST, so ast-source-ranges will act
+  ;; strangely if you call it on the file-ast directly.
+  (ast-source-ranges (only-elt (children ast))))
+
 (defun enclosing-file-pathname (ast &key (root (attrs-root*)))
   "Get the pathname of the enclosing file."
   (full-pathname (find-enclosing 'file-ast root ast)))

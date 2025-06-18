@@ -15,10 +15,11 @@
   (:import-from :software-evolution-library/software/directory
                 :*verify-project-in-sync*)
   (:import-from :software-evolution-library/software/parseable
+                :ast-path
+                :ast-source-ranges
                 :collect-if
                 :source-text
-                :source-text=
-                :ast-path)
+                :source-text=)
   (:export :test-directory))
 (in-package :software-evolution-library/test/directory)
 (in-readtable :curry-compose-reader-macros)
@@ -307,3 +308,25 @@ module.exports = {
                                *soft*)))
       (is all-strings)
       (is (every (op (typep _ 'string-ast)) all-strings)))))
+
+(deftest test-project-ast-source-ranges ()
+  "The results of `ast-source-ranges' on a `file-ast' should match its contents.
+Even though `file-ast' does not itself inherit from `indentation'."
+  (with-fixture fib-project-javascript
+    (is *soft*)
+    (let ((file-asts (collect-if (of-type 'file-ast) *soft*)))
+      (is file-asts)
+      (dolist (file-ast file-asts)
+        (is (equal? (ast-source-ranges file-ast)
+                    (ast-source-ranges (only-elt (children file-ast)))))))))
+
+(deftest test-project-ast-source-text ()
+  "The results of `source-text' on a `file-ast' should match its contents.
+Even though `file-ast' does not itself inherit from `indentation'."
+  (with-fixture fib-project-javascript
+    (is *soft*)
+    (let ((file-asts (collect-if (of-type 'file-ast) *soft*)))
+      (is file-asts)
+      (dolist (file-ast file-asts)
+        (is (equal (source-text file-ast)
+                   (source-text (only-elt (children file-ast)))))))))
