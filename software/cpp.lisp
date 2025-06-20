@@ -1753,6 +1753,11 @@ types."
                     &key)
   (convert-terminal to id))
 
+(defmethod convert ((to (eql 'cpp-field-identifier))
+                    (id identifier-ast)
+                    &key)
+  (convert-terminal to id))
+
 (defmethod convert ((to (eql 'cpp-type-identifier))
                     (id identifier-ast)
                     &key)
