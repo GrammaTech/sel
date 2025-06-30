@@ -653,12 +653,9 @@ the standard path and add it to PROJECT."))
   (flet ((filter-by-compilation-database (evolve-files)
            (mvlet* ((db-files other-files
                      (partition
-                      (lambda (evolve-files-entry)
-                        (destructuring-bind (file . software)
-                            evolve-files-entry
-                          (declare (ignore software))
-                          (or (header-file? file)
-                              (command-object project file))))
+                      (lambda (entry &aux (file (car entry)))
+                        (or (header-file? file)
+                            (command-object project file)))
                       evolve-files)))
              (debug:lazy-note
               :debug
