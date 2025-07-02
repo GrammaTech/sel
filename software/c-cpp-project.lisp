@@ -684,11 +684,9 @@ the standard path and add it to PROJECT."))
                      (partition
                       (lambda (entry &aux (file (car entry)))
                         (or (header-file? file)
-                            ;; TODO This solves the problem of
-                            ;; loading the project after translating
-                            ;; to modules. It would be wrong if we
-                            ;; were ever expecting modularized input
-                            ;; projects.
+                            ;; NB This assumes we always want to
+                            ;; eagerly load module files. (Probably
+                            ;; but not necessarily true.)
                             (module-file? file)
                             (command-object project file)))
                       evolve-files)))
