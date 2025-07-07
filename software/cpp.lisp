@@ -1856,8 +1856,16 @@ types."
       (empty-map))))
 
 (defgeneric cpp::list-all-constructors (class)
+  (:method ((class c/cpp-type-definition))
+    (when-let (class (get-declaration-ast :type (cpp-type class)))
+      (cpp::list-all-constructors class)))
+  (:method ((class cpp-alias-declaration))
+    (when-let (class (get-declaration-ast :type (cpp-type class)))
+      (cpp::list-all-constructors class)))
   (:method ((class c/cpp-classoid-specifier))
-    (let ((children (children (cpp-body class))))
+    (let ((children
+            (and (cpp-body class)
+                 (children (cpp-body class)))))
       (append (filter #'cpp::constructorp
                       (append
                        children
