@@ -1173,6 +1173,16 @@ int fun(int x) {
                   'c-struct-tag-specifier))))
 
 
+;;; Template tests
+
+#+tree-sitter-c
+(deftest test-ignore-args ()
+  "@_ should expand to _ not `nil' in a pattern."
+  (is (match (c* "foo.bar(quux)")
+        ((c* "$ARG.$_(@_)" :arg arg)
+         arg))))
+
+
 ;;;; SCOPES tests
 
 ;;; Disabled since they are obsolete after the introduction of symbol

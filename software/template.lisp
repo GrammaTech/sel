@@ -563,13 +563,20 @@ they are not \"the same\", the match fails)."
              (lambda (node)
                (if (wildcard? node)
                    (let* ((suffix (drop-prefix "WILD-" (string node)))
+                          (list-wildcard-p (string^= "LIST_" suffix))
+                          (suffix
+                            (if list-wildcard-p
+                                (drop-prefix "LIST_" suffix)
+                                suffix))
                           (key
-                           (if (string^= "LIST_" suffix)
-                               (string+ "@" (drop-prefix "LIST_" suffix))
-                               (string+ "$" suffix))))
-                     (assocdr key
-                              metavar-subtrees
-                              :test #'equal))
+                            (if list-wildcard-p
+                                (string+ "@" suffix)
+                                (string+ "$" suffix))))
+                     (or (assocdr key
+                                  metavar-subtrees
+                                  :test #'equal)
+                         (and (string= suffix "_")
+                              '_)))
                    node))
              pattern))
            (gensyms-table (make-hash-table))
