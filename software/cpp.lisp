@@ -1893,6 +1893,23 @@ constructor."
         (null
          (cpp::list-all-constructors class-ast)))))))
 
+(defgeneric cpp::type-constructible-p (type-ast)
+  (:documentation
+   "Return T if TYPE-AST is a C++ class and has a user-defined
+constructor OR a default constructor.")
+  (:method ((type-ast cpp-primitive-type))
+    nil)
+  (:method ((ast c/cpp-classoid-specifier))
+    ;; TODO Check for deleted constructor.
+    t)
+  (:method ((ast c/cpp-type-definition))
+    (cpp::type-constructible-p (cpp-type type-ast)))
+  (:method ((ast cpp-using-declaration))
+    (cpp::type-constructible-p (cpp-type type-ast)))
+  (:method ((ast cpp-ast))
+    (when-let ((type-ast (get-declaration-ast :type type-ast)))
+      (cpp::type-constructible-p type-ast))))
+
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
     (definition-name-ast type-ast)
