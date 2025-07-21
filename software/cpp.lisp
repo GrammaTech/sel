@@ -1875,7 +1875,7 @@ types."
                         class)))))))
 
 (defun cpp::type-has-constructor-p (type-ast)
-  "Return T if TYPE-AST is a C++ class and has an explicitly defined
+  "Return T if TYPE-AST is a C++ class and has a user-defined
 constructor."
   ;; TODO External constructors.
   (typecase type-ast
