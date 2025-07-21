@@ -284,6 +284,7 @@ cons whose car contains it."
                      (string= (source-text n) placeholder)))
               ast))
 
+(-> ast-template (string symbol &rest t) ast)
 (defun ast-template (template class &rest args)
   "Create an AST of CLASS from TEMPLATE usings ARGS.
 
