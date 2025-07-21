@@ -841,7 +841,7 @@ x"
   (let* ((no-parameters (find-if (of-type 'python-parameters)
                                  (convert 'python-ast "def x(): pass")))
          (one-parameter-copy
-           (copy no-parameters :children (convert 'python-ast "a" :deepest t)))
+           (copy no-parameters :children (list (convert 'python-ast "a" :deepest t))))
          (no-parameters-copy
            (copy one-parameter-copy :children nil)))
     (is (equal "(a)" (source-text one-parameter-copy)))
