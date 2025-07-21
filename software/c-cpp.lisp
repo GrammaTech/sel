@@ -912,7 +912,7 @@ appears as a return statement is assumed to be the type of the function."
   ;; types, so that individual rules don't have to be written for
   ;; signed, signed, long, short ints to express the fact that they
   ;; all get coerce to floats.
-  (match* ((string type1) (string type2))
+  (match* ((source-text type1) (source-text type2))
     ;; There's a long double.
     (("long double" _) type1)
     ((_ "long double") type2)
