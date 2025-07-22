@@ -1884,8 +1884,9 @@ constructor."
      (not
       (null
        (cpp::list-all-constructors type-ast))))
-    ;; TODO Also handle using.
     (c/cpp-type-definition
+     (cpp::type-has-constructor-p (cpp-type type-ast)))
+    (cpp-using-declaration
      (cpp::type-has-constructor-p (cpp-type type-ast)))
     (t
      (when-let ((class-ast
