@@ -1856,6 +1856,7 @@ types."
       (empty-map))))
 
 (defgeneric cpp::list-all-constructors (class)
+  (:documentation "List all user-defined constructors for CLASS.")
   (:method ((class c/cpp-type-definition))
     (when-let (class (get-declaration-ast :type (cpp-type class)))
       (cpp::list-all-constructors class)))
