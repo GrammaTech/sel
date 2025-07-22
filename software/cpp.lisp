@@ -1857,6 +1857,13 @@ types."
 
 (defgeneric cpp::list-all-constructors (class)
   (:documentation "List all user-defined constructors for CLASS.")
+  (:method ((type-ast c/cpp-primitive-type))
+    nil)
+  (:method ((type-ast c/cpp-sized-type-specifier))
+    nil)
+  ;; TODO Do something with possible-types?
+  (:method ((type cpp-type-parameter-declaration))
+    nil)
   (:method ((class c/cpp-type-definition))
     (when-let (class (get-declaration-ast :type (cpp-type class)))
       (cpp::list-all-constructors class)))
@@ -1875,42 +1882,52 @@ types."
                          (attrs-root*))
                         class)))))))
 
-(defun cpp::type-has-constructor-p (type-ast)
-  "Return T if TYPE-AST is a C++ class and has a user-defined
-constructor."
-  ;; TODO External constructors.
-  (typecase type-ast
-    (c/cpp-classoid-specifier
-     (not
-      (null
-       (cpp::list-all-constructors type-ast))))
-    (c/cpp-type-definition
-     (cpp::type-has-constructor-p (cpp-type type-ast)))
-    (cpp-using-declaration
-     (cpp::type-has-constructor-p (cpp-type type-ast)))
-    (t
-     (when-let ((class-ast
-                 (get-declaration-ast :type type-ast)))
-       (not
-        (null
-         (cpp::list-all-constructors class-ast)))))))
+(defgeneric cpp::type-has-constructor-p (type-ast)
+  (:documentation
+   "Return T if TYPE-AST is a C++ class and has a user-defined
+constructor.")
+  (:method ((type-ast c/cpp-primitive-type))
+    nil)
+  (:method ((type-ast c/cpp-sized-type-specifier))
+    nil)
+  (:method ((type-ast c/cpp-classoid-specifier))
+    (or (and (cpp-body type-ast)
+             (find-if #'cpp::constructorp
+                      (children (cpp-body type-ast))))
+        (some #'cpp::constructorp
+              (lookup
+               (cpp::out-of-class-function-definitions
+                (attrs-root*))
+               type-ast))))
+  (:method ((type-ast c/cpp-type-definition))
+    (cpp::type-has-constructor-p (cpp-type type-ast)))
+  (:method ((type-ast cpp-alias-declaration))
+    (cpp::type-has-constructor-p (cpp-type type-ast)))
+  (:method ((ast t))
+    (when-let ((type-ast
+                (get-declaration-ast :type ast)))
+      (unless (eql type-ast ast)
+        (cpp::type-has-constructor-p type-ast)))))
 
 (defgeneric cpp::type-constructible-p (type-ast)
   (:documentation
    "Return T if TYPE-AST is a C++ class and has a user-defined
 constructor OR a default constructor.")
-  (:method ((type-ast cpp-primitive-type))
+  (:method ((type-ast c/cpp-primitive-type))
+    nil)
+  (:method ((type-ast c/cpp-sized-type-specifier))
     nil)
   (:method ((ast c/cpp-classoid-specifier))
     ;; TODO Check for deleted constructor.
     t)
   (:method ((ast c/cpp-type-definition))
-    (cpp::type-constructible-p (cpp-type type-ast)))
-  (:method ((ast cpp-using-declaration))
-    (cpp::type-constructible-p (cpp-type type-ast)))
-  (:method ((ast cpp-ast))
-    (when-let ((type-ast (get-declaration-ast :type type-ast)))
-      (cpp::type-constructible-p type-ast))))
+    (cpp::type-constructible-p (cpp-type ast)))
+  (:method ((ast cpp-alias-declaration))
+    (cpp::type-constructible-p (cpp-type ast)))
+  (:method ((ast t))
+    (when-let ((type-ast (get-declaration-ast :type ast)))
+      (unless (eql type-ast ast)
+        (cpp::type-constructible-p type-ast)))))
 
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
