@@ -1864,6 +1864,9 @@ types."
   ;; TODO Do something with possible-types?
   (:method ((type cpp-type-parameter-declaration))
     nil)
+  ;; This only appears to be used for types from C headers.
+  (:method ((type cpp-type-forward-declaration))
+    nil)
   (:method ((class c/cpp-type-definition))
     (when-let (class (get-declaration-ast :type (cpp-type class)))
       (cpp::list-all-constructors class)))
