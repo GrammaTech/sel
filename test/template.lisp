@@ -12,7 +12,7 @@
         :stefil+)
   (:import-from
     :software-evolution-library/software/tree-sitter
-    :internal-ast?)
+    :step-broken-p)
   (:local-nicknames (:attrs :functional-trees/attrs)))
 (in-package :software-evolution-library/test/template)
 (in-readtable :curry-compose-reader-macros)
@@ -370,8 +370,12 @@ fun(r, p);")))
              arg))))))
 
 (deftest test-internal-ast-predicate ()
-  (is (internal-ast? 'cpp-internal-asts-0))
-  (is (internal-ast? '(cpp-internal-asts-0 0))))
+  (is (step-broken-p 'cpp-internal-asts-0))
+  (is (step-broken-p '(cpp-internal-asts-0 0)))
+  (is (step-broken-p 'before-asts))
+  (is (step-broken-p '(before-asts 0)))
+  (is (step-broken-p 'after-asts))
+  (is (step-broken-p '(after-asts 0))))
 
 ) ; #+(AND :TREE-SITTER-CPP :TREE-SITTER-C
   ;        :TREE-SITTER-JAVASCRIPT :TREE-SITTER-PYTHON :TREE-SITTER-RUST)

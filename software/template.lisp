@@ -264,18 +264,20 @@ Nested lists are not allowed as template arguments:~%~a"
 (defun valid-ast-path (root ast)
   (lret ((path (ast-path root ast)))
     (dolist (step path)
-      (when (internal-ast? step)
-        (error "Path from ~a to ~a includes an internal AST: ~a"
+      (when (step-broken-p step)
+        (error "Path from ~a to ~a includes an internal slot: ~a"
                root ast path)))))
 
-(defun internal-ast? (step)
-  "Match a step that's either a symbol containg `INTERNAL-ASTS` or a
-cons whose car contains it."
+(defun step-broken-p (step)
+  "Match a step (of a path) that will result in a broken AST.
+Either a symbol containing `internal-asts`, or a cons whose car
+contains it. Also match `before-asts' and `after-asts'."
   (match step
     ((type symbol)
-     (string*= 'internal-asts step))
+     (or (memq step '(before-asts after-asts))
+         (string*= 'internal-asts step)))
     ((cons (and step (type symbol)) _)
-     (internal-ast? step))))
+     (step-broken-p step))))
 
 (defun placeholder-targets (placeholder ast)
   "Collect ASTs in AST that PLACEHOLDER is meant to replace."
