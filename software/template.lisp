@@ -438,7 +438,7 @@ source text.
       new-parameters...
 
 A further complication is when the whole container has the same source
-text as the metavariablee, e.g. a Python lambda:
+text as the metavariable, e.g. a Python lambda:
 
     lambda @PARAMS:
 
