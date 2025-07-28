@@ -707,6 +707,14 @@ The alist should contain at least the following:
                                       (statements-in-scope obj scope ast)))))
             (scopes obj scope)))))
 
+(define-compiler-macro find-enclosing (&whole call test obj ast)
+  (match test
+    ((list 'quote type)
+     `(locally (declare (notinline find-enclosing))
+        (the (or null ,type)
+             (find-enclosing ,test ,obj ,ast))))
+    (otherwise call)))
+
 (defgeneric find-enclosing (test obj ast)
   (:documentation "Return the nearest enclosing AST passing TEST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
