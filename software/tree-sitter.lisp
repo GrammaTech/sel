@@ -742,7 +742,16 @@
            :cached-parent-asts*
            :lookup-parent-ast
            :lookup-parent-asts
-           :lookup-parent-asts*)
+           :lookup-parent-asts*
+           ;; Inheritance
+           :direct-subclasses
+           :direct-superclasses
+           :inheritance-graph
+           :inheritance-graph-lookup
+           :inherited-virtual-functions
+           :subclasses
+           :superclasses
+           :virtual-functions)
   (:local-nicknames
    (:dbg :software-evolution-library/utility/debug)
    #+sbcl (:md5 :sb-md5)

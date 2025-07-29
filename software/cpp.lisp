@@ -1184,11 +1184,6 @@ order."
         (mapcar (op (cons (car _1) (nreverse (cdr _1))))
                 alist)))))
 
-(defun cpp::declared-virtual? (ast)
-  "Is AST declared virtual?"
-  (find-if (of-type 'cpp-virtual)
-           (slot-value-safe ast 'cpp-pre-specifiers)))
-
 (defun cpp::field-table-collect-properties (field-table)
   "For all the fields in FIELD-TABLE, record properties (member access,
 virtuality) from class where they are declared."
@@ -1200,7 +1195,7 @@ virtuality) from class where they are declared."
                                   'function-declaration-ast
                                   (attrs-root*)
                                   ast)))
-                      (cpp::declared-virtual? decl)))))
+                      (cpp::declared-virtual-p decl)))))
            (collect-properties (field)
              (let* ((field
                       (if (cpp::field-access field) field
@@ -1290,6 +1285,21 @@ virtual methods."
                "Return a copy of FIELD marked as virtual."
                (if (field-virtual? field) field
                    (with field cpp::+virtual+ t)))
+             (add-qualified-base-fields
+                 (base-class field-table key base-fields)
+               (let* ((base-fields
+                        (filter
+                         (op (eql (@ _ +ns+) :function))
+                         base-fields)))
+                 (if (no base-fields)
+                     field-table
+                     (let ((new-key
+                             (string+ (source-text
+                                       (cpp-name base-class))
+                                      "::"
+                                      key)))
+                       (with field-table new-key
+                             base-fields)))))
              (update-derived-field-table (field-table key base-fields)
                "Add BASE-FIELDS into FIELD-TABLE under KEY."
                ;; C++ uses "name hiding": if a derived class specifies
@@ -1314,8 +1324,22 @@ virtual methods."
                               (mapcar #'mark-virtual
                                       (append derived-class-value
                                               (filter-fields base-fields)))))
-                       (t field-table)))))
-      (iter (for (key base-fields) in-map (field-table base-class))
+                       (t field-table))))
+             (qualify-base-field-table (base-class)
+               (let ((field-table (field-table base-class))
+                     (prefix (source-text (cpp-name base-class))))
+                 (reduce (lambda (field-table key fields)
+                           (if (search "::" key)
+                               field-table
+                               (if-let (methods
+                                        (keep :function fields :key (op (@ _ +ns+))))
+                                 (with field-table
+                                       (string+ prefix "::" key)
+                                       fields)
+                                 field-table)))
+                         field-table
+                         :initial-value field-table))))
+      (iter (for (key base-fields) in-map (qualify-base-field-table base-class))
             (for new-field-table
                  initially derived-field-table
                  then (update-derived-field-table
@@ -2877,6 +2901,187 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)
               :source-text-fun #'qualify-declared-ast-name))))
+
+
+
+;;; Inheritance.
+
+(-> cpp::base-class-names (c/cpp-classoid-specifier)
+    (soft-list-of type-ast))
+(defun cpp::base-class-names (struct)
+  "Return a list of the name (ASTs) of the base classes of STRUCT."
+  (when-let* ((base-class-clause
+               (find-if (of-type 'cpp-base-class-clause) struct)))
+    (filter (of-type 'type-ast)
+            (children base-class-clause))))
+
+(defun cpp::base-classes (derived-class)
+  "Base classes of a class."
+  (filter-map
+   (lambda (base-class-name)
+     (or (get-declaration-ast :type base-class-name)
+         (warn "Missing base class ~a for ~a"
+               base-class-name
+               derived-class)))
+   (cpp::base-class-names derived-class)))
+
+(defmethod inheritance-graph ((class c/cpp-classoid-specifier))
+  (let* ((superclasses (cpp::base-classes class))
+         (map (empty-map)))
+    ;; Record the base classes of CLASS.
+    (withf map
+           class
+           (cons superclasses nil))
+    ;; Record that CLASS derives from its base classes.
+    (dolist (superclass superclasses)
+      (withf map superclass
+             (cons nil (list class))))
+    map))
+
+(defmethod inheritance-graph ((class cpp-type-parameter-declaration))
+  ;; TODO possible types?
+  (empty-map))
+
+(defmethod inheritance-graph-lookup  ((ast cpp-type-parameter-declaration))
+  ;; TODO possible types?
+  nil)
+
+(flet ((call-on-real-def (fn ast)
+         (or
+          (if-let (real-def
+                   (get-declaration-ast :type
+                                        (cpp-type ast)))
+            (unless (eql ast real-def)
+              (funcall fn real-def))
+            (warn "No class for alias ~a" ast))
+          (empty-map))))
+
+  (defmethod inheritance-graph ((ast cpp-type-definition))
+    (call-on-real-def #'inheritance-graph ast))
+
+  (defmethod inheritance-graph-lookup ((ast cpp-type-definition))
+    (call-on-real-def #'inheritance-graph-lookup ast)))
+
+
+;;; Virtual functions
+
+(defun cpp::virtual-method-overrides (method)
+  (let* ((class (find-enclosing 'class-ast (attrs-root*) method))
+         (virtuals (virtual-functions class)))
+    (when (member method virtuals)
+      (let ((key (cpp::virtual-function-key method)))
+        (iter outer
+              (for subclass in (subclasses class))
+              (for overrides = (nth-value 1 (virtual-functions subclass)))
+              (iter (for override in overrides)
+                    (for override-key
+                         = (cpp::virtual-function-key override))
+                    (when (equal? override-key key)
+                      (in outer (collecting override)))))))))
+
+(defmethod c/cpp-function-declaration-definitions ((ast cpp-ast) &key root)
+  (declare (ignore root))
+  (if (cpp::declared-virtual-p ast)
+      (cpp::virtual-method-overrides ast)
+      (call-next-method)))
+
+(defun cpp::declared-virtual-p (ast)
+  "Is AST declared virtual?"
+  (find-if (of-type 'cpp-virtual)
+           (slot-value-safe ast 'cpp-pre-specifiers)))
+
+(defgeneric cpp::flatten-declaration (decl)
+  (:documentation "Canonicalize DECL into a one-declaration-per-AST form.")
+  (:method ((ast t))
+    (list ast))
+  (:method ((ast cpp-field-declaration))
+    (let ((ids (cpp-declarator ast)))
+      (if (and (listp ids)
+               (every (of-type 'cpp-field-identifier) ids))
+          (mapcar
+           (lambda (id)
+             (tree-copy
+              (copy ast :cpp-declarator (list id))))
+           ids)
+          (list ast))))
+  (:method ((declaration cpp-declaration))
+    "Flatten a declaration with multiple declarators into a list of declarations."
+    (ematch declaration
+      ((cpp-declaration
+        :cpp-declarator declarators)
+       (if (single declarators)
+           (list declaration)
+           (mapcar (lambda (declarator)
+                     (tree-copy
+                      (copy declaration
+                            :cpp-declarator (list declarator))))
+                   declarators))))))
+
+(defun cpp::normalize-struct-fields (field-decls)
+  "Normalize DECLS so no declaration declares more than one member or
+              method. This may involve splitting one declaration into
+              several."
+  (remove-if (of-type 'comment-ast)
+             (mappend #'cpp::flatten-declaration
+                      (children field-decls))))
+
+(define-tuple-accessor cpp::virtual-name
+  cpp::+vf-name+)
+(define-tuple-accessor cpp::virtual-param-types
+  cpp::+vf-param-types+)
+(define-tuple-accessor cpp::virtual-declarator
+  cpp::+vf-declarator+)
+
+;;; TODO cv-qualifiers and ref-qualifiers
+(defgeneric cpp::virtual-function-key (ast)
+  (:documentation "Extract the virtual function key from AST.
+The virtual function AST contains the information necessary to
+determine if a definition overrides a virtual method.")
+  (:method ((fn cpp-function-definition))
+    (cpp::virtual-function-key (cpp-declarator fn)))
+  (:method ((decl cpp-declaration))
+    (let ((fn-decl (only-elt (cpp-declarator decl))))
+      (cpp::virtual-function-key fn-decl)))
+  (:method ((decl cpp-field-declaration))
+    (let ((fn-decl (only-elt (cpp-declarator decl))))
+      (cpp::virtual-function-key fn-decl)))
+  (:method ((decl cpp-function-declarator))
+    (fset:tuple
+     ;; TODO Why source-text?
+     (cpp::+vf-name+ (source-text (cpp-declarator decl)))
+     (cpp::+vf-param-types+
+      (mapcar #'cpp-type (children (cpp-parameters decl))))))
+  (:method ((decl cpp-reference-declarator))
+    (cpp::virtual-function-key (only-elt (direct-children decl))))
+  (:method ((decl cpp-pointer-declarator))
+    (cpp::virtual-function-key (cpp-declarator decl))))
+
+(-> cpp::declared-function-name (cpp-ast) (or null cpp-ast))
+(defun cpp::declared-function-name (ast)
+  "If AST declares a function, return its name."
+  (and (or (typep ast 'cpp-function-definition)
+           (setf ast
+                 (find-if (of-type 'cpp-function-declarator)
+                          (slot-value-safe ast 'cpp-declarator))))
+       (or (definition-name-ast ast)
+           (declarator-name-ast ast))))
+
+(defmethod virtual-functions ((class c/cpp-classoid-specifier))
+  (let* ((virtuals-set
+           (iter (for v in (inherited-virtual-functions class))
+                 (set-collect (cpp::virtual-function-key v))))
+         ;; TODO Should we just return function declarators instead?
+         (fields (cpp::normalize-struct-fields (cpp-body class)))
+         (methods (filter #'cpp::declared-function-name fields))
+         (declared-virtual
+           (filter #'cpp::declared-virtual-p fields))
+         (overrides
+           (filter (op (lookup virtuals-set
+                               (cpp::virtual-function-key _)))
+                   methods)))
+    (values
+     (stable-set-difference declared-virtual overrides)
+     overrides)))
 
 
 ;;; Modules

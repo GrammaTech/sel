@@ -1,5 +1,5 @@
-;;;; tree-sitter-general.lisp --- general code for tree-sitter representations.
-;;; Dummy Package
+";;;; tree-sitter-general.lisp --- general code for tree-sitter representations.
+";;; Dummy Package
 (defpackage :software-evolution-library/software/tree-sitter-general
   (:nicknames :sel/software/ts-general :sel/sw/ts-general)
   (:use :gt/full
@@ -1338,8 +1338,14 @@ Going up the tree, the maps returned by each child are unioned using
 You can override this for your own synthesized attributes."
   (let* ((docstring (and (stringp (car body)) (pop body)))
          (union-fn-option (assoc :union-fn body))
-         (body (remove union-fn-option body)))
+         (body (remove union-fn-option body))
+         (arg (string-gensym 'arg)))
     `(progn
+       (define-compiler-macro ,name (&whole call ,arg ,@args)
+           (declare (ignore ,arg))
+         `(locally (declare (notinline ,',name))
+            (assure fset:map
+              ,call)))
        (def-attr-fun ,name ,args
          ,@(unsplice docstring)
          (:method :context ((ast ast))
@@ -4950,6 +4956,66 @@ Return the matching IDs."
      (if (not ns-supplied?)
          fields
          (keep ns fields :key #'field-ns :count count)))))
+
+(define-synthesized-attribute inheritance-graph ()
+  (:documentation "Return an inheritance graph.
+The graph is an FSet map, with classes as keys, where the values are a
+cons of a list of direct superclasses, and a list of direct
+subclasses.")
+  (:union-fn
+   (lambda (x y)
+     (destructuring-bind (base-classes-1 . derived-classes-1) x
+       (destructuring-bind (base-classes-2 . derived-classes-2) y
+         (reuse-cons
+          (if base-classes-2
+              (append base-classes-1 base-classes-2)
+              base-classes-1)
+          (if derived-classes-2
+              (append derived-classes-1 derived-classes-2)
+              derived-classes-1)
+          x))))))
+
+(defgeneric inheritance-graph-lookup (ast)
+  (:method ((ast ast))
+    (lookup (inheritance-graph (attrs-root*)) ast)))
+
+(declaim
+ (ftype
+  (-> (ast) (soft-list-of ast))
+  direct-subclasses
+  direct-superclasses
+  subclasses
+  superclasses))
+
+(defun direct-superclasses (class)
+  "Look up the direct superclasses of CLASS in the inheritance graph."
+  (car (inheritance-graph-lookup class)))
+
+(defun direct-subclasses (class)
+  "Look up the direct subclasses of CLASS in the inheritance graph."
+  (cdr (inheritance-graph-lookup class)))
+
+(defun superclasses (class)
+  "Collect the superclasses of CLASS, most-derived-first."
+  ;; TODO Apply C3 linearization.
+  (mappend (lambda (base-class)
+             (cons base-class
+                   (superclasses base-class)))
+           (direct-superclasses class)))
+
+(defun subclasses (class)
+  (mappend (lambda (subclass)
+             (cons subclass
+                   (subclasses subclass)))
+           (direct-subclasses class)))
+
+(def-attr-fun virtual-functions ()
+  "Return the virtual functions and overrides of a class (as two values).")
+
+(def-attr-fun inherited-virtual-functions ()
+  "Return the virtual functions visible to a class."
+  (:method ((class class-ast))
+    (mappend #'virtual-functions (superclasses class))))
 
 
 ;;; Namespace

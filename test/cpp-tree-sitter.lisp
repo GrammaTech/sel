@@ -1743,7 +1743,7 @@ textual order."
 (def +basic-inheritance-example+
   (asdf:system-relative-pathname
    :software-evolution-library
-   "test/etc/cpp-tree-sitter/basic-inheritance-example.cc")
+   "test/etc/cpp-inheritance/basic-inheritance-example.cc")
   "Example C++ program with an inheritance hierarchy.")
 
 (deftest test-direct-field-table ()
@@ -1843,9 +1843,8 @@ public:
   "Looking up a virtual method should return all inherited definitions."
   (let* ((cpp
            (from-file 'cpp
-                      (asdf:system-relative-pathname
-                       :software-evolution-library
-                       "test/etc/cpp-tree-sitter/virtual-method-example.cc")))
+                      (path-join +test-data-dir+
+                                 "cpp-inheritance/virtual-method-example.cc")))
          (invocations (collect-if (of-type 'call-ast) cpp))
          (classes (collect-if (of-type 'class-ast) cpp)))
     (with-attr-table cpp
@@ -3395,6 +3394,109 @@ templates."
              (typedef (is (get-declaration-ast :type (cpp-type decl)))))
         (is (get-declaration-ids :type (cpp-type typedef)))))))
 
+(deftest test-inheritance-graph ()
+  "Inheritance graph should be accureate."
+  (let ((cpp (sel:from-string 'cpp (fmt "~
+class Underived {};
+class Derived1: Underived {};
+class Derived2: Derived1 {};
+class Unrelated {};"))))
+    (with-attr-table cpp
+      (destructuring-bind (underived derived1 derived2 unrelated)
+          (collect-if (of-type 'cpp-class-specifier) cpp)
+        (is (null (superclasses unrelated)))
+        (is (null (subclasses unrelated)))
+
+        (is (null (superclasses underived)))
+        (is (equal (list derived1) (direct-subclasses underived)))
+        (is (equal (list derived1 derived2) (subclasses underived)))
+
+        (is (equal (list underived) (superclasses derived1)))
+        (is (equal (list derived2) (subclasses derived1)))
+
+        (is (equal (list derived1 underived) (superclasses derived2)))
+        (is (null (subclasses derived2)))))))
+
+(defun declared-function-names (fns)
+  (mapcar (op (source-text (definition-name-ast _)))
+          fns))
+
+(deftest test-pure-virtual-function ()
+  (let* ((file
+           (path-join +test-data-dir+ "cpp-inheritance/pure_virtual_function.cc"))
+         (cpp (from-file 'cpp file)))
+    (destructuring-bind (base a)
+        (collect-if (of-type 'cpp-struct-specifier) cpp)
+      (with-attr-table cpp
+        (mvlet ((virtuals1 overrides1
+                 (virtual-functions base))
+                (virtuals2 overrides2
+                 (virtual-functions a)))
+          (is (length= virtuals1 2))
+          (is (null overrides1))
+          (is (length= virtuals2 2))
+          (is (single overrides2)))))))
+
+(deftest test-virtual-function-override ()
+  "Detect explicit overrides."
+  (let* ((file
+           (path-join
+            +test-data-dir+
+            "cpp-inheritance/virtual_function_override.cc"))
+         (cpp (from-file 'cpp file)))
+    (destructuring-bind (class1 class2)
+        (collect-if (of-type 'c/cpp-classoid-specifier) cpp)
+      (with-attr-table cpp
+        (mvlet* ((virtuals1 overrides1
+                  (virtual-functions class1))
+                 (virtuals2 overrides2
+                  (virtual-functions class2)))
+          (is (equal '("f") (declared-function-names virtuals1)))
+          (is (null overrides1))
+          (is (null virtuals2))
+          (is (equal '("f") (declared-function-names overrides2))))))))
+
+(deftest test-virtual-function-private-override ()
+  "Private virtual functions still get overriden."
+  (let* ((file
+           (path-join +test-data-dir+
+                      "cpp-inheritance/virtual_function_private_override.cc"))
+         (cpp (from-file 'cpp file)))
+    (with-attr-table cpp
+      (destructuring-bind (class1 class2)
+          (collect-if (of-type 'c/cpp-classoid-specifier) cpp)
+        (mvlet* ((virtuals1 overrides1
+                  (virtual-functions class1))
+                 (virtuals2 overrides2
+                  (virtual-functions class2)))
+          (is (equal '("do_f") (declared-function-names virtuals1)))
+          (is (null overrides1))
+          (is (null virtuals2))
+          (is (equal '("do_f") (declared-function-names overrides2))))))))
+
+(deftest test-virtual-function-hiding ()
+  "Virtual functions are only overriden when the parameter lists match."
+  (let* ((file
+           (path-join
+            +test-data-dir+
+            "cpp-inheritance/virtual_function_hiding.cc"))
+         (cpp (from-file 'cpp file)))
+    (with-attr-table cpp
+      (destructuring-bind (b d d2)
+          (collect-if (of-type 'cpp-struct-specifier) cpp)
+        (mvlet ((virtuals-b overrides-b
+                 (virtual-functions b))
+                (virtuals-d overrides-d
+                 (virtual-functions d))
+                (virtuals-d2 overrides-d2
+                 (virtual-functions d2)))
+          (is (equal '("f") (declared-function-names virtuals-b)))
+          (is (null overrides-b))
+          (is (null virtuals-d))
+          (is (null overrides-d))
+          (is (null virtuals-d2))
+          (is (equal '("f") (declared-function-names overrides-d2))))))))
+
 
 ;;; Module tests
 
@@ -3421,24 +3523,24 @@ export {
          (priv-fun1 (cpp* "int priv_fun1() {}"))
          (priv-fun2 (cpp* "int priv_fun2() {}"))
          (union
-          (symbol-table-union
-           (make 'cpp-ast)
-           (fset:map
-            (:function
-             (fset:map ("pub_fun1" pub-fun1)
-                       ("priv_fun1" priv-fun1)))
-            (:export
-              (fset:map
-               (:function
-                (fset:map ("pub_fun1" pub-fun1))))))
-           (fset:map
-            (:function
-             (fset:map ("pub_fun2" pub-fun2)
-                       ("priv_fun2" priv-fun2)))
-            (:export
-              (fset:map
-               (:function
-                (fset:map ("pub_fun2" pub-fun2)))))))))
+           (symbol-table-union
+            (make 'cpp-ast)
+            (fset:map
+             (:function
+              (fset:map ("pub_fun1" pub-fun1)
+                        ("priv_fun1" priv-fun1)))
+             (:export
+               (fset:map
+                (:function
+                 (fset:map ("pub_fun1" pub-fun1))))))
+            (fset:map
+             (:function
+              (fset:map ("pub_fun2" pub-fun2)
+                        ("priv_fun2" priv-fun2)))
+             (:export
+               (fset:map
+                (:function
+                 (fset:map ("pub_fun2" pub-fun2)))))))))
     (assert (equal? (@ union :export)
                     (fset:map
                      (:function
