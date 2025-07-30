@@ -601,6 +601,14 @@ argument destructuring (e.g. ECMAScript).")
 (defgeneric call-function (call-ast)
   (:documentation "Return the function of CALL-AST."))
 
+(defgeneric call-function-p (ast)
+  (:documentation "Is AST the function of an enclosing call?")
+  (:method ((ast ast))
+    (match (get-parent-ast (attrs-root*) ast)
+      ((call-ast
+        (call-function (eql ast)))
+       t))))
+
 (defgeneric call-name (call-ast)
   (:documentation "Return the name of CALL-AST.")
   (:method ((call-ast call-ast)) (source-text (call-function call-ast))))

@@ -611,6 +611,7 @@
            :function-body
            :call-name
            :call-function
+           :call-function-p
            :variable-name
            :no-fallthrough
            :infer-type
