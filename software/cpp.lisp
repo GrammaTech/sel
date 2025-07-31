@@ -2980,6 +2980,8 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
                       (in outer (collecting override)))))))))
 
 (defmethod c/cpp-function-declaration-definitions ((ast cpp-ast) &key root)
+  "If AST is a virtual function declaration, collect its overrides as its
+definitions."
   (declare (ignore root))
   (if (cpp::declared-virtual-p ast)
       (cpp::virtual-method-overrides ast)
