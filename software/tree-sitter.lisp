@@ -593,6 +593,7 @@
            :consequence
            :alternative
            :assignee
+           :assigneep
            :assignees
            :operator
            :argument

@@ -673,6 +673,14 @@ types, etc.) this should return the namespaces as a second value.")
   (:documentation "Return the (possibly structured) binding that AST assigns to.")
   (:method ((ast ast)) nil))
 
+(defgeneric assigneep (ast)
+  (:documentation "Is AST the assignee of an assignment?")
+  (:method ((ast ast))
+    (match (get-parent-ast (attrs-root*) ast)
+      ((assignment-ast
+        (assignee (eql ast)))
+       t))))
+
 (defgeneric rhs (ast)
   (:documentation "Return the right-hand side of an AST."))
 
