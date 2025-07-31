@@ -3497,6 +3497,13 @@ class Unrelated {};"))))
           (is (null virtuals-d2))
           (is (equal '("f") (declared-function-names overrides-d2))))))))
 
+(deftest test-superclass-method-lookup ()
+  "Looking up a method in a superclass should work even if it is defined in a transitive superclass."
+  (let ((cc (path-join +test-data-dir+ "cpp-inheritance/superclass_lookup.cc")))
+    (with-attr-table (from-file 'cpp cc)
+      (let ((call-ast (find-if (of-type 'call-ast) (attrs-root*))))
+        (get-declaration-ast :function call-ast)))))
+
 
 ;;; Module tests
 

@@ -795,6 +795,23 @@ See SEL issue #359."
      (call-next-method))))
 
 (defmethod get-declaration-ids ((type (eql :function))
+                                (ast cpp-qualified-identifier))
+  "Resolve superclasses calls by looking in the field table of the superclass.
+The superclass calls may not appear in the symbol table under the
+given name if the function is inherited by the specified superclass."
+  (if (and (call-function-p ast)
+           (find-enclosing 'c/cpp-classoid-specifier (attrs-root*) ast))
+      (or (call-next-method)
+          (when-let* ((scope (cpp-scope ast))
+                      (class (get-declaration-ast :type scope))
+                      (field-table (field-table class)))
+            (ensure-list
+             (find (source-text (cpp-name ast))
+                   (field-table-ids field-table :ns :function)
+                   :test #'source-text=))))
+      (call-next-method)))
+
+(defmethod get-declaration-ids ((type (eql :function))
                                 (fn cpp-function-definition))
   "Get the field declaration of an out-of-class function definition."
   (let ((name (definition-name-ast fn)))
