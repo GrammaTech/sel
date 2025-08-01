@@ -2984,16 +2984,17 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 (defun cpp::virtual-method-overrides (method)
   (let* ((class (find-enclosing 'class-ast (attrs-root*) method))
-         (virtuals (virtual-functions class)))
-    (when (member method virtuals)
-      (let ((key (cpp::virtual-function-key method)))
+         (virtuals (virtual-functions class))
+         (decls (cpp::field-method-declarators method)))
+    (when (subsetp decls virtuals)
+      (let ((keys (mapcar #'cpp::virtual-function-key decls)))
         (iter outer
               (for subclass in (subclasses class))
               (for overrides = (nth-value 1 (virtual-functions subclass)))
               (iter (for override in overrides)
                     (for override-key
                          = (cpp::virtual-function-key override))
-                    (when (equal? override-key key)
+                    (when (member override-key keys :test #'equal?)
                       (in outer (collecting override)))))))))
 
 (defmethod c/cpp-function-declaration-definitions ((ast cpp-ast) &key root)
@@ -3047,23 +3048,25 @@ determine if a definition overrides a virtual method.")
 (defun cpp::declared-function-name (ast)
   "If AST declares a function, return its name."
   (and (or (typep ast 'cpp-function-definition)
+           (typep ast 'cpp-function-declarator)
            (setf ast
                  (find-if (of-type 'cpp-function-declarator)
                           (slot-value-safe ast 'cpp-declarator))))
        (or (definition-name-ast ast)
            (declarator-name-ast ast))))
 
+(defun cpp::field-method-declarators (field)
+  (typecase field
+    (cpp-function-definition
+     (list (cpp-declarator field)))
+    (cpp-field-declaration
+     (filter (of-type 'cpp-function-declarator)
+             (cpp-declarator field)))
+    (t nil)))
+
 (defun cpp::class-method-declarators (class)
   (when-let ((body (cpp-body class)))
-    (iter (for child in (children body))
-          (typecase child
-            (cpp-function-definition
-             (collecting
-               (cpp-declarator child)))
-            (cpp-field-declaration
-             (appending
-              (filter (of-type 'cpp-function-declarator)
-                      (cpp-declarator child))))))))
+    (mappend #'cpp::field-method-declarators (children body))))
 
 (defmethod virtual-functions ((class c/cpp-classoid-specifier))
   (let* ((virtuals-set

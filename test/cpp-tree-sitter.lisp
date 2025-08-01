@@ -3418,7 +3418,7 @@ class Unrelated {};"))))
         (is (null (subclasses derived2)))))))
 
 (defun declared-function-names (fns)
-  (mapcar (op (source-text (definition-name-ast _)))
+  (mapcar (op (source-text (cpp::declared-function-name _)))
           fns))
 
 (deftest test-pure-virtual-function ()
