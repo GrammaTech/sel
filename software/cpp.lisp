@@ -1302,21 +1302,6 @@ virtual methods."
                "Return a copy of FIELD marked as virtual."
                (if (field-virtual? field) field
                    (with field cpp::+virtual+ t)))
-             (add-qualified-base-fields
-                 (base-class field-table key base-fields)
-               (let* ((base-fields
-                        (filter
-                         (op (eql (@ _ +ns+) :function))
-                         base-fields)))
-                 (if (no base-fields)
-                     field-table
-                     (let ((new-key
-                             (string+ (source-text
-                                       (cpp-name base-class))
-                                      "::"
-                                      key)))
-                       (with field-table new-key
-                             base-fields)))))
              (update-derived-field-table (field-table key base-fields)
                "Add BASE-FIELDS into FIELD-TABLE under KEY."
                ;; C++ uses "name hiding": if a derived class specifies
