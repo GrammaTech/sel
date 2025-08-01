@@ -762,15 +762,13 @@ time."
   (:documentation
    "Traverse TREE collecting every node that satisfies PREDICATE.")
   (:method ((predicate function) (tree ast) &key (key #'identity))
-    ;; reverse it to maintain the order it was found in.
-    (fbind (predicate)
-      (with-item-key-function (key)
-        (nreverse
-         (reduce (lambda (accum ast)
-                   (if (predicate (key ast))
-                       (cons ast accum)
-                       accum))
-                 tree)))))
+    (with-collector (collect)
+      (fbind (predicate)
+        (with-item-key-function (key)
+          (do-tree (ast tree)
+            (when (predicate (key ast))
+              (collect ast))
+            nil)))))
   (:method ((type symbol) (tree ast) &key (key #'identity))
     (if (null type) (call-next-method)
         (collect-if (of-type type) tree :key key)))
