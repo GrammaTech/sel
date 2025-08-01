@@ -3006,43 +3006,11 @@ definitions."
 
 (defun cpp::declared-virtual-p (ast)
   "Is AST declared virtual?"
-  (find-if (of-type 'cpp-virtual)
-           (slot-value-safe ast 'cpp-pre-specifiers)))
-
-(defgeneric cpp::flatten-declaration (decl)
-  (:documentation "Canonicalize DECL into a one-declaration-per-AST form.")
-  (:method ((ast t))
-    (list ast))
-  (:method ((ast cpp-field-declaration))
-    (let ((ids (cpp-declarator ast)))
-      (if (and (listp ids)
-               (every (of-type 'cpp-field-identifier) ids))
-          (mapcar
-           (lambda (id)
-             (tree-copy
-              (copy ast :cpp-declarator (list id))))
-           ids)
-          (list ast))))
-  (:method ((declaration cpp-declaration))
-    "Flatten a declaration with multiple declarators into a list of declarations."
-    (ematch declaration
-      ((cpp-declaration
-        :cpp-declarator declarators)
-       (if (single declarators)
-           (list declaration)
-           (mapcar (lambda (declarator)
-                     (tree-copy
-                      (copy declaration
-                            :cpp-declarator (list declarator))))
-                   declarators))))))
-
-(defun cpp::normalize-struct-fields (field-decls)
-  "Normalize DECLS so no declaration declares more than one member or
-              method. This may involve splitting one declaration into
-              several."
-  (remove-if (of-type 'comment-ast)
-             (mappend #'cpp::flatten-declaration
-                      (children field-decls))))
+  (typecase ast
+    (cpp-function-declarator
+     (cpp::declared-virtual-p (lookup-parent-ast (attrs-root*) ast)))
+    (t (find-if (of-type 'cpp-virtual)
+                (slot-value-safe ast 'cpp-pre-specifiers)))))
 
 (define-tuple-accessor cpp::virtual-name
   cpp::+vf-name+)
@@ -3085,15 +3053,28 @@ determine if a definition overrides a virtual method.")
        (or (definition-name-ast ast)
            (declarator-name-ast ast))))
 
+(defun cpp::class-method-declarators (class)
+  (when-let ((body (cpp-body class)))
+    (iter (for child in (children body))
+          (typecase child
+            (cpp-function-definition
+             (collecting
+               (cpp-declarator child)))
+            (cpp-field-declaration
+             (appending
+              (filter (of-type 'cpp-function-declarator)
+                      (cpp-declarator child))))))))
+
 (defmethod virtual-functions ((class c/cpp-classoid-specifier))
   (let* ((virtuals-set
            (iter (for v in (inherited-virtual-functions class))
                  (set-collect (cpp::virtual-function-key v))))
-         ;; TODO Should we just return function declarators instead?
-         (fields (cpp::normalize-struct-fields (cpp-body class)))
-         (methods (filter #'cpp::declared-function-name fields))
+         (declarators
+           (cpp::class-method-declarators class))
+         (methods
+           (filter #'declarator-name-ast declarators))
          (declared-virtual
-           (filter #'cpp::declared-virtual-p fields))
+           (filter #'cpp::declared-virtual-p methods))
          (overrides
            (filter (op (lookup virtuals-set
                                (cpp::virtual-function-key _)))
