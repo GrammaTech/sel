@@ -1342,7 +1342,7 @@ You can override this for your own synthesized attributes."
          (arg (string-gensym 'arg)))
     `(progn
        (define-compiler-macro ,name (&whole call ,arg ,@args)
-           (declare (ignore ,arg))
+         (declare (ignore ,arg))
          `(locally (declare (notinline ,',name))
             (assure fset:map
               ,call)))
