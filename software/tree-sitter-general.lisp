@@ -1325,6 +1325,10 @@ more than one thing (destructuring).")
           :key attr
           :initial-value (empty-map)))
 
+;;; TODO It should be possible to batch-compute all the synthesized
+;;; attribute in one pass. Is that worthwhile, or are fewer passes
+;;; outweighed by computing unneeded attributes?
+
 (defmacro define-synthesized-attribute (name args &body body)
   "Define a synthesized attribute.
 A synthesized attribute is a table (FSet map) built bottom-up rather
