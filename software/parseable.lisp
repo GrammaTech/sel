@@ -749,6 +749,15 @@ time."
                             fun-replacements))
             :initial-value ast)))
 
+(define-compiler-macro collect-if
+    (&whole call predicate tree &key (key nil key?))
+  (match predicate
+    ((list 'quote type)
+     `(locally (declare (notinline collect-if))
+        (collect-if (of-type ',type) ,tree
+                    ,@(and key? (list :key key)))))
+    (otherwise call)))
+
 (defgeneric collect-if (predicate tree &key key)
   (:documentation
    "Traverse TREE collecting every node that satisfies PREDICATE.")
