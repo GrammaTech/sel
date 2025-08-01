@@ -1318,7 +1318,11 @@ more than one thing (destructuring).")
     (when-let (assignee (assignee ast))
       (list assignee))))
 
+(-> synthesize-attribute (ast function &key (:union-fn function))
+    fset:map)
 (defun synthesize-attribute (ast attr &key (union-fn #'append-longest))
+  "Compute a synthesized attribute over the children of AST.
+Use UNION-FN to union child map values (see `map-union')."
   (declare (function attr union-fn))
   (reduce (op (map-union _ _ union-fn))
           (children ast)
