@@ -2963,7 +2963,7 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
   ;; TODO possible types?
   nil)
 
-(flet ((call-on-real-def (fn ast)
+(flet ((call-on-real-def (fn ast default)
          (or
           (if-let (real-def
                    (get-declaration-ast :type
@@ -2971,13 +2971,13 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
             (unless (eql ast real-def)
               (funcall fn real-def))
             (warn "No class for alias ~a" ast))
-          (empty-map))))
+          default)))
 
   (defmethod inheritance-graph ((ast cpp-type-definition))
-    (call-on-real-def #'inheritance-graph ast))
+    (call-on-real-def #'inheritance-graph ast (empty-map)))
 
   (defmethod inheritance-graph-lookup ((ast cpp-type-definition))
-    (call-on-real-def #'inheritance-graph-lookup ast)))
+    (call-on-real-def #'inheritance-graph-lookup ast (cons nil nil))))
 
 
 ;;; Virtual functions
