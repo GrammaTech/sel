@@ -11,6 +11,7 @@
    :software-evolution-library/software/c
    :software-evolution-library/software/c-project
    :software-evolution-library/software/c-cpp-project
+   :software-evolution-library/software/project
    :software-evolution-library/test/util-clang
    :software-evolution-library/components/file
    :software-evolution-library/components/formatting

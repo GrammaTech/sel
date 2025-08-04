@@ -394,3 +394,47 @@ present in evolve-files/dependency-order."
   (with-fixture extra-files
     (is (equal (mapcar #'car (evolve-files *project*))
                '("hello_world.c")))))
+
+(deftest test-header-symbol-table-contamination-regression ()
+  "Headers should not cause cross-file symbol table contamination."
+  (let* ((proj
+           (from-file 'c-project
+                      (path-join (make-pathname :directory +etc-dir+)
+                                 "c-symbol-table-contamination/")))
+         (file1
+           (is (evolve-files-ref proj "file1.c")))
+         (x1 (is (lastcar
+                  (collect-if
+                   (conjoin
+                    (of-type 'identifier-ast)
+                    (op (source-text= "x" _)))
+                   file1))))
+         (file2
+           (is (evolve-files-ref proj "file2.c")))
+         (x2
+           (is (lastcar
+                (collect-if
+                 (conjoin
+                  (of-type 'identifier-ast)
+                  (op (source-text= "x" _)))
+                 file2))))
+         (header
+           (is (evolve-files-ref proj "common_header.h")))
+         (header-x
+           (is (lastcar
+                (collect-if
+                 (conjoin
+                  (of-type 'identifier-ast)
+                  (op (source-text= "x" _)))
+                 header)))))
+    (with-attr-table proj
+      (is (reachable? (genome header)))
+      (is (reachable? header-x))
+      (is (null (get-declaration-ast :type header-x)))
+      (let ((x1-decl (is (get-declaration-ast :variable x1)))
+            (x2-decl (is (get-declaration-ast :variable x2))))
+        (is (typep x1-decl 'c-declaration))
+        (is (typep x2-decl 'c-declaration))
+        (is (not (eq x1-decl x2-decl)))
+        (is (source-text= (c-value (car (c-declarator x1-decl))) "1"))
+        (is (source-text= (c-value (car (c-declarator x2-decl))) "2"))))))
