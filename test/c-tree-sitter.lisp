@@ -1756,6 +1756,16 @@ final();"))
                         (symbol-table (stmt-with-text c4 "final()"))
                         :variable))))))))
 
+(deftest test-system-header-with-initial-comment ()
+  "Symbol tables should not be affected by leading comments in system headers."
+  (let ((c (from-string 'c-project "#include </usr/include/stdint.h>
+int_fast32_t main () {
+  return 0
+}")))
+    (with-attr-table c
+      (let ((type (find-if (op (source-text= "int_fast32_t" _)) c)))
+        (symbol-table type)))))
+
 
 ;;; Blotting
 (deftest c-blot-ranges-1 ()
