@@ -1633,7 +1633,7 @@ then the return type of the call is the return type of the field."
   (match ast
     ((cpp-qualified-identifier)
      (smart-pointer-type-arg
-      (lastcar (qualified-name->list ast))))
+      (lastcar (cpp::qualified-name->list ast))))
     ((cpp-template-type
       (cpp-name
        (cpp-type-identifier
@@ -1646,7 +1646,7 @@ then the return type of the call is the return type of the field."
 (defmethod deref-type ((type cpp-qualified-identifier))
   ;; TODO This needs to be generalized.
   (or (smart-pointer-type-arg type)
-      (let ((parts (qualified-name->list type)))
+      (let ((parts (cpp::qualified-name->list type)))
         (if (member (lastcar parts) '("iterator" "const_iterator")
                     :test #'source-text=)
             (resolve-container-element-type type)
@@ -1831,8 +1831,8 @@ types."
                      (attr-proxy new-field-type) field-type)
                (lret ((qname
                        (list->qualified-name
-                        (append (qualified-name->list new-arg-type)
-                                (qualified-name->list new-field-type)))))
+                        (append (cpp::qualified-name->list new-arg-type)
+                                (cpp::qualified-name->list new-field-type)))))
                  (setf (attr-proxy qname) field-type)))
              field-type)))
           (t
@@ -1875,7 +1875,7 @@ types."
                             (source-text
                              (list->qualified-name
                               (butlast
-                               (qualified-name->list id))))))
+                               (cpp::qualified-name->list id))))))
             (types (find-in-symbol-table fn :type query))
             (decls (filter-map
                     (op (find-enclosing 'c/cpp-classoid-specifier
@@ -1989,17 +1989,17 @@ constructor OR a default constructor.")
     (when-let (fn (find-enclosing 'cpp-function-definition obj ast))
       (out-of-class-function-definition-class fn))))
 
-(defgeneric qualified-name->list (ast)
+(defgeneric cpp::qualified-name->list (ast)
   ;; TODO Qualified type and field identifiers.
   (:method ((ast cpp-ast))
     (list ast))
   (:method ((ast cpp-qualified-identifier))
     (cons (cpp-scope ast)
-          (qualified-name->list (cpp-name ast))))
+          (cpp::qualified-name->list (cpp-name ast))))
   (:method ((ast cpp-dependent-type))
     ;; "The keyword typename may only be used in this way before
     ;; qualified names (e.g. T::x)."
-    (mappend #'qualified-name->list
+    (mappend #'cpp::qualified-name->list
              (children ast))))
 
 (define-condition unqualifiable-ast-error (error)

@@ -2366,7 +2366,7 @@ public:
   (is (equal "::ns::x"
              (source-text
               (ts::list->qualified-name
-               (ts::qualified-name->list
+               (cpp::qualified-name->list
                 (cpp* "::ns::x")))))))
 
 (deftest qualified-names-from-dependent-types ()
@@ -2374,7 +2374,7 @@ public:
   (let ((cpp (cpp* "typename iterator_type::value m_type")))
     (is (equal '("iterator_type" "value")
                (mapcar #'source-text
-                       (ts::qualified-name->list
+                       (cpp::qualified-name->list
                         (cpp-type cpp)))))))
 
 (deftest test-qualified-template-type ()
@@ -2382,7 +2382,7 @@ public:
   (let ((cpp (cpp* "internal::MatcherCastImpl<T, M>::Cast")))
     (is (equal? cpp
                (ts::list->qualified-name
-                (ts::qualified-name->list
+                (cpp::qualified-name->list
                  cpp))))))
 
 (deftest test-namespace-definition-visibility ()
