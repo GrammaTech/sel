@@ -3076,6 +3076,23 @@ int myfun() {
                (mapcar #'source-text
                        (ts::outer-declarations cpp))))))
 
+(deftest test-dependent-type-lookup ()
+  "Dependent types should be resolved."
+  (let ((cpp
+          (from-string 'cpp-project
+                       (read-file-into-string
+                        (path-join
+                         +test-data-dir+
+                         #p"cpp-tree-sitter/dependent_type.cc")))))
+    (with-attr-table cpp
+      (let* ((file (is (cdr (only-elt (project:evolve-files cpp)))))
+             (decl (is (lastcar
+                        (collect-if
+                         (of-type 'cpp-declaration)
+                         file))))
+             (typedef (is (get-declaration-ast :type (cpp-type decl)))))
+        (is (get-declaration-ids :type (cpp-type typedef)))))))
+
 
 ;;; Module tests
 

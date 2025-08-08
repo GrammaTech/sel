@@ -782,6 +782,10 @@ See SEL issue #359."
 (defmethod get-declaration-ids ((type (eql :type)) (ast cpp-template-type))
   (get-declaration-ids type (cpp-name ast)))
 
+(defmethod get-declaration-ids ((type (eql :type)) (ast cpp-dependent-type))
+  ;; TODO Give it its own slot?
+  (get-declaration-ids type (only-elt (children ast))))
+
 (defmethod relevant-declaration-type ((ast cpp-operator-name))
   'function-declaration-ast)
 
@@ -1065,7 +1069,9 @@ from a prior sibling \(`public:', `private:', `protected:').")
 (defmethod type-aliasee ((typedef cpp-type-definition))
   (match typedef
     ((cpp-type-definition
-      (cpp-type (and type (cpp-template-type))))
+      (cpp-type (and type
+                     (or (cpp-dependent-type)
+                         (cpp-template-type)))))
      (get-declaration-ast :type type))))
 
 (defmethod type-aliasee ((alias cpp-alias-declaration))
@@ -1461,7 +1467,7 @@ consideration as overloads."
   (if (every (of-type 'c/cpp-classoid-specifier) overloads)
       (match (remove-if-not #'cpp-body overloads)
         ((list only) only)
-        (t (call-next-method)))
+        (otherwise (call-next-method)))
       (call-next-method)))
 
 (defmethod resolve-declaration-type ((decl cpp-ast)
