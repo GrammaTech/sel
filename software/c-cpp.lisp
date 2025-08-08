@@ -1145,6 +1145,11 @@ appears as a return statement is assumed to be the type of the function."
   (or (call-next-method)
       (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
+(defmethod expression-type ((ast c/cpp-char-literal))
+  (etypecase ast
+    (c-ast (make 'c-primitive-type :text "char"))
+    (cpp-ast (make 'cpp-primitive-type :text "char"))))
+
 (defmethod expression-type ((ast c/cpp-string-literal))
   (nest
    (labels ((string-literal-length (ast)

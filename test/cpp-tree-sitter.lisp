@@ -2165,6 +2165,18 @@ using MyclassAlias = MyClass;
            (cpp::list-all-constructors typedef)
            (cpp::list-all-constructors alias))))))
 
+(deftest test-nullptr-type ()
+  "We should be able to infer the type of nullptr whether or noit cstddef
+is included."
+  (is (source-text= "nullptr_t" (expression-type (cpp* "nullptr"))))
+  (with-attr-table (from-string 'sel/sw/cpp-project:cpp-project "#include <cstddef>
+
+int main() { nullptr; }")
+    (let ((nullptr (is (find-if (of-type 'cpp-nullptr) (attrs-root*)))))
+      (is (source-text=
+           (infer-type nullptr)
+           "nullptr_t")))))
+
 
 ;;; Parsing tests
 

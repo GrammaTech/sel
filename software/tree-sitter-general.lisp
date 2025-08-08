@@ -1575,7 +1575,9 @@ Calls `expression-type' by default."
 
 (defgeneric expression-type (ast)
   (:documentation "Extract the type from AST, an expression.")
-  (:method ((ast t)) nil))
+  (:method ((ast t)) nil)
+  (:method ((ast parenthesized-expression-ast))
+    (expression-type (only-elt (children ast)))))
 
 (defgeneric resolve-declaration-type (decl-ast ast)
   (:documentation

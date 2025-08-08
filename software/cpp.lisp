@@ -1753,6 +1753,16 @@ then the return type of the call is the return type of the field."
 (defmethod expression-type ((ast cpp-new-expression))
   (cpp-type ast))
 
+(defmethod expression-type ((ast cpp-nullptr))
+  (or (and (boundp '*attrs*)
+           (car
+            (find-in-symbol-table ast :type "std::nullptr_t")))
+      (let ((type
+              (make 'cpp-type-identifier :text "nullptr_t")))
+        (when (boundp '*attrs*)
+          (setf (attr-proxy type) ast))
+        type)))
+
 (defmethod placeholder-type-p ((ast cpp-auto))
   t)
 
