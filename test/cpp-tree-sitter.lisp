@@ -3537,6 +3537,7 @@ class Unrelated {};"))))
         (get-declaration-ast :function call-ast)))))
 
 (deftest test-value-parameters-in-symbol-table ()
+  "Template value parameters should appear as variable in the symbol table."
   (let ((cpp
           (from-file
            'cpp
@@ -3550,7 +3551,37 @@ class Unrelated {};"))))
              (template
                (is (find-if (of-type 'cpp-template-declaration)
                             cpp))))
-        (is (member decl (children (cpp-parameters template))))))))
+        (is (member decl (children (cpp-parameters template))))
+        (is (length= 3 (template-specializations template)))))))
+
+(deftest test-value-parameter-specializations ()
+  "Value parameters should not interfere with analyzing specializations."
+  (let ((cpp
+          (from-file
+           'cpp
+           (path-join
+            +test-data-dir+
+            "cpp-tree-sitter/template_value_parameter.cc"))))
+    (with-attr-table cpp
+      (let* ((template
+               (is (find-if (of-type 'cpp-template-declaration)
+                            cpp))))
+        (is (length= 3 (template-specializations template)))))))
+
+(deftest test-value-parameter-with-templated-type ()
+  "Value parameters with templated types should be supported."
+  (let ((cpp
+          (from-file
+           'cpp
+           (path-join
+            +test-data-dir+
+            "cpp-tree-sitter/template_value_parameter_templated_type.cc"))))
+    (with-attr-table cpp
+      (let ((template (is (find-if (of-type 'cpp-template-declaration) cpp))))
+        (destructuring-bind (type-param value-param)
+            (direct-children (cpp-parameters template))
+          (is (eql type-param
+                   (get-declaration-ast :type (cpp-type value-param)))))))))
 
 
 ;;; Module tests
