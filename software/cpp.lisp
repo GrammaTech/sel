@@ -1068,7 +1068,8 @@ can be accessed by using the class as a namespace."
     (mappend (lambda (param)
                (typecase param
                  (cpp-parameter-declaration
-                  (list (cpp-declarator param)))))
+                  (when-let (decl (cpp-declarator param))
+                    (list decl)))))
              (direct-children params))))
 
 (defmethod inner-declarations ((ast cpp-template-declaration))

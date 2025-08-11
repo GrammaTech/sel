@@ -3583,6 +3583,13 @@ class Unrelated {};"))))
           (is (eql type-param
                    (get-declaration-ast :type (cpp-type value-param)))))))))
 
+(deftest test-handle-declared-value-parameter ()
+  "Value parameters in declarations shouldn't need names."
+  (let ((cpp (from-string 'cpp "template <int> class myclass;")))
+    (with-attr-table cpp
+      (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp))))
+        (is (not (find-in-symbol-table class :type "int")))))))
+
 
 ;;; Module tests
 
