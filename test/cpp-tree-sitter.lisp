@@ -3536,6 +3536,22 @@ class Unrelated {};"))))
       (let ((call-ast (find-if (of-type 'call-ast) (attrs-root*))))
         (get-declaration-ast :function call-ast)))))
 
+(deftest test-value-parameters-in-symbol-table ()
+  (let ((cpp
+          (from-file
+           'cpp
+           (path-join
+            +test-data-dir+
+            "cpp-tree-sitter/template_value_parameter.cc"))))
+    (with-attr-table cpp
+      (let* ((class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+             (max (is (find-if (op (source-text= "max" _)) class)))
+             (decl (is (get-declaration-ast :variable max)))
+             (template
+               (is (find-if (of-type 'cpp-template-declaration)
+                            cpp))))
+        (is (member decl (children (cpp-parameters template))))))))
+
 
 ;;; Module tests
 

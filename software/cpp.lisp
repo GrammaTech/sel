@@ -1061,12 +1061,22 @@ can be accessed by using the class as a namespace."
                     (list name)))
                  (cpp-template-template-parameter-declaration
                   (mappend #'param-name (children param)))))
-             (children params))))
+             (direct-children params))))
+
+(defun template-parameter-values (template)
+  (let ((params (cpp-parameters template)))
+    (mappend (lambda (param)
+               (typecase param
+                 (cpp-parameter-declaration
+                  (list (cpp-declarator param)))))
+             (direct-children params))))
 
 (defmethod inner-declarations ((ast cpp-template-declaration))
-  (let* ((types (template-parameter-types ast)))
-    (values types
-            (mapcar (constantly :type) types))))
+  (let* ((types (template-parameter-types ast))
+         (values (template-parameter-values ast)))
+    (values (append types values)
+            (append (mapcar (constantly :type) types)
+                    (mapcar (constantly :variable) values)))))
 
 (defgeneric contextual-member-access (ast)
   (:documentation "If AST changes the member access, return the new member access.")
