@@ -3036,7 +3036,7 @@ determine if a definition overrides a virtual method.")
      ;; TODO Why source-text?
      (cpp::+vf-name+ (source-text (cpp-declarator decl)))
      (cpp::+vf-param-types+
-      (mapcar #'cpp-type (children (cpp-parameters decl))))))
+      (mapcar #'cpp-type (direct-children (cpp-parameters decl))))))
   (:method ((decl cpp-reference-declarator))
     (cpp::virtual-function-key (only-elt (direct-children decl))))
   (:method ((decl cpp-pointer-declarator))
@@ -3064,7 +3064,8 @@ determine if a definition overrides a virtual method.")
 
 (defun cpp::class-method-declarators (class)
   (when-let ((body (cpp-body class)))
-    (mappend #'cpp::field-method-declarators (children body))))
+    (mappend #'cpp::field-method-declarators
+             (direct-children body))))
 
 (defmethod virtual-functions ((class c/cpp-classoid-specifier))
   (let* ((virtuals-set
