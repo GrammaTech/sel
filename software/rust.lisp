@@ -350,7 +350,9 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defun rust::pattern-variables (pattern)
   (declare (rust--pattern pattern))
   (ematch pattern
-    ((identifier-ast) (list pattern))
+    ((or (identifier-ast)
+         (rust-_))
+     (list pattern))
     ((or (rust-reference-pattern)
          (rust-tuple-pattern))
      (mappend #'rust::pattern-variables
