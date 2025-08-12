@@ -3041,7 +3041,32 @@ determine if a definition overrides a virtual method.")
   (:method ((decl cpp-reference-declarator))
     (cpp::virtual-function-key (only-elt (direct-children decl))))
   (:method ((decl cpp-pointer-declarator))
-    (cpp::virtual-function-key (cpp-declarator decl))))
+    (cpp::virtual-function-key (cpp-declarator decl)))
+  (:method ((ast cpp-operator-cast))
+    "Handle operator methods."
+    ;; In some cases operator method definitions get parsed as casts.
+    (match ast
+      ((cpp-operator-cast
+        :cpp-type (and type (cpp-primitive-type))
+        :cpp-declarator
+        (cpp-abstract-function-declarator
+         :cpp-parameters params))
+       (fset:tuple
+        (cpp::+vf-name+ (fmt "operator ~a" (source-text type)))
+        (cpp::+vf-param-types+
+         (mapcar #'cpp-type (direct-children params)))))
+      ((cpp-operator-cast
+        :cpp-declarator
+        (cpp-abstract-pointer-declarator
+         :cpp-declarator
+         (cpp-abstract-function-declarator
+          :cpp-parameters params)))
+       (fset:tuple
+        (cpp::+vf-name+ "operator*")
+        (cpp::+vf-param-types+
+         (mapcar #'cpp-type (direct-children params)))))
+      (otherwise
+       (call-next-method)))))
 
 (-> cpp::declared-function-name (cpp-ast) (or null cpp-ast))
 (defun cpp::declared-function-name (ast)
