@@ -3070,6 +3070,17 @@ determine if a definition overrides a virtual method.")
         (cpp::+vf-name+ "operator*")
         (cpp::+vf-param-types+
          (mapcar #'cpp-type (direct-children params)))))
+      ((cpp-operator-cast
+        :cpp-type type
+        :cpp-declarator decl)
+       (let ((fn (find-if (of-type 'cpp-abstract-function-declarator) decl)))
+         (unless fn
+           (fail))
+         (warn "Unsupported operator ~a" type)
+         (fset:tuple
+          (cpp::+vf-name+ (fmt "operator ~a" (source-text type)))
+          (cpp::+vf-param-types+
+           (mapcar #'cpp-type (direct-children (cpp-parameters fn)))))))
       (otherwise
        (call-next-method)))))
 
