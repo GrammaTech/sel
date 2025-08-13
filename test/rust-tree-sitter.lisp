@@ -385,10 +385,16 @@ valid output transformation."
                                (make 'rust-integer-literal :text "1")))))
     (finishes (source-text args))
     (finishes
-     (source-text
-      (with args
-            (is (find-if (of-type 'rust-integer-literal) args))
-            (make 'rust-source-text-fragment-variation-point))))))
+      (source-text
+       (with args
+             (is (find-if (of-type 'rust-integer-literal) args))
+             (make 'rust-source-text-fragment-variation-point))))
+    (finishes
+      (source-text
+       (copy args
+             :children
+             (list (rust* "1")
+                   (make 'rust-source-text-fragment-variation-point)))))))
 
 (deftest rust-one-source-text-fragment-in-tuple-expression ()
   "A tuple expression with a single source text fragment should have a

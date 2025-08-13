@@ -163,7 +163,23 @@ Rust macro invocations can use (), [], and {} equivalently."
     ((list (and real-child (alternative-ast)))
      (let* ((id (make 'rust-identifier :text "temp"))
             (temp (copy ast :children (list id))))
-       (substitute real-child id (output-transformation temp))))
+       (substitute
+        real-child
+        id
+        (output-transformation temp)
+        :count 1)))
+    ;; Same situation, but it's the last child rather than the only
+    ;; child.
+    ((cl:last (list (and real-child (alternative-ast))))
+     (let* ((id (make 'rust-identifier :text "temp"))
+            (temp (copy ast :children
+                        (append1 (butlast (direct-children ast))
+                                 id))))
+       (substitute
+        real-child
+        id
+        (output-transformation temp)
+        :count 1)))
     (otherwise (call-next-method))))
 
 (defmethod output-transformation :around ((ast rust-tuple-expression) &key &allow-other-keys)
