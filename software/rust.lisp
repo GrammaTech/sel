@@ -3,7 +3,10 @@
   (:use :gt/full
         :software-evolution-library
         :software-evolution-library/software/tree-sitter-base
-        :software-evolution-library/software/template))
+        :software-evolution-library/software/template)
+  (:export
+    :extract-pattern
+    :pattern-variables))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -348,7 +351,7 @@ Rust macro invocations can use (), [], and {} equivalently."
   "Merge function and variable namespaces for Rust."
   (get-declaration-ids :variable ast))
 
-(defgeneric rust::extract-pattern (ast)
+(defgeneric rust:extract-pattern (ast)
   (:method ((ast rust-identifier)) ast)
   (:method ((ast rust-ast))
     (if (slot-exists-p ast 'rust-pattern)
@@ -369,21 +372,22 @@ Rust macro invocations can use (), [], and {} equivalently."
 (defmethod declaration-type ((ast rust-let-declaration))
   (rust-type ast))
 
-(defun rust::pattern-variables (pattern)
+(defun rust:pattern-variables (pattern)
   (declare (rust--pattern pattern))
   (ematch pattern
     ((or (identifier-ast)
          (rust-_))
      (list pattern))
     ((or (rust-reference-pattern)
+         (rust-slice-pattern)
          (rust-tuple-pattern))
-     (mappend #'rust::pattern-variables
+     (mappend #'rust:pattern-variables
               (children-of-type pattern 'rust--pattern)))
     ((rust-tuple-struct-pattern)
-     (mappend #'rust::pattern-variables (direct-children pattern)))))
+     (mappend #'rust:pattern-variables (direct-children pattern)))))
 
 (defmethod outer-declarations ((pat rust--pattern))
-  (let ((vars (rust::pattern-variables pat)))
+  (let ((vars (rust:pattern-variables pat)))
     (values vars
             (mapcar (constantly :variable) vars))))
 
@@ -402,8 +406,8 @@ Rust macro invocations can use (), [], and {} equivalently."
 
 (defmethod inner-declarations ((decl rust-closure-expression))
   (let ((vars
-          (mappend #'rust::pattern-variables
-                   (mapcar #'rust::extract-pattern
+          (mappend #'rust:pattern-variables
+                   (mapcar #'rust:extract-pattern
                            (children-of-type (rust-parameters decl)
                                              'rust-parameter)))))
     (values vars
