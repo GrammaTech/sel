@@ -1109,7 +1109,9 @@ for the language.")
        (:function-declaration-ast
         rust-function-item
         rust-function-signature-item)
-       (:identifier-ast rust-field-identifier)
+       (:identifier-ast
+        rust-field-identifier
+        rust-scoped-identifier)
        (:identifier-expression-ast rust-identifier)
        (:if-expression-ast rust-if-expression)
        (:integer-ast rust-integer-literal)
