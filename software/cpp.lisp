@@ -1703,10 +1703,11 @@ then the return type of the call is the return type of the field."
       (cpp-template-function
        :cpp-name
        (cpp-identifier
-        :text (or "const_cast"
-                  "static_cast"
+        :text (or "bit_cast"
+                  "const_cast"
                   "dynamic_cast"
-                  "reinterpret_cast"))
+                  "reinterpret_cast"
+                  "static_cast"))
        :cpp-arguments
        (cpp-template-argument-list
         :children (list type-descriptor))))
