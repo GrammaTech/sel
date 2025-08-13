@@ -3127,6 +3127,10 @@ determine if a definition overrides a virtual method.")
      (stable-set-difference declared-virtual overrides)
      overrides)))
 
+(defmethod virtual-functions ((ast cpp-type-parameter-declaration))
+  ;; TODO
+  nil)
+
 
 ;;; Modules
 
