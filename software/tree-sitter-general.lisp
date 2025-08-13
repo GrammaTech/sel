@@ -4945,24 +4945,23 @@ then get the tree-sitter class that that is its supertype, unless the
 choice subclass has been given a name.
 
 If X is a tree-sitter-ast instance, return its class."
-  (econd
-    ((classp x)
-     (tree-sitter-class-name (class-name x)))
-    ((and (symbolp x)
-          (or ignore-named
-              (scan "-\\d+$" (symbol-name x))))
-     (if-let* ((x (find-class-safe x))
-               (superclass-slot
-                (find-if [{eql 'choice-superclass}
-                          #'slot-definition-name]
-                         (progn (ensure-finalized x)
-                                (class-slots x))))
-               (quoted-value
-                (slot-definition-initform superclass-slot)))
-       (ematch quoted-value
-         ((list 'quote (and symbol (type symbol)))
-          symbol))
-       x))
-    ((symbolp x) x)
-    ((typep x 'tree-sitter-ast)
+  (etypecase x
+    (class (tree-sitter-class-name (class-name x)))
+    (symbol
+     (if (or ignore-named
+             (scan "-\\d+$" (symbol-name x)))
+         (if-let* ((x (find-class-safe x))
+                   (superclass-slot
+                    (find-if [{eql 'choice-superclass}
+                              #'slot-definition-name]
+                             (progn (ensure-finalized x)
+                                    (class-slots x))))
+                   (quoted-value
+                    (slot-definition-initform superclass-slot)))
+           (ematch quoted-value
+             ((list 'quote (and symbol (type symbol)))
+              symbol))
+           x)
+         x))
+    (tree-sitter-ast
      (tree-sitter-class-name (class-of x)))))
