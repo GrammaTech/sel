@@ -649,7 +649,7 @@ already empty are retained."
     (lambda (node)
       (if (typep node 'reader-conditional)
           (block replace
-            (flet ((remove (sign node)
+            (flet ((remove-sign (sign node)
                      (return-from replace
                        (ecase sign
                          (#\+ nil)
@@ -658,12 +658,12 @@ already empty are retained."
                node
                (lambda (sign featurex ex)
                  (if (and (featurex-empty? featurex) remove-empty)
-                     (remove sign node)
+                     (remove-sign sign node)
                      (receive (sign featurex ex)
                          (fn sign featurex ex)
                        (if (and (featurex-empty? featurex)
                                 remove-newly-empty)
-                           (remove sign node)
+                           (remove-sign sign node)
                            (values sign featurex ex))))))))
           node))
     ast)))

@@ -3215,7 +3215,7 @@ Returns outermost AST of context.
 that are mentioned at nodes of the AST.  DATABASE is the associated macro/type
 database."
   (labels
-      ((update (ast)
+      ((update-ast (ast)
          (mapc {add-include clang}
                (reverse (ast-includes clang ast)))
          (mapc [{add-macro clang} {find-macro database}]
@@ -3224,7 +3224,7 @@ database."
                (reverse (ast-types ast)))
          (mapc #'update (remove-if-not {typep _ 'clang-ast}
                                        (children ast)))))
-    (update ast)))
+    (update-ast ast)))
 
 ;; Find the ancestor of STMT that is a child of ANCESTOR.
 ;; On failure, just return STMT again.
