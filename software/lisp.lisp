@@ -247,7 +247,7 @@ same file as the match form its being used in."
                          (appending (list (m/space) el))
                          (collecting el))
                      (setf last el))))
-           (convert (node)
+           (convert-node (node)
              (when node
                (typecase node
                  (lisp-ast node)
@@ -259,10 +259,10 @@ same file as the match form its being used in."
                                    :children
                                    (intersperse-spaces
                                     (append (list (m/space "("))
-                                            (mapcar #'convert node)
+                                            (mapcar #'convert-node node)
                                             (list (m/space ")")))))))
                  (t (m/other node))))))
-    (convert sequence)))
+    (convert-node sequence)))
 
 ;;; Trivial Eclector client used to customize parsing for SEL.
 (define-matchable-class client (parse-result-client) ())

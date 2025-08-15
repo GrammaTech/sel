@@ -3222,8 +3222,9 @@ database."
                (reverse (ast-macros ast)))
          (mapc [{add-type clang} {find-type database}]
                (reverse (ast-types ast)))
-         (mapc #'update (remove-if-not {typep _ 'clang-ast}
-                                       (children ast)))))
+         (mapc #'update-ast
+               (remove-if-not {typep _ 'clang-ast}
+                              (children ast)))))
     (update-ast ast)))
 
 ;; Find the ancestor of STMT that is a child of ANCESTOR.
