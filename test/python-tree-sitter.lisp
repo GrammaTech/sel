@@ -804,8 +804,9 @@ and keyword parameters with defaults."
   (let* ((ast (convert 'python-ast (fmt "~
 x = 1
 y = 2
-x"
-                                        :deepest t)))
+x")
+
+                       :deepest t))
          (assignments
           (reverse (collect-if (of-type 'python-assignment) ast)))
          (identifiers
