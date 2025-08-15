@@ -49,7 +49,7 @@
   (:import-from :software-evolution-library/software/clang :clang)
   (:import-from :cl-json :decode-json-from-source)
   #+sbcl
-  (:import-from :fset :identity-ordering-mixin-next-serial-number)
+  (:import-from :fset :identity-equality-mixin-next-serial-number)
   (:shadowing-import-from :asdf-encodings
                           :detect-file-encoding
                           :encoding-external-format)
@@ -500,8 +500,8 @@ Other keyword arguments are allowed and are passed through to `make-instance'."
       ;; Reset the serial number counter if software restored from saved
       ;; store file on disk.
       #+sbcl
-      (maxf identity-ordering-mixin-next-serial-number
-            identity-ordering-mixin-next-serial-number
+      (maxf identity-equality-mixin-next-serial-number
+            identity-equality-mixin-next-serial-number
             (extremum (mapcar #'serial-number (asts soft)) #'>))
       (return-from create-software soft)))
 
