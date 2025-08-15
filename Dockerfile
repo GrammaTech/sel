@@ -39,7 +39,7 @@ RUN chmod a+x /usr/bin/ccl
 # repositories) cannot be used to bootstrap newer SBCL versions, so we
 # bootstrap with Clozure CL.
 RUN rm -rf /root/sbcl && \
-    git clone --depth=1 --branch sbcl-2.4.6 https://git.code.sf.net/p/sbcl/sbcl \
+    git clone --depth=1 --branch sbcl-2.5.7 https://git.code.sf.net/p/sbcl/sbcl \
     /root/sbcl
 RUN cd /root/sbcl && \
     bash make.sh --xc-host='ccl --batch --no-init'\
