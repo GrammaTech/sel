@@ -1048,13 +1048,13 @@ the `genome' of the software object."
                                 (list '&key)
                                 (mapcar (lambda (key)
                                           (list key nil
-                                                (symbol-cat-in-package 'fset key 'p)))
+                                                (symbol-cat key 'p)))
                                         (cdr (member '&key lambda-list)))))
          (apply ',name ,@(subseq lambda-list 0 (1- (position '&key lambda-list)))
                 (genome collection)
                 (append
                  ,@(mapcar (lambda (key)
-                             `(when ,(symbol-cat-in-package 'fset key 'p)
+                             `(when ,(symbol-cat key 'p)
                                 (list ,(make-keyword key) ,key)))
                            (cdr (member '&key lambda-list)))))))))
 
