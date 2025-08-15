@@ -23,9 +23,8 @@
     sel/software/tree-sitter::choice-subclasses
     sel/software/tree-sitter::ordered-children
     fset::serial-number
-    ;; The next two are specific to CCL.
-    fset::next-serial-number
-    fset::next-serial-number-lock
+    #+ccl fset::next-serial-number
+    #+ccl fset::next-serial-number-lock
     functional-trees:descendant-map
     fset:size
     functional-trees:child-slots
