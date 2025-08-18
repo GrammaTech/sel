@@ -651,14 +651,6 @@ to look it up as `x::z' or just `z'."
         :specifier (get-specifier-list ast-type declaration)
         :declarator (canonicalize-declarator (c/cpp-declarator declaration))))
 
-;;; TODO Generalize include handling to C as well as C++. (This will
-;;; involve pulling the declarations from the std namespace, and only
-;;; for the C compatibility headers.)
-
-(defun find-std-header (name &key (language 'cpp))
-  "Find the standard library header named NAME."
-  (from-string language (extract-header-synopsis name)))
-
 (defmethod strip-template-arguments ((template cpp-template-function))
   (match template
     ((cpp-template-function
