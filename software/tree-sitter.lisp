@@ -415,6 +415,8 @@
   ;; Ensure symbols are interned for definitions that could be skipped
   ;; when building without tree-sitter.
   (:intern :explicit-namespace-qualifiers
+           :interpret-preprocessor-expression
+           :interpret-preprocessor-expression-p
            :template-parameter-types
            :unqualified-name)
   (:shadow :condition)
