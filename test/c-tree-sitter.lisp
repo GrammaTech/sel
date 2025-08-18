@@ -1759,13 +1759,15 @@ final();"))
 
 (deftest test-system-header-with-initial-comment ()
   "Symbol tables should not be affected by leading comments in system headers."
+  ;; Use the system header as it probably has a comment preamble.
   (let ((c (from-string 'c-project "#include </usr/include/stdint.h>
 int_fast32_t main () {
   return 0
 }")))
     (with-attr-table c
       (let ((type (find-if (op (source-text= "int_fast32_t" _)) c)))
-        (symbol-table type)))))
+        (let ((symtab (finishes (symbol-table type))))
+          (is (not (empty? symtab))))))))
 
 
 ;;; Blotting
