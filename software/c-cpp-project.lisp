@@ -614,12 +614,22 @@ the standard path and add it to PROJECT."))
   "Find PATH-STRING in standard include directories."
   (declare (project project)
            (string path-string))
-  (iter (for dir in *stdinc-dirs*)
-        (when-let (file (file-exists-p (base-path-join dir path-string)))
-          (return
-            ;; TODO Why is tree-copy necessary?
-            (mapcar #'tree-copy
-                    (children (genome (from-file (component-class project) file))))))))
+  (flet ((header-children (file)
+           ;; TODO Why is tree-copy necessary?
+           (mapcar #'tree-copy
+                   (children
+                    (genome
+                     (from-file
+                      (component-class project)
+                      file))))))
+    (or (and-let* ((path (pathname path-string))
+                   ((absolute-pathname-p path))
+                   (file (file-exists-p path)))
+          (header-children file))
+        (some (lambda (dir)
+                (when-let (file (file-exists-p (base-path-join dir path-string)))
+                  (header-children file)))
+              *stdinc-dirs*))))
 
 (defun get-header-synopsis (project path-string)
   "Find the synopsis for the standard header in PATH-STRING."
