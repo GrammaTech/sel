@@ -17,9 +17,10 @@
   (file-exists-p (path-join *std-header-dir* "list")))
 
 (defun extract-synopsis-from-string (file-string)
-  (let ((synopsis (find "synopsis"
-                        (split "/\\*|\\*/" file-string)
-                        :test #'search)))
+  (when-let ((synopsis
+              (find "synopsis"
+                    (split "/\\*|\\*/" file-string)
+                    :test #'search)))
     (apply #'string+
            (drop-while (op (or (blankp _1)
                                (search "synopsis" _1)))
