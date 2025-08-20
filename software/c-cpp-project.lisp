@@ -66,8 +66,17 @@
   '("h" "hpp" "hh")
   "Header file extensions.")
 
+(def +default-stdinc-dirs+
+  '((c "/usr/local/include/" "/usr/include/")
+    (cpp "/usr/local/include/" "/usr/include/")))
+
 (defparameter *stdinc-dirs*
-  '("/usr/local/include/" "/usr/include/"))
+  +default-stdinc-dirs+)
+
+(defgeneric project-stdinc-dirs (project)
+  (:method ((project project))
+    (or (assocdr (component-class project) *stdinc-dirs*)
+        (error "No stdinc dirs for ~a" project))))
 
 (defparameter *cpp-module-extensions*
   '(;; Module unit extensions. Visual Studio uses .ixx, Clang
@@ -794,7 +803,7 @@ the standard path and add it to PROJECT."))
     (clrhash *system-header-cache*)))
 
 (defun get-stdinc-header (project path-string)
-  "Find PATH-STRING in standard include directories."
+  "Find PATH-STRING in PROJECT's standard include directories."
   (declare (project project)
            (string path-string))
   (flet ((header-children (file)
@@ -812,7 +821,7 @@ the standard path and add it to PROJECT."))
         (some (lambda (dir)
                 (when-let (file (file-exists-p (base-path-join dir path-string)))
                   (header-children file)))
-              *stdinc-dirs*))))
+              (project-stdinc-dirs project)))))
 
 (defun get-header-synopsis (project path-string)
   "Find the synopsis for the standard header in PATH-STRING."
