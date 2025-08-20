@@ -394,7 +394,9 @@ should already have been computed as part of their compilation units."
 ;;; Implicit Headers
 
 (defgeneric command-implicit-header (command lang)
-  (:documentation "Synthesize an implicit header for COMMAND.")
+  (:documentation "Synthesize an implicit header for COMMAND.
+Implicit headers give us a place to inject code \"as if\" it had been
+included in a header.")
   (:method ((co command-object) lang)
     (when-let (alist (command-preproc-defs co))
       (let* ((alist
