@@ -369,26 +369,26 @@ Skip files that have not been parsed."
 
 ;;; Symbol Table
 
-  (defmethod symbol-table ((project c/cpp-project) &optional in)
-    "Force computing symbol tables in compilation units.
+(defmethod symbol-table ((project c/cpp-project) &optional in)
+  "Force computing symbol tables in compilation units.
 We delay header files to the end. At this point, their symbol tables
 should already have been computed as part of their compilation units."
-    (mvlet* ((files
-              (collect-if (of-type 'file-ast)
-                          (genome project)))
-             (headers non-headers
-              (partition (lambda (file)
-                           (let ((path (full-pathname file)))
-                             (member (pathname-type path)
-                                     *header-extensions*
-                                     :test #'equal)))
-                         files)))
-      (dolist (file non-headers)
-        (symbol-table file in))
-      (dolist (file headers)
-        (symbol-table file in))
-      ;; Fill in symbol tables for directories.
-      (call-next-method)))
+  (mvlet* ((files
+            (collect-if (of-type 'file-ast)
+                        (genome project)))
+           (headers non-headers
+            (partition (lambda (file)
+                         (let ((path (full-pathname file)))
+                           (member (pathname-type path)
+                                   *header-extensions*
+                                   :test #'equal)))
+                       files)))
+    (dolist (file non-headers)
+      (symbol-table file in))
+    (dolist (file headers)
+      (symbol-table file in))
+    ;; Fill in symbol tables for directories.
+    (call-next-method)))
 
 
 ;;; Implicit Headers
