@@ -1233,6 +1233,7 @@ initialization to be separate."
 
 (def-attr-fun variable-declaration-ids ()
   "Collect the variable declarations IDs for variables used in AST."
+  (:circular #'gt:equal? (constantly nil))
   (:method (ast)
     (iter (for id in (identifiers ast))
           (when (subtypep (relevant-declaration-type id)
@@ -1356,6 +1357,7 @@ You can override this for your own synthesized attributes."
               ,call)))
        (def-attr-fun ,name ,args
          ,@(unsplice docstring)
+         (:circular #'gt:equal? (constantly (empty-map)))
          (:method :context ((ast ast))
            (assure fset:map (call-next-method)))
          (:method ((software parseable))
@@ -1391,6 +1393,7 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.)
 Note that in languages with pointers, the assignments include both
 assignments through the pointer and assignment of the pointer. To
 get just the pointer assignments, use `pointer-assignments'."
+  (:circular #'gt:equal? (constantly nil))
   (:method ((target identifier-ast))
     (values
      (lookup (assignees-table (attrs-root*))
@@ -1407,6 +1410,7 @@ TARGET should be the actual declaration ID (from `get-declaration-id'.)
 Returns a subset of `assignments'.
 
 For languages without pointers, this will always return nil."
+  (:circular #'gt:equal? (constantly nil))
   (:method ((target t))
     nil))
 
@@ -1548,6 +1552,7 @@ for the compiler to infer the type.")
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
+  (:circular #'gt:equal? (constantly nil))
   (:method :context ((ast ast))
     (restart-case
         (call-next-method)
@@ -1657,7 +1662,8 @@ return whether they are equal.")
 (def-attr-fun alias-set ()
   "Get the declarations \(as identifiers, as in `get-declaration-id')
    of variables in SOFTWARE that are aliases \(pointers or references)
-   for PLAIN-VAR.")
+   for PLAIN-VAR."
+  (:circular #'gt:equal? (constantly nil)))
 
 (defgeneric constant-fold (ast)
   (:documentation "Constant-fold AST into a Lisp value.")
@@ -1699,6 +1705,7 @@ return whether they are equal.")
 Note that the result will be coerced to a list with `ensure-list', so
 each method does not need to return a list. Also, `nil' is
 automatically removed.")
+  (:circular #'gt:equal? (constantly nil))
   (:method :context ((root ast) &aux (attrs-root (attrs-root*)))
     "Follow the CFG from ROOT to handle nonlocal exits."
     (labels ((walk-cfg (entry-points final-exits visited)
@@ -1805,6 +1812,7 @@ declaration.")
 
 That is, if AST is a basic block, then its control flow target is the first
 node in the block.")
+  (:circular #'gt:equal? (constantly nil))
   (:method :context ((ast ast))
     (remove nil (ensure-list (call-next-method))))
   (:method :around ((ast compound-ast))
@@ -4576,6 +4584,7 @@ table."
 
 (def-attr-fun symbol-table (in)
   "Compute the symbol table at this node."
+  (:circular #'gt:equal? (constantly (empty-map)))
   (:method ((software parseable) &optional in)
     (symbol-table (genome software) in))
   (:method ((node root-ast) &optional in)
@@ -4893,6 +4902,7 @@ define multiple identifiers).
 
 There may be additional keys in the tuple to record language-specific
 information such as visibility."
+  (:circular #'gt:equal? (constantly (empty-map)))
   (:method ((ast ast))
     (direct-field-table ast))
   (:method ((alias type-alias-ast))

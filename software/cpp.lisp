@@ -2501,6 +2501,7 @@ functions."
 
 (def-attr-fun specialization-type-arguments ()
   "Get the type arguments from a template specialization."
+  (:circular #'gt:equal? (constantly nil))
   (:method ((specialization ast))
     (ematch specialization
       ((or (cpp-template-type
