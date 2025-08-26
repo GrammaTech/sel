@@ -1,0 +1,14 @@
+[{
+  "arguments": [
+    "cc",
+    "-c",
+    "-o",
+    "-isysroot",
+    "/nowhere/c-sysroot-sysroot/",
+    "hello",
+    "hello.c"
+  ],
+  "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/c-sysroot",
+  "file": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/c-sysroot/hello.c",
+  "output": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/c-sysroot/hello"
+}]

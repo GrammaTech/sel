@@ -68,7 +68,8 @@
            :expand-wildcard
            :with-fixture/attrs
            :delete-temporary-project
-           :from-file-as-temporary-project))
+           :from-file-as-temporary-project
+           :with-temporary-directory-of-project))
 (in-package :software-evolution-library/test/util)
 (in-readtable :curry-compose-reader-macros)
 
@@ -398,3 +399,10 @@ That is, test that the result of calling `source-text' on an AST is the same as 
   (uiop:delete-directory-tree
    (project-dir project)
    :validate (op (subpathp _ uiop:*temporary-directory*))))
+
+(defmacro with-temporary-directory-of-project
+    ((project &rest kwargs &key pathname &allow-other-keys)
+     &body body)
+  `(with-temporary-directory (:pathname ,pathname ,@kwargs)
+     (to-file ,project ,pathname)
+     ,@body))

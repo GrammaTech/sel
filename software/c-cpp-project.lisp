@@ -24,7 +24,7 @@
    (:file :software-evolution-library/components/file)
    (:task :software-evolution-library/utility/task)
    (:ts :software-evolution-library/software/tree-sitter))
-  (:shadowing-import-from :serapeum :~>>)
+  (:shadowing-import-from :serapeum :~> :~>>)
   (:export
     :*cpp-extensions*
     :*cpp-implementation-extensions*
@@ -127,8 +127,22 @@ inference.  Used to prevent circular attr propagation.")
 (defclass c/cpp-project
     (directory-project compilation-database-project parseable-project compilable
      include-paths-mixin normal-scope)
-  ()
-  (:documentation "Mixin for common project functionality between C and C++."))
+  ((isysroot
+    :initarg :isysroot
+    :reader project-isysroot
+    :documentation "Project-wide isysroot for header includes."))
+  (:documentation "Mixin for common project functionality between C and C++.")
+  (:default-initargs
+   :isysroot nil))
+
+(defmethod initialize-instance :after ((self c/cpp-project) &key)
+  (with-slots (isysroot) self
+    (when isysroot
+      (unless (absolute-pathname-p isysroot)
+        (error "If provided, sysroot must be absolute: ~a" isysroot))
+      ;; Make the trivial sysroot equivalent to no sysroot.
+      (when (equal isysroot "/")
+        (setf isysroot nil)))))
 
 (define-node-class c/cpp-root (functional-tree-ast normal-scope-ast)
   ((system-headers
@@ -790,19 +804,23 @@ This is largely C compatibility headers for C++, which do not throw exceptions."
 the standard path and add it to PROJECT."))
 
 (defun cache-lookup (cache project path-string)
-  (if-let (dict (gethash (type-of project) cache))
-    (gethash path-string dict)
-    (values nil nil)))
+  (if *system-header-cache*
+      (if-let (dict (gethash (type-of project) cache))
+        (gethash path-string dict)
+        (values nil nil))
+      (values nil nil)))
 
 (defun (setf cache-lookup) (value cache project path-string)
-  (let ((dict
-         (ensure2 (gethash (type-of project) cache)
-           (dict))))
-    (setf (gethash path-string dict) value)))
+  (if (not *system-header-cache*) value
+      (let ((dict
+              (ensure2 (gethash (type-of project) cache)
+                (dict))))
+        (setf (gethash path-string dict) value))))
 
 (defun clear-cache ()
   (synchronized ('*system-header-cache*)
-    (clrhash *system-header-cache*)))
+    (when *system-header-cache*
+      (clrhash *system-header-cache*))))
 
 (defun get-stdinc-header (project path-string &key header-dirs)
   "Find PATH-STRING in PROJECT's standard include directories."
@@ -832,9 +850,9 @@ the standard path and add it to PROJECT."))
         (some (lambda (dir)
                 (when-let (file (file-exists-p (base-path-join dir path-string)))
                   (header-children file)))
-              (apply-sysroot
-               (header-dirs-sysroot header-dirs)
-               (project-stdinc-dirs project))))))
+              (apply-sysroot (project-isysroot project)
+                             (apply-sysroot (header-dirs-sysroot header-dirs)
+                                            (project-stdinc-dirs project)))))))
 
 (defun get-header-synopsis (project path-string)
   "Find the synopsis for the standard header in PATH-STRING."
@@ -864,17 +882,19 @@ the standard path and add it to PROJECT."))
                        (get-stdinc-header project
                                           path-string
                                           :header-dirs header-dirs)))
+                 (get-header-object (path-string)
+                   (when-let (children (get-header-by-name path-string))
+                     (debug:note :trace "Found header at ~a" path-string)
+                     (make 'c/cpp-system-header
+                           :header-name path-string
+                           :children children)))
                  (populate-header-entry (project path-string)
                    (symbol-macrolet ((cached-value
                                        (cache-lookup *system-header-cache*
                                                      project path-string)))
                      (or cached-value
-                         (when-let (children (get-header-by-name path-string))
-                           (debug:note :trace "Found header at ~a" path-string)
-                           (setf cached-value
-                                 (make 'c/cpp-system-header
-                                       :header-name path-string
-                                       :children children)))))))
+                         (setf cached-value
+                               (get-header-object path-string))))))
           (lret ((header
                   (or header-hash
                       (when-let (header (populate-header-entry project path-string))
