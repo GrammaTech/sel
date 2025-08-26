@@ -307,6 +307,21 @@
                               (string^= "doesnt-exist" _1)))
                      (project-dependency-tree *project*))))))
 
+(deftest c-project-sysroot-resolution ()
+  "System headers should be resolve relative to the sysroot."
+  (let ((project
+          (from-file 'c-project
+                     (base-path-join
+                      +etc-dir-path+
+                      "c-sysroot"))))
+    (with-attr-table project
+      (let ((hello.c
+              (is (evolve-files-ref project "hello.c"))))
+        (let ((symtab
+                (symbol-table (genome hello.c))))
+          (is (evolve-files-ref project "sysroot/usr/include/some_header.h"))
+          (is (@ (is (@ symtab :variable)) "SOME_HEADER_VAR")))))))
+
 
 ;;; Symbol Table
 

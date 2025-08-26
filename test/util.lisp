@@ -11,6 +11,7 @@
         :functional-trees/attrs)
   (:export :test
            :+etc-dir+
+           :+etc-dir-path+
            :+gcd-dir+
            :+grep-prj-dir+
            :+cpp-sample-dir+
@@ -88,7 +89,13 @@
                    *default-pathname-defaults*))
             (list "etc"))
   :test #'equalp
-  :documentation "Path to directory holding testing artifacts.")
+  :documentation
+  "Pathname directory componet for pathname holding testing artifacts.")
+
+(define-constant +etc-dir-path+
+  (make-pathname :directory +etc-dir+)
+  :test #'equalp
+  :documentation "Directory pathname holding testing artifacts.")
 
 (define-constant +gcd-dir+ (append +etc-dir+ (list "gcd"))
   :test #'equalp

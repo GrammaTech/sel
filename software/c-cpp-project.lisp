@@ -66,6 +66,8 @@
   '("h" "hpp" "hh")
   "Header file extensions.")
 
+;;; TODO Extract from compilers. `echo | g++ -E -Wp,-v -'. Same for
+;;; `clang++'.
 (def +default-stdinc-dirs+
   '((c "/usr/local/include/" "/usr/include/")
     (cpp "/usr/local/include/" "/usr/include/")))
@@ -802,18 +804,27 @@ the standard path and add it to PROJECT."))
   (synchronized ('*system-header-cache*)
     (clrhash *system-header-cache*)))
 
-(defun get-stdinc-header (project path-string)
+(defun get-stdinc-header (project path-string &key header-dirs)
   "Find PATH-STRING in PROJECT's standard include directories."
   (declare (project project)
            (string path-string))
-  (flet ((header-children (file)
-           ;; TODO Why is tree-copy necessary?
-           (mapcar #'tree-copy
-                   (children
-                    (genome
-                     (from-file
-                      (component-class project)
-                      file))))))
+  (labels ((header-children (file)
+             ;; TODO Why is tree-copy necessary?
+             (mapcar #'tree-copy
+                     (children
+                      (genome
+                       (from-file
+                        (component-class project)
+                        file)))))
+           (apply-sysroot (sysroot header-dirs)
+             (declare ((or null string) sysroot))
+             (if (no sysroot)
+                 header-dirs
+                 (let ((sysroot (ensure-suffix sysroot "/")))
+                   (mapcar (op (base-path-join sysroot _))
+                           header-dirs))))
+           (header-dirs-sysroot (header-dirs)
+             (cdr (find :sysroot header-dirs :key #'car-safe))))
     (or (and-let* ((path (pathname path-string))
                    ((absolute-pathname-p path))
                    (file (file-exists-p path)))
@@ -821,7 +832,9 @@ the standard path and add it to PROJECT."))
         (some (lambda (dir)
                 (when-let (file (file-exists-p (base-path-join dir path-string)))
                   (header-children file)))
-              (project-stdinc-dirs project)))))
+              (apply-sysroot
+               (header-dirs-sysroot header-dirs)
+               (project-stdinc-dirs project))))))
 
 (defun get-header-synopsis (project path-string)
   "Find the synopsis for the standard header in PATH-STRING."
@@ -838,8 +851,9 @@ the standard path and add it to PROJECT."))
 
 (defmethod get-standard-path-header ((project c/cpp-project) (path-string string)
                                      &key header-dirs)
-  (when (or (member :stdinc header-dirs)
-            (no header-dirs))
+  (when (or (no header-dirs)
+            (member :stdinc header-dirs)
+            (find :sysroot header-dirs :key #'car-safe))
     (synchronized ('*system-header-cache*)
       (symbol-macrolet ((header-hash (gethash
                                       path-string
@@ -847,7 +861,9 @@ the standard path and add it to PROJECT."))
                         (genome (genome project)))
         (labels ((get-header-by-name (path-string)
                    (or (get-header-synopsis project path-string)
-                       (get-stdinc-header project path-string)))
+                       (get-stdinc-header project
+                                          path-string
+                                          :header-dirs header-dirs)))
                  (populate-header-entry (project path-string)
                    (symbol-macrolet ((cached-value
                                        (cache-lookup *system-header-cache*
@@ -1217,28 +1233,29 @@ paths."
    (list header-dirs))
   (labels ((search-header-dir (dir &key global)
              (econd
-              ((eql dir :current)
-               (let ((base
-                       (and-let* (((typep file 'file-ast))
-                                  (path (dir:full-pathname file)))
-                         (pathname-directory-pathname path))))
-                 (get-program-header project file include-ast
-                                     path-ast
-                                     :base base
-                                     :global global)))
-              ((member dir '(:always :system))
-               nil)
-              ((eql dir :stdinc)
-               (get-standard-path-header
-                project path-ast
-                :header-dirs header-dirs))
-              ((stringp dir)
-               (debug:note :trace "Searching ~a for header ~a"
-                           dir path-ast)
-               (get-program-header
-                project file include-ast path-ast
-                :base dir
-                :global global))))
+               ((eql dir :current)
+                (let ((base
+                        (and-let* (((typep file 'file-ast))
+                                   (path (dir:full-pathname file)))
+                          (pathname-directory-pathname path))))
+                  (get-program-header project file include-ast
+                                      path-ast
+                                      :base base
+                                      :global global)))
+               ((member dir '(:always :system))
+                nil)
+               ((or (eql dir :stdinc)
+                    (eql (car-safe dir) :sysroot))
+                (get-standard-path-header
+                 project path-ast
+                 :header-dirs header-dirs))
+               ((stringp dir)
+                (debug:note :trace "Searching ~a for header ~a"
+                            dir path-ast)
+                (get-program-header
+                 project file include-ast path-ast
+                 :base dir
+                 :global global))))
            (search-header-dirs (&key global)
              (if (no header-dirs)
                  (progn

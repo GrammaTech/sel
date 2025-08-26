@@ -63,10 +63,13 @@ This can be a string for a concrete directory, or:
 * `:always', which precedes directories to always search.
 * `:system', which precedes system include directories.
 * `:stdinc', which should be replaced by standard includes.
+* `(:sysroot . sysroot)`, which is like `:stdinc`, except it specifies
+  the sysroot to use instead.
 
 Note that directories before `:always' are only searched for program
 headers."
   '(or (member :current :always :system :stdinc)
+    (cons (eql :sysroot) string)
     string))
 
 (deftype header-dirs ()
@@ -442,20 +445,25 @@ actual name and the arguments."
   "Extract the sysroot for standard includes if there is one.
 This is the value of `-isysroot', or the value of `--sysroot' if
 `-isysroot' is not provided."
-  (let (sysroot)
-    (nlet rec ((split-flags split-flags))
-      (match split-flags
-        ((list) sysroot)
-        ;; Sysroot uses two dashes, isysroot uses one.
-        ((list* "--sysroot" s rest)
-         (setf sysroot s)
-         (rec rest))
-        ((list* "-isysroot" s _)
-         ;; Return the isysroot! If both are supplied
-         ;; isysroot is preferred.
-         s)
-        ((list* _ rest)
-         (rec rest))))))
+  (let ((sysroot
+          (nlet rec ((split-flags split-flags)
+                     (sysroot nil))
+            (match split-flags
+              ((list) sysroot)
+              ;; Sysroot uses two dashes, isysroot uses one.
+              ((list* "--sysroot" sysroot rest)
+               (rec rest sysroot))
+              ((list* "-isysroot" sysroot _)
+               ;; Return the isysroot! If both are supplied
+               ;; isysroot is preferred.
+               sysroot)
+              ((list* _ rest)
+               (rec rest sysroot))))))
+    (econd ((null sysroot) sysroot)
+      ((absolute-pathname-p sysroot)
+       sysroot)
+      ((relative-pathname-p sysroot)
+       (error "Relative sysroot: ~a" sysroot)))))
 
 (defun normalize-flags (dir flags
                         &aux (nflags *normalizable-flags*)
@@ -551,7 +559,8 @@ As a second value, return all arguments influencing the search path."
         isystem-dirs
         idirafter-dirs
         (iprefix "")
-        (include-args (queue)))
+        (include-args (queue))
+        (sysroot (extract-isysroot flags)))
     (nlet rec ((flags flags))
       (match flags
         ((list))
@@ -613,12 +622,16 @@ As a second value, return all arguments influencing the search path."
         ((list* _ rest)
          (rec rest))))
     (values
-     (nconc (and current? (list :current))
-            (nreverse iquote-dirs)
-            (list :always)
-            (nreverse i-dirs)
-            (list :system)
-            (nreverse isystem-dirs)
-            (and stdinc? (list :stdinc))
-            (nreverse idirafter-dirs))
+     (append
+      (and current? (list :current))
+      (nreverse iquote-dirs)
+      (list :always)
+      (nreverse i-dirs)
+      (list :system)
+      (nreverse isystem-dirs)
+      (and stdinc?
+           (if sysroot
+               `((:sysroot . ,sysroot))
+               (list :stdinc)))
+      (nreverse idirafter-dirs))
      (qlist include-args))))

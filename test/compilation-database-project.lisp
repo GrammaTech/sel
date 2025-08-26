@@ -178,7 +178,10 @@
       "NDEBUG" "-o" "out"))))
 
 (deftest test-compute-header-dirs/sysroot ()
-  (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
+  (is (equal '(:current
+               :always "/sysroot/mydir"
+               :system
+               (:sysroot . "/sysroot/"))
              (compute-header-dirs
               (normalize-flags
                ""
@@ -186,7 +189,11 @@
                  "/sysroot"
                  "-I"
                  "=/mydir")))))
-  (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
+  (is (equal '(:current
+               :always
+               "/sysroot/mydir"
+               :system
+               (:sysroot . "/sysroot/"))
              (compute-header-dirs
               (normalize-flags
                ""
@@ -194,7 +201,11 @@
                  "/sysroot"
                  "-I"
                  "$SYSROOT/mydir")))))
-  (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
+  (is (equal '(:current
+               :always
+               "/sysroot/mydir"
+               :system
+               (:sysroot . "/sysroot/"))
              (compute-header-dirs
               (normalize-flags
                ""
@@ -204,7 +215,11 @@
                  "/other-sysroot"
                  "-I"
                  "=/mydir")))))
-  (is (equal '(:current :always "/sysroot/mydir" :system :stdinc)
+  (is (equal '(:current
+               :always
+               "/sysroot/mydir"
+               :system
+               (:sysroot . "/sysroot/"))
              (compute-header-dirs
               (normalize-flags
                ""
