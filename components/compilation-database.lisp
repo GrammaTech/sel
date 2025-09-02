@@ -179,7 +179,7 @@ See <https://clang.llvm.org/docs/JSONCompilationDatabase.html>.")
   (setf (slot-value self 'file-command-objects)
         (file-command-table self)))
 
-(-> file-command-key (directory-pathname file-pathname)
+(-> file-command-key (absolute-directory-pathname file-pathname)
     string)
 (defun file-command-key (directory file)
   "Return a string key suitable for looking up FILE in a
@@ -189,9 +189,6 @@ If FILE is not absolute, merge it with DIRECTORY."
   ;; "All paths specified in the command or file
   ;; fields must be either absolute or relative to
   ;; this directory."
-  (assert (or
-           (typep directory 'absolute-directory-pathname)
-           (typep file 'absolute-file-pathname)))
   (namestring
    (assure absolute-file-pathname
      (canonical-pathname
