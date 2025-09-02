@@ -1072,7 +1072,8 @@ from a prior sibling \(`public:', `private:', `protected:').")
       (cpp-type (and type
                      (or (cpp-dependent-type)
                          (cpp-template-type)))))
-     (get-declaration-ast :type type))))
+     (get-declaration-ast :type type))
+    (otherwise (call-next-method))))
 
 (defmethod type-aliasee ((alias cpp-alias-declaration))
   (get-declaration-ast :type (cpp-type alias)))

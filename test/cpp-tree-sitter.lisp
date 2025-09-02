@@ -1893,6 +1893,21 @@ using foo_t = Foo;")))
              (field-table class)
              (field-table using)))))))
 
+(deftest test-simple-typedef-aliasee ()
+  (let ((cpp (cpp* "class Foo { int x; };
+typedef Foo foo_t;")))
+    (with-attr-table cpp
+      (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+            (typedef (is (find-if (of-type 'cpp-type-definition) cpp))))
+        (is (eql class (ts::type-aliasee typedef)))))))
+
+(deftest test-using-aliasee ()
+  (let ((cpp (cpp* "class Foo { int x; };
+using foo_t = Foo;")))
+    (with-attr-table cpp
+      (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+            (alias (is (find-if (of-type 'cpp-alias-declaration) cpp))))
+        (is (eql class (ts::type-aliasee alias)))))))
 
 ;;; Parsing tests
 

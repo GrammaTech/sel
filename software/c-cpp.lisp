@@ -799,7 +799,10 @@ is the operator of a binary ast.")
        (and struct (c/cpp-classoid-specifier))))
      (if (c/cpp-body struct)
          struct
-         (get-declaration-ast :type struct)))))
+         (get-declaration-ast :type struct)))
+    (otherwise
+     (or (get-declaration-ast :tag (c/cpp-type ast))
+         (get-declaration-ast :type (c/cpp-type ast))))))
 
 (defmethod direct-field-table ((ast c/cpp-enum-specifier))
   (empty-map))

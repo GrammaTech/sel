@@ -727,6 +727,14 @@ separators."
          (lit (is (find-if (of-type 'c-string-literal) c))))
     (is (equal "const char[8]" (source-text (expression-type lit))))))
 
+(deftest test-simple-typedef-aliasee ()
+  (let ((c (c* "struct Foo { int x; };
+typedef Foo foo_t;")))
+    (with-attr-table c
+      (let ((struct (is (find-if (of-type 'c-struct-specifier) c)))
+            (typedef (is (find-if (of-type 'c-type-definition) c))))
+        (is (eql struct (ts::type-aliasee typedef)))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
