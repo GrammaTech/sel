@@ -68,21 +68,21 @@ information on the format of compilation databases.")
          (comp-db-path
            (find-if #'file-exists-p comp-db-paths))
          (compilation-database
-           (progn
-             (if comp-db-path
-                 (progn
-                   (dbg:note :debug "Found compilation database ~a" comp-db-path)
-                   (with-open-file (in comp-db-path)
-                     (parse-compilation-database in)))
-                 (progn
-                   (when ensure
-                     (ensure-compilation-database obj)
-                     (return-from populate-compilation-database
-                       (populate-compilation-database obj :ensure nil)))
-                   (dbg:note
-                    :debug
-                    "No compilation database: checked ~{~a~^, ~}"
-                    comp-db-paths))))))
+           (cond
+             (comp-db-path
+              (dbg:note :debug "Found compilation database ~a"
+                        comp-db-path)
+              (with-open-file (in comp-db-path)
+                (parse-compilation-database in)))
+             (t
+              (when ensure
+                (ensure-compilation-database obj)
+                (return-from populate-compilation-database
+                  (populate-compilation-database obj :ensure nil)))
+              (dbg:note
+               :debug
+               "No compilation database: checked ~{~a~^, ~}"
+               comp-db-paths)))))
     (when compilation-database
       (let ((project-dir (truename (project-dir obj)))
             (build-path (maybe-build-path compilation-database)))
