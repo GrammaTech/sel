@@ -1167,7 +1167,7 @@ include files in all directories of the project."
              ;; headers, because we use the same representation of a
              ;; header no matter how many times it is included (or
              ;; what headers come before it). Beside that, we also
-             ;; currently don't have a way of indicating that an
+             ;; currently don't have a way of indicating that a
              ;; subroot's attributes depend on a prior sibling, not
              ;; just a parent.
              (declare (ignore in))
