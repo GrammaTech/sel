@@ -1873,6 +1873,26 @@ int fn() {
        (find-if (of-type 'cpp-type-descriptor)
                 (cpp "x() -> auto& {}")))))
 
+(deftest test-indirect-field-table/typedef ()
+  (let ((cpp (cpp* "class Foo { int x; };
+typedef Foo foo_t;")))
+    (with-attr-table cpp
+      (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+            (typedef (is (find-if (of-type 'cpp-type-definition) cpp))))
+        (is (equal?
+             (field-table class)
+             (field-table typedef)))))))
+
+(deftest test-indirect-field-table/using ()
+  (let ((cpp (cpp* "class Foo { int x; };
+using foo_t = Foo;")))
+    (with-attr-table cpp
+      (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+            (using (is (find-if (of-type 'cpp-alias-declaration) cpp))))
+        (is (equal?
+             (field-table class)
+             (field-table using)))))))
+
 
 ;;; Parsing tests
 
