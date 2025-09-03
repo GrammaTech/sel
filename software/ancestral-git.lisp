@@ -121,18 +121,12 @@ repository-path are identical."
 
 (defun finalize/remove-worktree (repository-path worktree-path)
   ;; NOTE: if the repository path isn't available, just remove the directory.
-  (tagbody
-     (handler-bind
-         ((cmd-error
-            (lambda (cmd-error)
-              (declare (ignorable cmd-error))
-              (go clean-up))))
-       (cmd :in (pathname repository-path)
-            "git worktree remove" worktree-path
-            #-dbg :&> #-dbg nil))
-   clean-up
-     (when (probe-file worktree-path)
-       (delete-directory-tree worktree-path :validate t))))
+  (ignore-some-conditions (cmd-error)
+    (cmd :in (pathname repository-path)
+         "git worktree remove" worktree-path
+         #-dbg :&> #-dbg nil))
+  (when (probe-file worktree-path)
+    (delete-directory-tree worktree-path :validate t)))
 
 (defun remove-worktree (project)
   "Remove the git worktree associated with PROJECT."
