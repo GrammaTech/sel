@@ -177,5 +177,5 @@ relative to NEW-PATH."
         (dbg:lazy-note
          :debug
          "~a compilation database entr~:@p for ~a"
-         (length found)
-         path)))))
+         (length command-objects)
+         file)))))
