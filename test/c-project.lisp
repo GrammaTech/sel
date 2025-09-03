@@ -210,7 +210,7 @@
                                  :type "sh"
                                  :directory (append dir (list "support")))))))))
 
-(deftest project-copy-maintains-relative-paths ()
+(deftest (project-copy-maintains-relative-paths :long-running) ()
   (with-fixture multiple-artifacts-project
     (with-temporary-file (:pathname dir-path)
       ;; Check if project still runs once it is built and copied over.
@@ -250,7 +250,7 @@
   (with-fixture grep-project
     (is (phenome *project*))))
 
-(deftest c-project-can-lookup ()
+(deftest (c-project-can-lookup :long-running) ()
   (with-fixture grep-project
     (is (not (null (@ *project* "grep.c"))))))
 

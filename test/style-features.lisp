@@ -182,7 +182,7 @@
               (is (= 2 (gethash key bi-grams 0)))
               (is (= 1 (gethash key bi-grams 0)))))))
 
-(deftest function-bi-grams-count ()
+(deftest (function-bi-grams-count :long-running) ()
   "For a list containing N Function ASTs, there are N-1 bi-grams, all
 (Function, Function)."
   (with-fixture variety-clang
@@ -194,7 +194,7 @@
       (is (equal (car keys) (cons :Function :Function)))
       (is (= (1- (length functions)) (car vals))))))
 
-(deftest small-ast-bigrams-count-example ()
+(deftest (small-ast-bigrams-count-example :long-running) ()
   (with-fixture variety-clang
     (flet ((asts-by-type (type)
              (remove-if-not [{eq type} #'ast-class]

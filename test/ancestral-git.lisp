@@ -82,7 +82,7 @@ of WORDS in it."
 ;;; Tests
 
 #+sbcl
-(deftest ancestral-git-clones-local-repo ()
+(deftest (ancestral-git-clones-local-repo :long-running) ()
   "The project repository is cloned to /tmp/ by default."
   ;; NOTE: this prevents all of the branches used for evolution from being stored
   ;;       in the primary repository.
@@ -94,14 +94,14 @@ of WORDS in it."
       (is (probe-file path)))))
 
 #+sbcl
-(deftest ancestral-git-creates-work-tree ()
+(deftest (ancestral-git-creates-work-tree :long-running) ()
   "A new worktree is created on project creation."
   (with-c-git-cleanup (project +project-path+)
     (let ((path (worktree-path project)))
       (is (probe-file path)))))
 
 #+sbcl
-(deftest ancestral-git-cloned-creates-new-work-tree ()
+(deftest (ancestral-git-cloned-creates-new-work-tree :long-running) ()
   "A new worktree is created when a project is copied."
   (with-c-git-cleanup
       (original-project +project-path+)
@@ -112,7 +112,7 @@ of WORDS in it."
       (is (probe-file copy-path)))))
 
 #+sbcl
-(deftest ancestral-git-worktree-creation-commit ()
+(deftest (ancestral-git-worktree-creation-commit :long-running) ()
   "A commit is created when a worktree is created."
   (with-c-git-cleanup
       (original-project +project-path+)
@@ -120,7 +120,7 @@ of WORDS in it."
       (is (has-commit-p copy-project "Create Worktree")))))
 
 #+sbcl
-(deftest ancestral-git-worktree-evolve-mutation-commit ()
+(deftest (ancestral-git-worktree-evolve-mutation-commit :long-running) ()
   "Mutation commits contain information on the mutation and a diff."
   (with-c-git-cleanup
       (original-project +project-path+)
@@ -138,7 +138,7 @@ of WORDS in it."
                       "MUTATION" "FILE-PATH" "TARGETS" "diff")))))))
 
 #+sbcl
-(deftest ancestral-git-worktree-evolve-crossover-commit ()
+(deftest (ancestral-git-worktree-evolve-crossover-commit :long-running) ()
   "Crossover commits contain information on the crossover and a diff."
   (with-c-git-cleanup
       (original-project +project-path+)

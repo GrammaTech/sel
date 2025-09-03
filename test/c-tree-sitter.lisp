@@ -788,7 +788,7 @@ int sum = myadd(2, 2);"))
     (is (stmt-with-text *soft* "int y = 1" :at-start t))
     (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
-(deftest test-c-source-ranges ()
+(deftest (test-c-source-ranges :long-running) ()
   ;; There are a lot of C source files and parsing them is slow
   ;; so set a limit. Note the files actually tested are chosen at
   ;; random from the set of all files.
