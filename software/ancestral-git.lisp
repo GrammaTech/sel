@@ -33,6 +33,9 @@
 ;;;       could be applied for the same effect, but having all necessary
 ;;;       information doesn't hurt.
 
+(defvar *dbg* nil
+  "Stream to write debug info to.")
+
 (define-software ancestral-git ()
   ((repository-path :initarg :repository-path
                     :initform nil
@@ -71,7 +74,7 @@ to T to allow for a commit that has no source changes associated with it.")
                          ("GIT_AUTHOR_EMAIL" . *evolutionary-git-email*))))
         (cmd :in worktree-path
              "git add -A"
-             #-dbg :&> #-dbg nil)
+             :&> *dbg*)
         (cmd :in worktree-path
              "git"
              "-c" (fmt "user.name='~a'" *evolutionary-git-user*)
@@ -79,7 +82,7 @@ to T to allow for a commit that has no source changes associated with it.")
              "commit" "-m"
              (list message)
              "--allow-empty" "--allow-empty-message"
-             #-dbg :&> #-dbg nil)))))
+             :&> *dbg*)))))
 
 (defun update-tree-paths (project)
   "Update any paths in PROJECT that don't match PROJECT's worktree."
@@ -113,10 +116,10 @@ repository-path are identical."
          (repository-path (pathname (format nil "/tmp/~a/" local-name))))
     (cmd :in #p"/tmp/"
          "git clone --no-hardlinks " path (string local-name)
-         #-dbg :&> #-dbg nil)
+         :&> *dbg*)
     (cmd :in repository-path
          "git remote remove origin"
-         #-dbg :&> #-dbg nil)
+         :&> *dbg*)
     (setf (slot-value ancestral-git 'repository-path) repository-path)))
 
 (defun finalize/remove-worktree (repository-path worktree-path)
@@ -124,7 +127,7 @@ repository-path are identical."
   (ignore-some-conditions (cmd-error)
     (cmd :in (pathname repository-path)
          "git worktree remove" worktree-path
-         #-dbg :&> #-dbg nil))
+         :&> *dbg*))
   (when (probe-file worktree-path)
     (delete-directory-tree worktree-path :validate t)))
 
@@ -163,7 +166,7 @@ repository-path are identical."
       (t
        (cmd :in (pathname (repository-path project))
             "git worktree add" worktree-path
-            #-dbg :&> #-dbg nil)
+            :&> *dbg*)
        (setf (slot-value project 'worktree-path) worktree-directory-path
              (slot-value project 'worktree-identifier) worktree-id
              ;; NOTE: set original path here to prevent breaking
