@@ -14,12 +14,14 @@
         :cmd)
   (:import-from :trivial-garbage
                 :finalize)
-  (:export :ancestral-git
-           :worktree-path
-           :worktree-identifier
-           :repository-path
-           :finalize/remove-local-repo
-           :ensure-ancestral-git))
+  (:export
+    :ensure-ancestral-git
+    :finalize/remove-local-repo
+    :repository-path
+    :tmp/ancestral-git
+    :worktree-identifier
+    :worktree-path
+    :ancestral-git))
 (in-package :software-evolution-library/software/ancestral-git)
 (in-readtable :curry-compose-reader-macros)
 
@@ -35,6 +37,12 @@
 
 (defvar *dbg* nil
   "Stream to write debug info to.")
+
+(defun tmp/ancestral-git ()
+  "Temporary directory to use for ancestral git."
+  (ensure-directories-exist
+   (base-path-join uiop:*temporary-directory*
+                   #p"ancestral-git/")))
 
 (define-software ancestral-git ()
   ((repository-path :initarg :repository-path
@@ -113,8 +121,12 @@ to T to allow for a commit that has no source changes associated with it.")
 repository-path are identical."
   (let* ((path (pathname (original-path ancestral-git)))
          (local-name (gensym (lastcar (pathname-directory path))))
-         (repository-path (pathname (format nil "/tmp/~a/" local-name))))
-    (cmd :in #p"/tmp/"
+         (repository-path
+           (pathname
+            (format nil "/~a/~a/"
+                    (tmp/ancestral-git)
+                    local-name))))
+    (cmd :in (tmp/ancestral-git)
          "git clone --no-hardlinks " path (string local-name)
          :&> *dbg*)
     (cmd :in repository-path
@@ -147,7 +159,10 @@ repository-path are identical."
              ;; NOTE: git worktree doesn't like a trailing '/'.
              ;;       Add it back later since pathnames rely on having it to
              ;;       identify as a directory.
-               (worktree-path (pathname (format nil "/tmp/~a" worktree-id)))
+               (worktree-path (pathname
+                               (format nil "/~a/~a"
+                                       (tmp/ancestral-git)
+                                       worktree-id)))
                (worktree-directory-path (pathname (format nil "~a/" worktree-path))))
   "Create a new git worktree for PROJECT."
   (labels ((ensure-repository-path-exists (project)

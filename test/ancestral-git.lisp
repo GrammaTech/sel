@@ -57,10 +57,13 @@ removed."
                 (setf ,path (repository-path ,project-name))
                 (setf (fitness ,project-name) 1)
                 ,@body)
-           ;; Invoke worktree finalizers
-           (tg:gc :full t)
-           (when ,path
-             (finalize/remove-local-repo ,path)))))))
+           ;; Invoke worktree finalizers.
+           #+(or) (tg:gc :full t)
+           #+(or) (when ,path
+                    (finalize/remove-local-repo ,path))
+           ;; TODO Above disabled because unreliable. Delete the whole
+           ;; ancestral-git superdirectory instead.
+           (delete-directory-tree (tmp/ancestral-git) :validate t))))))
 
 (defun has-commit-p (ancestral-git &rest words)
   "Return T if the latest commit in the repository for ANCESTRAL-GIT contains all
