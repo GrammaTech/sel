@@ -1121,7 +1121,7 @@ the `genome' of the software object."
   "Return the number of non-root ASTs in OBJ."
   (1- (count-if {typep _ 'ast} (genome obj))))
 
-(defgeneric find-deepest (function AST)
+(defgeneric find-deepest (function ast)
   (:documentation "Find the deepest node in AST satisfying FUNCTION.")
   (:method (function (ast ast) &aux (deepest 0) result)
     (do-tree (node ast :index rpath :value result)
