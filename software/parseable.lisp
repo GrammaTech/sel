@@ -59,6 +59,7 @@
            :parseable-cut
            :parseable-nop
            ;; Generic functions.
+           :of-type*
            :roots
            :interleaved-text
            :find-deepest
@@ -756,6 +757,15 @@ time."
                             fun-replacements))
             :initial-value ast)))
 
+(defun of-type* (type)
+  "Like `of-type', but compile the predicate at run time."
+  (compile nil `(lambda (x) (typep x ',type))))
+
+(define-compiler-macro of-type* (&whole call type &environment env)
+  (if (constantp type env)
+      `(of-type ,type)
+      call))
+
 (define-compiler-macro collect-if
     (&whole call predicate tree &key (key nil key?))
   (match predicate
@@ -777,7 +787,7 @@ time."
               (collect ast)))))))
   (:method ((type symbol) (tree ast) &key (key #'identity))
     (if (null type) (call-next-method)
-        (collect-if (of-type type) tree :key key)))
+        (collect-if (of-type* type) tree :key key)))
   (:method ((predicate function) (tree parseable) &key (key #'identity))
     (collect-if predicate (genome tree) :key key)))
 
@@ -1031,7 +1041,7 @@ of SHARED-PATH-AST's path in OBJ.")
 (-> children-of-type (ast t) list)
 (defun children-of-type (ast type)
   "Returns a list of the children of AST that are of type TYPE."
-  (remove-if-not (of-type type) (children ast)))
+  (remove-if-not (of-type* type) (children ast)))
 
 
 ;;; Core parseable methods

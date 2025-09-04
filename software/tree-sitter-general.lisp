@@ -6,6 +6,8 @@
         :cl-json
         :software-evolution-library
         :software-evolution-library/software/tree-sitter)
+  (:import-from :software-evolution-library/software/parseable
+                :of-type*)
   (:import-from :software-evolution-library/software/tree-sitter-code-gen))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -777,7 +779,7 @@ The alist should contain at least the following:
   (:documentation "Return the nearest enclosing AST passing TEST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
   (:method ((type t) (obj t) (ast ast))
-    (find-enclosing (of-type type) obj ast))
+    (find-enclosing (of-type* type) obj ast))
   (:method ((pred function) (obj parseable) (ast ast))
     (find-enclosing pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
@@ -787,7 +789,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:documentation "Return the enclosing ASTs passing TEST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
   (:method ((type t) (obj t) (ast ast))
-    (find-all-enclosing (of-type type) obj ast))
+    (find-all-enclosing (of-type* type) obj ast))
   (:method ((pred function) (obj parseable) (ast ast))
     (find-all-enclosing pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
@@ -797,7 +799,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:documentation "Return the outermost enclosing AST passing TEST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
   (:method ((type t) (obj t) (ast ast))
-    (find-outermost (of-type type) obj ast))
+    (find-outermost (of-type* type) obj ast))
   (:method ((pred function) (obj parseable) (ast ast))
     (find-outermost pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
@@ -808,7 +810,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
   (:method ((type t) (root t) (ast tree-sitter-ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
-    (find-preceding (of-type type) root ast))
+    (find-preceding (of-type* type) root ast))
   (:method ((pred function) (obj parseable) (ast ast))
     (find-preceding pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
@@ -826,7 +828,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:documentation "Return nearest sibling passing TEST preceding AST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
   (:method ((type t) (root t) (ast tree-sitter-ast))
-    (find-previous-sibling (of-type type) root ast))
+    (find-previous-sibling (of-type* type) root ast))
   (:method ((pred function) (obj parseable) (ast ast))
     (find-previous-sibling pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
@@ -846,7 +848,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
   (:method ((type t) (obj t) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
-    (find-following (of-type type) obj ast))
+    (find-following (of-type* type) obj ast))
   (:method ((pred function) (obj parseable) (ast ast))
     (find-following pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
@@ -862,7 +864,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:documentation "Return next sibling passing TEST following AST in OBJ.
 If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
   (:method ((type t) (obj t) (ast ast))
-    (find-next-sibling (of-type type) obj ast))
+    (find-next-sibling (of-type* type) obj ast))
   (:method ((pred function) (obj parseable) (ast ast))
     (find-next-sibling pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
@@ -1174,7 +1176,7 @@ a declaration AST, return AST unchanged."
      ;; checking scopes to avoid returning a shadowed variable.
      (ensure-list
       (iter
-       (for parent in (filter (of-type decl-type)
+       (for parent in (filter (of-type* decl-type)
                               (lookup-parent-asts* (attrs-root*) identifier)))
        (thereis (and (typep parent decl-type)
                      (not (typep parent 'degenerate-declaration-ast))
