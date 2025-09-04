@@ -69,17 +69,19 @@
 (deftest test-symbolic-note ()
   "`note' should accept symbolic levels."
   (let ((*note-level* 0))
-    (is (emptyp (with-output-to-string (*note-out*)
-                  (note :trace "Tracing")))))
+    (is (emptyp (with-output-to-string (note-out)
+                  (let ((*note-out* (list note-out)))
+                    (note :trace "Tracing"))))))
   (let ((*note-level* most-positive-fixnum))
     (is (search "Tracing"
-               (with-output-to-string (*note-out*)
-                  (note :trace "Tracing"))))))
+               (with-output-to-string (note-out)
+                 (let ((*note-out* (list note-out)))
+                   (note :trace "Tracing")))))))
 
 (deftest test-lazy-note ()
   "`lazy-note' shouldn't evaluate arguments until the log level is met."
   (let ((side-effect? nil)
-        (*note-out* (make-broadcast-stream)))
+        (*note-out* (list (make-broadcast-stream))))
     (let ((*note-level* 0))
       (lazy-note :trace "Tracing ~a"
                  (setf side-effect? t)))

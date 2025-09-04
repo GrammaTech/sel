@@ -50,6 +50,8 @@
   (:use :gt/full)
   (:export
    :*compile-w/tracing*
+   :*flush-notes-function*
+   :*note-formatter*
    :traced
    :*note-level*
    :note-level
@@ -82,12 +84,24 @@ with `cl-user:trace'."
 (deftype note-level ()
   '(and fixnum unsigned-byte))
 
+(defvar *note-formatter*
+  (lambda (stream format-control &rest format-args)
+    (format stream
+            "~&;;~a: ~?~%"
+            (print-time nil)
+            format-control
+            format-args)))
+
 (defvar *note-level* 0 "Enables execution notes.")
 (declaim (note-level *note-level*))
 
 (defvar *note-out*
   (list (make-synonym-stream '*standard-output*))
   "Targets of notation.")
+(declaim ((soft-list-of stream) *note-out*))
+
+(defvar *flush-notes-function* #'finish-output
+  "Call this function on each stream after writing.")
 
 (eval-always
   (defvar *note-level-names* (make-hash-table)))
@@ -153,18 +167,25 @@ with `cl-user:trace'."
 (defun note (level format-control &rest format-args)
   "When LEVEL is <= `*note-level*', log to `*note-out*'.
 LEVEL may be a symbolic level defined with `define-note-level-name'."
+  (declare (dynamic-extent format-args))
   (let ((level (numeric-note-level level)))
     (when (<= level *note-level*)
-      (let ((*print-pretty* nil))
-        (mapc
-         #'finish-output
-         (mapc
-          (lambda (stream)
-            (format stream "~&;;~a: ~?~%"
-                    (print-time nil)
-                    format-control
-                    format-args))
-          *note-out*)))))
+      (let ((*print-pretty* nil)
+            (formatter *note-formatter*))
+        (dolist (stream *note-out*)
+          (declare (stream stream))
+          (let ((args
+                  (cons format-control
+                        format-args)))
+            (declare (dynamic-extent args))
+            (format stream
+                    "~?"
+                    formatter
+                    args)))
+        ;; TODO In a separate thread?
+        (let ((fn (ensure-function *flush-notes-function*)))
+          (dolist (stream *note-out*)
+            (funcall fn stream))))))
   ;; Always return nil.
   nil)
 
