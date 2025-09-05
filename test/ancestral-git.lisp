@@ -52,6 +52,7 @@ removed."
   (with-gensyms (path git-path)
     `(with-git-repository (,git-path ,project-path)
        (let (,path )
+         (declare (ignorable ,path))
          (unwind-protect
               (let ((,project-name (from-file 'c-git ,git-path)))
                 (setf ,path (repository-path ,project-name))
