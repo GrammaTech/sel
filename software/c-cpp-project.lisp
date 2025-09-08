@@ -1387,31 +1387,9 @@ include files in all directories of the project."
   (format t "Enter find-symbol-table-from-include on ~a~%"
           (source-text include-ast))
   (labels ((symbol-table* (header in)
-             ;; TODO Currently we ignore input symbol tables to
-             ;; headers, because we use the same representation of a
-             ;; header no matter how many times it is included (or
-             ;; what headers come before it). Beside that, we also
-             ;; currently don't have a way of indicating that a
-             ;; subroot's attributes depend on a prior sibling, not
-             ;; just a parent.
              (declare (ignore in))
              (assert (attrs:reachable? (genome header)))
-             (symbol-table
-              (genome header)
-              ;; We *do* still need the "implicit" macro environment
-              ;; (compiler predefined macros, macros from the
-              ;; compilation database). Current workaround here is to
-              ;; look up the dependency stack for a file with a
-              ;; command object, and use its implicit header.
-              (or (some
-                   (lambda (includer)
-                     (when-let
-                         (implicit-header
-                          (get-implicit-header project includer))
-                       (implicit-header-symbol-table implicit-header)))
-                   (remove-if (of-type 'c/cpp-system-header)
-                              *dependency-stack*))
-                  (empty-map))))
+             (symbol-table header (header-symbol-table-in header)))
            (safe-symbol-table (software)
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond
@@ -1483,6 +1461,35 @@ include files in all directories of the project."
               (return-from find-symbol-table-from-include
                 in))))))))
 
+(defun header-symbol-table-in (header)
+  (labels ((ensure-header-implicit-header (header)
+             "Get the implicit header for a header. This has to be cached or
+              symbol-table will diverge."
+             (when (typep (attrs-root*) 'c/cpp-root)
+               (let ((table (implicit-headers-table (genome (attrs-root*)))))
+                 (or (gethash header table)
+                     (setf (gethash header table)
+                           (some
+                            (lambda (includer)
+                              (get-implicit-header (attrs-root*) includer))
+                            (remove-if (of-type 'c/cpp-system-header)
+                                       *dependency-stack*))))))))
+    (if-let (implicit-header
+             (ensure-header-implicit-header header))
+      (implicit-header-symbol-table implicit-header)
+      (empty-map))))
+
+;;; TODO Currently we ignore input symbol tables to headers, because
+;;; we use the same representation of a header no matter how many
+;;; times it is included (or what headers come before it). Beside
+;;; that, we also currently don't have a way of indicating that a
+;;; subroot's attributes depend on a prior sibling, not just a parent.
+
+;;; We *do* still need the "implicit" macro environment (compiler
+;;; predefined macros, macros from the compilation database). Current
+;;; workaround here is to look up the dependency stack for a file with
+;;; a command object, and use its implicit header.
+
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (debug:note :trace "Including symbol table for ~a" node)
   (let ((root (attrs-root *attrs*)))
@@ -1498,8 +1505,10 @@ include files in all directories of the project."
         (call-next-method))))
 
 (defmethod symbol-table ((node c/cpp-system-header) &optional in)
+  (declare (ignore in))
   (debug:note :trace "Computing symbol table for include ~a" node)
-  (ts::propagate-declarations-down node in))
+  (let ((in (header-symbol-table-in node)))
+    (ts::propagate-declarations-down node in)))
 
 (defmethod symbol-table ((node c/cpp-unknown-header) &optional in)
   (declare (ignore in))
