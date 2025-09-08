@@ -2070,6 +2070,32 @@ int MyClass::myfun() {
       (is (member fn (lookup (cpp::out-of-class-function-definitions cpp)
                              class))))))
 
+(deftest test-infer-class-type-from-constructor ()
+  "Class types should be inferred for constructor calls."
+  (let ((cpp (cpp* "struct S {
+    int n;
+    S(int);
+    S() : n(7) {}
+};
+S(1);")))
+    (with-attr-table cpp
+      (is (eql
+           (infer-type (find-if (of-type 'cpp-call-expression) cpp))
+           (definition-name-ast (is (find-if (of-type 'cpp-struct-specifier) cpp))))))))
+
+(deftest test-infer-class-type-from-constructor/auto ()
+  "Call types should be conferred for constructor calls, even bound."
+  (let ((cpp (cpp* "struct S {
+    int n;
+    S(int);
+    S() : n(7) {}
+};
+auto x = S(1);")))
+    (with-attr-table cpp
+      (is (eql
+           (infer-type (find-if (of-type 'cpp-call-expression) cpp))
+           (definition-name-ast (is (find-if (of-type 'cpp-struct-specifier) cpp))))))))
+
 
 ;;; Parsing tests
 

@@ -1791,6 +1791,19 @@ types."
           (t
            field-type))))
 
+(defmethod infer-type ((ast cpp-call-expression))
+  (or (call-next-method)
+      (and-let* ((decl (get-declaration-ast :function ast))
+                 ((cpp::constructorp decl))
+                 (class
+                  (find-enclosing 'c/cpp-classoid-specifier
+                                  (attrs-root*)
+                                  decl)))
+        (definition-name-ast class))
+      (and-let* ((decl (get-declaration-ast :type ast))
+                 ((cpp::type-has-constructor-p decl)))
+        (definition-name-ast decl))))
+
 (defmethod infer-expression-type ((ast cpp-initializer-list))
   (match (lookup-parent-ast (attrs-root*) ast)
     ((cpp-compound-literal-expression

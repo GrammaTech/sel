@@ -1552,6 +1552,7 @@ By default this first tries `expression-type', then invokes
 (def-attr-fun infer-expression-type ()
   "Infer the type of AST in SOFTWARE as an expression.
 Calls `expression-type' by default."
+  (:circular #'gt:equal? (constantly nil))
   (:method ((ast t))
     (expression-type ast))
   (:method ((ast call-ast))
