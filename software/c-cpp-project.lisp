@@ -646,9 +646,10 @@ included in a header.")
                             :implicit-headers
                             (adjoin header (implicit-headers genome))))))))))))
 
-(defun implicit-header-symbol-table (header)
-  (with-attr-session (header :inherit nil)
-    (symbol-table (assure root-ast (first (children header))))))
+(defun implicit-header-symbol-table (implicit-header)
+  "Get the symbols exported from IMPLICIT-HEADER."
+  (with-attr-session (implicit-header :inherit nil)
+    (symbol-table (assure root-ast (first (children implicit-header))))))
 
 (defmethod lookup ((obj c/cpp-root) (key string))
   ;; Enables the use of the `@' macro directly against projects.
