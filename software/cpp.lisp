@@ -1866,6 +1866,25 @@ types."
                          (attrs-root*))
                         class)))))))
 
+(defun cpp::type-has-constructor-p (type-ast)
+  "Return T if TYPE-AST is a C++ class and has an explicitly defined
+constructor."
+  ;; TODO External constructors.
+  (typecase type-ast
+    (c/cpp-classoid-specifier
+     (not
+      (null
+       (cpp::list-all-constructors type-ast))))
+    ;; TODO Also handle using.
+    (c/cpp-type-definition
+     (cpp::type-has-constructor-p (cpp-type type-ast)))
+    (t
+     (when-let ((class-ast
+                 (get-declaration-ast :type type-ast)))
+       (not
+        (null
+         (cpp::list-all-constructors class-ast)))))))
+
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
     (definition-name-ast type-ast)
