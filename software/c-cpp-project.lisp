@@ -907,7 +907,8 @@ the standard path and add it to PROJECT."))
                     (setf genome
                           (copy genome
                                 :system-headers
-                                (cons header old-headers)))))))))))))
+                                ;; Keep paths intact.
+                                (append old-headers (list header))))))))))))))
 
 (defmethod lazy-path-p ((project c/cpp-project) path &key lazy-paths root)
   (declare (ignore lazy-paths root))
