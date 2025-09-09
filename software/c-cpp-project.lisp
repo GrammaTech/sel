@@ -1492,6 +1492,9 @@ include files in all directories of the project."
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
   (debug:note :trace "Including symbol table for ~a" node)
+  ;; NB We rely on the symbol table of a header only being computed
+  ;; once.
+  (ft/attrs::finalize-approximation)
   (let ((root (attrs-root *attrs*)))
     (if (typep root 'directory-project)
         (if-let (st (find-symbol-table-from-include root node :in in))
@@ -1507,6 +1510,9 @@ include files in all directories of the project."
 (defmethod symbol-table ((node c/cpp-system-header) &optional in)
   (declare (ignore in))
   (debug:note :trace "Computing symbol table for include ~a" node)
+  ;; NB We rely on the symbol table of a header only being computed
+  ;; once.
+  (ft/attrs::finalize-approximation)
   (let ((in (header-symbol-table-in node)))
     (ts::propagate-declarations-down node in)))
 
