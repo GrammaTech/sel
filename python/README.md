@@ -18,6 +18,7 @@
     - [Mutation Primitives](#mutation-primitives)
     - [Transformers](#transformers)
 - [Architecture](#architecture)
+  - [Client Mode](#client-mode)
 - [FAQ](#faq)
 - [License](#license)
 
@@ -858,6 +859,16 @@ the `ast_ref_count` method.
 The underlying Common Lisp ASTs are themselves treated as immutable.
 Therefore, when performing mutation operations (e.g. cut, replace,
 insert), new ASTs are created in the process.
+
+## Client Mode
+
+By default, the Python process importing `asts` manages the lifecycle
+of a SEL process. It is possible to connect to a pre-existing SEL
+instance instead. In this case, `asts` acts purely as a client.
+
+Client mode is used when the environment variable
+`ASTS_REMOTE_SEL_PORT` is set to an integer value (before `asts` is
+imported).
 
 # FAQ
 

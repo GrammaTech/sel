@@ -37,6 +37,7 @@ from typing_extensions import Final
 LiteralOrAST = Union[int, float, str, "AST"]
 PathOrAST = Union[List, "AST"]
 
+ASTS_REMOTE_SEL_PORT: Final[str | None] = os.environ.get("ASTS_REMOTE_SEL_PORT")
 
 # Auxillary classes
 class ASTLanguage(enum.Enum):
@@ -560,6 +561,15 @@ class AST:
         assert pt and root != pt, "Cannot mutate the root node of an AST."
 
 
+def get_remote_sel_port() -> int | None:
+    if not ASTS_REMOTE_SEL_PORT:
+        return None
+    try:
+        return int(ASTS_REMOTE_SEL_PORT)
+    except ValueError:
+        return None
+
+
 # Tree-sitter interface process management
 class _interface:
     """
@@ -568,7 +578,7 @@ class _interface:
 
     _DEFAULT_CMD_NAME: Final[str] = "tree-sitter-interface"
     _DEFAULT_HOST: Final[str] = "localhost"
-    _DEFAULT_PORT: Final[Optional[int]] = None
+    _DEFAULT_PORT: Final[Optional[int]] = get_remote_sel_port()
     _DEFAULT_STARTUP_WAIT: Final[int] = 3
     _DEFAULT_SOCKET_TIMEOUT: Final[int] = 300
     _DEFAULT_GC_THRESHOLD: Final[int] = 128
@@ -590,6 +600,8 @@ class _interface:
     @staticmethod
     def _check_for_process_crash() -> None:
         """Check if the Lisp subprocess has crashed and, if so, throw an error."""
+        if ASTS_REMOTE_SEL_PORT:
+            return
         if not _interface.is_process_running():
             assert _interface._proc
             assert _interface._proc.stdout
@@ -894,8 +906,9 @@ class _interface:
         return response
 
 
-_interface.start()
-atexit.register(_interface.stop)
+if not ASTS_REMOTE_SEL_PORT:
+    _interface.start()
+    atexit.register(_interface.stop)
 
 # Generated tree-sitter AST types
 from .types import *  # noqa: E402, F401, F403
