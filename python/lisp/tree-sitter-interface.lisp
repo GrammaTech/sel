@@ -200,22 +200,30 @@ message ID followed by a function name from the API and arguments."
   (:method ((request string) (socket usocket))
     (handle-request request (socket-stream socket))))
 
-(define-command tree-sitter-interface (&spec (append +common-command-line-options+
-                                                     +interactive-command-line-options+
-                                                     +interface-command-line-options+))
+(define-command tree-sitter-interface
+    (&spec (append +common-command-line-options+
+                   +interactive-command-line-options+
+                   +interface-command-line-options+))
   "Tree-sitter command-line interface."
   #.(fmt "~%Built from SEL ~a, and ~a ~a.~%"
          +software-evolution-library-version+
          (lisp-implementation-type) (lisp-implementation-version))
   (declare (ignorable quiet verbose load eval language manual))
-  (when help (show-help-for-tree-sitter-interface) (exit-command tree-sitter-interface 0))
+  (when help
+    (show-help-for-tree-sitter-interface)
+    (exit-command tree-sitter-interface 0))
+  (start-tree-sitter-interface :port port))
+
+(defun start-tree-sitter-interface (&key port)
+  "Start the tree-sitter interface listener.
+This will block the thread it's run on."
   (if port
       (with-socket-listener (socket "localhost" port)
         (iter (for connection = (socket-accept socket))
               (unwind-protect
-                  (let ((request (read-request connection)))
-                    (until (equalp request "quit"))
-                    (handle-request request connection))
+                   (let ((request (read-request connection)))
+                     (until (equalp request "quit"))
+                     (handle-request request connection))
                 (socket-close connection))))
       (iter (for request = (read-request *standard-input*))
             (until (equalp request "quit"))
