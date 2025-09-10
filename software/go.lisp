@@ -50,7 +50,7 @@
                     golang-function-declaration
                     golang-const-spec
                     golang-method-declaration
-                    golang-short-var-spec
+                    golang-short-var-declaration
                     golang-type-alias
                     golang-var-spec)
                   sw ast))
