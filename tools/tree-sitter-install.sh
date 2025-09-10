@@ -6,10 +6,10 @@ PREFIX=${PREFIX:-/usr}
 CC=${CC:-cc}
 CXX=${CXX:-c++}
 
-if [ $(uname) == "Darwin" ];then
-   EXT=dylib;
+if [ "$(uname)" == "Darwin" ];then
+    EXT=dylib;
 else
-   EXT=so
+    EXT=so
 fi
 
 # Withheld languages: agda c-sharp julia ocaml/interface ocaml/ocaml php ql ruby scala
@@ -86,12 +86,12 @@ fi
 
 declare -a languages
 if [ -z "${1:-}" ]; then
-    languages=( ${default_languages[@]} )
+    languages=( "${default_languages[@]}" )
 else
-    languages=( $@ )
+    languages=( "$@" )
 fi
 
-for language in "${languages[@]}";do
+for language in "${languages[@]}"; do
     [ -d "tree-sitter-${language%/*}" ] || git clone --single-branch ${repos[$language]:-https://github.com/tree-sitter/tree-sitter-${language%/*}};
     # Use a subshell to avoid directory juggling.
     (
@@ -101,14 +101,14 @@ for language in "${languages[@]}";do
         if test -f "scanner.cc"; then
             ${CXX} -I. -fPIC scanner.cc -c -lstdc++;
             ${CC} -I. -std=c99 -fPIC parser.c -c;
-            ${CXX} -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
+            ${CXX} -shared scanner.o parser.o -o "${PREFIX}/lib/tree-sitter-${language//\//-}.${EXT}";
         elif test -f "scanner.c"; then
             ${CC} -I. -std=c99 -fPIC scanner.c -c;
             ${CC} -I. -std=c99 -fPIC parser.c -c;
-            ${CC} -shared scanner.o parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
+            ${CC} -shared scanner.o parser.o -o "${PREFIX}/lib/tree-sitter-${language//\//-}.${EXT}";
         else
             ${CC} -I. -std=c99 -fPIC parser.c -c;
-            ${CC} -shared parser.o -o ${PREFIX}/lib/tree-sitter-"${language//\//-}.${EXT}";
+            ${CC} -shared parser.o -o "${PREFIX}/lib/tree-sitter-${language//\//-}.${EXT}";
         fi;
         mkdir -p "${PREFIX}/share/tree-sitter/${language}/";
         cp grammar.json node-types.json "${PREFIX}/share/tree-sitter/${language}";
