@@ -311,7 +311,11 @@ module.exports = {
 
 (deftest test-project-ast-source-ranges ()
   "The results of `ast-source-ranges' on a `file-ast' should match its contents.
-Even though `file-ast' does not itself inherit from `indentation'."
+
+This is a regression for the bug that, since `file-ast' does not
+itself inherit from `indentation', calling `ast-source-ranges' on a
+`file-ast' would give very different results than calling it on the
+enclosed `root-ast'."
   (with-fixture fib-project-javascript
     (is *soft*)
     (let ((file-asts (collect-if (of-type 'file-ast) *soft*)))
