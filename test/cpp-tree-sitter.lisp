@@ -75,7 +75,7 @@ See SEL issue #359."
 
 #+(and tree-sitter-c tree-sitter-cpp)
 (deftest test-match-c/cpp ()
-  "Using c/cpp patterns should match C and C++ ASTs."
+  "Using c/cpp patterns should match on both C and C++ ASTs."
   (let* ((src "2+2")
          (c (c* src))
          (cpp (cpp* src)))
