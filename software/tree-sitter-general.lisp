@@ -4944,29 +4944,32 @@ PROPERTY-AST."
       (copy/structure (make to :text (source-text term))
                       term)))
 
-(defun tree-sitter-class-name (x &key ignore-named)
-  "If X is a choice subclass, or the name of a choice subclass,
-then get the tree-sitter class that that is its supertype, unless the
-choice subclass has been given a name.
-
-If X is a tree-sitter-ast instance, return its class."
-  (etypecase x
-    (class (tree-sitter-class-name (class-name x)))
-    (symbol
-     (if (or ignore-named
-             (scan "-\\d+$" (symbol-name x)))
-         (if-let* ((x (find-class-safe x))
-                   (superclass-slot
-                    (find-if [{eql 'choice-superclass}
-                              #'slot-definition-name]
-                             (progn (ensure-finalized x)
-                                    (class-slots x))))
-                   (quoted-value
-                    (slot-definition-initform superclass-slot)))
-           (ematch quoted-value
-             ((list 'quote (and symbol (type symbol)))
-              symbol))
-           x)
-         x))
-    (tree-sitter-ast
-     (tree-sitter-class-name (class-of x)))))
+(defgeneric tree-sitter-class-name (x &key ignore-named)
+  (:documentation
+   "Get the human-readable tree-sitter superclass of X.
+This is either the nearest superclass that is not a choice subclass,
+or a choice subclass if it has a name (and IGNORE-NAMED is nil).")
+  (:method ((class class) &key ignore-named)
+    (tree-sitter-class-name
+     (class-name class)
+     :ignore-named ignore-named))
+  (:method ((sym symbol) &key ignore-named)
+    (if (or ignore-named
+            (scan "-\\d+$" (symbol-name sym)))
+        (if-let* ((sym (find-class-safe sym))
+                  (superclass-slot
+                   (find-if [{eql 'choice-superclass}
+                             #'slot-definition-name]
+                            (progn (ensure-finalized sym)
+                                   (class-slots sym))))
+                  (quoted-value
+                   (slot-definition-initform superclass-slot)))
+          (ematch quoted-value
+            ((list 'quote (and symbol (type symbol)))
+             symbol))
+          sym)
+        sym))
+  (:method ((ast tree-sitter-ast) &key ignore-named)
+    (tree-sitter-class-name
+     (class-of ast)
+     :ignore-named ignore-named)))
