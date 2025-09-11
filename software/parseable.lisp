@@ -239,8 +239,8 @@ If 0, do not print object source text.")
          "Truncate the source text of OBJ for display."
          (when (zerop *ast-source-text-lines*)
            (return-from truncate-source-text ""))
-         (let* ((lines *ast-source-text-lines*)
-                (lines (source-text-take-lines lines obj))
+         (let* ((lines
+                  (source-text-take-lines *ast-source-text-lines* obj))
                 (text (get-enough-text lines *ast-print-min*)))
            (ellipsize text *ast-print-cutoff*))))
     (declare (inline truncate-source-text))
