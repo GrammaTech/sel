@@ -3223,7 +3223,7 @@ database."
          (mapc [{add-type clang} {find-type database}]
                (reverse (ast-types ast)))
          (mapc #'update-ast
-               (remove-if-not {typep _ 'clang-ast}
+               (remove-if-not (of-type 'clang-ast)
                               (children ast)))))
     (update-ast ast)))
 
@@ -6217,7 +6217,7 @@ the test or is not present."))
              (:DoStmt (eql-nth-ast-child s p 0))
              (:ForStmt
               (eql s (nest (lastcar)
-                           (remove-if-not {typep _ 'ast})
+                           (remove-if-not (of-type 'ast))
                            (children p))))
              ((:WhileStmt :SwitchStmt :CxxCatchStmt)
               (eql-nth-ast-child s p 1))
