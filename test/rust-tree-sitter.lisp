@@ -48,14 +48,15 @@ base prefixes."
 
 (deftest test-convert-rust-negative-literal ()
   "Converting negative literals should work."
-  (is (typep (convert 'rust-negative-literal (rust* "-1"))
-             'rust-negative-literal))
-  (is (source-text= (convert 'rust-negative-literal (rust* "-1"))
-                    "-1"))
-  (is (typep (convert 'rust-negative-literal (rust* "-1.0"))
-             'rust-negative-literal))
-  (is (source-text= (convert 'rust-negative-literal (rust* "-1.0"))
-                    "-1.0")))
+  (let ((int-lit (rust* "-1")))
+    (is (typep (convert 'rust-negative-literal int-lit)
+               'rust-negative-literal))
+    (is (source-text= (convert 'rust-negative-literal int-lit) "-1")))
+  (let ((float-lit (rust* "-1.0")))
+    (is (typep (convert 'rust-negative-literal float-lit)
+               'rust-negative-literal))
+    (is (source-text= (convert 'rust-negative-literal float-lit)
+                      "-1.0"))))
 
 (deftest test-insert-negative-literal ()
   "Test we can insert negative numbers into match patterns.
