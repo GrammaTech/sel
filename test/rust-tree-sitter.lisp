@@ -32,6 +32,8 @@
   (is (eql 7 (constant-fold (rust* "2*3+1")))))
 
 (deftest test-parse-rust-integer ()
+  "Parsing Rust integers should handle delimiters, type suffixes, and
+base prefixes."
   (flet ((all-equal? (xs)
            (same #'=
                  (mapcar (op (convert 'integer (rust* _)))
