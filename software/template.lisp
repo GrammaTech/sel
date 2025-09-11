@@ -265,21 +265,24 @@ Nested lists are not allowed as template arguments:~%~a"
   "Return the path from ROOT to AST, checking that it's valid for
 insertion."
   (lret ((path (ast-path root ast)))
-    (dolist (step path)
-      (when (step-broken-p step)
-        (error "Path from ~a to ~a includes an internal slot: ~a"
-               root ast path)))))
+    (dolist (s path)
+      (when (slot-spec-invalid-p s)
+        (error "Path from ~a to ~a includes an invalid slot: ~a"
+               root ast s)))))
 
-(defun step-broken-p (step)
-  "Match a step (of a path) that will result in a broken AST.
-Either a symbol containing `internal-asts`, or a cons whose car
-contains it. Also match `before-asts' and `after-asts'."
-  (match step
+(defun slot-spec-invalid-p (elt)
+  "Match any slot specifier that would result in a invalid AST if
+inserted into.
+
+A slot specifier is invalid if it would resolve to `before-asts',
+`after-asts', or an `internal-ast' slot. The presence of such a slot
+specifier in a path means a placeholder could not be parsed in-place."
+  (match elt
     ((type symbol)
-     (or (memq step '(before-asts after-asts))
-         (string*= 'internal-asts step)))
-    ((cons (and step (type symbol)) _)
-     (step-broken-p step))))
+     (or (memq elt '(before-asts after-asts))
+         (string*= 'internal-asts elt)))
+    ((cons (and elt (type symbol)) _)
+     (slot-spec-invalid-p elt))))
 
 (defun placeholder-targets (placeholder ast)
   "Collect ASTs in AST that PLACEHOLDER is meant to replace."
