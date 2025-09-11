@@ -602,7 +602,12 @@ argument destructuring (e.g. ECMAScript).")
   (:documentation "Return the function of CALL-AST."))
 
 (defgeneric call-function-p (ast)
-  (:documentation "Is AST the function of an enclosing call?")
+  (:documentation
+   "Is AST the function being called by an enclosing functional call?
+
+    (let ((ast (c* \"fn(arg)\"))
+      (call-function-p (call-function ast))))
+    => T")
   (:method ((ast ast))
     (match (get-parent-ast (attrs-root*) ast)
       ((call-ast
