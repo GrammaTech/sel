@@ -222,35 +222,35 @@ PRINT-OBJECT method on AST structures.")
 If 0, do not print object source text.")
 
 (defmethod print-object ((obj functional-tree-ast) stream)
-  (flet ((get-enough-text (obj)
-           (when (zerop *ast-source-text-lines*)
-             (return-from get-enough-text ""))
-           (let* ((cutoff *ast-print-cutoff*)
-                  (min *ast-print-min*)
-                  (lines *ast-source-text-lines*)
-                  (newline-escape *inline-newline-escape*)
-                  (lines (source-text-take-lines lines obj))
-                  (text
-                    (if (no lines)
-                        "<NIL>"
-                        (string-join lines newline-escape)))
-                  (text
-                    ;; If the first line or lines is too short, take
-                    ;; from the raw text of the AST.
-                    (if (length> text min) text
-                        (string-replace-all
-                         (string #\Newline)
-                         (source-text-take min obj)
-                         newline-escape))))
-             (ellipsize text cutoff))))
-    (declare (inline get-enough-text))
+  (labels
+      ((get-enough-text (lines min)
+         "Extract at least MIN characters of text from LINES."
+         (let ((text
+                 (if (no lines)
+                     "<NIL>"
+                     (string-join lines *inline-newline-escape*))))
+           (if (length> text min)
+               text
+               (string-replace-all
+                #.(string #\Newline)
+                (source-text-take min obj)
+                *inline-newline-escape*))))
+       (truncate-source-text (obj)
+         "Truncate the source text of OBJ for display."
+         (when (zerop *ast-source-text-lines*)
+           (return-from truncate-source-text ""))
+         (let* ((lines *ast-source-text-lines*)
+                (lines (source-text-take-lines lines obj))
+                (text (get-enough-text lines *ast-print-min*)))
+           (ellipsize text *ast-print-cutoff*))))
+    (declare (inline truncate-source-text))
     (if *print-readably*
         (call-next-method)
         (print-unreadable-object (obj stream :type t)
           (format stream "~a~@[ :TEXT ~s~]"
                   (serial-number obj)
                   (handler-case
-                      (get-enough-text obj)
+                      (truncate-source-text obj)
                     (error (e)
                       (fmt "ERROR: ~a" e))))))))
 
