@@ -262,6 +262,8 @@ Nested lists are not allowed as template arguments:~%~a"
   call)
 
 (defun valid-ast-path (root ast)
+  "Return the path from ROOT to AST, checking that it's valid for
+insertion."
   (lret ((path (ast-path root ast)))
     (dolist (step path)
       (when (step-broken-p step)
