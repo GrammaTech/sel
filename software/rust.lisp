@@ -134,20 +134,21 @@ Rust macro invocations can use (), [], and {} equivalently."
     ((:|)| :|]| :|}|) (label-as :right-delimiter))))
 
 (defmethod initialize-instance :after ((self rust-match-pattern) &key)
-  (when-let (replacement
-             (ignore-errors
-              (convert 'rust-negative-literal
-                       (only-elt
-                        (direct-children self)))))
-    (setf (slot-value self 'children) (list replacement))))
+  (with-slots (children) self
+    (when-let (replacement
+               (ignore-errors
+                (convert 'rust-negative-literal
+                         (only-elt children))))
+      (setf children (list replacement)))))
 
 (defmethod initialize-instance :after ((self rust-or-pattern) &key)
-  (setf (slot-value self 'children)
-        (mapcar (lambda (ast)
-                  (or (ignore-errors
-                       (convert 'rust-negative-literal ast))
-                      ast))
-                (slot-value self 'children))))
+  (with-slots (children) self
+    (setf children
+          (mapcar (lambda (ast)
+                    (or (ignore-errors
+                         (convert 'rust-negative-literal ast))
+                        ast))
+                  children))))
 
 
 ;;; Methods for tree-sitter generics
