@@ -76,15 +76,15 @@ See SEL issue #359."
 #+(and tree-sitter-c tree-sitter-cpp)
 (deftest test-match-c/cpp ()
   "Using c/cpp patterns should match on both C and C++ ASTs."
-  (let* ((src "2+2")
-         (c (c* src))
-         (cpp (cpp* src)))
-    (is (typep c 'c-ast))
-    (is (typep cpp 'cpp-ast))
-    (flet ((extra-binop-operands (x)
-             (match x
-               ((c/cpp* "$X + $Y" :x x :y y)
-                (list x y)))))
+  (flet ((extra-binop-operands (x)
+           (match x
+             ((c/cpp* "$X + $Y" :x x :y y)
+              (list x y)))))
+    (let* ((src "2+2")
+           (c (c* src))
+           (cpp (cpp* src)))
+      (is (typep c 'c-ast))
+      (is (typep cpp 'cpp-ast))
       (is (equal*
            (mapcar #'source-text (extra-binop-operands c))
            (mapcar #'source-text (extra-binop-operands cpp))
