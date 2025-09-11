@@ -36,18 +36,13 @@
            (same #'=
                  (mapcar (op (convert 'integer (rust* _)))
                          xs))))
-    (is (all-equal?
-         '("123"
-           "123i32"
-           "123u32"
-           "123_u32")))
-    (is (all-equal? '("0xff" "0xff_u8")))
-    (is (all-equal? '("0o70" "0x70_i16")))
-    (is (all-equal?
-         '("0b1111_1111_1001_0000"
-           "0b1111_1111_1001_0000i64")))
-    (is (all-equal?
-         '("0" "0usize")))))
+    (every (op (is (all-equal? _)))
+           '(("123" "123i32" "123u32" "123_u32")
+             ("0xff" "0xff_u8")
+             ("0o70" "0x70_i16")
+             ("0b1111_1111_1001_0000"
+              "0b1111_1111_1001_0000i64")
+             ("0" "0usize")))))
 
 (deftest test-convert-rust-negative-literal ()
   "Converting negative literals should work."
