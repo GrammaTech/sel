@@ -317,7 +317,6 @@ itself inherit from `indentation', calling `ast-source-ranges' on a
 `file-ast' would give very different results than calling it on the
 enclosed `root-ast'."
   (with-fixture fib-project-javascript
-    (is *soft*)
     (let ((file-asts (collect-if (of-type 'file-ast) *soft*)))
       (is file-asts)
       (dolist (file-ast file-asts)
@@ -328,7 +327,6 @@ enclosed `root-ast'."
   "The results of `source-text' on a `file-ast' should match its contents.
 Even though `file-ast' does not itself inherit from `indentation'."
   (with-fixture fib-project-javascript
-    (is *soft*)
     (let ((file-asts (collect-if (of-type 'file-ast) *soft*)))
       (is file-asts)
       (dolist (file-ast file-asts)
