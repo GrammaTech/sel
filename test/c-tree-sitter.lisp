@@ -686,16 +686,22 @@ int sum = myadd(2, 2);"))
              'identifier-ast)))
 
 (deftest test-constant-fold-zero ()
+  "Zero should constant-fold to integer 0.
+Regression for octal literal handling."
   (= (constant-fold (c* "0")) 0))
 
 (deftest test-constant-fold-integers ()
+  "Constant folding should work for different ways of notating integers."
   (is (same
        #'constant-fold
        (mapcar (op (make 'cpp-number-literal :text _))
+               ;; All ways of saying 42.
                '("42" "052" "0x2a" "0X2A" "0b101010"))
        :test #'=)))
 
 (deftest test-constant-fold-integer-with-separators ()
+  "Constant folding should work even in the presence of ' digit
+separators."
   (is (same #'constant-fold
             '("18446744073709550592ull"
               "18'446'744'073'709'550'592llu"
