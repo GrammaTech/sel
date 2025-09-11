@@ -540,79 +540,79 @@ languages allow you to use a pattern with the same name as shorthand:
 Note that multiple metavariables with the same name are unified \(if
 they are not \"the same\", the match fails)."
   (check-ast-template template class args)
-  (mvlet* ((*slots-excluded*
-            ;; Ignore before and after text when matching.
-            (append '(before-text after-text)
-                    *slots-excluded*))
-           (class
-            (match class
-              ((list 'quote class) class)
-              (otherwise class)))
-           (language
-            (find-external-symbol (drop-suffix "-AST" (string class))
-                                  :sel/sw/ts
-                                  :error t))
-           (pattern
-            (convert 'match template :language language :tolerant *tolerant*))
-           (template names placeholders subtrees
-            (parse-ast-template template class args))
-           (dummy (allocate-instance (find-class class)))
-           (metavars
-            (mapcar (op (template-metavariable dummy _))
-                    names))
-           (metavar-subtrees (pairlis metavars subtrees))
-           (tree
-            (map-tree
-             (lambda (node)
-               (if (wildcard? node)
-                   (let* ((suffix (drop-prefix "WILD-" (string node)))
-                          (list-wildcard-p (string^= "LIST_" suffix))
-                          (suffix
-                            (if list-wildcard-p
-                                (drop-prefix "LIST_" suffix)
-                                suffix))
-                          (key
-                            (if list-wildcard-p
-                                (string+ "@" suffix)
-                                (string+ "$" suffix))))
-                     (or (assocdr key
-                                  metavar-subtrees
-                                  :test #'equal)
-                         (and (string= suffix "_")
-                              '_)))
-                   node))
-             pattern))
-           (gensyms-table (make-hash-table))
-           ;; If the same name occurs more than once in the pattern,
-           ;; ignore all but the first occurrence.
-           (tree
+  (nest
+   (mvlet* ((*slots-excluded*
+             ;; Ignore before and after text when matching.
+             (append '(before-text after-text)
+                     *slots-excluded*))
+            (class
+             (match class
+               ((list 'quote class) class)
+               (otherwise class)))
+            (language
+             (find-external-symbol (drop-suffix "-AST" (string class))
+                                   :sel/sw/ts
+                                   :error t))
+            (pattern
+             (convert 'match template :language language :tolerant *tolerant*))
+            (template names placeholders subtrees
+             (parse-ast-template template class args))
+            (dummy (allocate-instance (find-class class)))
+            (metavars
+             (mapcar (op (template-metavariable dummy _))
+                     names))
+            (metavar-subtrees (pairlis metavars subtrees))
+            (gensyms-table (make-hash-table))
+            (name-counts (make-hash-table)))
+     (declare (ignore placeholders template)))
+   (labels ((ignore-wildcard (node)
+              "Replace wildcards with _ placeholders."
+              (if (wildcard? node)
+                  (let* ((suffix (drop-prefix "WILD-" (string node)))
+                         (list-wildcard-p (string^= "LIST_" suffix))
+                         (suffix
+                           (if list-wildcard-p
+                               (drop-prefix "LIST_" suffix)
+                               suffix))
+                         (key
+                           (if list-wildcard-p
+                               (string+ "@" suffix)
+                               (string+ "$" suffix))))
+                    (or (assocdr key
+                                 metavar-subtrees
+                                 :test #'equal)
+                        (and (string= suffix "_")
+                             '_)))
+                  node))
+            (uniquify-id (node)
+              "Replace duplicated identifiers with genyms to unify on."
+              (if (and (symbolp node)
+                       (not (keywordp node))
+                       (member node names :test #'string=))
+                  (let ((count (incf (gethash node name-counts 0))))
+                    (if (> count 1)
+                        (lret ((temp (string-gensym node)))
+                          (push temp (gethash node gensyms-table)))
+                        node))
+                  node))))
+   (let* ((tree (map-tree #'ignore-wildcard pattern))
+          ;; If the same name occurs more than once in the pattern,
+          ;; ignore all but the first occurrence.
+          (tree
             ;; TODO It should be an error to try to unify on an
             ;; ignored variable (bound to _).
-            (map-tree
-             (let ((name-counts (make-hash-table)))
-               (lambda (node)
-                 (if (and (symbolp node)
-                          (not (keywordp node))
-                          (member node names :test #'string=))
-                     (let ((count (incf (gethash node name-counts 0))))
-                       (if (> count 1)
-                           (lret ((temp (string-gensym node)))
-                             (push temp (gethash node gensyms-table)))
-                           node))
-                     node)))
-             tree
-             :traversal :inorder))
-           (tree (sublis '((ellipsis-match . _)) tree)))
-    (declare (ignore placeholders template))
-    (if (= 0 (hash-table-count gensyms-table))
-        tree
-        ;; Unify arguments with the same name.
-        `(guard ,tree
-                (and
-                 ,@(with-collector (collect)
-                     (do-hash-table (k vs gensyms-table)
-                       (dolist (v vs)
-                         (collect `(asts-unify? ,k ,v))))))))))
+            (map-tree #'uniquify-id tree
+                      :traversal :inorder))
+          (tree (sublis '((ellipsis-match . _)) tree))))
+   (if (= 0 (hash-table-count gensyms-table))
+       tree
+       ;; Unify arguments with the same name.
+       `(guard ,tree
+               (and
+                ,@(with-collector (collect)
+                    (do-hash-table (k vs gensyms-table)
+                      (dolist (v vs)
+                        (collect `(asts-unify? ,k ,v))))))))))
 
 (defpattern ast-template* (template class &rest args)
   "Like `ast-template', but tolerant."
