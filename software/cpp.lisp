@@ -1765,14 +1765,20 @@ types."
     ((and (cpp-function-definition)
           (access #'definition-name-ast
                   (and id (cpp-qualified-identifier))))
-     (get-declaration-ast
-      :type
-      (lret ((qname
-              (tree-copy
-               (list->qualified-name
-                (butlast
-                 (qualified-name->list id))))))
-        (setf (attr-proxy qname) id))))))
+     (let* ((ns (namespace fn))
+            (prefix (if (emptyp ns) "" (string+ ns "::")))
+            (query (string+ prefix
+                            (source-text
+                             (list->qualified-name
+                              (butlast
+                               (qualified-name->list id))))))
+            (types (find-in-symbol-table fn :type query))
+            (decls (filter-map
+                    (op (find-enclosing 'c/cpp-classoid-specifier
+                                        (attrs-root*)
+                                        _))
+                    types)))
+       (resolve-overloads :type fn decls)))))
 
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
