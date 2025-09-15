@@ -2999,6 +2999,7 @@ int myfun() {
 ;;; Module tests
 
 (deftest test-export-block-symbol-table ()
+  "Exports from export blocks should appear in the symbol table."
   (let ((cpp (from-string 'cpp "module;
 
 export module cram_a:interface_part;
