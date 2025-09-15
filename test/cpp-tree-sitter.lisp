@@ -99,13 +99,14 @@ See SEL issue #359."
           "myfun() __attribute__(()) const & [[nodiscard]] -> int final {}"))
        (decl (cpp-declarator monster)))
     (is (length= 6 (direct-children decl)))
-    (iter
-      (repeat 100)
-      (is (source-text=
-           decl
-           (copy decl
-                 :children
-                 (map 'list #'tree-copy (reshuffle (direct-children decl)))))))))
+    (map-permutations
+     (lambda (children)
+       (is (source-text=
+            decl
+            (copy decl
+                  :children
+                  (mapcar #'tree-copy children)))))
+     (direct-children decl))))
 
 
 ;;; Analysis tests
