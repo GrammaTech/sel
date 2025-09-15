@@ -1902,6 +1902,17 @@ typedef Foo foo_t;")))
             (typedef (is (find-if (of-type 'cpp-type-definition) cpp))))
         (is (eql class (ts::type-aliasee typedef)))))))
 
+(deftest test-typedef-direct-field-table ()
+  "Calling `direct-field-table' should deference aliases."
+  (let ((cpp (cpp* "class Foo { int x; };
+typedef Foo foo_t;")))
+    (with-attr-table cpp
+      (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+            (typedef (is (find-if (of-type 'cpp-type-definition) cpp))))
+        (is (not (empty? (direct-field-table class))))
+        (is (equal? (direct-field-table class)
+                    (direct-field-table typedef)))))))
+
 (deftest test-using-aliasee ()
   "Calling `type-aliasee' should resolve alias declarations (with `using')
 to classes."
@@ -1911,6 +1922,18 @@ using foo_t = Foo;")))
       (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp)))
             (alias (is (find-if (of-type 'cpp-alias-declaration) cpp))))
         (is (eql class (ts::type-aliasee alias)))))))
+
+(deftest test-alias-direct-field-table ()
+  "Calling `direct-field-table' should deference aliases."
+  (let ((cpp (cpp* "class Foo { int x; };
+using foo_t = Foo;")))
+    (with-attr-table cpp
+      (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+            (alias (is (find-if (of-type 'cpp-alias-declaration) cpp))))
+        (is (not (empty? (direct-field-table class))))
+        (is (equal? (direct-field-table class)
+                    (direct-field-table alias)))))))
+
 
 ;;; Parsing tests
 

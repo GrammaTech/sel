@@ -804,6 +804,11 @@ is the operator of a binary ast.")
      (or (get-declaration-ast :tag (c/cpp-type ast))
          (get-declaration-ast :type (c/cpp-type ast))))))
 
+(defmethod direct-field-table :context ((ast c/cpp-ast))
+  (if-let (aliasee (type-aliasee ast))
+    (direct-field-table aliasee)
+    (call-next-method)))
+
 (defmethod direct-field-table ((ast c/cpp-enum-specifier))
   (empty-map))
 
