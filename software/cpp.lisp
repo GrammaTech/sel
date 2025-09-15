@@ -2021,6 +2021,10 @@ instance we only want to remove one).")
     ast)
   (:method ((ast cpp-operator-name) &key count)
     (declare (ignore count))
+    ast)
+  (:method ((ast cpp-source-text-fragment-variation-point) &key count)
+    (declare (ignore count))
+    ;; TODO Always true?
     ast))
 
 (defmethod initializer-aliasee ((sw t)
