@@ -4813,7 +4813,7 @@ SORT-ROOT as the ancestor."
     (namespace (genome software) in)
     in)
   (:method :after ((ast tree-sitter-ast) &optional in)
-    "Ensure all nodes in the tree (even error nodes) have namespace."
+    "Ensure all nodes in the tree (even error nodes) have namespaces."
     (iter (for (nil . children) in (children-alist ast))
           (dolist (c children)
             (when c
