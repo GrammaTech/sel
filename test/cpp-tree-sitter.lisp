@@ -1462,6 +1462,17 @@ next_statement();
         (is (equal calls (exit-control-flow (ts::condition if-ast))))
         (is (member next-statement (exit-control-flow if-ast)))))))
 
+(deftest test-for-range-loop-control-flow ()
+  "Check that control flows in a for-range statement from the thing being
+iterated over to the body of the loop."
+  (let ((cpp (cpp* "for (auto x : xs) { frob(x); }")))
+    (with-attr-table cpp
+      (is (typep cpp 'cpp-for-range-loop))
+      (is (equal (entry-control-flow cpp)
+                 (list (cpp-right cpp))))
+      (is (equal (exit-control-flow (cpp-right cpp))
+                 (list (cpp-body cpp)))))))
+
 (deftest test-declaration-noexcept ()
   "Noexcept is recognized in declarations (not just definitions)."
   (let ((cpp (cpp* "allocator_type get_allocator() const noexcept;")))

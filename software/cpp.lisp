@@ -2359,6 +2359,17 @@ set of possible concrete specializations of that type."
       (and-let* ((for-range-loop (find-enclosing 'cpp-for-range-loop root id))
                  ((find id (cpp-declarator for-range-loop))))
         (cpp-declarator for-range-loop))))
+(defmethod entry-control-flow ((ast cpp-for-range-loop))
+  "Control flow in a range loop flows to the thing being looped over."
+  (list (cpp-right ast)))
+
+(defmethod subexpression-exit-control-flow ((parent cpp-for-range-loop)
+                                            (child cpp-ast))
+  "Control flow in a range loop flows from the thing being looped over to
+the body of the loop."
+  (if (eql child (cpp-right parent))
+      (list (cpp-body parent))
+      (call-next-method)))
 
 
 ;;; Whitespace rules
