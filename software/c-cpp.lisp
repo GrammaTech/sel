@@ -903,59 +903,60 @@ appears as a return statement is assumed to be the type of the function."
       (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
 (defmethod expression-type ((ast c/cpp-string-literal))
-  (labels ((string-literal-length (ast)
-             (1+                        ;Allowance for null.
-              (if (text ast)
-                  (text-length ast)
-                  (sum-child-lengths ast))))
-           (text-length (ast)
-             (assert (text ast))
-             (length
-              (nest
-               (drop-prefix "\"")
-               (drop-suffix "\"")
-               (text ast))))
-           (sum-child-lengths (ast)
-             (reduce #'+ (direct-children ast) :key #'child-length))
-           (child-length (c)
-             (etypecase c
-               (text-fragment
-                (length
-                 (string-trim '(#\")
-                              (text c))))
-               (c/cpp-escape-sequence 1))))
-    (let ((len (string-literal-length ast)))
-      (macrolet
-          ((make-string-lit-type (prefix)
-             (flet ((ts-prefix (sym)
-                      "Prefix SYM as a tree-sitter class."
-                      (or (find-symbol
-                           (string+ prefix "-" sym)
-                           :sel/sw/ts)
-                          (error "Unknown C/C++ class: ~a" sym))))
-               (let ((abstract-array-declarator
-                       (ts-prefix 'abstract-array-declarator))
-                     (number-literal (ts-prefix 'number-literal))
-                     (primitive-type (ts-prefix 'primitive-type))
-                     (type-qualifier (ts-prefix 'type-qualifier))
-                     (type-descriptor (ts-prefix 'type-descriptor)))
-                 `(make ',type-descriptor
-                        :c/cpp-declarator
-                        (make ',abstract-array-declarator
-                              :c/cpp-size
-                              (make ',number-literal
-                                    :text (princ-to-string len)))
-                        :c/cpp-type (make ',primitive-type :text "char")
-                        :c/cpp-pre-type-qualifiers
-                        (list
-                         (make' ,type-qualifier
-                                :text "const"
-                                :after-text " ")))))))
-        (etypecase ast
-          (c-ast
-           (make-string-lit-type c))
-          (cpp-ast
-           (make-string-lit-type cpp)))))))
+  (nest
+   (labels ((string-literal-length (ast)
+              (1+                        ;Allowance for null.
+               (if (text ast)
+                   (text-length ast)
+                   (sum-child-lengths ast))))
+            (text-length (ast)
+              (assert (text ast))
+              (length
+               (nest
+                (drop-prefix "\"")
+                (drop-suffix "\"")
+                (text ast))))
+            (sum-child-lengths (ast)
+              (reduce #'+ (direct-children ast) :key #'child-length))
+            (child-length (c)
+              (etypecase c
+                (text-fragment
+                 (length
+                  (string-trim '(#\")
+                               (text c))))
+                (c/cpp-escape-sequence 1)))))
+   (let ((len (string-literal-length ast))))
+   (macrolet
+       ((make-string-lit-type (prefix)
+          (flet ((ts-prefix (sym)
+                   "Prefix SYM as a tree-sitter class."
+                   (or (find-symbol
+                        (string+ prefix "-" sym)
+                        :sel/sw/ts)
+                       (error "Unknown C/C++ class: ~a" sym))))
+            (let ((abstract-array-declarator
+                    (ts-prefix 'abstract-array-declarator))
+                  (number-literal (ts-prefix 'number-literal))
+                  (primitive-type (ts-prefix 'primitive-type))
+                  (type-qualifier (ts-prefix 'type-qualifier))
+                  (type-descriptor (ts-prefix 'type-descriptor)))
+              `(make ',type-descriptor
+                     :c/cpp-declarator
+                     (make ',abstract-array-declarator
+                           :c/cpp-size
+                           (make ',number-literal
+                                 :text (princ-to-string len)))
+                     :c/cpp-type (make ',primitive-type :text "char")
+                     :c/cpp-pre-type-qualifiers
+                     (list
+                      (make' ,type-qualifier
+                             :text "const"
+                             :after-text " "))))))))
+   (etypecase ast
+     (c-ast
+      (make-string-lit-type c))
+     (cpp-ast
+      (make-string-lit-type cpp)))))
 
 (defun usual-arithmetic-conversions (type1 type2)
   ;; TODO These rules have been taken from C++ and should be checked
