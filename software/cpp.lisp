@@ -2321,6 +2321,7 @@ set of possible concrete specializations of that type."
                                        root
                                        (id cpp-identifier))
   (or (call-next-method)
+      ;; Special handles for for-range-loop.
       (and-let* ((for-range-loop (find-enclosing 'cpp-for-range-loop root id))
                  ((find id (cpp-declarator for-range-loop))))
         (cpp-declarator for-range-loop))))
