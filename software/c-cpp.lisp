@@ -926,34 +926,36 @@ appears as a return statement is assumed to be the type of the function."
                (c/cpp-escape-sequence 1))))
     (let ((len (string-literal-length ast)))
       (macrolet
-          ((make-string-lit-type ()
-             `(make c/cpp-type-descriptor
-                    :c/cpp-declarator (make c/cpp-abstract-array-declarator
-                                            :c/cpp-size
-                                            (make c/cpp-number-literal
-                                                  :text (princ-to-string len)))
-                    :c/cpp-type (make c/cpp-primitive-type :text "char")
-                    :c/cpp-pre-type-qualifiers
-                    (list
-                     (make c/cpp-type-qualifier :text "const"
-                                                :after-text " ")))))
+          ((make-string-lit-type (prefix)
+             (flet ((ts-prefix (sym)
+                      "Prefix SYM as a tree-sitter class."
+                      (or (find-symbol
+                           (string+ prefix "-" sym)
+                           :sel/sw/ts)
+                          (error "Unknown C/C++ class: ~a" sym))))
+               (let ((abstract-array-declarator
+                       (ts-prefix 'abstract-array-declarator))
+                     (number-literal (ts-prefix 'number-literal))
+                     (primitive-type (ts-prefix 'primitive-type))
+                     (type-qualifier (ts-prefix 'type-qualifier))
+                     (type-descriptor (ts-prefix 'type-descriptor)))
+                 `(make ',type-descriptor
+                        :c/cpp-declarator
+                        (make ',abstract-array-declarator
+                              :c/cpp-size
+                              (make ',number-literal
+                                    :text (princ-to-string len)))
+                        :c/cpp-type (make ',primitive-type :text "char")
+                        :c/cpp-pre-type-qualifiers
+                        (list
+                         (make' ,type-qualifier
+                                :text "const"
+                                :after-text " ")))))))
         (etypecase ast
           (c-ast
-           (symbol-macrolet
-               ((c/cpp-abstract-array-declarator 'c-abstract-array-declarator)
-                (c/cpp-number-literal 'c-number-literal)
-                (c/cpp-primitive-type 'c-primitive-type)
-                (c/cpp-type-qualifier 'c-type-qualifier)
-                (c/cpp-type-descriptor 'c-type-descriptor))
-             (make-string-lit-type)))
+           (make-string-lit-type c))
           (cpp-ast
-           (symbol-macrolet
-               ((c/cpp-abstract-array-declarator 'cpp-abstract-array-declarator)
-                (c/cpp-number-literal 'cpp-number-literal)
-                (c/cpp-primitive-type 'cpp-primitive-type)
-                (c/cpp-type-qualifier 'cpp-type-qualifier)
-                (c/cpp-type-descriptor 'cpp-type-descriptor))
-             (make-string-lit-type))))))))
+           (make-string-lit-type cpp)))))))
 
 (defun usual-arithmetic-conversions (type1 type2)
   ;; TODO These rules have been taken from C++ and should be checked
