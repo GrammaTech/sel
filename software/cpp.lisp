@@ -1287,10 +1287,14 @@ inherits from."
       (let ((class-name (definition-name-ast class)))
         (labels ((inherit-from-base-class-definition (field-table id quals)
                    (if-let ((base-class (get-declaration-ast :type id)))
-                     (cpp::single-inheritance field-table
-                                              class
-                                              base-class
-                                              quals)
+                     (if (eql base-class class)
+                         (progn
+                           (dbg:note :debug "Class extends itself: ~a" class)
+                           field-table)
+                         (cpp::single-inheritance field-table
+                                                  class
+                                                  base-class
+                                                  quals))
                      (progn
                        (dbg:note :debug
                                  "No definition found for base class ~a of ~a"
