@@ -365,7 +365,7 @@ to look it up as `x::z' or just `z'."
 (defmethod contextualize-ast ((software cpp)
                               (ast cpp-function-declarator)
                               &rest kwargs
-                              &key (parents (get-parent-asts* software ast))
+                              &key (parents (lookup-parent-asts* software ast))
                               &allow-other-keys)
   (apply #'contextualize-ast (genome software) ast
          :parents parents
@@ -373,7 +373,7 @@ to look it up as `x::z' or just `z'."
 
 (defmethod contextualize-ast ((root cpp-ast)
                               (ast cpp-function-declarator)
-                              &key (parents (get-parent-asts* root ast))
+                              &key (parents (lookup-parent-asts* root ast))
                               &allow-other-keys)
   (labels ((top-level-p (parents)
              "Return T if AST is likely a top-level form in SOFTWARE."
@@ -758,7 +758,7 @@ See SEL issue #359."
 (defmethod get-declaration-ids ((type (eql :variable))
                                 (ast cpp-field-identifier))
   "When asked to resolve `this->AST', resolve it from a field."
-  (match (get-parent-ast (attrs-root*) ast)
+  (match (lookup-parent-ast (attrs-root*) ast)
     ;; Resolve this->x to the field.
     ((and parent
           (cpp-field-expression
@@ -875,7 +875,7 @@ See SEL issue #359."
   "Export blocks are not scopes."
   nil)
 (defmethod scope-ast-p ((ast cpp-declaration-list))
-  (match (get-parent-ast (attrs-root*) ast)
+  (match (lookup-parent-ast (attrs-root*) ast)
     ((cpp-namespace-definition) nil)
     ((cpp-export-block) nil)
     (otherwise (call-next-method))))
@@ -1343,7 +1343,7 @@ inherits from."
     (values (list name) '(:namespace))))
 
 (defmethod inner-declarations ((ast cpp-declaration-list))
-  (if (typep (get-parent-ast (attrs-root*) ast) 'cpp-namespace-definition)
+  (if (typep (cached-parent-ast ast) 'cpp-namespace-definition)
       (values nil nil)
       (call-next-method)))
 
@@ -1483,7 +1483,7 @@ consideration as overloads."
      ;; its RHS.
      (when-let (init
                 (find-if (of-type 'c/cpp-init-declarator)
-                         (get-parent-asts obj decl)))
+                         (lookup-parent-asts obj decl)))
        (when (or (eql decl init)
                  (ancestor-of-p obj decl (lhs init)))
          (infer-type (rhs init))))
@@ -1704,8 +1704,8 @@ types."
           (cpp-type-descriptor
            (cpp-declarator (cpp-abstract-reference-declarator))))
      (if (or (find-if (of-type 'expression-ast)
-                      (get-parent-asts* (attrs-root*) id))
-             (typep (get-parent-ast (attrs-root*) id)
+                      (lookup-parent-asts* (attrs-root*) id))
+             (typep (lookup-parent-ast (attrs-root*) id)
                     'cpp-expression-statement))
          (deref-type type)
          (fail)))
@@ -1735,7 +1735,7 @@ types."
         field-type)))
 
 (defmethod infer-expression-type ((ast cpp-initializer-list))
-  (match (get-parent-ast (attrs-root*) ast)
+  (match (lookup-parent-ast (attrs-root*) ast)
     ((cpp-compound-literal-expression
       (cpp-type type))
      type)
@@ -2051,7 +2051,7 @@ instance we only want to remove one).")
        (or (lookup *morally-noexcept*
                    (source-text (unqualified-name fn-name :count 1)))
            (some #'morally-noexcept-parent?
-                 (get-parent-asts* (attrs-root*) fn-name)))))
+                 (lookup-parent-asts* (attrs-root*) fn-name)))))
 
 (defmethod morally-noexcept? ((fn cpp-field-expression))
   ;; TODO Based on namespace.
@@ -2294,7 +2294,7 @@ set of possible concrete specializations of that type."
 (defmethod find-enclosing-declaration ((type (eql 'function-declaration-ast))
                                        root
                                        (id cpp-destructor-name))
-  (match (get-parent-asts* root id)
+  (match (lookup-parent-asts* root id)
     ((list*
       (cpp-function-declarator (cpp-declarator decl-name))
       (and decl (cpp-declaration))
@@ -2307,7 +2307,7 @@ set of possible concrete specializations of that type."
 (defmethod find-enclosing-declaration ((type (eql 'function-declaration-ast))
                                        root
                                        (id cpp-operator-name))
-  (match (get-parent-asts* root id)
+  (match (lookup-parent-asts* root id)
     ((list*
       (cpp-function-declarator (cpp-declarator decl-name))
       (and decl (cpp-field-declaration))
@@ -2708,7 +2708,7 @@ AST is exported if:
                       (direct-children ast)))
            (exported-from-parents? (ast)
              (when-let ((decl (find-enclosing 'declaration-ast (attrs-root*) ast)))
-               (match (get-parent-asts* (attrs-root*) ast)
+               (match (lookup-parent-asts* (attrs-root*) ast)
                  ;; Export block.
                  ((list* (cpp-declaration-list)
                          (cpp-export-block) _)

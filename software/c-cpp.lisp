@@ -128,7 +128,7 @@
 (defmethod contextualize-ast ((software c/cpp)
                               (ast c/cpp-ast)
                               &key ast-type
-                                (parents (get-parent-asts* software ast))
+                                (parents (lookup-parent-asts* software ast))
                               &allow-other-keys)
   (contextualize-ast (genome software) ast
                      :ast-type ast-type
@@ -137,7 +137,7 @@
 (defmethod contextualize-ast ((root c/cpp-ast)
                               (ast c/cpp-binary-expression)
                               &key ast-type
-                                (parents (get-parent-asts* root ast))
+                                (parents (lookup-parent-asts* root ast))
                               &allow-other-keys)
   ;; TODO: this works around some issues with sizeof for the time being.
   ;;       https://github.com/tree-sitter/tree-sitter-c/issues/51
@@ -254,7 +254,7 @@ Otherwise, use heuristics."
   (:method ((id c/cpp-identifier))
     (flet ((enumerator-name? (id)
              "Is ID the name of an enumerator in a enum definition?"
-             (let ((parent (get-parent-ast (attrs-root*) id)))
+             (let ((parent (lookup-parent-ast (attrs-root*) id)))
                (and (typep parent 'c/cpp-enumerator)
                     (eql (c/cpp-name parent) id)))))
       (let ((source-text (source-text id)))
@@ -868,7 +868,7 @@ There can be multiple classes if FIELD occurs in a template."
   'variable-declaration-ast)
 
 (defmethod relevant-declaration-type ((ast c/cpp-field-identifier))
-  (match (get-parent-asts* (attrs-root*) ast)
+  (match (lookup-parent-asts* (attrs-root*) ast)
     ((list* (and field-expr
                  (c/cpp-field-expression
                   (c/cpp-field (eql ast))))
@@ -898,7 +898,7 @@ Then if we cannot infer the type of y per se we infer its type to be int.
 
 Other strategies may also be used. E.g. the type of an expression that
 appears as a return statement is assumed to be the type of the function."
-  (let ((parents (get-parent-asts* obj ast)))
+  (let ((parents (lookup-parent-asts* obj ast)))
     (or (match (take 2 parents)
           ((list (type c/cpp-init-declarator)
                  (and decl (type c/cpp-declaration)))
@@ -1030,7 +1030,7 @@ appears as a return statement is assumed to be the type of the function."
                                     (not c/cpp-init-declarator)
                                     (not c/cpp-assignment-expression)))
                          ;; Exclusive of AST.
-                         (get-parent-asts* obj decl))))
+                         (lookup-parent-asts* obj decl))))
      (resolve-declaration-type declaration decl))
    ;; If the declaration is for a function, return that
    ;; function's type.
@@ -1178,7 +1178,7 @@ determined by looking at PARENT.")
 
 (defmethod variable-use-p ((obj c/cpp) (identifier c/cpp-identifier)
                            &key &allow-other-keys)
-  (child-variable-use-p obj identifier (get-parent-ast obj identifier)))
+  (child-variable-use-p obj identifier (lookup-parent-ast obj identifier)))
 
 (defmethod child-variable-use-p
     ((obj c/cpp) (child identifier-ast) (parent c/cpp-array-declarator)

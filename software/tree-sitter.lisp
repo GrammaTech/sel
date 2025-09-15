@@ -737,7 +737,14 @@
            :field-adjoin
            :field-table
            :field-table-ids
-           :field-table-lookup)
+           :field-table-lookup
+           ;; Parent cache.
+           :cached-parent-ast
+           :cached-parent-asts
+           :cached-parent-asts*
+           :lookup-parent-ast
+           :lookup-parent-asts
+           :lookup-parent-asts*)
   (:local-nicknames
    (:dbg :software-evolution-library/utility/debug)
    #+sbcl (:md5 :sb-md5)

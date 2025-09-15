@@ -172,7 +172,7 @@ field."
   (make 'c-primitive-type :text "bool"))
 
 (defmethod infer-type ((ast c-ast) &aux (obj (attrs-root*)))
-  (let ((ancestors (get-parent-asts* obj ast))
+  (let ((ancestors (lookup-parent-asts* obj ast))
         (prev ast))
     (iter (for a in ancestors)
           (typecase a
@@ -349,7 +349,7 @@ field."
               IDENTIFIER."
              (take-while (of-type '(or c--declarator variable-declaration-ast))
                          (drop-while (of-type 'identifier-ast)
-                                     (get-parent-asts obj identifier)))))
+                                     (lookup-parent-asts obj identifier)))))
     (or (lastcar (get-parent-declarations))
         identifier)))
 
@@ -383,7 +383,7 @@ recursively resolve that struct."
     (otherwise (call-next-method))))
 
 (defun tag-specifier-outer-declarations (ast cc)
-  (let ((parent (get-parent-ast (attrs-root*) ast)))
+  (let ((parent (lookup-parent-ast (attrs-root*) ast)))
     (if (typep parent '(or compound-ast root-ast))
         ;; If the parent is a compound AST, this is a forward
         ;; declaration.

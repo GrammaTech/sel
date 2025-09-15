@@ -531,12 +531,47 @@ should be rebound.")
   (:method ((ast t)) nil)
   (:method ((ast ltr-eval-ast)) t))
 
+(def-attr-fun cached-parent-asts (parents)
+  (:documentation "Parents of an AST, including the AST itself.")
+  (:method ((obj parseable) &optional parents)
+    (declare (ignore parents))
+    (cached-parent-asts (genome obj) nil)
+    nil)
+  (:method ((ast ast) &optional parents)
+    (let ((parents (cons ast parents)))
+      (mapc (op (cached-parent-asts _ parents))
+            (children ast))
+      parents)))
+
+(defmethod attr-missing ((fn-name (eql 'cached-parent-asts)) node)
+  (declare (ignore node))
+  (cached-parent-asts (attrs-root*) nil))
+
+(defun cached-parent-asts* (ast)
+  "Like `cached-parent-asts`, but without AST itself."
+  (rest (cached-parent-asts ast)))
+
+(defun cached-parent-ast (ast)
+  (first (cached-parent-asts* ast)))
+
+(defun lookup-parent-asts (obj ast)
+  (if (and (boundp 'ft/attrs:*attrs*)
+           (eql (attrs-root*) obj))
+      (cached-parent-asts ast)
+      (get-parent-asts obj ast)))
+
+(defun lookup-parent-asts* (obj ast)
+  (rest (lookup-parent-asts obj ast)))
+
+(defun lookup-parent-ast (obj ast)
+  (first (lookup-parent-asts* obj ast)))
+
 (defmethod enclosing-scope ((obj tree-sitter) (ast ast))
   "Return the enclosing scope of AST in OBJ.
 - OBJ tree-sitter software object
 - AST ast to return the enclosing scope for"
   (or (find-if #'scope-ast-p
-               (get-parent-asts* obj ast))
+               (lookup-parent-asts* obj ast))
       (genome obj)))
 
 (defun ensure-children (value)
@@ -705,7 +740,7 @@ types, etc.) this should return the namespaces as a second value.")
   (:documentation "For the given IDENTIFIER AST, return the parent declaration.")
   (:method (obj identifier)
     (find-if (of-type 'declaration-ast)
-             (get-parent-asts obj identifier))))
+             (lookup-parent-asts obj identifier))))
 
 (defgeneric ast-to-scope-alist (obj scope ast)
   (:documentation "Return a scope alist based on AST with SCOPE.
@@ -744,7 +779,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:method ((pred function) (obj parseable) (ast ast))
     (find-enclosing pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
-    (find-if pred (get-parent-asts root ast))))
+    (find-if pred (lookup-parent-asts root ast))))
 
 (defgeneric find-all-enclosing (test obj ast)
   (:documentation "Return the enclosing ASTs passing TEST in OBJ.
@@ -754,7 +789,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:method ((pred function) (obj parseable) (ast ast))
     (find-all-enclosing pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
-    (filter pred (get-parent-asts* root ast))))
+    (filter pred (lookup-parent-asts* root ast))))
 
 (defgeneric find-outermost (test obj ast)
   (:documentation "Return the outermost enclosing AST passing TEST in OBJ.
@@ -764,7 +799,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:method ((pred function) (obj parseable) (ast ast))
     (find-outermost pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
-    (find-if pred (get-parent-asts root ast) :from-end t)))
+    (find-if pred (lookup-parent-asts root ast) :from-end t)))
 
 (defgeneric find-preceding (test obj ast)
   (:documentation "Return any siblings passing TEST preceding AST in OBJ.
@@ -776,7 +811,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
     (find-preceding pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
-    (when-let ((parent (get-parent-ast root ast)))
+    (when-let ((parent (lookup-parent-ast root ast)))
       (iter (for child in (children parent))
             (until (eql child ast))
             (when (funcall pred child)
@@ -793,7 +828,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:method ((pred function) (obj parseable) (ast ast))
     (find-previous-sibling pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
-    (when-let ((parent (get-parent-ast root ast)))
+    (when-let ((parent (lookup-parent-ast root ast)))
       (let (previous)
         (iter (for child in (children parent))
               (until (eql child ast))
@@ -814,7 +849,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
     (find-following pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
     ;; (assert (typep type '(or symbol (cons symbol t) class)))
-    (when-let ((parent (get-parent-ast root ast)))
+    (when-let ((parent (lookup-parent-ast root ast)))
       (nest
        (filter pred)
        (rest)
@@ -829,7 +864,7 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
   (:method ((pred function) (obj parseable) (ast ast))
     (find-next-sibling pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
-    (when-let (parent (get-parent-ast root ast))
+    (when-let (parent (lookup-parent-ast root ast))
       (find-if pred (rest (member ast (children parent)))))))
 
 (defun sort-descendants (root asts &key (key #'identity))
@@ -1140,7 +1175,7 @@ a declaration AST, return AST unchanged."
      (ensure-list
       (iter
        (for parent in (filter (of-type decl-type)
-                              (get-parent-asts* (attrs-root*) identifier)))
+                              (lookup-parent-asts* (attrs-root*) identifier)))
        (thereis (and (typep parent decl-type)
                      (not (typep parent 'degenerate-declaration-ast))
                      (find-in-defs parent type
@@ -1594,7 +1629,7 @@ automatically removed.")
                         ;; (either returning to AST or jumping out of
                         ;; it). Inner exits leave AST on the "stack".
                         (outer-exits inner-exits
-                         (partition (op (member _1 (get-parent-asts attrs-root root)))
+                         (partition (op (member _1 (lookup-parent-asts attrs-root root)))
                                     exits)))
                  (dbg:note :trace "Exits for ~a: ~a" entry-points exits)
                  (qappend final-exits outer-exits)
@@ -1616,7 +1651,7 @@ automatically removed.")
               (or (flatten (substitute defaults root final-exits))
                   defaults))))))
   (:method ((ast statement-ast))
-    (let ((parent (get-parent-ast (attrs-root*) ast)))
+    (let ((parent (lookup-parent-ast (attrs-root*) ast)))
       (if (typep parent 'control-flow-fork-ast)
           parent
           (or (find-next-sibling '(or statement-ast return-ast)
@@ -1624,13 +1659,12 @@ automatically removed.")
                                  ast)
               parent))))
   (:method ((ast subexpression-ast))
-    (when-let (parent (get-parent-ast (attrs-root*) ast))
+    (when-let (parent (lookup-parent-ast (attrs-root*) ast))
       (subexpression-exit-control-flow parent ast)))
   (:method ((ast compound-ast))
-    (append
-     (if-let (parent (get-parent-ast (attrs-root*) ast))
-       (subexpression-exit-control-flow parent ast)
-       (call-next-method))))
+    (if-let (parent (lookup-parent-ast (attrs-root*) ast))
+      (subexpression-exit-control-flow parent ast)
+      (call-next-method)))
   (:method ((ast terminal-symbol))
     (find-enclosing 'subexpression-ast (attrs-root*) ast))
   (:method ((ast loop-ast))
@@ -1646,7 +1680,7 @@ automatically removed.")
                                (ancestor-of-p root _1 ast)))
                        (mappend #'exit-control-flow (children ast)))
             (list (or (find-next-sibling t root ast)
-                      (get-parent-ast root ast))))))
+                      (lookup-parent-ast root ast))))))
 
 (defgeneric subexpression-exit-control-flow (parent subexpression)
   (:documentation "Get the exit control flow of SUBEXPRESSION according to PARENT.
@@ -1690,7 +1724,8 @@ node in the block.")
   (:method ((ast statement-ast))
     (if (ltr-eval-ast-p ast)
         (first-subexpression ast)
-        (filter (of-type 'subexpression-ast) (children ast))))
+        (filter (of-type 'subexpression-ast)
+                (children ast))))
   (:method ((ast identifier-expression-ast))
     nil)
   (:method ((ast literal-ast))
@@ -1707,7 +1742,8 @@ node in the block.")
   (:method ((ast arguments-ast))
     (if (ltr-eval-ast-p ast)
         (first-subexpression ast)
-        (filter (of-type 'subexpression-ast) (children ast))))
+        (filter (of-type 'subexpression-ast)
+                (children ast))))
   (:method ((ast conditional-ast))
     (list (condition ast)))
   (:method :around ((ast assignment-ast))
@@ -2896,7 +2932,7 @@ setting it if it isn't already set."
                       (setf (after-text previous-item) white-space))))
                  (finally (return ast)))))
       (declare (dynamic-extent #'patch-whitespace))
-      (patch-whitespace ast (and software (get-parent-ast software ast))))))
+      (patch-whitespace ast (and software (lookup-parent-ast software ast))))))
 
 (defgeneric prettify-software (style software &key ast)
   (:documentation "Return a copy of SOFTWARE with its whitespace inserted based
@@ -4650,7 +4686,7 @@ using NAMESPACE.")
        ;; Check if this identifier is part of a declaration before
        ;; checking the symbol table to avoid returning a shadowed variable.
        (iter
-        (for parent in (get-parent-asts* (attrs-root*) id))
+        (for parent in (lookup-parent-asts* (attrs-root*) id))
         (finding parent such-that
                  (and (typep parent type)
                       (find-in-defs parent ns id-string))))
@@ -4877,7 +4913,7 @@ Return the matching IDs."
                          &aux (attrs-root (attrs-root*)))
   (namespace
    (or (find-if (of-type 'root-ast)
-                (get-parent-asts attrs-root node))
+                (lookup-parent-asts attrs-root node))
        attrs-root)
    ""))
 
