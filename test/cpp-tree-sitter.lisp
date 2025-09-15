@@ -1894,6 +1894,7 @@ using foo_t = Foo;")))
              (field-table using)))))))
 
 (deftest test-simple-typedef-aliasee ()
+  "Calling `type-aliasee' should resolve typedefs to classes."
   (let ((cpp (cpp* "class Foo { int x; };
 typedef Foo foo_t;")))
     (with-attr-table cpp
@@ -1902,6 +1903,8 @@ typedef Foo foo_t;")))
         (is (eql class (ts::type-aliasee typedef)))))))
 
 (deftest test-using-aliasee ()
+  "Calling `type-aliasee' should resolve alias declarations (with `using')
+to classes."
   (let ((cpp (cpp* "class Foo { int x; };
 using foo_t = Foo;")))
     (with-attr-table cpp
@@ -3092,7 +3095,8 @@ int myfun() {
                        (ts::outer-declarations cpp))))))
 
 (deftest test-dependent-type-lookup ()
-  "Dependent types should be resolved."
+  "Calling `type-aliasee' should resolve typedefs of dependent types in
+templates."
   (let ((cpp
           (from-string 'cpp-project
                        (read-file-into-string

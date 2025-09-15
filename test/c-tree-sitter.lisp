@@ -728,6 +728,7 @@ separators."
     (is (equal "const char[8]" (source-text (expression-type lit))))))
 
 (deftest test-simple-typedef-aliasee ()
+  "Calling type-aliasee should resolve typedefs to structs."
   (let ((c (c* "struct Foo { int x; };
 typedef Foo foo_t;")))
     (with-attr-table c
