@@ -100,24 +100,25 @@
   "List variants under which to look up QNAME.
 For example, for a qualified name like `x::y::z', we might also want
 to look it up as `x::z' or just `z'."
-  (unless (search "::" qname)
-    (return-from qualified-name-lookup-variants
-      (list qname)))
-  (let ((parts (split "::" qname)))
-    (if (single parts) parts
-        (multiple-value-bind (namespaces name)
-            (halves parts -1)
-          (let ((name (car name))
-                (namespaces (apply #'vect namespaces))
-                (variants (queue)))
-            (iter (until (emptyp namespaces))
-                  (enq
-                   (string+ (string-join namespaces "::" :end t)
-                            name)
-                   variants)
-                  (vector-pop namespaces)
-                  (finally (enq name variants)))
-            (qlist variants))))))
+  (with-string-dispatch () qname
+    (unless (search "::" qname)
+      (return-from qualified-name-lookup-variants
+        (list qname)))
+    (let ((parts (split "::" qname)))
+      (if (single parts) parts
+          (multiple-value-bind (namespaces name)
+              (halves parts -1)
+            (let ((name (car name))
+                  (namespaces (apply #'vect namespaces))
+                  (variants (queue)))
+              (iter (until (emptyp namespaces))
+                    (enq
+                     (string+ (string-join namespaces "::" :end t)
+                              name)
+                     variants)
+                    (vector-pop namespaces)
+                    (finally (enq name variants)))
+              (qlist variants)))))))
 
 (defgeneric morally-noexcept-parent? (ast)
   (:method ((ast t))
@@ -2528,7 +2529,9 @@ available to use at any point in a C++ AST.")
 (defmethod qualify-declared-ast-name ((type cpp-primitive-type))
   (source-text type))
 
-(defun qualify-declared-ast-name/namespaces (declared-ast)
+(defgeneric qualify-declared-ast-name/namespaces (ast))
+
+(defmethod qualify-declared-ast-name/namespaces ((declared-ast cpp-ast))
   (labels ((enough-source-text (declared-ast)
              "Get enough of the source text of DECLARED-AST.
               Put a reasonable limit on it in case something absurd has
@@ -2553,9 +2556,10 @@ available to use at any point in a C++ AST.")
                       (combine-namespace-qualifiers explicit implicit)))
                (string-join (append1 combined (lastcar parts))
                             "::"))))
-    (if (macro-name? declared-ast)
-        (enough-source-text declared-ast)
-        (qualify-declared-ast-name declared-ast))))
+    (canon-string
+     (if (macro-name? declared-ast)
+         (enough-source-text declared-ast)
+         (qualify-declared-ast-name declared-ast)))))
 
 (defmethod qualify-declared-ast-name ((declared-ast cpp-ast))
   (qualify-declared-ast-name/namespaces declared-ast))
@@ -2563,9 +2567,17 @@ available to use at any point in a C++ AST.")
 (defmethod qualify-declared-ast-name ((id cpp-namespace-identifier))
   (qualify-declared-ast-name/namespaces id))
 
+(defgeneric cpp::qualified-names (ast)
+  (:method ((declared-ast cpp-ast))
+    ;; If memory is an issue, the shorter ones could be displaced
+    ;; arrays.
+    (mapcar #'canon-string
+            (qualified-name-lookup-variants
+             (qualify-declared-ast-name declared-ast)))))
+
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."
-  (qualified-name-lookup-variants (qualify-declared-ast-name declared-ast)))
+  (cpp::qualified-names declared-ast))
 
 (defmethod qualify-declared-ast-name ((id cpp-type-identifier))
   (or (and-let* ((type (find-enclosing 'type-declaration-ast (attrs-root*) id))
