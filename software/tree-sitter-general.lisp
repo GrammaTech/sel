@@ -1068,9 +1068,8 @@ there is more than one."
 \(There may be more than one if the language allows overloading.) For
 a declaration AST, return AST unchanged."
   (flet ((collect-decls (ast)
-           (let ((root (attrs-root*))
-                 (ids (get-declaration-ids type ast)))
-             (iter (for id in ids)
+           (let ((root (attrs-root*)))
+             (iter (for id in (get-declaration-ids type ast))
                    (restart-case
                        (collect (find-enclosing-declaration type root id))
                      (continue ()
@@ -4834,12 +4833,12 @@ SORT-ROOT as the ancestor."
 (defun field-table-lookup (field-table key &key (ns nil ns-supplied?) count)
   "Look up KEY in FIELD-TABLE, optionally filtering by namespace NS.
 Return the matching IDs."
-  (let* ((fields (@ field-table key))
-         (fields
-           (if (not ns-supplied?)
-               fields
-               (keep ns fields :key #'field-ns :count count))))
-    (mapcar #'field-id fields)))
+  (let ((fields (@ field-table key)))
+    (mapcar
+     #'field-id
+     (if (not ns-supplied?)
+         fields
+         (keep ns fields :key #'field-ns :count count)))))
 
 
 ;;; Namespace
