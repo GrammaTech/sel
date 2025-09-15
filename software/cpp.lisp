@@ -1175,6 +1175,14 @@ virtuality) from class where they are declared."
   (when-let (map (call-next-method))
     (cpp::field-table-collect-properties map)))
 
+;;; TODO
+(defmethod direct-field-table ((ast cpp-type-parameter-declaration))
+  (empty-map))
+
+;;; TODO
+(defmethod direct-field-table ((ast cpp-type-forward-declaration))
+  (empty-map))
+
 (defun cpp::base-class-access (derived-class quals)
   "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
 QUALIFIERS could contain a public, private, or protected qualifier;
