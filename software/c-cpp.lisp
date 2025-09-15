@@ -903,53 +903,57 @@ appears as a return statement is assumed to be the type of the function."
       (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
 (defmethod expression-type ((ast c/cpp-string-literal))
-  (let ((len
-          (1+                           ;For the null.
-           (if (text ast)
-               (length
-                (nest
-                 (drop-prefix "\"")
-                 (drop-suffix "\"")
-                 (text ast)))
-               (reduce #'+
-                       (direct-children ast)
-                       :key
-                       (lambda (c)
-                         (etypecase c
-                           (text-fragment
-                            (length
-                             (string-trim '(#\")
-                                          (text c))))
-                           (c/cpp-escape-sequence 1))))))))
-    (macrolet
-        ((make-string-lit-type ()
-           `(make c/cpp-type-descriptor
-                  :c/cpp-declarator (make c/cpp-abstract-array-declarator
-                                          :c/cpp-size
-                                          (make c/cpp-number-literal
-                                                :text (princ-to-string len)))
-                  :c/cpp-type (make c/cpp-primitive-type :text "char")
-                  :c/cpp-pre-type-qualifiers
-                  (list
-                   (make c/cpp-type-qualifier :text "const"
-                                              :after-text " ")))))
-      (etypecase ast
-        (c-ast
-         (symbol-macrolet
-             ((c/cpp-abstract-array-declarator 'c-abstract-array-declarator)
-              (c/cpp-number-literal 'c-number-literal)
-              (c/cpp-primitive-type 'c-primitive-type)
-              (c/cpp-type-qualifier 'c-type-qualifier)
-              (c/cpp-type-descriptor 'c-type-descriptor))
-           (make-string-lit-type)))
-        (cpp-ast
-         (symbol-macrolet
-             ((c/cpp-abstract-array-declarator 'cpp-abstract-array-declarator)
-              (c/cpp-number-literal 'cpp-number-literal)
-              (c/cpp-primitive-type 'cpp-primitive-type)
-              (c/cpp-type-qualifier 'cpp-type-qualifier)
-              (c/cpp-type-descriptor 'cpp-type-descriptor))
-           (make-string-lit-type)))))))
+  (labels ((string-literal-length (ast)
+             (1+                        ;Allowance for null.
+              (if (text ast)
+                  (text-length ast)
+                  (sum-child-lengths ast))))
+           (text-length (ast)
+             (assert (text ast))
+             (length
+              (nest
+               (drop-prefix "\"")
+               (drop-suffix "\"")
+               (text ast))))
+           (sum-child-lengths (ast)
+             (reduce #'+ (direct-children ast) :key #'child-length))
+           (child-length (c)
+             (etypecase c
+               (text-fragment
+                (length
+                 (string-trim '(#\")
+                              (text c))))
+               (c/cpp-escape-sequence 1))))
+    (let ((len (string-literal-length ast)))
+      (macrolet
+          ((make-string-lit-type ()
+             `(make c/cpp-type-descriptor
+                    :c/cpp-declarator (make c/cpp-abstract-array-declarator
+                                            :c/cpp-size
+                                            (make c/cpp-number-literal
+                                                  :text (princ-to-string len)))
+                    :c/cpp-type (make c/cpp-primitive-type :text "char")
+                    :c/cpp-pre-type-qualifiers
+                    (list
+                     (make c/cpp-type-qualifier :text "const"
+                                                :after-text " ")))))
+        (etypecase ast
+          (c-ast
+           (symbol-macrolet
+               ((c/cpp-abstract-array-declarator 'c-abstract-array-declarator)
+                (c/cpp-number-literal 'c-number-literal)
+                (c/cpp-primitive-type 'c-primitive-type)
+                (c/cpp-type-qualifier 'c-type-qualifier)
+                (c/cpp-type-descriptor 'c-type-descriptor))
+             (make-string-lit-type)))
+          (cpp-ast
+           (symbol-macrolet
+               ((c/cpp-abstract-array-declarator 'cpp-abstract-array-declarator)
+                (c/cpp-number-literal 'cpp-number-literal)
+                (c/cpp-primitive-type 'cpp-primitive-type)
+                (c/cpp-type-qualifier 'cpp-type-qualifier)
+                (c/cpp-type-descriptor 'cpp-type-descriptor))
+             (make-string-lit-type))))))))
 
 (defun usual-arithmetic-conversions (type1 type2)
   ;; TODO These rules have been taken from C++ and should be checked
