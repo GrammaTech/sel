@@ -2229,8 +2229,11 @@ functions.")
                   ;; NB This excludes optional type parameters.
                   (notevery (of-type 'cpp-type-parameter-declaration)
                             arg-decls)))))
+     (let ((template-descendants
+             (set-hash-table
+              (convert 'list template)))))
      (iter (for node in-tree (genome root)))
-     (unless (parent-ast-p (attrs-root*) template node))
+     (unless (gethash node template-descendants))
      (match node
        ;; Collect specializations from types.
        ((cpp-template-type
