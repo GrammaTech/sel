@@ -1844,7 +1844,7 @@ int fn() {
       (is (length= 2 (collect-var-uses cpp expr))))))
 
 (deftest test-for-range-loop-enclosing-declaration ()
-  "Enclosing variable declaration of iteration value of a for-range loop
+  "The enclosing variable declaration of the iteration value of a for-range loop
 should be found."
   (let* ((cpp (cpp* "for (node* const x : xs) {}"))
          (id (is (find-if (of-type 'cpp-identifier) cpp))))
