@@ -4776,7 +4776,7 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
   (:method ((alias type-alias-ast))
     (if-let (aliasee (resolve-type-aliasee alias))
       (class-fields aliasee)
-      (dbg:note :debug "No aliasee for ~a" alias))))
+      (warn "No aliasee for ~a" alias))))
 
 (-> adjoin-fields (fset:map (or ast list)) fset:map)
 (defun adjoin-fields (map fields)
@@ -4804,7 +4804,7 @@ information such as visibility."
     (if-let (aliasee (resolve-type-aliasee alias))
       (field-table aliasee)
       (progn
-        (dbg:note :debug "No aliasee for ~a" alias)
+        (warn "No aliasee for ~a" alias)
         (empty-map)))))
 
 (def-attr-fun direct-field-table ()
@@ -4815,7 +4815,7 @@ information such as visibility."
     (if-let (aliasee (resolve-type-aliasee alias))
       (direct-field-table aliasee)
       (progn
-        (dbg:note :debug "No aliasee for ~a" alias)
+        (warn "No aliasee for ~a" alias)
         (empty-map)))))
 
 (-> field-table-ids (fset:map &key

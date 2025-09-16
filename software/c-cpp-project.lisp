@@ -1090,10 +1090,7 @@ paths."
              (find-include ()
                (or (first (collect-potential-includes* nil))
                    (and global (first (collect-potential-includes* t)))
-                   (debug:lazy-note
-                    :debug
-                    "Unknown header: ~a"
-                    (source-text include-ast))
+                   (warn "Unknown header: ~a" (source-text include-ast))
                    (make-unknown-header-with-proxy include-ast))))
       (ematch (find-include)
         ((and include (or (c/cpp-unknown-header)

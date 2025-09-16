@@ -1296,10 +1296,10 @@ inherits from."
                                                   base-class
                                                   quals))
                      (progn
-                       (dbg:note :debug
-                                 "No definition found for base class ~a of ~a"
-                                 (source-text id)
-                                 (source-text class-name))
+                       (warn
+                        "No definition found for base class ~a of ~a"
+                        (source-text id)
+                        (source-text class-name))
                        field-table)))
                  (inherit-from-base-class-specifiers
                      (field-table base-class-specifiers)
