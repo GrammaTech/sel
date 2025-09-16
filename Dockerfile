@@ -1,4 +1,9 @@
+ARG CCL_VERSION=1.12.1
+ARG SBCL_VERSION=2.5.7
+
 FROM ubuntu:22.04
+ARG CCL_VERSION
+ARG SBCL_VERSION
 
 # Install required system packages
 RUN export DEBIAN_FRONTEND=noninteractive
@@ -22,8 +27,8 @@ RUN python -m pip install --upgrade pip && \
 
 # # Install Clozure
 RUN mkdir /usr/share/ccl
-RUN git clone --depth=1 --branch=v1.13 https://github.com/Clozure/ccl.git /usr/share/ccl
-RUN curl -L https://github.com/Clozure/ccl/releases/download/v1.13/linuxx86.tar.gz \
+RUN git clone --depth=1 --branch=v${CCL_VERSION} https://github.com/Clozure/ccl.git /usr/share/ccl
+RUN curl -L https://github.com/Clozure/ccl/releases/download/v${CCL_VERSION}/linuxx86.tar.gz \
     | tar xzvf - -C /usr/share/ccl
 RUN cd /usr/share/ccl && echo "(ccl:rebuild-ccl :full t)" \
     | ./lx86cl64 --no-init --quiet --batch
@@ -39,7 +44,7 @@ RUN chmod a+x /usr/bin/ccl
 # repositories) cannot be used to bootstrap newer SBCL versions, so we
 # bootstrap with Clozure CL.
 RUN rm -rf /root/sbcl && \
-    git clone --depth=1 --branch sbcl-2.5.7 https://git.code.sf.net/p/sbcl/sbcl \
+    git clone --depth=1 --branch sbcl-${SBCL_VERSION} https://git.code.sf.net/p/sbcl/sbcl \
     /root/sbcl
 RUN cd /root/sbcl && \
     bash make.sh --xc-host='ccl --batch --no-init'\
