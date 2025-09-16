@@ -1912,7 +1912,7 @@ typedef Foo foo_t;")))
         (is (eql class (ts::type-aliasee typedef)))))))
 
 (deftest test-typedef-direct-field-table ()
-  "Calling `direct-field-table' should deference aliases."
+  "Calling `direct-field-table' should resolve aliases."
   (let ((cpp (cpp* "class Foo { int x; };
 typedef Foo foo_t;")))
     (with-attr-table cpp
