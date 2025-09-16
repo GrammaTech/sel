@@ -438,13 +438,8 @@
            :parse-tree-matching-error-parse-tree
            :parse-tree-matching-error-subclasses
            :parse-tree-matching-error-child-types
-           :no-enclosing-declaration-error
-           :no-enclosing-declaration-error.type
-           :no-enclosing-declaration-error.root
-           :no-enclosing-declaration-error.id
-           :unresolved-overloads-error
-           :unresolved-overloads-error.ast
-           :unresolved-overloads-error.overloads
+           :no-enclosing-declaration
+           :unresolved-overloads
            :unqualifiable-ast-error
            :unqualifiable-ast-error.asts
            :unqualifiable-ast-error.error

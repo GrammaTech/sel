@@ -1032,24 +1032,22 @@ Every element in the list has the following form:
 (defgeneric variable-use-p (software ast &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in SOFTWARE as a variable."))
 
-(define-condition unresolved-overloads-error (error)
-  ((ast :initarg :ast :type ast
-        :reader unresolved-overloads-error.ast)
-   (overloads :initarg :overloads :type list
-              :reader unresolved-overloads-error.overloads))
-  (:documentation "Error when overloads cannot be resolved.")
-  (:report (lambda (c s)
-             (with-slots (ast overloads) c
-               (format s "Multiple overloads for ~a:~%~{~a~%~^~}"
-                       ast overloads)))))
+(define-condition unresolved-overloads (warning)
+  ((ast :initarg :ast :type ast)
+   (overloads :initarg :overloads :type list))
+  (:documentation "Warning when overloads cannot be resolved.")
+  (:report
+   (lambda (c s)
+     (with-slots (ast overloads) c
+       (format s "Multiple overloads for ~a:~%~{~a~%~^~}"
+               ast overloads)))))
 
 (-> unresolved-overloads (ast list)
   (values null &optional))
 (defun unresolved-overloads (ast overloads)
-  (cerror "Return nothing"
-          'unresolved-overloads-error
-         :ast ast
-         :overloads overloads)
+  (warn 'unresolved-overloads
+        :ast ast
+        :overloads overloads)
   nil)
 
 (defgeneric resolve-overloads (type ast &optional overloads)
@@ -4647,10 +4645,10 @@ using NAMESPACE.")
                 (ns-table (lookup-namespace defs namespace)))
       (values (lookup ns-table query)))))
 
-(define-condition no-enclosing-declaration-error (error)
-  ((type :initarg :type :type symbol :reader no-enclosing-declaration-error.type)
-   (root :initarg :root :reader no-enclosing-declaration-error.root)
-   (id :initarg :id :type ast :reader no-enclosing-declaration-error.id))
+(define-condition no-enclosing-declaration (warning)
+  ((type :initarg :type :type symbol)
+   (root :initarg :root)
+   (id :initarg :id :type ast))
   (:report (lambda (c s)
              (with-slots (type root id) c
                (format s "No ~a for ~a in ~a~%Path: ~a"
@@ -4664,10 +4662,11 @@ using NAMESPACE.")
   (:method-combination standard/context)
   (:method :context (type root id)
     (or (call-next-method)
-        (error 'no-enclosing-declaration-error
-               :type type
-               :root root
-               :id id)))
+        (warn
+         'no-enclosing-declaration
+         :type type
+         :root root
+         :id id)))
   (:method :context (type (root software) id)
     (find-enclosing-declaration type (genome root) id))
   (:method :context ((type symbol) root id)
