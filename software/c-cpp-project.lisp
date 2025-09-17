@@ -453,7 +453,7 @@ should already have been computed as part of their compilation units."
           (if name
               (compiler-name name)
               (progn
-                (warn "Unknown compiler: ~a" name)
+                (warn "Unknown compiler in: ~a" input)
                 *default-c-compiler*))))))))
 
 (defparameter *standard-macros*
