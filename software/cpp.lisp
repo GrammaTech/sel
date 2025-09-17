@@ -2272,6 +2272,7 @@ functions.")
             (collect node))))))
 
 (def-attr-fun specialization-type-arguments ()
+  "Get the type arguments from a template specialization."
   (:method ((specialization ast))
     (ematch specialization
       ((or (cpp-template-type
