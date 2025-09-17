@@ -1955,7 +1955,7 @@ using foo_t = Foo;")))
                     (direct-field-table alias)))))))
 
 (deftest test-template-call-specializations ()
-  "Template function calls should be assigned to the proper template when "
+  "Template function calls should be assigned to the proper template."
   (let ((cpp (from-file
               'cpp
               (path-join
