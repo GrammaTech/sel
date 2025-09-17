@@ -99,7 +99,7 @@
 (defun qualified-name-lookup-variants (qname)
   "List variants under which to look up QNAME.
 For example, for a qualified name like `x::y::z', we might also want
-to look it up as `x::z' or just `z'."
+to look it up as `y::z' or just `z'."
   (with-string-dispatch () qname
     (unless (search "::" qname)
       (return-from qualified-name-lookup-variants
@@ -2584,10 +2584,13 @@ available to use at any point in a C++ AST.")
   (source-text type))
 
 (def-attr-fun cpp::cached-namespace-qualified-name (name)
+  (:documentation "Attribute to cache namespace-qualified names.")
   (:method ((ast cpp-ast) &optional name)
     name))
 
 (defgeneric qualify-declared-ast-name/namespaces (ast)
+  (:documentation
+   "Fully qualify a declared name with its surrounding namespaces.")
   (:method-combination standard/context)
   (:method :context ((ast cpp-ast))
     ;; This gets us the behavior of only caching names on ASTs that
@@ -2638,10 +2641,18 @@ available to use at any point in a C++ AST.")
   (qualify-declared-ast-name/namespaces id))
 
 (def-attr-fun cpp::cached-qualified-names (names)
+  (:documentation "Attribute to all the suffixes of a qualified name.")
   (:method ((ast cpp-ast) &optional names)
     names))
 
 (defgeneric cpp::qualified-names (ast)
+  (:documentation
+   "Return all the in-scope qualified names we might look AST up under.
+For example, x::y::z in:
+
+    namespace x { namespace y { int z; }}
+
+Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
   (:method-combination standard/context)
   (:method :context ((ast cpp-ast))
     ;; This gets us the behavior of only caching names on ASTs that
@@ -2655,7 +2666,7 @@ available to use at any point in a C++ AST.")
              ast
              (call-next-method)))))
   (:method ((declared-ast cpp-ast))
-    ;; If memory is an issue, the shorter ones could be displaced
+    ;; If memory is still an issue, the suffixes could be displaced
     ;; arrays.
     (canon-string
      (coerce (qualified-name-lookup-variants
@@ -2663,7 +2674,7 @@ available to use at any point in a C++ AST.")
              'vector))))
 
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
-  "E.g. x::y::z becomes `'(\"x::y::z\", \"x::z\", \"z\")'."
+  "E.g. x::y::z becomes `'(\"x::y::z\", \"y::z\", \"z\")'."
   (cpp::qualified-names declared-ast))
 
 (defmethod qualify-declared-ast-name ((id cpp-type-identifier))
