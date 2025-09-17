@@ -1974,6 +1974,8 @@ using foo_t = Foo;")))
           (is (eql (first specializations) (second calls))))))))
 
 (deftest test-template-possible-types ()
+  "Possible types of template parameters should be determined by template
+specializations."
   (let* ((src (path-join +test-data-dir+ "cpp-templates/generics_and_traits.cc"))
          (cpp (from-file 'cpp src))
          (template (find-if (of-type 'cpp-template-declaration) cpp))
