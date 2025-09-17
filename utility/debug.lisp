@@ -98,7 +98,7 @@ with `cl-user:trace'."
 (defvar *note-out*
   (list (make-synonym-stream '*standard-output*))
   "Targets of notation.")
-(declaim ((soft-list-of stream) *note-out*))
+(declaim ((or stream (soft-list-of stream)) *note-out*))
 
 (defvar *flush-notes-function* #'finish-output
   "Call this function on each stream after writing.")
@@ -172,7 +172,7 @@ LEVEL may be a symbolic level defined with `define-note-level-name'."
     (when (<= level *note-level*)
       (let ((*print-pretty* nil)
             (formatter *note-formatter*))
-        (dolist (stream *note-out*)
+        (dolist (stream (ensure-list *note-out*))
           (declare (stream stream))
           (let ((args
                   (cons format-control
@@ -184,7 +184,7 @@ LEVEL may be a symbolic level defined with `define-note-level-name'."
                     args)))
         ;; TODO In a separate thread?
         (let ((fn (ensure-function *flush-notes-function*)))
-          (dolist (stream *note-out*)
+          (dolist (stream (ensure-list *note-out*))
             (funcall fn stream))))))
   ;; Always return nil.
   nil)
