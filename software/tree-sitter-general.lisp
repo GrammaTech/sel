@@ -4755,7 +4755,7 @@ using NAMESPACE.")
    (id :initarg :id :type ast))
   (:report (lambda (c s)
              (with-slots (type root id) c
-               (format s "No ~a for ~a in ~a~%Path: ~a"
+               (format s "No ~a enclosing ~a in ~a~%Path: ~a"
                        type id root
                        (ast-path root id))))))
 
