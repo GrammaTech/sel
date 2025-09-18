@@ -153,6 +153,12 @@ Rust macro invocations can use (), [], and {} equivalently."
                         ast))
                   children))))
 
+(defmethod initialize-instance :after ((self rust-scoped-identifier) &key)
+  (with-slots (rust-path) self
+    (when (typep rust-path 'rust-type-identifier)
+      (setf rust-path
+            (convert 'rust-identifier rust-path)))))
+
 
 ;;; Methods for tree-sitter generics
 
