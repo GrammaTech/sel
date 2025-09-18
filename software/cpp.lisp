@@ -1867,6 +1867,8 @@ types."
   ;; This only appears to be used for types from C headers.
   (:method ((type cpp-type-forward-declaration))
     nil)
+  (:method ((type cpp-enum-specifier))
+    nil)
   (:method ((class c/cpp-type-definition))
     (when-let (class (get-declaration-ast :type (cpp-type class)))
       (cpp::list-all-constructors class)))
