@@ -479,8 +479,11 @@ path that is just a slot reference, without an offset."
           "Copy SUBTREE, preserving before and after text from TARGET.
 If SUBTREE is a list do the same for each element."
           (flet ((cp (subtree)
-                   (if (and (equal (before-text subtree) (before-text target))
-                            (equal (after-text subtree) (after-text target)))
+                   (if (and
+                        (typep subtree 'structured-text)
+                        (typep target 'structured-text)
+                        (equal (before-text subtree) (before-text target))
+                        (equal (after-text subtree) (after-text target)))
                        subtree
                        (copy subtree :before-text (before-text target)
                                      :after-text (after-text target)))))
