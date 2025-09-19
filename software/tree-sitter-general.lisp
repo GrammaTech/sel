@@ -4910,6 +4910,12 @@ information such as visibility."
       (field-table aliasee)
       (progn
         (warn "No aliasee for ~a" alias)
+        (empty-map))))
+  (:method ((type type-ast))
+    (if-let (decl (get-declaration-ast :type type))
+      (field-table decl)
+      (progn
+        (warn "No type definition for ~a" type)
         (empty-map)))))
 
 (def-attr-fun direct-field-table ()
