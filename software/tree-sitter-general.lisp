@@ -1328,7 +1328,7 @@ Use UNION-FN to union child map values (see `map-union')."
   (reduce (op (map-union _ _ union-fn))
           (children ast)
           :key attr
-          :initial-value (empty-map)))
+          :initial-value (empty-ch-map)))
 
 ;;; TODO It should be possible to batch-compute all the synthesized
 ;;; attribute in one pass. Is that worthwhile, or are fewer passes
@@ -1357,7 +1357,7 @@ You can override this for your own synthesized attributes."
               ,call)))
        (def-attr-fun ,name ,args
          ,@(unsplice docstring)
-         (:circular #'gt:equal? (constantly (empty-map)))
+         (:circular #'gt:equal? (constantly (empty-ch-map)))
          (:method :context ((ast ast))
            (assure fset:map (call-next-method)))
          (:method ((software parseable))
@@ -1425,14 +1425,14 @@ For languages without pointers, this will always return nil."
              (when-let (decl (get-declaration-id :variable arg))
                (map-collect decl
                             (with
-                             (or (lookup map decl) (empty-set))
+                             (or (lookup map decl) (empty-ch-set))
                              arg)
                             into map))
              (when-let* ((alias (aliasee arg))
                          (decl (get-declaration-id :variable alias)))
                (map-collect decl
                             (with
-                             (or (lookup map decl) (empty-set))
+                             (or (lookup map decl) (empty-ch-set))
                              (cons :alias arg))
                             into map)))))))
 
@@ -1735,7 +1735,7 @@ automatically removed.")
                        inner-exits)))
              (final-exits (entry-points)
                (let ((final-exits (queue))
-                     (visited (empty-set)))
+                     (visited (empty-ch-set)))
                  (walk-cfg entry-points final-exits visited)
                  (nub (qlist final-exits)))))
       (let ((defaults (remove nil (ensure-list (call-next-method))))
@@ -2010,7 +2010,7 @@ which slots are expected to be used."
            (populate-slot->stack ()
              "Create a table that maps a slot name to its
               corresponding stack."
-             (lret ((table (box (empty-map))))
+             (lret ((table (box (empty-ch-map))))
                (iter (for slot in slots)
                      (let ((slot-value (slot-value ast slot)))
                        (ensure-get* slot table
@@ -4585,7 +4585,7 @@ table."
 
 (def-attr-fun symbol-table (in)
   "Compute the symbol table at this node."
-  (:circular #'gt:equal? (constantly (empty-map)))
+  (:circular #'gt:equal? (constantly (empty-ch-map)))
   (:method ((software parseable) &optional in)
     (symbol-table (genome software) in))
   (:method ((node root-ast) &optional in)
@@ -4602,15 +4602,15 @@ table."
          in))))
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
-  (symbol-table (attrs-root *attrs*) (empty-map)))
+  (symbol-table (attrs-root *attrs*) (empty-ch-map)))
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) (node tree-sitter-ast))
   (if (or (typep node 'source-text-fragment-variation-point)
           (member node (extra-asts-symbols
                         (make-keyword (ast-language-class node)))
                   :test #'typep))
-      (symbol-table node (empty-map))
-      (symbol-table (attrs-root *attrs*) (empty-map))))
+      (symbol-table node (empty-ch-map))
+      (symbol-table (attrs-root *attrs*) (empty-ch-map))))
 
 (-> group-by-namespace
     ((soft-list-of ast)
@@ -4653,7 +4653,7 @@ table."
                                       (cons ast (@ map key))
                                       (list ast)))))
                         declarations
-                        :initial-value (empty-map)))))
+                        :initial-value (empty-ch-map)))))
     (mapcar
      (lambda (grouping &aux (type (car grouping)))
        (cons type
@@ -4903,7 +4903,7 @@ define multiple identifiers).
 
 There may be additional keys in the tuple to record language-specific
 information such as visibility."
-  (:circular #'gt:equal? (constantly (empty-map)))
+  (:circular #'gt:equal? (constantly (empty-ch-map)))
   (:method ((ast ast))
     (direct-field-table ast))
   (:method ((alias type-alias-ast))
@@ -4911,24 +4911,24 @@ information such as visibility."
       (field-table aliasee)
       (progn
         (warn "No aliasee for ~a" alias)
-        (empty-map))))
+        (empty-ch-map))))
   (:method ((type type-ast))
     (if-let (decl (get-declaration-ast :type type))
       (field-table decl)
       (progn
         (warn "No type definition for ~a" type)
-        (empty-map)))))
+        (empty-ch-map)))))
 
 (def-attr-fun direct-field-table ()
   (:method ((class class-ast))
-    (adjoin-fields (empty-map)
+    (adjoin-fields (empty-ch-map)
                    (class-fields class)))
   (:method ((alias type-alias-ast))
     (if-let (aliasee (resolve-type-aliasee alias))
       (direct-field-table aliasee)
       (progn
         (warn "No aliasee for ~a" alias)
-        (empty-map)))))
+        (empty-ch-map)))))
 
 (-> field-table-ids (fset:map &key
                      (:ns symbol-table-namespace)

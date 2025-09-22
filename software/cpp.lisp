@@ -1163,7 +1163,7 @@ from a prior sibling \(`public:', `private:', `protected:').")
   (if-let ((possible-types (possible-types ast)))
     ;; TODO
     (field-table (car possible-types))
-    (empty-map)))
+    (empty-ch-map)))
 
 (-> cpp::inherited-member-access (member-access member-access) member-access)
 (defun cpp::inherited-member-access (as-inherited as-defined)
@@ -1251,11 +1251,11 @@ virtuality) from class where they are declared."
 
 ;;; TODO
 (defmethod direct-field-table ((ast cpp-type-parameter-declaration))
-  (empty-map))
+  (empty-ch-map))
 
 ;;; TODO
 (defmethod direct-field-table ((ast cpp-type-forward-declaration))
-  (empty-map))
+  (empty-ch-map))
 
 (defun cpp::base-class-access (derived-class quals)
   "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
@@ -1349,7 +1349,7 @@ virtual methods."
                (when (typep base-class 'cpp-type-parameter-declaration)
                  ;; TODO
                  (return-from qualify-base-field-table
-                   (empty-map)))
+                   (empty-ch-map)))
                (let ((field-table (field-table base-class))
                      (prefix (source-text (cpp-name base-class))))
                  (reduce (lambda (field-table key fields)
@@ -1473,7 +1473,7 @@ definitions."
     ((cpp-declaration-list (direct-children children))
      (reduce (op (symbol-table-union ast _ _))
              (mapcar #'outer-defs children)
-             :initial-value (empty-map)))))
+             :initial-value (empty-ch-map)))))
 
 (defmethod outer-defs ((ast cpp-namespace-definition))
   (if-let (exports (conserve-outer-def-exports ast))
@@ -1929,7 +1929,7 @@ types."
   (:method ((ast cpp-function-definition))
     (if-let ((class (out-of-class-function-definition-class ast)))
       (fset:map (class (list ast)))
-      (empty-map))))
+      (empty-ch-map))))
 
 (defgeneric cpp::list-all-constructors (class)
   (:documentation "List all user-defined constructors for CLASS.")
@@ -2466,7 +2466,7 @@ the definitions of the declared function."
                    (args (cpp-arguments type))
                    ((arguments-ast-specialized-p args)))
           (fset:map (template (list type))))
-        (empty-map)))
+        (empty-ch-map)))
   (:method ((call call-ast))
     (flet ((template+args (call)
              (match call
@@ -2492,7 +2492,7 @@ the definitions of the declared function."
           (template+args call)
         (if (and args (arguments-ast-specialized-p args))
             (fset:map (template (list call)))
-            (empty-map))))))
+            (empty-ch-map))))))
 
 (defun template-specializations (template &aux (root (attrs-root*)))
   "Return all specializations of a template.
@@ -2966,7 +2966,7 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 (defmethod inheritance-graph ((class c/cpp-classoid-specifier))
   (let* ((superclasses (cpp::base-classes class))
-         (map (empty-map)))
+         (map (empty-ch-map)))
     ;; Record the base classes of CLASS.
     (withf map
            class
@@ -2982,7 +2982,7 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 (defmethod inheritance-graph ((class cpp-type-parameter-declaration))
   ;; TODO possible types?
-  (empty-map))
+  (empty-ch-map))
 
 (defmethod inheritance-graph-lookup  ((ast cpp-type-parameter-declaration))
   (make-inheritance-graph-entry))

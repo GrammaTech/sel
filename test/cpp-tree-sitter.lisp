@@ -3674,7 +3674,7 @@ int private_fun(int x, int y) { return x + y; };
 export int public_fun(int x, int y) { return x + y; };"))
            (symtab
             (with-attr-table cpp
-              (@ (symbol-table (genome cpp) (empty-map)) :export))))
+              (@ (symbol-table (genome cpp) (empty-ch-map)) :export))))
     (is (@ (@ symtab :function) "public_fun"))
     (is (not (@ (@ symtab :function) "private_fun")))
     (is (not (@ (@ symtab :type) "private_type")))

@@ -259,7 +259,7 @@ For development."
                       (cons path
                             (mapcar (op (rec _ seen))
                                     (gethash path included-headers))))))))
-      (mapcar (op (rec _ (empty-set)))
+      (mapcar (op (rec _ (empty-ch-set)))
               (or entry-points
                   (if allow-headers
                       files
@@ -553,7 +553,7 @@ macro definitions."
      (read-file-into-string
       file))))
 
-(let ((cached-macros (empty-map)))
+(let ((cached-macros (empty-ch-map)))
   (defun predefined-macros (compiler)
     "Get the predefined macros for COMPILER.
 The predefined macros are obtained either by invoking COMPILER, if
@@ -1380,7 +1380,7 @@ is included by."
               :test #'equal))))
 
 (defun find-symbol-table-from-include (project include-ast
-                                       &key (in (empty-map))
+                                       &key (in (empty-ch-map))
                                          global
                                          (header-dirs nil header-dirs-supplied?))
   "Find the symbol table in PROJECT for the include file
@@ -1402,7 +1402,7 @@ include files in all directories of the project."
                ((null software) nil)
                ((typep software 'c/cpp-unknown-header)
                 (update-dependency-graph project software)
-                (empty-map))
+                (empty-ch-map))
                ((member (original-path software)
                         *dependency-stack*
                         :key #'original-path
@@ -1485,7 +1485,7 @@ include files in all directories of the project."
     (if-let (implicit-header
              (ensure-header-implicit-header header))
       (implicit-header-symbol-table implicit-header)
-      (empty-map))))
+      (empty-ch-map))))
 
 ;;; TODO Currently we ignore input symbol tables to headers, because
 ;;; we use the same representation of a header no matter how many
@@ -1498,7 +1498,7 @@ include files in all directories of the project."
 ;;; workaround here is to look up the dependency stack for a file with
 ;;; a command object, and use its implicit header.
 
-(defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-map)))
+(defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-ch-map)))
   (debug:note :trace "Including symbol table for ~a" node)
   ;; NB We rely on the symbol table of a header only being computed
   ;; once.
@@ -1526,4 +1526,4 @@ include files in all directories of the project."
 
 (defmethod symbol-table ((node c/cpp-unknown-header) &optional in)
   (declare (ignore in))
-  (empty-map))) ; #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
+  (empty-ch-map))) ; #+(or :TREE-SITTER-C :TREE-SITTER-CPP)

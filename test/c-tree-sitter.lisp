@@ -1801,7 +1801,7 @@ the root AST."
          (return-ast
            (find-if (of-type 'c-return-statement) root)))
     (with-attr-table root
-      (symbol-table root (empty-map))
+      (symbol-table root (empty-ch-map))
       (is (equal? (symbol-table second-declaration-ast)
                   (convert 'fset:map
                            `((:variable
@@ -1822,7 +1822,7 @@ the root AST."
   (let* ((source "int a; int b; int c; return;")
          (root (convert 'c-ast source)))
     (with-attr-table root
-      (is (equal? (symbol-table root (empty-map))
+      (is (equal? (symbol-table root (empty-ch-map))
                   (convert 'fset:map
                            `((:variable
                               .

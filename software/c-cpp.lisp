@@ -204,11 +204,11 @@
   (:method ((macro c/cpp-preproc-if) &key macro-ns)
     (interpret-preprocessor-expression-p
      (c/cpp-condition macro)
-     :macros (or macro-ns (empty-map))))
+     :macros (or macro-ns (empty-ch-map))))
   (:method ((macro c/cpp-preproc-elif) &key macro-ns)
     (interpret-preprocessor-expression-p
      (c/cpp-condition macro)
-     :macros (or macro-ns (empty-map)))))
+     :macros (or macro-ns (empty-ch-map)))))
 
 (defun handle-preproc-branching (node symtab)
   (nest
@@ -330,7 +330,7 @@ Otherwise, use heuristics."
 (-> interpret-preprocessor-expression
     ((or string c/cpp-ast) &key (:macros fset:map))
     integer)
-(defun interpret-preprocessor-expression (expr &key (macros (empty-map)))
+(defun interpret-preprocessor-expression (expr &key (macros (empty-ch-map)))
   "Interpret the subset of C allowed in an `#if` directive.
 MACROS is a map from macro names to expansions."
   (let ((true 1)
@@ -480,7 +480,7 @@ MACROS is a map from macro names to expansions."
 (-> interpret-preprocessor-expression-p ((or string c-ast cpp-ast)
                                          &key (:macros fset:map))
     boolean)
-(defun interpret-preprocessor-expression-p (expr &key (macros (empty-map)))
+(defun interpret-preprocessor-expression-p (expr &key (macros (empty-ch-map)))
   "Cast result of `interpet-preprocessor-expression' to a LISP boolean."
   (let ((result
           (interpret-preprocessor-expression
@@ -1000,10 +1000,10 @@ is the operator of a binary ast.")
       (c/cpp-body
        (and (type c/cpp-field-declaration-list)
             (access #'direct-children fields))))
-     (adjoin-fields (empty-map) fields))
+     (adjoin-fields (empty-ch-map) fields))
     ((c/cpp-union-specifier
       (c/cpp-body nil))
-     (empty-map))))
+     (empty-ch-map))))
 
 (defmethod type-aliasee ((ast c/cpp-type-definition))
   (match ast
@@ -1023,7 +1023,7 @@ is the operator of a binary ast.")
     (call-next-method)))
 
 (defmethod direct-field-table ((ast c/cpp-enum-specifier))
-  (empty-map))
+  (empty-ch-map))
 
 (defgeneric resolve-possible-types (ast)
   (:method ((asts list))
@@ -1544,7 +1544,7 @@ Should return `:failure' in the base case.")
     (otherwise (call-next-method))))
 
 (defmethod arg-usage-table ((ast c/cpp-call-expression))
-  (let ((table (empty-map)))
+  (let ((table (empty-ch-map)))
     (labels ((identifier-use? (arg)
                "Is ARG an identifier use (identifier, or dereference of an identifier)?"
                (typecase arg
@@ -1554,7 +1554,7 @@ Should return `:failure' in the base case.")
                     (identifier-use? (c/cpp-argument arg))))))
              (collect-arg-for-decl (decl arg)
                (withf table decl
-                      (with (or (lookup table decl) (empty-set))
+                      (with (or (lookup table decl) (empty-ch-set))
                             arg)))
              (collect-decls (arg)
                (when (identifier-use? arg)

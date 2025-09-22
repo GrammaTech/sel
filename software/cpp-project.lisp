@@ -194,7 +194,7 @@ partition."
                      (find-enclosing 'root-ast (attrs-root*) ast))
           (update-dependency-graph (attrs-root*) module)
           (let ((*dependency-stack* (cons module *dependency-stack*)))
-            (symbol-table (genome module) (empty-map))))))))
+            (symbol-table (genome module) (empty-ch-map))))))))
 
 (defmethod symbol-table ((ast cpp-module-declaration) &optional in)
   "Anonymous implementation units (and possibly module partition
@@ -212,7 +212,7 @@ unit."
 (defun module-software-symbol-table (imported-module-software)
   "The raw symbol table returned from the module software."
   (symbol-table (genome imported-module-software)
-                (empty-map)))
+                (empty-ch-map)))
 
 (defun augment-exported-declarations-with-definitions (ast symtab)
   "Merge definitions of external declarations from SYMTAB into exports.
@@ -253,7 +253,7 @@ If SYMTAB does not have interface exports, return it unchanged."
                                             imported-name
                                             importing-name))
                      (return-from module-import-symbol-table
-                       (empty-map))))))
+                       (empty-ch-map))))))
            (imported-module (module? (genome imported-module-software))))
       (when partition? (assert module))
       (update-dependency-graph (attrs-root*) imported-module-software)
@@ -310,7 +310,7 @@ If SYMTAB does not have interface exports, return it unchanged."
             (module-import-symbol-table ast))
       (continue ()
         :report (lambda (s) (format s "Skip import ~a" imported-name))
-        (empty-map)))))
+        (empty-ch-map)))))
 
 (defmethod symbol-table ((ast cpp-import-declaration) &optional in)
   (let ((*dependency-stack*

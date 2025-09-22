@@ -738,7 +738,7 @@ for forms inside RETURN-BODY and holds the current AST."
 ;;; Symbol Table
 
 (define-attr-methods symbol-table (in)
-  (empty-map))
+  (empty-ch-map))
 
 
 ;;; Namespace

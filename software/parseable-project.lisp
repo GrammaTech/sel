@@ -22,7 +22,7 @@
   ((parse-failures
     :accessor project-parse-failures
     :reader parse-failures              ;For copying.
-    :initform (empty-set)
+    :initform (empty-ch-set)
     :initarg :parse-failures
     :type fset:set
     :documentation "Set of paths we were not able to parse."))
