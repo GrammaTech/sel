@@ -1423,18 +1423,22 @@ For languages without pointers, this will always return nil."
              (unless (typep arg 'identifier-ast)
                (next-iteration))
              (when-let (decl (get-declaration-id :variable arg))
-               (map-collect decl
-                            (with
-                             (or (lookup map decl) (empty-ch-set))
-                             arg)
-                            into map))
+               (collect-map
+                (decl
+                 (with
+                  (or (lookup map decl) (empty-ch-set))
+                  arg))
+                initial-value (empty-ch-map)
+                into map))
              (when-let* ((alias (aliasee arg))
                          (decl (get-declaration-id :variable alias)))
-               (map-collect decl
-                            (with
-                             (or (lookup map decl) (empty-ch-set))
-                             (cons :alias arg))
-                            into map)))))))
+               (collect-map
+                (decl
+                 (with
+                  (or (lookup map decl) (empty-ch-set))
+                  (cons :alias arg)))
+                initial-value (empty-ch-map)
+                into map)))))))
 
 (defgeneric collect-arg-uses (software target &optional alias)
   (:documentation "Collect function calls in SOFTWARE with TARGET as an argument.

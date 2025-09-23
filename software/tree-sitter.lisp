@@ -399,6 +399,7 @@
         :software-evolution-library/software/compilable
         :software-evolution-library/components/file
         :software-evolution-library/components/formatting)
+  (:import-from :fset/iterate :collect-map)
   (:import-from :trivia.fail :fail)
   (:import-from :uiop)
   (:import-from :software-evolution-library/software/project

@@ -1243,7 +1243,9 @@ virtuality) from class where they are declared."
                        (cpp::field-virtual? field t)
                        field)))))
     (iter (for (name fields) in-map field-table)
-          (map-collect name (mapcar #'collect-properties fields)))))
+          (collect-map
+           (name (mapcar #'collect-properties fields))
+           initial-value (empty-ch-map)))))
 
 (defmethod direct-field-table :around ((ast cpp-ast))
   (when-let (map (call-next-method))
