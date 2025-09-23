@@ -2357,7 +2357,8 @@ the definitions of the declared function."
            ((morally-noexcept? declarator)
             +exception-bottom-type+)
            (t
-            (if-let ((definitions (c/cpp-function-declaration-definitions declaration)))
+            (if-let ((definitions
+                      (c/cpp-function-declaration-definitions declaration)))
               (reduce #'exception-set-union
                       definitions
                       :key #'exception-set
