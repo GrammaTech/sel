@@ -24,7 +24,7 @@
     :reader parse-failures              ;For copying.
     :initform (empty-ch-set)
     :initarg :parse-failures
-    :type fset:set
+    :type fset:ch-set
     :documentation "Set of paths we were not able to parse."))
   (:documentation "Abstract project specialization for parseable software
 objects."))

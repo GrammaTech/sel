@@ -1803,16 +1803,16 @@ the root AST."
     (with-attr-table root
       (symbol-table root (empty-ch-map))
       (is (equal? (symbol-table second-declaration-ast)
-                  (convert 'fset:map
+                  (convert 'fset:ch-map
                            `((:variable
                               .
-                              ,(fset:map
+                              ,(fset:ch-map
                                 ("a" (list (stmt-with-text root "a")))))))))
       (is (equal? (symbol-table return-ast)
-                  (convert 'fset:map
+                  (convert 'fset:ch-map
                            `((:variable
                               .
-                              ,(fset:map
+                              ,(fset:ch-map
                                 ("a" (list (stmt-with-text root "a")))
                                 ("b" (list (stmt-with-text root "b")))
                                 ("c" (list (stmt-with-text root "c"))))))))))))
@@ -1823,10 +1823,10 @@ the root AST."
          (root (convert 'c-ast source)))
     (with-attr-table root
       (is (equal? (symbol-table root (empty-ch-map))
-                  (convert 'fset:map
+                  (convert 'fset:ch-map
                            `((:variable
                               .
-                              ,(fset:map
+                              ,(fset:ch-map
                                 ("a" (list (stmt-with-text root "a")))
                                 ("b" (list (stmt-with-text root "b")))
                                 ("c" (list (stmt-with-text root "c"))))))))))))
@@ -2066,13 +2066,13 @@ before-text of the following AST if one exists."
   (is (interpret-preprocessor-expression-p (c* "!defined(FOO)")))
   (is (interpret-preprocessor-expression-p
        (c* "defined(FOO)")
-       :macros (fset:map ("FOO" "1"))))
+       :macros (fset:ch-map ("FOO" "1"))))
   (is (not (interpret-preprocessor-expression-p
             (c* "!defined(FOO)")
-            :macros (fset:map ("FOO" "1")))))
+            :macros (fset:ch-map ("FOO" "1")))))
   (is (not (interpret-preprocessor-expression-p
             (c* "defined(FOO)")
-            :macros (fset:map ("FOO" nil))))))
+            :macros (fset:ch-map ("FOO" nil))))))
 
 (def +complex-preproc-expr-1+
   "#if defined(_MSC_VER) || \\
@@ -2091,16 +2091,16 @@ on the macro environment."
     (is (interpret-preprocessor-expression-p
          condition
          :macros
-         (fset:map ("_MSC_VER" "1"))))
+         (fset:ch-map ("_MSC_VER" "1"))))
     (is (not (interpret-preprocessor-expression-p
               condition
               :macros
-              (fset:map ("__GNUC__" "3")
+              (fset:ch-map ("__GNUC__" "3")
                         ("__GNUC_MINOR__" "3")))))
     (is (interpret-preprocessor-expression-p
          condition
          :macros
-         (fset:map ("__GNUC__" "3")
+         (fset:ch-map ("__GNUC__" "3")
                    ("__GNUC_MINOR__" "4"))))))
 
 (def +complex-preproc-expr-2+
@@ -2127,7 +2127,7 @@ on the macro environment."
                                c))))
     (is (length= 3 conditions))
     (is (notany #'interpret-preprocessor-expression-p conditions))
-    (let ((env (fset:map ("__cpp_constexpr" "201304L"))))
+    (let ((env (fset:ch-map ("__cpp_constexpr" "201304L"))))
       (is (interpret-preprocessor-expression-p (first conditions) :macros env))
       (is (not (interpret-preprocessor-expression-p
                 (second conditions)
@@ -2144,7 +2144,7 @@ on the macro environment."
     (is (null (interpret-preprocessor-expression-p condition)))
     (is (interpret-preprocessor-expression-p
          condition
-         :macros (fset:map ("FOO" "1"))))))
+         :macros (fset:ch-map ("FOO" "1"))))))
 
 (deftest test-preprocessor-if-internal-symbol-tables ()
   "Branches of an if/else should only see macros defined in that branch."

@@ -1777,7 +1777,7 @@ textual order."
         (destructuring-bind (base derived derived2) classes
           (let ((derived-table (field-table derived)))
             (is (equal? (domain derived-table)
-                        (fset:set "a" "b" "c")))
+                        (fset:ch-set "a" "b" "c")))
             (is (eql (get-defining-class derived-table "a")
                      base))
             (is (eql (get-defining-class derived-table "c")
@@ -3059,16 +3059,16 @@ different orders."
     (with-attr-table root
       (is (equal? (symbol-table target-ast)
                   (convert
-                   'fset:map
+                   'fset:ch-map
                    `((:variable
                       .
-                      ,(fset:map
+                      ,(fset:ch-map
                         ("x" (list (stmt-with-text root "x")))
                         ("a::y" (list (stmt-with-text root "y")))
                         ("a::b::z" (list (stmt-with-text root "z")))))
                      (:namespace
                       .
-                      ,(fset:map
+                      ,(fset:ch-map
                         ("a" (list (stmt-with-text root "a")))
                         ("a::b" (list (stmt-with-text root "b"))))))))))))
 
@@ -3080,10 +3080,10 @@ different orders."
     (with-attr-table root
       (is (equal? (symbol-table target-ast)
                   (convert
-                   'fset:map
+                   'fset:ch-map
                    `((:function
                       .
-                      ,(fset:map
+                      ,(fset:ch-map
                         ("x" (collect-if (op (equal (source-text _) "x"))
                                          root)))))))))))
 
@@ -3642,26 +3642,26 @@ export {
          (union
            (symbol-table-union
             (make 'cpp-ast)
-            (fset:map
+            (fset:ch-map
              (:function
-              (fset:map ("pub_fun1" pub-fun1)
+              (fset:ch-map ("pub_fun1" pub-fun1)
                         ("priv_fun1" priv-fun1)))
              (:export
-               (fset:map
+               (fset:ch-map
                 (:function
-                 (fset:map ("pub_fun1" pub-fun1))))))
-            (fset:map
+                 (fset:ch-map ("pub_fun1" pub-fun1))))))
+            (fset:ch-map
              (:function
-              (fset:map ("pub_fun2" pub-fun2)
+              (fset:ch-map ("pub_fun2" pub-fun2)
                         ("priv_fun2" priv-fun2)))
              (:export
-               (fset:map
+               (fset:ch-map
                 (:function
-                 (fset:map ("pub_fun2" pub-fun2)))))))))
+                 (fset:ch-map ("pub_fun2" pub-fun2)))))))))
     (assert (equal? (@ union :export)
-                    (fset:map
+                    (fset:ch-map
                      (:function
-                      (fset:map ("pub_fun1" pub-fun1)
+                      (fset:ch-map ("pub_fun1" pub-fun1)
                                 ("pub_fun2" pub-fun2))))))))
 
 (deftest test-filter-exports ()

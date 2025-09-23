@@ -309,7 +309,7 @@ Otherwise, use heuristics."
                       (eql char #\_)))
                 string))))
 
-(-> macro-ref (fset:map t) (or string null))
+(-> macro-ref (fset:ch-map t) (or string null))
 (defun macro-ref (macros name)
   "Get the expansion of NAME in MACRO-MAP."
   (flet ((expand-from-ast (ast)
@@ -328,7 +328,7 @@ Otherwise, use heuristics."
          (expand-from-ast ast))))))
 
 (-> interpret-preprocessor-expression
-    ((or string c/cpp-ast) &key (:macros fset:map))
+    ((or string c/cpp-ast) &key (:macros fset:ch-map))
     integer)
 (defun interpret-preprocessor-expression (expr &key (macros (empty-ch-map)))
   "Interpret the subset of C allowed in an `#if` directive.
@@ -478,7 +478,7 @@ MACROS is a map from macro names to expansions."
          (interpret expr))))))
 
 (-> interpret-preprocessor-expression-p ((or string c-ast cpp-ast)
-                                         &key (:macros fset:map))
+                                         &key (:macros fset:ch-map))
     boolean)
 (defun interpret-preprocessor-expression-p (expr &key (macros (empty-ch-map)))
   "Cast result of `interpet-preprocessor-expression' to a LISP boolean."

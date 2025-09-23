@@ -45,8 +45,8 @@
 Like `fset:restrict', but recursive."
   (map-intersection base-map filter-map
                     (lambda (val1 val2)
-                      (if (and (typep val1 'fset:map)
-                               (typep val2 'fset:map))
+                      (if (and (typep val1 'fset:ch-map)
+                               (typep val2 'fset:ch-map))
                           (restrict-map val1 val2)
                           val1))))
 

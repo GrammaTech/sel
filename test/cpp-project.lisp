@@ -222,17 +222,17 @@ make_config(const std::string& path_prefix,
 
 (deftest test-restrict-map ()
   (is (equal?
-       (restrict-map (fset:map (:x 1) (:y 2))
-                     (fset:map (:x 2)))
-       (fset:map (:x 1))))
+       (restrict-map (fset:ch-map (:x 1) (:y 2))
+                     (fset:ch-map (:x 2)))
+       (fset:ch-map (:x 1))))
   (is (equal?
-       (restrict-map (fset:map (:x (fset:map (:y 1) (:z 2))))
-                     (fset:map (:x (fset:map (:y 2)))))
-       (fset:map (:x (fset:map (:y 1))))))
+       (restrict-map (fset:ch-map (:x (fset:ch-map (:y 1) (:z 2))))
+                     (fset:ch-map (:x (fset:ch-map (:y 2)))))
+       (fset:ch-map (:x (fset:ch-map (:y 1))))))
   (is (equal?
-       (restrict-map (fset:map (:x (fset:map (:y 1) (:z 2))))
-                     (fset:map (:x 1)))
-       (fset:map (:x (fset:map (:y 1) (:z 2)))))))
+       (restrict-map (fset:ch-map (:x (fset:ch-map (:y 1) (:z 2))))
+                     (fset:ch-map (:x 1)))
+       (fset:ch-map (:x (fset:ch-map (:y 1) (:z 2)))))))
 
 
 ;;; Symbol Table

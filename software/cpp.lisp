@@ -1286,7 +1286,7 @@ otherwise use the default (public for a struct, private for a class)."
 Note that because of C++'s name hiding rules, the fields of
 DERIVED-CLASS shadow those of BASE-CLASS, except for overrides of
 virtual methods."
-  (declare (fset:map derived-field-table)
+  (declare (fset:ch-map derived-field-table)
            (ast derived-class base-class))
   (let ((base-access (cpp::base-class-access derived-class quals)))
     (labels ((field-private? (field)
@@ -1372,7 +1372,7 @@ virtual methods."
                        base-fields))
             (finally (return new-field-table))))))
 
-(-> cpp::multiple-inheritance (ast fset:map) fset:map)
+(-> cpp::multiple-inheritance (ast fset:ch-map) fset:ch-map)
 (defun cpp::multiple-inheritance (class field-table)
   "Extend FIELD-TABLE with the members of all classes FIELD-TABLE
 inherits from."
@@ -1928,7 +1928,7 @@ types."
   (:union-fn #'union)
   (:method ((ast cpp-function-definition))
     (if-let ((class (out-of-class-function-definition-class ast)))
-      (fset:map (class (list ast)))
+      (fset:ch-map (class (list ast)))
       (empty-ch-map))))
 
 (defgeneric cpp::list-all-constructors (class)
@@ -2296,11 +2296,11 @@ instance we only want to remove one).")
       (call-next-method)))
 
 (defparameter *morally-noexcept*
-  (fset:set "static_cast" "next"
-            "begin" "end"
-            "rbegin" "rend"
-            "cbegin" "cend"
-            "swap")
+  (fset:ch-set "static_cast" "next"
+               "begin" "end"
+               "rbegin" "rend"
+               "cbegin" "cend"
+               "swap")
   "List of STL functions, methods, and operators that are morally noexcept, Lakos Rule notwithstanding.")
 
 (defmethod morally-noexcept? ((fn-name identifier-ast))
@@ -2465,7 +2465,7 @@ the definitions of the declared function."
                    (template (find-enclosing-template decl))
                    (args (cpp-arguments type))
                    ((arguments-ast-specialized-p args)))
-          (fset:map (template (list type))))
+          (fset:ch-map (template (list type))))
         (empty-ch-map)))
   (:method ((call call-ast))
     (flet ((template+args (call)
@@ -2491,7 +2491,7 @@ the definitions of the declared function."
       (multiple-value-bind (template args)
           (template+args call)
         (if (and args (arguments-ast-specialized-p args))
-            (fset:map (template (list call)))
+            (fset:ch-map (template (list call)))
             (empty-ch-map))))))
 
 (defun template-specializations (template &aux (root (attrs-root*)))
@@ -2929,14 +2929,14 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 (defmethod outer-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (outer-declarations node)))
-    (convert 'fset:map
+    (convert 'fset:ch-map
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)
               :source-text-fun #'qualify-declared-ast-name))))
 
 (defmethod inner-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (inner-declarations node)))
-    (convert 'fset:map
+    (convert 'fset:ch-map
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)
               :source-text-fun #'qualify-declared-ast-name))))

@@ -441,11 +441,11 @@ arguments."
 (defun get-symbol-map (software symbol-alist)
   (labels ((symbol-list (symbol)
              (list symbol (stmt-with-text (genome software) symbol))))
-    (convert 'fset:map
+    (convert 'fset:ch-map
              (mapcar
               (lambda (pair)
                 (list* (car pair)
-                       (convert 'fset:map
+                       (convert 'fset:ch-map
                                 (mapcar #'symbol-list (cdr pair)))))
               symbol-alist))))
 

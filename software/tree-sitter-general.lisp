@@ -1320,7 +1320,7 @@ more than one thing (destructuring).")
       (list assignee))))
 
 (-> synthesize-attribute (ast function &key (:union-fn function))
-    fset:map)
+    fset:ch-map)
 (defun synthesize-attribute (ast attr &key (union-fn #'append-longest))
   "Compute a synthesized attribute over the children of AST.
 Use UNION-FN to union child map values (see `map-union')."
@@ -1353,13 +1353,13 @@ You can override this for your own synthesized attributes."
        (define-compiler-macro ,name (&whole call ,arg ,@args)
          (declare (ignore ,arg))
          `(locally (declare (notinline ,',name))
-            (assure fset:map
+            (assure fset:ch-map
               ,call)))
        (def-attr-fun ,name ,args
          ,@(unsplice docstring)
          (:circular #'gt:equal? (constantly (empty-ch-map)))
          (:method :context ((ast ast))
-           (assure fset:map (call-next-method)))
+           (assure fset:ch-map (call-next-method)))
          (:method ((software parseable))
            (,name (genome software)))
          (:method ((ast ast))
@@ -1722,7 +1722,7 @@ automatically removed.")
                          (remove-if (op (contains? visited _))
                                     (ensure-list entry-points)))
                         (exits (mappend #'exit-control-flow entry-points))
-                        (visited (union visited (convert 'fset:set entry-points)))
+                        (visited (union visited (convert 'fset:ch-set entry-points)))
                         ;; "Outer" exits leave the execution context
                         ;; (either returning to AST or jumping out of
                         ;; it). Inner exits leave AST on the "stack".
@@ -4516,7 +4516,7 @@ Otherwise, return PARSE-TREE."
     (rassocar type +namespace-decl-type-table+)))
 
 (defun lookup-namespace (symbol-table namespace)
-  (declare (fset:map symbol-table))
+  (declare (fset:ch-map symbol-table))
   (check-type namespace symbol-table-namespace)
   (lookup symbol-table namespace))
 
@@ -4549,7 +4549,7 @@ by MULTI-DECLARATION-KEYS."
                    (remove-duplicates
                     (append shadowing-value shadowable-value))
                    shadowing-value))))
-    (do-set (key keys (convert 'fset:map map-list))
+    (do-set (key keys (convert 'fset:ch-map map-list))
       (let* ((shadowable-subtable (@ shadowable-table key))
              (shadowing-subtable (@ shadowing-table key))
              (merged-table (if (and shadowable-subtable shadowing-subtable)
@@ -4631,7 +4631,7 @@ table."
     ((soft-alist-of symbol-table-namespace
                     (soft-list-of ast))
      &key (:source-text-fun function))
-    (values (soft-alist-of symbol-table-namespace fset:map)
+    (values (soft-alist-of symbol-table-namespace fset:ch-map)
             &optional))
 (defun convert-grouped-namespaces (grouped-namespaces
                                    &key (source-text-fun
@@ -4663,24 +4663,24 @@ table."
 (def-attr-fun outer-defs ()
   "Map of outer definitions from a node"
   (:method ((node node))
-    (convert 'fset:map
+    (convert 'fset:ch-map
              (mapcar (op (list (source-text _1) _1))
                      (outer-declarations node))))
   (:method ((node c-like-syntax-ast))
     (mvlet ((declarations namespaces (outer-declarations node)))
-      (convert 'fset:map
+      (convert 'fset:ch-map
                (convert-grouped-namespaces
                 (group-by-namespace declarations namespaces))))))
 
 (def-attr-fun inner-defs ()
   "Map of inner definitions from a node"
   (:method ((node node))
-    (convert 'fset:map
+    (convert 'fset:ch-map
              (mapcar (op (list (source-text _1) _1))
                      (inner-declarations node))))
   (:method ((node c-like-syntax-ast))
     (mvlet ((declarations namespaces (inner-declarations node)))
-      (convert 'fset:map
+      (convert 'fset:ch-map
                (convert-grouped-namespaces
                 (group-by-namespace declarations namespaces))))))
 
@@ -4839,8 +4839,8 @@ ACCESSOR is also defined as a `setf'-able place:
 (define-field-key field-id +id+)
 (define-field-key field-ns +ns+)
 
-(-> add-namespaced-field (fset:map symbol-table-namespace ast)
-    (values fset:map &optional))
+(-> add-namespaced-field (fset:ch-map symbol-table-namespace ast)
+    (values fset:ch-map &optional))
 (defun add-namespaced-field (map ns id)
   "Add ID to MAP in NS, a namespace such as `:type' or `:variable'."
   (let* ((key (source-text id))
@@ -4883,7 +4883,7 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
       (class-fields aliasee)
       (warn "No aliasee for ~a" alias))))
 
-(-> adjoin-fields (fset:map (or ast list)) fset:map)
+(-> adjoin-fields (fset:ch-map (or ast list)) fset:ch-map)
 (defun adjoin-fields (map fields)
   "Adjoins fields in FIELDS to MAP, a field table (see `field-table' for
 the format)."
@@ -4930,7 +4930,7 @@ information such as visibility."
         (warn "No aliasee for ~a" alias)
         (empty-ch-map)))))
 
-(-> field-table-ids (fset:map &key
+(-> field-table-ids (fset:ch-map &key
                      (:ns symbol-table-namespace)
                      (:sort-root t))
     (values list &optional))
@@ -4970,7 +4970,7 @@ SORT-ROOT as the ancestor."
                         :ns namespace
                         :count count)))
 
-(-> field-table-lookup (fset:map string &key
+(-> field-table-lookup (fset:ch-map string &key
                         (:ns symbol-table-namespace)
                         (:count (or null array-index)))
     (values (soft-list-of ast) &optional))
