@@ -1471,10 +1471,11 @@ include files in all directories of the project."
   (labels ((ensure-header-implicit-header (header)
              "Get the implicit header for a header. This has to be cached or
               symbol-table will diverge."
-             (when (typep (attrs-root*) 'c/cpp-root)
-               (let ((table (implicit-headers-table (genome (attrs-root*)))))
-                 (or (gethash header table)
-                     (setf (gethash header table)
+             (when (typep (attrs-root*) 'c/cpp-project)
+               (let ((table (implicit-headers-table (genome (attrs-root*))))
+                     (key (implicit-header-key (attrs-root*) header)))
+                 (or (gethash key table)
+                     (setf (gethash key table)
                            (some
                             (lambda (includer)
                               (get-implicit-header (attrs-root*) includer))
