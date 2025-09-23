@@ -620,31 +620,34 @@ included in a header.")
               (list
                (make root-class :children children)))))))
 
-(defgeneric get-implicit-header (project file)
+(defgeneric implicit-header-key (project file)
   (:method ((project c/cpp-project) (file file-ast))
-    (get-implicit-header project (full-pathname file)))
+    (implicit-header-key project (full-pathname file)))
   (:method ((project c/cpp-project) (file software))
-    (get-implicit-header project (original-path file)))
+    (implicit-header-key project (original-path file)))
   (:method ((project c/cpp-project) (file string))
-    (get-implicit-header project (pathname file)))
+    (implicit-header-key project (pathname file)))
   (:method ((project c/cpp-project) (file pathname))
-    (unless (relative-pathname-p file)
-      (setf file
-            (enough-pathname file
-                             (project-relative-pathname project ""))))
-    (assert (relative-pathname-p file))
-    (when-let ((co (command-object project file)))
+    (if (relative-pathname-p file)
+        file
+        (enough-pathname file
+                         (project-relative-pathname project "")))))
+
+(defun get-implicit-header (project file)
+  (let ((key (implicit-header-key project file)))
+    (when-let ((co (command-object project key)))
       (let* ((genome (genome project))
              (table (implicit-headers-table genome))
              (lang (component-class project)))
         (synchronized (project)
-          (ensure2 (gethash file table)
+          (ensure2 (gethash key table)
             (lret ((header (command-implicit-header co lang)))
               (when header
                 (setf (genome project)
                       (copy (genome project)
                             :implicit-headers
-                            (adjoin header (implicit-headers genome))))))))))))
+                            (adjoin header
+                                    (implicit-headers genome))))))))))))
 
 (defun implicit-header-symbol-table (implicit-header)
   "Get the symbols exported from IMPLICIT-HEADER."
@@ -693,6 +696,9 @@ the header.")
                 :type string
                 :accessor header-name))
   (:documentation "Node for representing named synthetic headers."))
+
+(defmethod implicit-header-key ((project c/cpp-project) (header named-synthetic-header))
+  (header-name header))
 
 (define-node-class c/cpp-system-header (named-synthetic-header)
   ()
