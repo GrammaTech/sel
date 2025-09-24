@@ -1872,16 +1872,15 @@ types."
   (:method ((type type-alias-ast))
     (cpp::list-all-constructors (type-aliasee type)))
   (:method ((class c/cpp-classoid-specifier))
-    (let ((children
-            (and (cpp-body class)
-                 (children (cpp-body class)))))
-      (append (filter #'cpp::constructorp
-                      (append
-                       children
-                       (lookup
-                        (cpp::out-of-class-function-definitions
-                         (attrs-root*))
-                        class)))))))
+    (append
+     (filter #'cpp::constructorp
+             (and (cpp-body class)
+                  (children (cpp-body class))))
+     (filter #'cpp::constructorp
+             (lookup
+              (cpp::out-of-class-function-definitions
+               (attrs-root*))
+              class)))))
 
 (defgeneric cpp::type-has-constructor-p (type-ast)
   (:documentation
