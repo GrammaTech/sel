@@ -2371,6 +2371,7 @@ functions."
 
 (def-attr-fun possible-types ()
   (:documentation "Get the possible types of a template parameter declaration.")
+  (:circular #'gt:equal? (constantly nil))
   (:method ((decl cpp-type-parameter-declaration))
     (param-possible-types decl))
   (:method ((decl cpp-optional-type-parameter-declaration))
