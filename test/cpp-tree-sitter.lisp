@@ -2626,6 +2626,20 @@ line, after a comment if there is one."
     (is (equal (source-text (convert 'cpp-ast source))
                source))))
 
+(deftest cpp-base-class-clause-backtracking ()
+  "C++ bas e clauses with alternative ASTs should have a valid output
+transformation."
+  (let* ((source "class MyClass: BaseClass {}")
+         (class (cpp* source))
+         (base-class
+           (is (find-if
+                (op (match _ ((cpp-type-identifier :text "BaseClass") t)))
+                class))))
+    (finishes
+      (source-text
+       (with class base-class
+             (make 'source-text-fragment-variation-point))))))
+
 
 ;;; Contextualize-ast Tests
 (defun contextualization-check (source target-ast-type
