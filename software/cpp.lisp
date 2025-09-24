@@ -1700,22 +1700,25 @@ then the return type of the call is the return type of the field."
   (second (children ast)))
 
 (defmethod expression-type ((ast cpp-call-expression))
+  "Extract the type from a casting operator."
   (match ast
-    ;; Extract the type from a casting operator.
-    ((cpp-call-expression
-      :cpp-function
-      (cpp-template-function
-       :cpp-name
-       (cpp-identifier
-        :text (or "bit_cast"
-                  "const_cast"
-                  "dynamic_cast"
-                  "reinterpret_cast"
-                  "static_cast"))
-       :cpp-arguments
-       (cpp-template-argument-list
-        :children (list type-descriptor))))
-     type-descriptor)
+    ((or (cpp* "$FN<$TYPE>(@_)"
+               :fn
+               #1=(make 'cpp-identifier
+                        :text
+                        (or "bit_cast"
+                            "const_cast"
+                            "dynamic_cast"
+                            "reinterpret_cast"
+                            "static_cast"))
+               :type type)
+         ;; NB These are qualified identifers with template functions
+         ;; in the name slot, not template functions with qualified
+         ;; names.
+         (cpp* "std::$FN<$TYPE>(@_)"
+               :fn #1#
+               :type type))
+     type)
     (otherwise
      (call-next-method))))
 

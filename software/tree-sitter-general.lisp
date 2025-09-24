@@ -1576,7 +1576,8 @@ Calls `expression-type' by default."
     (expression-type ast))
   (:method ((ast call-ast))
     "Infer the type of a call from its declaration."
-    (infer-type (call-function ast))))
+    (or (infer-type (call-function ast))
+        (call-next-method))))
 
 (defgeneric expression-type (ast)
   (:documentation "Extract the type from AST, an expression.")

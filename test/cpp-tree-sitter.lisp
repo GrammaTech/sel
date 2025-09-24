@@ -2177,6 +2177,30 @@ int main() { nullptr; }")
            (infer-type nullptr)
            "nullptr_t")))))
 
+(defun test-infer-bit-cast/aux (source)
+  (declare (string source))
+  (let ((cpp (from-string 'cpp source)))
+    (with-attr-table cpp
+      (is (source-text=
+           "std::uint64_t"
+           (infer-type
+            (lastcar
+             (collect-if (of-type 'cpp-identifier) cpp))))))))
+
+(def +bit-cast-source+
+  "double f64v = 19880124.0;
+auto u64v = std::bit_cast<std::uint64_t>(f64v);
+u64v;")
+
+(deftest test-infer-bit-cast ()
+  "Expression types should be inferred from bit_cast without a namespace."
+  (is (test-infer-bit-cast/aux +bit-cast-source+)))
+
+(deftest test-infer-bit-cast/namespace ()
+  "Expression types should be inferred from bit_cast with a namespace."
+  (is (test-infer-bit-cast/aux
+       (string-replace "std::" +bit-cast-source+ ""))))
+
 
 ;;; Parsing tests
 
