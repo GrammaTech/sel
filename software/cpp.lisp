@@ -1910,17 +1910,23 @@ constructor.")
       (unless (eql type-ast ast)
         (cpp::type-has-constructor-p type-ast)))))
 
+(defun cpp::method-deleted-p (ast)
+  (when (typep ast 'cpp-function-definition)
+    (find-if (of-type 'cpp-delete-method-clause)
+             ast)))
+
 (defgeneric cpp::type-constructible-p (type-ast)
   (:documentation
-   "Return T if TYPE-AST is a C++ class and has a user-defined
+   "Return T if TYPE-AST is a C++ class and has a non-deleted user-defined
 constructor OR a default constructor.")
   (:method ((type-ast c/cpp-primitive-type))
     nil)
   (:method ((type-ast c/cpp-sized-type-specifier))
     nil)
   (:method ((ast c/cpp-classoid-specifier))
-    ;; TODO Check for deleted constructor.
-    t)
+    (let ((ctors (cpp::list-all-constructors ast)))
+      (or (no ctors)
+          (notevery #'cpp::method-deleted-p ctors))))
   (:method ((ast type-alias-ast))
     (cpp::type-constructible-p (type-aliasee ast)))
   (:method ((ast t))
