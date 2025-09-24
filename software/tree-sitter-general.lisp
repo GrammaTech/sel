@@ -1863,6 +1863,7 @@ node in the block.")
   (:documentation "Return the exception set of an AST.
 The set should be t (if it could throw anything) or a list starting
 with `or' for a specific list of exceptions.")
+  (:circular #'gt:equal? (constantly +exception-bottom-type+))
   (:method ((ast literal-ast))
     +exception-bottom-type+)
   (:method ((ast type-ast))
@@ -1908,11 +1909,7 @@ sets.")
   (:method ((ast ast))
     (if-let ((fn-defs (get-declaration-asts :function ast)))
       (reduce #'exception-set-union
-              ;; Don't recurse on the enclosing function.
-              (remove (find-enclosing 'function-declaration-ast
-                                      (attrs-root*)
-                                      ast)
-                      fn-defs)
+              fn-defs
               :key #'exception-set
               :initial-value +exception-bottom-type+)
       ;; If we have no definition, assume it could throw anything.

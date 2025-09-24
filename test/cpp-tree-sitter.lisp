@@ -2019,6 +2019,42 @@ specializations."
                       cpp))
          "fn"))))
 
+(deftest test-exception-set/direct-recursion ()
+  "Computing an exception set should handle direct recursion."
+  (flet ((test-exception-set/direct-recursion ()
+           (let ((cpp
+                   (from-file
+                    'cpp
+                    (path-join +test-data-dir+
+                               "cpp-fragments/self_call_with_exception.cc"))))
+             (with-attr-table cpp
+               (exception-set
+                (find-if (of-type 'cpp-function-definition)
+                         cpp))))))
+    (finishes (test-exception-set/direct-recursion))
+    (signals circular-attribute
+      (let ((ft/attrs::*allow-circle* nil))
+        (test-exception-set/direct-recursion)))))
+
+(deftest test-exception-set/indirect-recursion ()
+  "Computing an exception set should handle indirect recursion."
+  (flet ((test-exception-set/indirect-recursion ()
+           (let ((cpp
+                   (from-file
+                    'cpp
+                    (path-join +test-data-dir+
+                               "cpp-fragments/self_call_with_exception.cc"))))
+             (with-attr-table cpp
+               (finishes
+                 (exception-set
+                  (second
+                   (collect-if (of-type 'cpp-function-definition)
+                               cpp))))))))
+    (finishes (test-exception-set/indirect-recursion))
+    (signals circular-attribute
+      (let ((ft/attrs::*allow-circle* nil))
+        (test-exception-set/indirect-recursion)))))
+
 
 ;;; Parsing tests
 
