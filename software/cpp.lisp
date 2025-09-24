@@ -1824,6 +1824,16 @@ types."
                     types)))
        (resolve-overloads :type fn decls)))))
 
+(defgeneric cpp::constructorp (ast)
+  (:method ((ast t)) nil)
+  (:method ((fn cpp-function-definition))
+    (not (cpp-type fn)))
+  (:method ((decl cpp-declaration))
+    ;; Only in a field declaration list?
+    (and (not (cpp-type decl))
+         ;; Correct?
+         (every (of-type 'cpp-function-declarator)
+                (cpp-declarator decl)))))
 
 (define-synthesized-attribute cpp::out-of-class-function-definitions ()
   (:union-fn #'union)
@@ -1831,6 +1841,17 @@ types."
     (if-let ((class (out-of-class-function-definition-class ast)))
       (fset:map (class (list ast)))
       (empty-map))))
+
+(defgeneric cpp::list-all-constructors (class)
+  (:method ((class c/cpp-classoid-specifier))
+    (let ((children (children (cpp-body class))))
+      (append (filter #'cpp::constructorp
+                      (append
+                       children
+                       (lookup
+                        (cpp::out-of-class-function-definitions
+                         (attrs-root*))
+                        class)))))))
 
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
