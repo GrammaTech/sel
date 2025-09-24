@@ -782,10 +782,10 @@ See SEL issue #359."
 
 (defmethod get-declaration-ids ((type (eql :function))
                                 (fn cpp-function-definition))
-  "Get the field declaration of an external function definition."
+  "Get the field declaration of an out-of-class function definition."
   (let ((name (definition-name-ast fn)))
     (if (typep name 'cpp-qualified-identifier)
-        (if-let (class (friend-function-class fn))
+        (if-let (class (out-of-class-function-definition-class fn))
           (get-class-fields class :function (cpp-name name))
           (call-next-method))
         (call-next-method))))
@@ -1804,7 +1804,7 @@ types."
 
 ;;; TODO Also use this to look up free variables (not just this) in a
 ;;; function.
-(defun friend-function-class (fn)
+(defun out-of-class-function-definition-class (fn)
   (match fn
     ((and (cpp-function-definition)
           (access #'definition-name-ast
@@ -1824,12 +1824,20 @@ types."
                     types)))
        (resolve-overloads :type fn decls)))))
 
+
+(define-synthesized-attribute cpp::out-of-class-function-definitions ()
+  (:union-fn #'union)
+  (:method ((ast cpp-function-definition))
+    (if-let ((class (out-of-class-function-definition-class ast)))
+      (fset:map (class (list ast)))
+      (empty-map))))
+
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
     (definition-name-ast type-ast)
-    ;; Infer type of this for a friend function.
+    ;; Infer type of this for an out-of-class function definition.
     (when-let (fn (find-enclosing 'cpp-function-definition obj ast))
-      (friend-function-class fn))))
+      (out-of-class-function-definition-class fn))))
 
 (defgeneric qualified-name->list (ast)
   ;; TODO Qualified type and field identifiers.

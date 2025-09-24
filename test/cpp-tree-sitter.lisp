@@ -31,6 +31,7 @@
                 :explicit-namespace-qualifiers
                 :qualified-name-lookup-variants)
   (:local-nicknames
+   (:cpp :software-evolution-library/software/cpp)
    (:dir :software-evolution-library/software/directory)
    (:project :software-evolution-library/software/project)
    (:ts :software-evolution-library/software/tree-sitter))
@@ -2054,6 +2055,19 @@ specializations."
     (signals circular-attribute
       (let ((ft/attrs::*allow-circle* nil))
         (test-exception-set/indirect-recursion)))))
+
+(deftest test-out-of-class-definitions ()
+  (let* ((cpp (from-string 'cpp "class MyClass { int myfun(); };
+int MyClass::myfun() {
+  return 0;
+}"))
+         (class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+         (fn (is (find-if (of-type 'cpp-function-definition) cpp))))
+    (is (not (ancestor-of-p cpp fn class)))
+    (with-attr-table cpp
+      (is (eql class (ts::out-of-class-function-definition-class fn)))
+      (is (member fn (lookup (cpp::out-of-class-function-definitions cpp)
+                             class))))))
 
 
 ;;; Parsing tests
