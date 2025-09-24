@@ -1884,7 +1884,7 @@ types."
 
 (defgeneric cpp::type-has-constructor-p (type-ast)
   (:documentation
-   "Return T if TYPE-AST is a C++ class and has a user-defined
+   "Return T if TYPE-AST is a C++ class and has a declared or defined
 constructor.")
   (:method ((type-ast c/cpp-primitive-type))
     nil)

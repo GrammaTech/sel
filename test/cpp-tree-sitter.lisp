@@ -2096,6 +2096,66 @@ auto x = S(1);")))
            (infer-type (find-if (of-type 'cpp-call-expression) cpp))
            (definition-name-ast (is (find-if (of-type 'cpp-struct-specifier) cpp))))))))
 
+(deftest test-default-constructor/implicit ()
+  "A type with an implicit default constructor is recognized as constructible."
+  (let ((cpp (cpp* "class X {}")))
+    (with-attr-table cpp
+      ;; The type is constructible.
+      (is (cpp::type-constructible-p cpp))
+      ;; But the type does not have an observable constructor.
+      (is (not (cpp::type-has-constructor-p cpp))))))
+
+(deftest test-default-constructor/implicitly-declared-explicitly-defined ()
+  "A type with an implicitly declared, explicitly default constructor is
+recognized as constructible."
+  (let* ((cpp (cpp* "class X {};
+X::X() {}"))
+         (class (is (find-if (of-type 'cpp-class-specifier) cpp))))
+    (with-attr-table cpp
+      ;; The type is constructible.
+      (is (cpp::type-constructible-p class))
+      ;; The type has one observable constructor.
+      (is (cpp::type-has-constructor-p class))
+      ;; The type has observable constructors.
+      (is (cpp::list-all-constructors class)))))
+
+(deftest test-default-constructor/explicitly-declared-implicitly-defined ()
+  "An explicitly declared, implicitly defined constructor is analyzed."
+  (let* ((class (cpp* "class X { X(); }")))
+    (with-attr-table class
+      (is (cpp::type-constructible-p class))
+      (is (cpp::type-has-constructor-p class))
+      (is (cpp::list-all-constructors class)))))
+
+(deftest test-deleted-constructor ()
+  "A deleted constructor is analyzed."
+  (let ((class (cpp* "class MyClass {
+    MyClass() = delete;
+}")))
+    (with-attr-table class
+      (is (single (cpp::list-all-constructors class)))
+      (is (not (cpp::type-constructible-p class)))
+      (is (cpp::type-has-constructor-p class)))))
+
+(deftest test-alias-constructors ()
+  "Aliases should be transparent for constructor analysis."
+  (let* ((cpp (cpp* "class MyClass {
+    MyClass();
+};
+
+typedef MyClass myclass_t;
+using MyclassAlias = MyClass;
+"))
+         (class (is (find-if (of-type 'cpp-class-specifier) cpp)))
+         (typedef (is (find-if (of-type 'cpp-type-definition) cpp)))
+         (alias (is (find-if (of-type 'cpp-alias-declaration) cpp))))
+    (with-attr-table cpp
+      (is (single (cpp::list-all-constructors class)))
+      (is (equal*
+           (cpp::list-all-constructors class)
+           (cpp::list-all-constructors typedef)
+           (cpp::list-all-constructors alias))))))
+
 
 ;;; Parsing tests
 
