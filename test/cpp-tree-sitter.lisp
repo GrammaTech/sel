@@ -2625,6 +2625,7 @@ line, after a comment if there is one."
     (is (equal (source-text (convert 'cpp-ast source))
                source))))
 
+#+tree-sitter-cpp
 (deftest cpp-base-class-clause-backtracking ()
   "C++ bas e clauses with alternative ASTs should have a valid output
 transformation."
