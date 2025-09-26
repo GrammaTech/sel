@@ -711,7 +711,7 @@ pairs of expressions from RESULT-EXPRS."
                                          exact-names))))))
         ;; extend environment up to depth limit
         (iter (for scope-type in scopes)
-              (unioning (extend-env scope-type scopes) into envs test #'equal)
+              (iter:unioning (extend-env scope-type scopes) into envs test #'equal)
               (finally (return (synthesize-typed-coq-expression
                                 type
                                 (union scopes envs :test (lambda (x y)
