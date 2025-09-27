@@ -114,10 +114,11 @@ inference.  Used to prevent circular attr propagation.")
   (:method ((sw software))
     (original-path sw)))
 
-(defun header-file? (file)
-  (member (pathname-type (include-path file))
-          *header-extensions*
-          :test #'equal))
+(defun headerp (file)
+  (or (typep file 'synthetic-header)
+      (member (pathname-type (include-path file))
+              *header-extensions*
+              :test #'equal)))
 
 (defun module-file? (file)
   (member (pathname-type (include-path file))
@@ -263,7 +264,7 @@ For development."
               (or entry-points
                   (if allow-headers
                       files
-                      (remove-if #'header-file? files)))))))
+                      (remove-if #'headerp files)))))))
 
 (defgeneric file-dependency-tree (project file)
   (:documentation "Return the tree of includes rooted at FILE in PROJECT.")
@@ -651,8 +652,9 @@ included in a header.")
 
 (defun implicit-header-symbol-table (implicit-header)
   "Get the symbols exported from IMPLICIT-HEADER."
-  (with-attr-session (implicit-header :inherit nil)
-    (symbol-table (assure root-ast (first (children implicit-header))))))
+  (when implicit-header
+    (with-attr-session (implicit-header :inherit nil)
+      (symbol-table (assure root-ast (first (children implicit-header)))))))
 
 (defmethod lookup ((obj c/cpp-root) (key string))
   ;; Enables the use of the `@' macro directly against projects.
@@ -661,7 +663,7 @@ included in a header.")
 (defmethod lookup :around ((obj c/cpp-project) (key string))
   "Compute the symbol table if we can't load a header."
   (or (call-next-method)
-      (and (header-file? key)
+      (and (headerp key)
            (unless (boundp 'attrs:*attrs*)
              (attrs:with-attr-table obj
                (debug:note :trace "Loading symbol table to find ~a" key)
@@ -673,11 +675,11 @@ included in a header.")
     (or (and-let* (((typep root 'c/cpp-project))
                    ((compilation-database root))
                    (file (find-enclosing 'file-ast root ast))
-                   (implicit-header (get-implicit-header root file)))
-          (let ((augmented-table
-                 (symbol-table-union ast
-                                      in
-                                      (implicit-header-symbol-table implicit-header))))
+                   (extra
+                    (implicit-header-symbol-table
+                     (or (get-implicit-header root file)
+                         (ensure-header-implicit-header root file)))))
+          (let ((augmented-table (symbol-table-union ast in extra)))
             (call-next-method ast augmented-table)))
         (call-next-method))))
 
@@ -919,7 +921,7 @@ the standard path and add it to PROJECT."))
 
 (defmethod lazy-path-p ((project c/cpp-project) path &key lazy-paths root)
   (declare (ignore lazy-paths root))
-  (or (header-file? path)
+  (or (headerp path)
       (call-next-method)))
 
 (defmethod collect-evolve-files :context ((project c/cpp-project))
@@ -928,7 +930,7 @@ the standard path and add it to PROJECT."))
            (mvlet* ((db-files other-files
                      (partition
                       (lambda (entry &aux (file (car entry)))
-                        (or (header-file? file)
+                        (or (headerp file)
                             ;; NB This assumes we always want to
                             ;; eagerly load module files. (Probably
                             ;; but not necessarily true.)
@@ -1395,7 +1397,20 @@ include files in all directories of the project."
   (labels ((symbol-table* (header in)
              (declare (ignore in))
              (assert (attrs:reachable? (genome header)))
-             (symbol-table header (header-symbol-table-in header)))
+             ;; TODO Currently we ignore input symbol tables to
+             ;; headers, because we use the same representation of a
+             ;; header no matter how many times it is included (or
+             ;; what headers come before it). Beside that, we also
+             ;; currently don't have a way of indicating that a
+             ;; subroot's attributes depend on a prior sibling, not
+             ;; just a parent.
+
+             ;; We *do* still need the "implicit" macro environment
+             ;; (compiler predefined macros, macros from the
+             ;; compilation database). Current workaround here is to
+             ;; look up the dependency stack for a file with a command
+             ;; object, and use its implicit header.
+             (symbol-table header (empty-ch-map)))
            (safe-symbol-table (software)
              "Extract a symbol table from SOFTWARE, guarding for circularity."
              (cond
@@ -1418,22 +1433,22 @@ include files in all directories of the project."
                 (let ((*dependency-stack* (cons software *dependency-stack*)))
                   (symbol-table* software in))))))
     (let* ((file
-            (or (find-enclosing '(or file-ast synthetic-header)
-                                project include-ast)
-                (error "No enclosing file for ~a" include-ast)))
+             (or (find-enclosing '(or file-ast synthetic-header)
+                                 project include-ast)
+                 (error "No enclosing file for ~a" include-ast)))
            (*dependency-stack*
-            ;; Initialize the stack with a top-level file, if needed.
-            (or *dependency-stack*
-                (when-let (sw
-                           (find-enclosing-software project include-ast
-                                                    :file-ast file))
-                  (list sw))))
+             ;; Initialize the stack with a top-level file, if needed.
+             (or *dependency-stack*
+                 (when-let (sw
+                            (find-enclosing-software project include-ast
+                                                     :file-ast file))
+                   (list sw))))
            (*header-dirs*
-            (if header-dirs-supplied?
-                header-dirs
-                (or (file-header-dirs project include-ast :file file)
-                    *header-dirs*
-                    *default-header-dirs*))))
+             (if header-dirs-supplied?
+                 header-dirs
+                 (or (file-header-dirs project include-ast :file file)
+                     *header-dirs*
+                     *default-header-dirs*))))
       (nlet retry ()
         (restart-case
             (handler-case
@@ -1467,42 +1482,26 @@ include files in all directories of the project."
               (return-from find-symbol-table-from-include
                 in))))))))
 
-(defun header-symbol-table-in (header)
-  "Compute the initial symbol table for a header."
-  (labels ((ensure-header-implicit-header (header)
-             "Get the implicit header for a header. This has to be cached or
-              symbol-table will diverge."
-             (when (typep (attrs-root*) 'c/cpp-project)
-               (let ((table (implicit-headers-table (genome (attrs-root*))))
-                     (key (implicit-header-key (attrs-root*) header)))
-                 (or (gethash key table)
-                     (setf (gethash key table)
-                           (some
-                            (lambda (includer)
-                              (get-implicit-header (attrs-root*) includer))
-                            (remove-if (of-type 'c/cpp-system-header)
-                                       *dependency-stack*))))))))
-    (if-let (implicit-header
-             (ensure-header-implicit-header header))
-      (implicit-header-symbol-table implicit-header)
-      (empty-ch-map))))
-
-;;; TODO Currently we ignore input symbol tables to headers, because
-;;; we use the same representation of a header no matter how many
-;;; times it is included (or what headers come before it). Beside
-;;; that, we also currently don't have a way of indicating that a
-;;; subroot's attributes depend on a prior sibling, not just a parent.
-
-;;; We *do* still need the "implicit" macro environment (compiler
-;;; predefined macros, macros from the compilation database). Current
-;;; workaround here is to look up the dependency stack for a file with
-;;; a command object, and use its implicit header.
+(defun ensure-header-implicit-header (root header)
+  "Get the implicit header for a header. This has to be cached or
+symbol-table will diverge."
+  (when (and (typep root 'c/cpp-project)
+             (headerp header))
+    ;; NB We rely on the symbol table of a header only being computed
+    ;; once.
+    (ft/attrs::finalize-approximation)
+    (let ((table (implicit-headers-table (genome root)))
+          (key (implicit-header-key root header)))
+      (or (gethash key table)
+          (setf (gethash key table)
+                (some
+                 (lambda (includer)
+                   (get-implicit-header (attrs-root*) includer))
+                 (remove-if (of-type 'c/cpp-system-header)
+                            *dependency-stack*)))))))
 
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-ch-map)))
   (debug:note :trace "Including symbol table for ~a" node)
-  ;; NB We rely on the symbol table of a header only being computed
-  ;; once.
-  (ft/attrs::finalize-approximation)
   (let ((root (attrs-root *attrs*)))
     (if (typep root 'directory-project)
         (if-let (st (find-symbol-table-from-include root node :in in))
@@ -1521,7 +1520,9 @@ include files in all directories of the project."
   ;; NB We rely on the symbol table of a header only being computed
   ;; once.
   (ft/attrs::finalize-approximation)
-  (let ((in (header-symbol-table-in node)))
+  (let* ((implicit (ensure-header-implicit-header (attrs-root*) node))
+         (in (or (implicit-header-symbol-table implicit)
+                 (empty-ch-map))))
     (ts::propagate-declarations-down node in)))
 
 (defmethod symbol-table ((node c/cpp-unknown-header) &optional in)
