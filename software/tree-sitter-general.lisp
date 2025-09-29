@@ -1432,22 +1432,24 @@ If ALIAS is non-nil, resolve aliases during the search.")
                    target)))
              (root (attrs-root*))
              (uses
-              (lookup (arg-usage-table (attrs-root*)) target))
-             (uses (convert 'list uses))
-             (alias-uses uses
+              (convert 'list
+                       (lookup (arg-usage-table (attrs-root*))
+                               target)))
+             (alias-uses direct-uses
               (partition (lambda (use)
                            (match use
                              ((cons :alias _) t)
                              (otherwise nil)))
                          uses))
-             (uses
+             (all-uses
               (if alias
-                  (append (mapcar #'cdr alias-uses) uses)
-                  uses)))
+                  (append (mapcar #'cdr alias-uses)
+                          direct-uses)
+                  direct-uses)))
       (filter-map
        (compose (distinct)
                 (op (find-enclosing 'call-ast root _)))
-       uses))))
+       all-uses))))
 
 (defmethod convert ((to-type (eql 'integer))
                     (ast integer-ast) &key)
