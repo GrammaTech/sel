@@ -1326,10 +1326,11 @@ more than one thing (destructuring).")
           :initial-value (empty-map)))
 
 (defmacro define-synthesized-attribute (name args &body body)
-  "Define a synthesize attribute.
-A synthesized attribute is a table (FSet map) built bottom-up rather than top-down.
+  "Define a synthesized attribute.
+A synthesized attribute is a table (FSet map) built bottom-up rather
+than top-down.
 
-Usually synthesize attributes contain information used by other
+Usually synthesized attributes contain information used by other
 attributes to avoid repeated tree traversal.
 
 Going up the tree, the maps returned by each child are unioned using
