@@ -2383,7 +2383,6 @@ set of possible concrete specializations of that type."
      (possible-types type))))
 
 (defmethod get-declaration-ids :around ((type (eql :type)) (ast cpp-ast))
-
   (call-next-method))
 
 (defmethod find-enclosing-declaration ((type (eql 'function-declaration-ast))
