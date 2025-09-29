@@ -2138,7 +2138,9 @@ on the macro environment."
   (let ((c (c* +complex-preproc-expr-2+)))
     (with-attr-table c
       (let ((calls
-              ;; TODO Not sure why I need reverse here.
+              ;; TODO Reverse is needed here because non-alternative
+              ;; children go directly into the children slot, and
+              ;; cpp-alternative precedes children in the slot order.
               (reverse
                (collect-if (of-type 'call-ast) c))))
         (is (length= calls 4))
