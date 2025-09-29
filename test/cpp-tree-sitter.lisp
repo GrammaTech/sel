@@ -2033,6 +2033,7 @@ specializations."
          "#ifdef" (source-text (elt (children (genome *soft*)) 0))))))
 
 (deftest test-interpret-preprocessor-expression ()
+  "Test interpreting preprocessor expressions works for C++ (vs just C)."
   (let ((cpp (cpp* #.(fmt "#if defined(FOO)~%#endif"))))
     (is (not (ts::interpret-preprocessor-expression-p (cpp-condition cpp))))))
 
