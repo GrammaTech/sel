@@ -540,12 +540,15 @@ available, or from a predefined list."
                        (default-predefined-macros compiler))
                  (cmd:cmd-error ()
                    (default-predefined-macros compiler)))))
+      ;; Since cached-macros is an FSet map, we can use double-checked
+      ;; locking here to avoid taking a lock for every read.
       (or (@ cached-macros compiler)
           (synchronized ()
-            (lret ((macros (compiler-specific-macros compiler)))
-              (withf cached-macros
-                     compiler
-                     macros)))))))
+            (or (@ cached-macros compiler)
+                (lret ((macros (compiler-specific-macros compiler)))
+                  (withf cached-macros
+                         compiler
+                         macros))))))))
 
 (defun default-preproc-defs (compiler platform)
   (remove-duplicates
