@@ -279,11 +279,8 @@ command object."
                          (self command-object)
                          (slot-name (eql 'compiler)))
   "Lazily parse out the compiler."
-  (let* ((compiler
-           (first (command-arguments self)))
-         (compiler
-           (lastcar (split-sequence "/" compiler))))
-    (setf (slot-value self 'compiler) compiler)))
+  (setf (slot-value self 'compiler)
+        (path-basename (first (command-arguments self)))))
 
 (defmethod slot-unbound ((class t)
                          (self command-object)
