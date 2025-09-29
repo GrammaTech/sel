@@ -2057,6 +2057,7 @@ specializations."
         (test-exception-set/indirect-recursion)))))
 
 (deftest test-out-of-class-definitions ()
+  "Test that out-of-class definitions are collected."
   (let* ((cpp (from-string 'cpp "class MyClass { int myfun(); };
 int MyClass::myfun() {
   return 0;
