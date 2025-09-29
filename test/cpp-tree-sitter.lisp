@@ -2103,7 +2103,7 @@ auto x = S(1);")))
       ;; The type is constructible.
       (is (cpp::type-constructible-p cpp))
       ;; But the type does not have an observable constructor.
-      (is (not (cpp::type-has-constructor-p cpp))))))
+      (is (not (cpp::has-constructor-defined-p cpp))))))
 
 (deftest test-default-constructor/implicitly-declared-explicitly-defined ()
   "A type with an implicitly declared, explicitly default constructor is
@@ -2115,7 +2115,7 @@ X::X() {}"))
       ;; The type is constructible.
       (is (cpp::type-constructible-p class))
       ;; The type has one observable constructor.
-      (is (cpp::type-has-constructor-p class))
+      (is (cpp::has-constructor-defined-p class))
       ;; The type has observable constructors.
       (is (cpp::list-all-constructors class)))))
 
@@ -2124,7 +2124,7 @@ X::X() {}"))
   (let* ((class (cpp* "class X { X(); }")))
     (with-attr-table class
       (is (cpp::type-constructible-p class))
-      (is (cpp::type-has-constructor-p class))
+      (is (cpp::has-constructor-defined-p class))
       (is (cpp::list-all-constructors class)))))
 
 (deftest test-deleted-constructor ()
@@ -2135,7 +2135,7 @@ X::X() {}"))
     (with-attr-table class
       (is (single (cpp::list-all-constructors class)))
       (is (not (cpp::type-constructible-p class)))
-      (is (cpp::type-has-constructor-p class)))))
+      (is (cpp::has-constructor-defined-p class)))))
 
 (deftest test-alias-constructors ()
   "Aliases should be transparent for constructor analysis."
