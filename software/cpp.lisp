@@ -1885,7 +1885,9 @@ types."
 (defgeneric cpp::has-constructor-defined-p (type-ast)
   (:documentation
    "Return T if TYPE-AST is a C++ class and has a declared or defined
-constructor.")
+constructor.
+
+This includes an explicitly defaulted constructor.")
   (:method ((type-ast c/cpp-primitive-type))
     nil)
   (:method ((type-ast c/cpp-sized-type-specifier))

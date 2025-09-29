@@ -2137,6 +2137,16 @@ X::X() {}"))
       (is (not (cpp::type-constructible-p class)))
       (is (cpp::has-constructor-defined-p class)))))
 
+(deftest test-explicitly-defaulted-constructor ()
+  "An explicitly defaulted constructor is analyzed."
+  (let ((class (cpp* "class MyClass {
+    MyClass() = default;
+}")))
+    (with-attr-table class
+      (is (single (cpp::list-all-constructors class)))
+      (is (cpp::type-constructible-p class))
+      (is (cpp::has-constructor-defined-p class)))))
+
 (deftest test-alias-constructors ()
   "Aliases should be transparent for constructor analysis."
   (let* ((cpp (cpp* "class MyClass {
