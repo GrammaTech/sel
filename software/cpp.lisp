@@ -1328,7 +1328,7 @@ virtual methods."
                                               (filter-fields base-fields)))))
                        (t field-table))))
              (qualify-base-field-table (base-class)
-               "Keep superclass methods visible with as prefixed functions."
+               "Keep superclass methods visible as prefixed functions."
                (let ((field-table (field-table base-class))
                      (prefix (source-text (cpp-name base-class))))
                  (reduce (lambda (field-table key fields)
