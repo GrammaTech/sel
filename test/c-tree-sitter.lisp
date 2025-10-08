@@ -754,6 +754,19 @@ typedef Foo foo_t;")))
             (typedef (is (find-if (of-type 'c-type-definition) c))))
         (is (eql struct (ts::type-aliasee typedef)))))))
 
+(deftest test-attribute-identifiers-have-no-declaration-type ()
+  "Identifier in attributes should not have declaration types."
+  (let*
+      ((c (from-file
+           'c
+           (base-path-join +etc-dir-path+ "c-fragments/attribute.c")))
+       (id (find-if (lambda (ast)
+                      (and (typep ast 'c-identifier)
+                           (source-text= ast "fallthrough")))
+                    c)))
+    (with-attr-table c
+      (is (null (relevant-declaration-type id))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

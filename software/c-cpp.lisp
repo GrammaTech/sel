@@ -1103,6 +1103,12 @@ There can be multiple classes if FIELD occurs in a template."
 (defmethod relevant-declaration-type ((ast c/cpp-field-declaration))
   nil)
 
+(defmethod relevant-declaration-type ((ast c/cpp-identifier))
+  (if (typep (lookup-parent-ast (attrs-root*) ast)
+             'c/cpp-attribute)
+      nil
+      (call-next-method)))
+
 (defun infer-type-as-c/cpp-expression (obj ast)
   "Fall back to inferring the expression type from the surrounding declaration.
 

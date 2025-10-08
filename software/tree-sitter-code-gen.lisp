@@ -792,6 +792,7 @@ for the language.")
         cpp-assignment-expression)
        (:c/cpp-attributed-statement
         c-attributed-statement cpp-attributed-statement)
+       (:c/cpp-attribute c-attribute cpp-attribute)
        (:c/cpp-binary-expression c-binary-expression cpp-binary-expression)
        (:c/cpp-break-statement c-break-statement cpp-break-statement)
        (:c/cpp-call-expression c-call-expression cpp-call-expression)
