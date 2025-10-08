@@ -2934,11 +2934,14 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
     ;; Record the base classes of CLASS.
     (withf map
            class
-           (cons superclasses nil))
+           (make-inheritance-graph-entry
+            :direct-superclasses superclasses))
     ;; Record that CLASS derives from its base classes.
     (dolist (superclass superclasses)
-      (withf map superclass
-             (cons nil (list class))))
+      (withf map
+             superclass
+             (make-inheritance-graph-entry
+              :direct-subclasses (list class))))
     map))
 
 (defmethod inheritance-graph ((class cpp-type-parameter-declaration))
@@ -2946,23 +2949,7 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
   (empty-map))
 
 (defmethod inheritance-graph-lookup  ((ast cpp-type-parameter-declaration))
-  ;; TODO possible types?
-  nil)
-
-(defun call-on-real-def (fn ast default)
-  (or (if-let (real-def
-               (get-declaration-ast :type
-                                    (cpp-type ast)))
-        (unless (eql ast real-def)
-          (funcall fn real-def))
-        (warn "No class for alias ~a" ast))
-      default))
-
-(defmethod inheritance-graph ((ast cpp-type-definition))
-  (call-on-real-def #'inheritance-graph ast (empty-map)))
-
-(defmethod inheritance-graph-lookup ((ast cpp-type-definition))
-  (call-on-real-def #'inheritance-graph-lookup ast (cons nil nil)))
+  (make-inheritance-graph-entry))
 
 
 ;;; Virtual functions

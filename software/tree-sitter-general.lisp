@@ -4957,27 +4957,58 @@ Return the matching IDs."
          fields
          (keep ns fields :key #'field-ns :count count)))))
 
+(defstruct-read-only
+    (inheritance-graph-entry
+     (:conc-name inheritance-graph-entry.))
+  (direct-superclasses nil :type list)
+  (direct-subclasses nil :type list))
+
+(defmethod union ((x inheritance-graph-entry)
+                  (y inheritance-graph-entry)
+                  &key key test test-not)
+  (declare (ignore key test test-not))
+  (nest
+   (with-accessors
+         ((x.supers
+           inheritance-graph-entry.direct-superclasses)
+          (x.subs
+           inheritance-graph-entry.direct-subclasses))
+       x)
+   (with-accessors
+         ((y.supers
+           inheritance-graph-entry.direct-superclasses)
+          (y.subs
+           inheritance-graph-entry.direct-subclasses))
+       y)
+   (make-inheritance-graph-entry
+    :direct-superclasses
+    (if y.supers
+        (append x.supers y.supers)
+        x.supers)
+    :direct-subclasses
+    (if y.subs
+        (append x.subs y.subs)
+        x.subs))))
+
 (define-synthesized-attribute inheritance-graph ()
   (:documentation "Return an inheritance graph.
 The graph is an FSet map, with classes as keys, where the values are a
 cons of a list of direct superclasses, and a list of direct
 subclasses.")
-  (:union-fn
-   (lambda (x y)
-     (destructuring-bind (base-classes-1 . derived-classes-1) x
-       (destructuring-bind (base-classes-2 . derived-classes-2) y
-         (reuse-cons
-          (if base-classes-2
-              (append base-classes-1 base-classes-2)
-              base-classes-1)
-          (if derived-classes-2
-              (append derived-classes-1 derived-classes-2)
-              derived-classes-1)
-          x))))))
+  (:union-fn #'union)
+  (:method :context ((ast type-alias-ast))
+    (if-let (aliasee (type-aliasee ast))
+      (inheritance-graph aliasee)
+      (call-next-method))))
 
 (defgeneric inheritance-graph-lookup (ast)
+  (:method-combination standard/context)
   (:method ((ast ast))
-    (lookup (inheritance-graph (attrs-root*)) ast)))
+    (lookup (inheritance-graph (attrs-root*)) ast))
+  (:method :context ((ast type-alias-ast))
+    (if-let (aliasee (type-aliasee ast))
+      (inheritance-graph-lookup aliasee)
+      (call-next-method))))
 
 (declaim
  (ftype
@@ -4989,11 +5020,13 @@ subclasses.")
 
 (defun direct-superclasses (class)
   "Look up the direct superclasses of CLASS in the inheritance graph."
-  (car (inheritance-graph-lookup class)))
+  (when-let (entry (inheritance-graph-lookup class))
+    (inheritance-graph-entry.direct-superclasses entry)))
 
 (defun direct-subclasses (class)
   "Look up the direct subclasses of CLASS in the inheritance graph."
-  (cdr (inheritance-graph-lookup class)))
+  (when-let (entry (inheritance-graph-lookup class))
+    (inheritance-graph-entry.direct-subclasses entry)))
 
 (defun superclasses (class)
   "Collect the superclasses of CLASS, most-derived-first."
