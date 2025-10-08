@@ -2627,7 +2627,7 @@ line, after a comment if there is one."
 
 #+tree-sitter-cpp
 (deftest cpp-base-class-clause-backtracking ()
-  "C++ bas e clauses with alternative ASTs should have a valid output
+  "C++ base clauses with alternative ASTs should have a valid output
 transformation."
   (let* ((source "class MyClass: BaseClass {}")
          (class (cpp* source))
@@ -3396,7 +3396,7 @@ templates."
         (is (get-declaration-ids :type (cpp-type typedef)))))))
 
 (deftest test-inheritance-graph ()
-  "Inheritance graph should be accureate."
+  "Inheritance graph should be accurate."
   (let ((cpp (sel:from-string 'cpp (fmt "~
 class Underived {};
 class Derived1: Underived {};
