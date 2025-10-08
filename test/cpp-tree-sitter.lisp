@@ -3439,7 +3439,7 @@ class Unrelated {};"))))
           (is (single overrides2)))))))
 
 (deftest test-virtual-function-override ()
-  "Detect explicit overrides."
+  "virtual-functions detects explicit overrides."
   (let* ((file
            (path-join
             +test-data-dir+
@@ -3477,7 +3477,7 @@ class Unrelated {};"))))
           (is (equal '("f" "g") (declared-function-names overrides2))))))))
 
 (deftest test-virtual-function-private-override ()
-  "Private virtual functions still get overriden."
+  "virtual-functions can detect private virtual functions as overriden."
   (let* ((file
            (path-join +test-data-dir+
                       "cpp-inheritance/virtual_function_private_override.cc"))
@@ -3495,7 +3495,7 @@ class Unrelated {};"))))
           (is (equal '("do_f") (declared-function-names overrides2))))))))
 
 (deftest test-virtual-function-hiding ()
-  "Virtual functions are only overriden when the parameter lists match."
+  "virtual-functions only returns overrides when the parameter lists match."
   (let* ((file
            (path-join
             +test-data-dir+
@@ -3518,7 +3518,7 @@ class Unrelated {};"))))
           (is (equal '("f") (declared-function-names overrides-d2))))))))
 
 (deftest test-superclass-method-lookup ()
-  "Looking up a method in a superclass should work even if it is defined in a transitive superclass."
+  "get-declaration-ast can look up a method in a superclass even if it is defined in a transitive superclass."
   (let ((cc (path-join +test-data-dir+ "cpp-inheritance/superclass_lookup.cc")))
     (with-attr-table (from-file 'cpp cc)
       (let ((call-ast (find-if (of-type 'call-ast) (attrs-root*))))
