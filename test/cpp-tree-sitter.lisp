@@ -3457,6 +3457,25 @@ class Unrelated {};"))))
           (is (null virtuals2))
           (is (equal '("f") (declared-function-names overrides2))))))))
 
+(deftest test-virtual-function-multi-override ()
+  "Handle multiple overrides declared in one declaration."
+  (let* ((file
+           (path-join
+            +test-data-dir+
+            "cpp-inheritance/virtual_function_multi_override.cc"))
+         (cpp (from-file 'cpp file)))
+    (destructuring-bind (class1 class2)
+        (collect-if (of-type 'c/cpp-classoid-specifier) cpp)
+      (with-attr-table cpp
+        (mvlet* ((virtuals1 overrides1
+                  (virtual-functions class1))
+                 (virtuals2 overrides2
+                  (virtual-functions class2)))
+          (is (equal '("f" "g") (declared-function-names virtuals1)))
+          (is (null overrides1))
+          (is (null virtuals2))
+          (is (equal '("f" "g") (declared-function-names overrides2))))))))
+
 (deftest test-virtual-function-private-override ()
   "Private virtual functions still get overriden."
   (let* ((file
