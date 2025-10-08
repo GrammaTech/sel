@@ -1,5 +1,5 @@
-";;;; tree-sitter-general.lisp --- general code for tree-sitter representations.
-";;; Dummy Package
+;;;; tree-sitter-general.lisp --- general code for tree-sitter representations.
+;;; Dummy Package
 (defpackage :software-evolution-library/software/tree-sitter-general
   (:nicknames :sel/software/ts-general :sel/sw/ts-general)
   (:use :gt/full
