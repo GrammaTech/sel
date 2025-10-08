@@ -540,8 +540,8 @@ available, or from a predefined list."
                        (default-predefined-macros compiler))
                  (cmd:cmd-error ()
                    (default-predefined-macros compiler)))))
-      ;; Since cached-macros is an FSet map, we can use double-checked
-      ;; locking here to avoid taking a lock for every read.
+      ;; Since cached-macros is an immutable FSet map, the binding is
+      ;; a change of memory addresses without a data race.
       (or (@ cached-macros compiler)
           (synchronized ()
             (or (@ cached-macros compiler)
