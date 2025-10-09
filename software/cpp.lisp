@@ -1948,7 +1948,12 @@ types."
   (:method ((type cpp-enum-specifier))
     nil)
   (:method ((type type-alias-ast))
-    (cpp::list-all-constructors (type-aliasee type)))
+    (if-let (aliasee (type-aliasee type))
+      (cpp::list-all-constructors aliasee)
+      (progn
+        (warn "Could not find aliasee for ~a when listing constructors"
+              type)
+        nil)))
   (:method ((class c/cpp-classoid-specifier))
     (append
      (filter #'cpp::constructorp
@@ -2007,7 +2012,9 @@ constructor OR a default constructor.")
       (or (no ctors)
           (notevery #'cpp::method-deleted-p ctors))))
   (:method ((ast type-alias-ast))
-    (cpp::type-constructible-p (type-aliasee ast)))
+    (if-let (aliasee (type-aliasee ast))
+      (cpp::type-constructible-p aliasee)
+      (call-next-method)))
   (:method ((ast t))
     (when-let ((type-ast (get-declaration-ast :type ast)))
       (unless (eql type-ast ast)

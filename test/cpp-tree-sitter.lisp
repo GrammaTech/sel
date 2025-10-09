@@ -1967,6 +1967,14 @@ using foo_t = Foo;")))
         (is (equal? (direct-field-table class)
                     (direct-field-table alias)))))))
 
+(deftest test-typedef-missing-aliasee ()
+  (let ((cpp (cpp* "typedef Foo foo;")))
+    (is (typep cpp 'type-alias-ast))
+    (with-attr-table cpp
+      (finishes (cpp::list-all-constructors cpp))
+      (finishes (cpp::type-constructible-p cpp))
+      (finishes (cpp::has-constructor-defined-p cpp)))))
+
 (deftest test-template-call-specializations ()
   "Template function calls should be assigned to the proper template."
   (let ((cpp (from-file
