@@ -1571,6 +1571,17 @@ int myfun(int x, int y) {
                (exception-set
                 (find-if (of-type 'cpp-try-statement) cpp)))))))
 
+(deftest test-exception-set/virtual ()
+  "Exception sets should take into account virtual overloads."
+  (let* ((path
+           (path-join +test-data-dir+ "cpp-tree-sitter/virtual_exception_set.cc"))
+         (cpp (from-file 'cpp path))
+         (call (lastcar (collect-if (of-type 'call-ast) cpp))))
+    (with-attr-table cpp
+      (is (match (exception-set call)
+            ((list 'or _)
+             t))))))
+
 (defun infer-type/standalone (x)
   "Infer the type of X by itself."
   (with-attr-table x

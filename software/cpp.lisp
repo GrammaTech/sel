@@ -2375,6 +2375,21 @@ instance we only want to remove one).")
       (if-let (body (cpp-body ast))
         (exception-set body)
         +exception-bottom-type+)))
+    ((cpp::virtual-method-overrides ast)
+     (let* ((others (remove ast found))
+            (ours (cpp-body ast))
+            (all
+              (if ours
+                  (cons ours others)
+                  others)))
+       (cond ((null all)
+              +exception-bottom-type+)
+             ((single all)
+              (exception-set (only-elt all)))
+             (t
+              (reduce #'exception-set-union
+                      all
+                      :key #'exception-set)))))
     ((cpp-body ast)
      (exception-set found))
     ((find-if (of-type 'cpp-default-method-clause) ast)
@@ -2998,9 +3013,9 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 ;;; Virtual functions
 
 (defun cpp::virtual-method-overrides (method)
-  (let* ((class (find-enclosing 'class-ast (attrs-root*) method))
-         (virtuals (virtual-functions class))
-         (decls (cpp::field-method-declarators method)))
+  (when-let* ((class (find-enclosing 'class-ast (attrs-root*) method))
+              (virtuals (virtual-functions class))
+              (decls (cpp::field-method-declarators method)))
     (when (subsetp decls virtuals)
       (let ((keys (mapcar #'cpp::virtual-function-key decls)))
         (iter outer
