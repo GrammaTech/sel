@@ -3017,14 +3017,15 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
               (virtuals (virtual-functions class))
               (decls (cpp::field-method-declarators method)))
     (when (subsetp decls virtuals)
-      (let ((keys (mapcar #'cpp::virtual-function-key decls)))
+      (let ((keys (filter-map #'cpp::virtual-function-key decls)))
         (iter outer
               (for subclass in (subclasses class))
               (for overrides = (nth-value 1 (virtual-functions subclass)))
               (iter (for override in overrides)
                     (for override-key
                          = (cpp::virtual-function-key override))
-                    (when (member override-key keys :test #'equal?)
+                    (when (and override-key
+                               (member override-key keys :test #'equal?))
                       (in outer (collecting override)))))))))
 
 (defmethod c/cpp-function-declaration-definitions ((ast cpp-ast) &key root)
@@ -3055,6 +3056,9 @@ definitions."
   (:documentation "Extract the virtual function key from AST.
 The virtual function AST contains the information necessary to
 determine if a definition overrides a virtual method.")
+  (:method ((ast ast))
+    (warn "Unsupported virtual function key: ~a" ast)
+    nil)
   (:method ((fn cpp-function-definition))
     (cpp::virtual-function-key (cpp-declarator fn)))
   (:method ((decl cpp-declaration))
@@ -3138,7 +3142,8 @@ determine if a definition overrides a virtual method.")
 (defmethod virtual-functions ((class c/cpp-classoid-specifier))
   (let* ((virtuals-set
            (iter (for v in (inherited-virtual-functions class))
-                 (set-collect (cpp::virtual-function-key v))))
+                 (when-let (key (cpp::virtual-function-key v))
+                   (set-collect key))))
          (declarators
            (cpp::class-method-declarators class))
          (methods
