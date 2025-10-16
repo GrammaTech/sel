@@ -1468,6 +1468,7 @@ include files in all directories of the project."
                 in))))))))
 
 (defun header-symbol-table-in (header)
+  "Compute the initial symbol table for a header."
   (labels ((ensure-header-implicit-header (header)
              "Get the implicit header for a header. This has to be cached or
               symbol-table will diverge."
