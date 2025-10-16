@@ -459,7 +459,8 @@ This is the value of `-isysroot', or the value of `--sysroot' if
                sysroot)
               ((list* _ rest)
                (rec rest sysroot))))))
-    (econd ((null sysroot) sysroot)
+    (econd
+      ((null sysroot) sysroot)
       ((absolute-pathname-p sysroot)
        sysroot)
       ((relative-pathname-p sysroot)
