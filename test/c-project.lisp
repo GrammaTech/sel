@@ -307,131 +307,133 @@
                               (string^= "doesnt-exist" _1)))
                      (project-dependency-tree *project*))))))
 
-(labels ((sysroot-project-path ()
-           (base-path-join +etc-dir-path+ "c-sysroot"))
-         (get-sysroot-project ()
-           (from-file 'c-project (sysroot-project-path)))
-         (sysroot-project-resolved-p (project)
-           (with-attr-table project
-             (and-let* ((hello.c (evolve-files-ref project "hello.c"))
-                        (symtab
-                         (symbol-table (genome hello.c)))
-                        (vars (@ symtab :variable)))
-               (@ vars "SOME_HEADER_VAR")))))
+(defun get-sysroot-project ()
+  "Load and return the c-sysroot test project."
+  (from-file 'c-project (base-path-join +etc-dir-path+ "c-sysroot")))
 
-  (deftest c-project-no-sysroot ()
-    "System headers that rely on a sysroot to resolve shouldn't be resolved without it."
-    (let (c/cpp-project::*system-header-cache*)
-      (with-temporary-directory-of-project
-          ((get-sysroot-project) :pathname d)
-        (delete-file (path-join d "compile_commands.json"))
-        (let ((project (from-file 'c-project d)))
-          (is (not (sysroot-project-resolved-p project)))))))
+(defun sysroot-project-resolved-p (project)
+  "Check that the symbol table in PROJECT, a variation of the c-sysroot
+project, is correct."
+  (with-attr-table project
+    (and-let* ((hello.c (evolve-files-ref project "hello.c"))
+               (symtab
+                (symbol-table (genome hello.c)))
+               (vars (@ symtab :variable)))
+      (@ vars "SOME_HEADER_VAR"))))
 
-  (deftest c-project-sysroot-from-command-object ()
-    "System headers should be resolved relative to the command object sysroot."
-    (let (c/cpp-project::*system-header-cache*)
-      (with-temporary-directory-of-project ((get-sysroot-project) :pathname d)
-        (let ((db (path-join d "compile_commands.json")))
-          (is (file-exists-p db))
-          ;; Rewrite the sysroot argument to point into the test
-          ;; directory on this machine.
-          (write-string-into-file
-           (ppcre:regex-replace-all
-            "/nowhere"
-            (read-file-into-string db)
-            (namestring +etc-dir-path+))
-           db
-           :if-exists :supersede))
-        (is (sysroot-project-resolved-p (from-file 'c-project d))))))
+(deftest c-project-no-sysroot ()
+  "System headers that rely on a sysroot to resolve shouldn't be resolved without it."
+  (let (c/cpp-project::*system-header-cache*)
+    (with-temporary-directory-of-project
+        ((get-sysroot-project) :pathname d)
+      (delete-file (path-join d "compile_commands.json"))
+      (let ((project (from-file 'c-project d)))
+        (is (not (sysroot-project-resolved-p project)))))))
 
-  (deftest c-project-sysroot-from-project/bad ()
-    "Expected failure if the project sysroot is invalid."
-    (mvlet*
-        ((c/cpp-project::*system-header-cache*)
-         (project (get-sysroot-project))
-         (bad-project
-          (with-temporary-directory-of-project (project :pathname d)
-            ;; Delete the compilation database so only the project
-            ;; sysroot is used.
-            (delete-file (path-join d "compile_commands.json"))
-            (from-file
-             (make 'c-project
-                   :isysroot
-                   "/doesnt/exist/")
-             d))))
-      (is (not (compilation-database bad-project)))
-      (is (not (sysroot-project-resolved-p bad-project)))))
+(deftest c-project-sysroot-from-command-object ()
+  "System headers should be resolved relative to the command object sysroot."
+  (let (c/cpp-project::*system-header-cache*)
+    (with-temporary-directory-of-project ((get-sysroot-project) :pathname d)
+      (let ((db (path-join d "compile_commands.json")))
+        (is (file-exists-p db))
+        ;; Rewrite the sysroot argument to point into the test
+        ;; directory on this machine.
+        (write-string-into-file
+         (ppcre:regex-replace-all
+          "/nowhere"
+          (read-file-into-string db)
+          (namestring +etc-dir-path+))
+         db
+         :if-exists :supersede))
+      (is (sysroot-project-resolved-p (from-file 'c-project d))))))
 
-  (deftest c-project-sysroot-from-project/good ()
-    "System headers should be resolved relative to the project sysroot."
-    (mvlet*
-        ((c/cpp-project::*system-header-cache*)
-         (project (get-sysroot-project))
-         (good-project
-          (with-temporary-directory-of-project (project :pathname d)
-            ;; Delete the compilation database so only the project
-            ;; sysroot is used.
-            (delete-file (path-join d "compile_commands.json"))
-            (from-file
-             (make 'c-project
-                   :isysroot
-                   (namestring
-                    (base-path-join
-                     +etc-dir-path+
-                     "c-sysroot-sysroot/")))
-             d))))
-      (is (not (compilation-database good-project)))
-      (is (sysroot-project-resolved-p good-project))))
+(deftest c-project-sysroot-from-project/bad ()
+  "Expected failure if the project sysroot is invalid."
+  (mvlet*
+      ((c/cpp-project::*system-header-cache*)
+       (project (get-sysroot-project))
+       (bad-project
+        (with-temporary-directory-of-project (project :pathname d)
+          ;; Delete the compilation database so only the project
+          ;; sysroot is used.
+          (delete-file (path-join d "compile_commands.json"))
+          (from-file
+           (make 'c-project
+                 :isysroot
+                 "/doesnt/exist/")
+           d))))
+    (is (not (compilation-database bad-project)))
+    (is (not (sysroot-project-resolved-p bad-project)))))
 
-  (deftest c-project-sysroot-from-db-and-project/bad ()
-    "Expected failure when project isysroot is invalid, even when the commands
+(deftest c-project-sysroot-from-project/good ()
+  "System headers should be resolved relative to the project sysroot."
+  (mvlet*
+      ((c/cpp-project::*system-header-cache*)
+       (project (get-sysroot-project))
+       (good-project
+        (with-temporary-directory-of-project (project :pathname d)
+          ;; Delete the compilation database so only the project
+          ;; sysroot is used.
+          (delete-file (path-join d "compile_commands.json"))
+          (from-file
+           (make 'c-project
+                 :isysroot
+                 (namestring
+                  (base-path-join
+                   +etc-dir-path+
+                   "c-sysroot-sysroot/")))
+           d))))
+    (is (not (compilation-database good-project)))
+    (is (sysroot-project-resolved-p good-project))))
+
+(deftest c-project-sysroot-from-db-and-project/bad ()
+  "Expected failure when project isysroot is invalid, even when the commands
 also have a sysroot."
-    (mvlet*
-        ((c/cpp-project::*system-header-cache*)
-         (project (get-sysroot-project))
-         (bad-project
-          (with-temporary-directory-of-project (project :pathname d)
-            (let ((db (path-join d "compile_commands.json")))
-              (is (file-exists-p db))
-              ;; Remove the nowhere/ prefix.
-              (write-string-into-file
-               (string-replace-all
-                "/nowhere"
-                (read-file-into-string db)
-                "")
-               db
-               :If-exists :supersede))
-            (values
-             (from-file
-              (make 'c-project :isysroot "/doesnt/exist")
-              d)))))
-      (is (compilation-database bad-project))
-      (is (not (sysroot-project-resolved-p bad-project)))))
+  (mvlet*
+      ((c/cpp-project::*system-header-cache*)
+       (project (get-sysroot-project))
+       (bad-project
+        (with-temporary-directory-of-project (project :pathname d)
+          (let ((db (path-join d "compile_commands.json")))
+            (is (file-exists-p db))
+            ;; Remove the nowhere/ prefix.
+            (write-string-into-file
+             (string-replace-all
+              "/nowhere"
+              (read-file-into-string db)
+              "")
+             db
+             :If-exists :supersede))
+          (values
+           (from-file
+            (make 'c-project :isysroot "/doesnt/exist")
+            d)))))
+    (is (compilation-database bad-project))
+    (is (not (sysroot-project-resolved-p bad-project)))))
 
-  (deftest c-project-sysroot-from-db-and-project/good ()
-    "Test that isysroot from a project is prefixed to --isysroot in the DB
+(deftest c-project-sysroot-from-db-and-project/good ()
+  "Test that isysroot from a project is prefixed to --isysroot in the DB
 arguments."
-    (mvlet*
-        ((c/cpp-project::*system-header-cache*)
-         (project (get-sysroot-project))
-         (good-project
-          (with-temporary-directory-of-project (project :pathname d)
-            (let ((db (path-join d "compile_commands.json")))
-              (is (file-exists-p db))
-              ;; Remove the nowhere/ prefix.
-              (write-string-into-file
-               (string-replace-all
-                "/nowhere"
-                (read-file-into-string db)
-                "")
-               db
-               :If-exists :supersede))
-            (from-file
-             (make 'c-project :isysroot (namestring +etc-dir-path+))
-             d))))
-      (is (compilation-database good-project))
-      (is (sysroot-project-resolved-p good-project)))))
+  (mvlet*
+      ((c/cpp-project::*system-header-cache*)
+       (project (get-sysroot-project))
+       (good-project
+        (with-temporary-directory-of-project (project :pathname d)
+          (let ((db (path-join d "compile_commands.json")))
+            (is (file-exists-p db))
+            ;; Remove the nowhere/ prefix.
+            (write-string-into-file
+             (string-replace-all
+              "/nowhere"
+              (read-file-into-string db)
+              "")
+             db
+             :If-exists :supersede))
+          (from-file
+           (make 'c-project :isysroot (namestring +etc-dir-path+))
+           d))))
+    (is (compilation-database good-project))
+    (is (sysroot-project-resolved-p good-project))))
 
 
 ;;; Symbol Table
