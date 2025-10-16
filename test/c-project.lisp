@@ -334,16 +334,15 @@
       (with-temporary-directory-of-project ((get-sysroot-project) :pathname d)
         (let ((db (path-join d "compile_commands.json")))
           (is (file-exists-p db))
-          (let ((str (read-file-into-string db)))
-            ;; Rewrite the sysroot argument to point into the test
-            ;; directory on this machine.
-            (write-string-into-file
-             (ppcre:regex-replace-all
-              "/nowhere"
-              str
-              (namestring +etc-dir-path+))
-             db
-             :if-exists :supersede)))
+          ;; Rewrite the sysroot argument to point into the test
+          ;; directory on this machine.
+          (write-string-into-file
+           (ppcre:regex-replace-all
+            "/nowhere"
+            (read-file-into-string db)
+            (namestring +etc-dir-path+))
+           db
+           :if-exists :supersede))
         (is (sysroot-project-resolved-p (from-file 'c-project d))))))
 
   (deftest c-project-sysroot-from-project/bad ()
@@ -395,12 +394,14 @@ also have a sysroot."
           (with-temporary-directory-of-project (project :pathname d)
             (let ((db (path-join d "compile_commands.json")))
               (is (file-exists-p db))
-              (let ((str (read-file-into-string db)))
-                ;; Remove the nowhere/ prefix.
-                (write-string-into-file
-                 (string-replace-all "/nowhere" str "")
-                 db
-                 :If-exists :supersede)))
+              ;; Remove the nowhere/ prefix.
+              (write-string-into-file
+               (string-replace-all
+                "/nowhere"
+                (read-file-into-string db)
+                "")
+               db
+               :If-exists :supersede))
             (values
              (from-file
               (make 'c-project :isysroot "/doesnt/exist")
@@ -418,12 +419,14 @@ arguments."
           (with-temporary-directory-of-project (project :pathname d)
             (let ((db (path-join d "compile_commands.json")))
               (is (file-exists-p db))
-              (let ((str (read-file-into-string db)))
-                ;; Remove the nowhere/ prefix.
-                (write-string-into-file
-                 (string-replace-all "/nowhere" str "")
-                 db
-                 :If-exists :supersede)))
+              ;; Remove the nowhere/ prefix.
+              (write-string-into-file
+               (string-replace-all
+                "/nowhere"
+                (read-file-into-string db)
+                "")
+               db
+               :If-exists :supersede))
             (from-file
              (make 'c-project :isysroot (namestring +etc-dir-path+))
              d))))
