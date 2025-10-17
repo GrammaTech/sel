@@ -1950,10 +1950,8 @@ types."
   (:method ((type type-alias-ast))
     (if-let (aliasee (type-aliasee type))
       (cpp::list-all-constructors aliasee)
-      (progn
-        (warn "Could not find aliasee for ~a when listing constructors"
-              type)
-        nil)))
+      (warn "Could not find aliasee for ~a when listing constructors"
+            type)))
   (:method ((class c/cpp-classoid-specifier))
     (append
      (filter #'cpp::constructorp
