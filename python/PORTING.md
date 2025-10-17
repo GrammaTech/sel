@@ -293,3 +293,8 @@ This aids in reproducibility/tracing of issues in older releases.
 | tree-sitter-python     | 24b530ca |
 | tree-sitter-typescript | 1b3ba31c |
 | tree-sitter-rust       | 36ae187e |
+
+## v0.9.0 -> v 0.10.10
+
+- Support for connecting to an already running SBCL image when
+  `ASTS_REMOTE_SEL_PORT` is set before `asts` is imported.
