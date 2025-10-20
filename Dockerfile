@@ -2,8 +2,6 @@ ARG CCL_VERSION=1.13
 ARG SBCL_VERSION=2.5.7
 
 FROM ubuntu:22.04
-ARG CCL_VERSION
-ARG SBCL_VERSION
 
 # Install required system packages
 RUN export DEBIAN_FRONTEND=noninteractive
@@ -25,7 +23,8 @@ RUN npm install --global prettier
 RUN python -m pip install --upgrade pip && \
     python -m pip install pytest yapf
 
-# # Install Clozure
+# Install Clozure
+ARG CCL_VERSION
 RUN mkdir /usr/share/ccl
 RUN git clone --depth=1 --branch=v${CCL_VERSION} https://github.com/Clozure/ccl.git /usr/share/ccl
 RUN curl -L https://github.com/Clozure/ccl/releases/download/v${CCL_VERSION}/linuxx86.tar.gz \
@@ -43,6 +42,7 @@ RUN chmod a+x /usr/bin/ccl
 # <2.2.6 (such as the version included in the Ubuntu 22 APT
 # repositories) cannot be used to bootstrap newer SBCL versions, so we
 # bootstrap with Clozure CL.
+ARG SBCL_VERSION
 RUN rm -rf /root/sbcl && \
     git clone --depth=1 --branch sbcl-${SBCL_VERSION} https://git.code.sf.net/p/sbcl/sbcl \
     /root/sbcl
