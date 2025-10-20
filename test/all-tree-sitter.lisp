@@ -1,4 +1,4 @@
-;;;; all-tree-sitter.lisp --- C tree-sitter representation.
+;;;; all-tree-sitter.lisp --- All tree-sitter representations.
 (defpackage :software-evolution-library/test/all-tree-sitter
   (:nicknames :sel/test/all-tree-sitter :sel/test/all-ts)
   (:use
@@ -15,3 +15,6 @@
 (in-package :software-evolution-library/test/all-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-all-tree-sitter "All tree-sitter languages representation." nil)
+
+;;; This package exists just to ensure we can actually load all the
+;;; tree-sitter representations.
