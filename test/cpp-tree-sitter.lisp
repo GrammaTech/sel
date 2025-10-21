@@ -1571,16 +1571,71 @@ int myfun(int x, int y) {
                (exception-set
                 (find-if (of-type 'cpp-try-statement) cpp)))))))
 
-(deftest test-exception-set/virtual ()
-  "Exception sets should take into account virtual overloads."
-  (let* ((path
-           (path-join +test-data-dir+ "cpp-tree-sitter/virtual_exception_set.cc"))
-         (cpp (from-file 'cpp path))
-         (call (lastcar (collect-if (of-type 'call-ast) cpp))))
+(defun last-call-exception-set-exceptions (cpp)
+  "Return the exception set, as a list, of the last call AST in CPP."
+  (let* ((call (lastcar (collect-if (of-type 'call-ast) cpp))))
     (with-attr-table cpp
-      (is (match (exception-set call)
-            ((list 'or _)
-             t))))))
+      (ematch (exception-set call)
+        ((list* 'or exceptions)
+         exceptions)))))
+
+(deftest test-virtual-function-exception-set/base-throws ()
+  "A nonthrowing override shouldn't hide a throwing base method."
+  (nest
+   (is)
+   (last-call-exception-set-exceptions)
+   (from-file 'cpp)
+   (path-join +test-data-dir+)
+   "cpp-tree-sitter/virtual_exception_set_base_throws.cc"))
+
+(deftest test-virtual-function-exception-set/override-throws ()
+  "Virtual function exception sets should include overrides."
+  (nest
+   (is)
+   (last-call-exception-set-exceptions)
+   (from-file 'cpp)
+   (path-join +test-data-dir+)
+   "cpp-tree-sitter/virtual_exception_set_override_throws.cc"))
+
+(deftest test-virtual-function-exception-set/override-throws/out-of-class ()
+  "Virtual function exception sets should include out-of-class override
+definitions."
+  (nest
+   (is)
+   (last-call-exception-set-exceptions)
+   (from-file 'cpp)
+   (path-join +test-data-dir+)
+   "cpp-tree-sitter/virtual_exception_set_override_throws_out_of_class.cc"))
+
+(deftest test-virtual-function-exception-set/pure ()
+  "Virtual function exception sets should include overrides of pure
+virtual functions."
+  (nest
+   (is)
+   (last-call-exception-set-exceptions)
+   (from-file 'cpp)
+   (path-join +test-data-dir+)
+   "cpp-tree-sitter/virtual_exception_set_pure.cc"))
+
+(deftest test-virtual-function-exception-set/pure-with-implementation ()
+  "Virtual function exception sets should not be affected by pure virtual
+function out-of-class implementations."
+  (nest
+   (is)
+   (last-call-exception-set-exceptions)
+   (from-file 'cpp)
+   (path-join +test-data-dir+)
+   "cpp-tree-sitter/virtual_exception_set_pure_with_implementation.cc"))
+
+(deftest test-exception-set/pure-with-implementation/throws ()
+  "Virtual function exception sets should include throws in pure virtual
+function out-of-class implementations."
+  (nest
+   (is)
+   (last-call-exception-set-exceptions)
+   (from-file 'cpp)
+   (path-join +test-data-dir+)
+   "cpp-tree-sitter/virtual_exception_set_pure_with_implementation_throws.cc"))
 
 (defun infer-type/standalone (x)
   "Infer the type of X by itself."
@@ -1763,6 +1818,7 @@ textual order."
          (classes (collect-if (of-type 'cpp-struct-specifier) cpp)))
     (with-attr-table cpp
       (destructuring-bind (base derived derived2) classes
+        (declare (ignore base))
         (let ((dft (direct-field-table derived)))
           (is (@ dft "b"))
           (is (not (@ dft "a")))

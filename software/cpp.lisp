@@ -2375,21 +2375,14 @@ instance we only want to remove one).")
       (if-let (body (cpp-body ast))
         (exception-set body)
         +exception-bottom-type+)))
-    ((cpp::virtual-method-overrides ast)
-     (let* ((others (remove ast found))
-            (ours (cpp-body ast))
-            (all
-              (if ours
-                  (cons ours others)
-                  others)))
-       (cond ((null all)
-              +exception-bottom-type+)
-             ((single all)
-              (exception-set (only-elt all)))
-             (t
-              (reduce #'exception-set-union
-                      all
-                      :key #'exception-set)))))
+    ((cpp::virtual-method-definitions ast)
+     (reduce #'exception-set-union
+             (remove ast found)
+             :key #'exception-set
+             :initial-value
+             (if (cpp-body ast)
+                 (exception-set (cpp-body ast))
+                 +exception-bottom-type+)))
     ((cpp-body ast)
      (exception-set found))
     ((find-if (of-type 'cpp-default-method-clause) ast)
@@ -2856,6 +2849,21 @@ available to use at any point in a C++ AST.")
              ast
              (call-next-method))))))
 
+(defun cpp::absolute-name (ast &key (source-text (source-text ast)))
+  "Resolve AST into an absolute (relative to global namespace) name."
+  (let* ((namespace (namespace ast))
+         (implicit (split "::" namespace))
+         (parts (split "::" source-text))
+         (explicit
+           (append
+            (and (string^= "::" source-text)
+                 (list :global))
+            (butlast parts)))
+         (combined
+           (combine-namespace-qualifiers explicit implicit)))
+    (string-join (append1 combined (lastcar parts))
+                 "::")))
+
 (defmethod qualify-declared-ast-name/namespaces ((declared-ast cpp-ast))
   (labels ((enough-source-text (declared-ast)
              "Get enough of the source text of DECLARED-AST.
@@ -2868,19 +2876,10 @@ available to use at any point in a C++ AST.")
              (or (declarator-name declared-ast)
                  (source-text-take 2048 declared-ast)))
            (qualify-declared-ast-name (declared-ast)
-             (let* ((source-text (enough-source-text declared-ast))
-                    (namespace (namespace declared-ast))
-                    (implicit (split "::" namespace))
-                    (parts (split "::" source-text))
-                    (explicit
-                      (append
-                       (and (string^= "::" source-text)
-                            (list :global))
-                       (butlast parts)))
-                    (combined
-                      (combine-namespace-qualifiers explicit implicit)))
-               (string-join (append1 combined (lastcar parts))
-                            "::"))))
+             (cpp::absolute-name
+              declared-ast
+              :source-text
+              (enough-source-text declared-ast))))
     (canon-string
      (if (macro-name? declared-ast)
          (enough-source-text declared-ast)
@@ -3028,12 +3027,75 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
                                (member override-key keys :test #'equal?))
                       (in outer (collecting override)))))))))
 
+(defgeneric lookup-out-of-class-definition (class name-ast)
+  (:documentation "Look up the out-of-class definition of NAME-AST.")
+  (:method ((class (eql :enclosing)) name-ast)
+    (lookup-out-of-class-definition
+     (find-enclosing 'c/cpp-classoid-specifier
+                     (attrs-root*)
+                     name-ast)
+     name-ast))
+  (:method ((class c/cpp-classoid-specifier) (name-ast cpp-ast))
+    (when-let* ((out-of-class-defs
+                 (lookup
+                  (cpp::out-of-class-function-definitions (attrs-root*))
+                  class)))
+      (find (cpp::absolute-name name-ast)
+            out-of-class-defs
+            :key (op (cpp::absolute-name (definition-name-ast _)))
+            :test #'equal))))
+
+(defun cpp::virtual-method-override-definitions (virtual-method)
+  "Return the definitions of any overrides of VIRTUAL-METHOD."
+  (labels ((lookup-override-definition (override)
+             (when-let*
+                 ((class
+                   (find-enclosing 'c/cpp-classoid-specifier (attrs-root*)
+                                   override)))
+               (lookup-out-of-class-definition
+                class
+                (declarator-name-ast override)))))
+    (iter
+      (for override in (cpp::virtual-method-overrides virtual-method))
+      (if-let (fn (or (find-enclosing 'cpp-function-definition
+                                      (attrs-root*)
+                                      override)
+                      (lookup-override-definition override)))
+        (collect fn)
+        (warn "No definition for override ~a of ~a" override virtual-method)))))
+
+(defgeneric cpp::virtual-method-definitions (virtual-method)
+  (:documentation
+   "Collect all definitions of VIRTUAL-METHOD.
+This differs from `cpp::virtual-method-override-definitions' in that
+it includes VIRTUAL-METHOD itself, if it is a definition, or, if
+VIRTUAL-METHOD is a pure virtual method declaration, then its
+out-of-class definition, assuming it has one.")
+  (:method ((virtual-method cpp-function-definition))
+    (cons virtual-method
+          (cpp::virtual-method-override-definitions virtual-method)))
+  ;; The virtual method is pure.
+  (:method ((virtual-method cpp-field-declaration))
+    (let ((overrides
+            (cpp::virtual-method-override-definitions virtual-method)))
+      ;; The virtual method is pure, but it might still
+      ;; have an out of class definition.
+      (if-let (definition
+               (lookup-out-of-class-definition
+                :enclosing
+                ;; It's not possible to have more than one declarator
+                ;; in the pure virtual function declaration.
+                (declarator-name-ast
+                 (only-elt (cpp-declarator virtual-method)))))
+        (cons definition overrides)
+        overrides))))
+
 (defmethod c/cpp-function-declaration-definitions ((ast cpp-ast) &key root)
   "If AST is a virtual function declaration, collect its overrides as its
 definitions."
   (declare (ignore root))
   (if (cpp::declared-virtual-p ast)
-      (cpp::virtual-method-overrides ast)
+      (cpp::virtual-method-definitions ast)
       (call-next-method)))
 
 (defun cpp::declared-virtual-p (ast)
