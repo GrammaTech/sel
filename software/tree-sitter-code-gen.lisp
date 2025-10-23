@@ -2663,6 +2663,15 @@ tree-sitter.")
          ;; argument list.
          ((:TYPE . "CHOICE")
           (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING"))))))
+       (:field-declaration-list
+        (:replace
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . ",")) ((:TYPE . "BLANK"))))
+         :with
+         ;; Put blank first to avoid generating a comma in an empty
+         ;; argument list.
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "BLANK")) ((:VALUE . ",") (:TYPE . "STRING"))))))
        (:let-declaration
         (:label
          ((:TYPE . "CHOICE")

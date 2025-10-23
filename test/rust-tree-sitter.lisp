@@ -450,6 +450,10 @@ source text."
                    (convert 'rust-ast "fn f((a,): (i32,)) -> Self {}"))))
     (is (source-text= tuple-type expected))))
 
+(deftest rust-empty-field-declaration-list-no-comma ()
+  "A Rust declaration list with no children should not have a comma."
+  (is (equal "{}" (source-text (make 'rust-field-declaration-list :children nil)))))
+
 
 ;;; Parsing tests.
 
