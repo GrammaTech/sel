@@ -648,6 +648,7 @@ RIGHT_CURLY")
                sorted-children))))
 
 (deftest test-call-function-p ()
+ "call-function-p returns the call ast as the truthy value."
   (let* ((ast (c* "{ fn1(arg); fn2(arg); fn3(arg); }"))
          (calls (is (collect-if (of-type 'call-ast) ast))))
     (is (length= calls 3))
