@@ -646,3 +646,12 @@ RIGHT_CURLY")
          (shuffled-children (reshuffle sorted-children)))
     (is (equal (sort-descendants ast shuffled-children)
                sorted-children))))
+
+(deftest test-call-function-p ()
+  (let* ((ast (c* "{ fn1(arg); fn2(arg); fn3(arg); }"))
+         (calls (is (collect-if (of-type 'call-ast) ast))))
+    (is (length= calls 3))
+    (attrs:with-attr-table ast
+      (dolist (call calls)
+        (is (not (call-function-p call)))
+        (is (eql call (call-function-p (call-function call))))))))

@@ -640,14 +640,16 @@ argument destructuring (e.g. ECMAScript).")
   (:documentation
    "Is AST the function being called by an enclosing functional call?
 
-    (let ((ast (c* \"fn(arg)\"))
-      (call-function-p (call-function ast))))
-    => T")
+    (let ((ast (c* \"fn(arg)\")))
+      (with-attr-table ast
+        (call-function-p (call-function ast))))
+    => #<C-CALL-EXPRESSION :TEXT \"fn(arg)\">")
   (:method ((ast ast))
     (match (get-parent-ast (attrs-root*) ast)
-      ((call-ast
-        (call-function (eql ast)))
-       t))))
+      ((and call
+            (call-ast
+             (call-function (eql ast))))
+       call))))
 
 (defgeneric call-name (call-ast)
   (:documentation "Return the name of CALL-AST.")
