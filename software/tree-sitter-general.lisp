@@ -5076,7 +5076,9 @@ subclasses.")
            (direct-subclasses class)))
 
 (def-attr-fun virtual-functions ()
-  "Return the virtual functions and overrides of a class (as two values).")
+  "Return the virtual functions and overrides of a class (as two values)."
+  (:method ((alias type-alias-ast))
+    (virtual-functions (resolve-type-aliasee alias))))
 
 (def-attr-fun inherited-virtual-functions ()
   "Return the virtual functions visible to a class."

@@ -3715,6 +3715,21 @@ class Unrelated {};"))))
     (is (= (length (children decl)) 2))
     (finishes (outer-declarations decl))))
 
+(deftest test-alias-virtual-functions ()
+  "Querying virtual functions should work for aliases."
+  (let* ((cpp
+           (from-file 'cpp
+                      (path-join +test-data-dir+
+                                 "cpp-tree-sitter/alias_virtual_functions.cc")))
+         (class (is (find-if (of-type 'class-ast) cpp)))
+         (alias (is (find-if (of-type 'cpp-alias-declaration) cpp)))
+         (typedef (is (find-if (of-type 'cpp-type-definition) cpp))))
+    (with-attr-table cpp
+      (is (equal*
+           (virtual-functions class)
+           (virtual-functions alias)
+           (virtual-functions typedef))))))
+
 
 ;;; Module tests
 
