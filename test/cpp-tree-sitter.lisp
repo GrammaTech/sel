@@ -3696,14 +3696,23 @@ class Unrelated {};"))))
 
 (deftest test-inherit-from-typedef ()
   "Inheriting from a typedef should work."
-  (let ((cpp (from-file 'cpp
-                        (path-join +test-data-dir+
-                                   "cpp-tree-sitter/inherit_from_typedef.cc"))))
+  (let ((cpp (load-test-file "cpp-tree-sitter/inherit_from_typedef.cc")))
     (with-attr-table cpp
       (symbol-table cpp)
       (let ((class (lastcar (collect-if (of-type 'class-ast) cpp))))
         (is class)
         (is (source-text= "InheritsFromTypedef" (cpp-name class)))
+        (finishes
+          (field-table class))))))
+
+(deftest test-inherit-from-alias ()
+  "Inheriting from a type alias should work."
+  (let ((cpp (load-test-file "cpp-tree-sitter/inherit_from_alias.cc")))
+    (with-attr-table cpp
+      (symbol-table cpp)
+      (let ((class (lastcar (collect-if (of-type 'class-ast) cpp))))
+        (is class)
+        (is (source-text= "InheritsFromAlias" (cpp-name class)))
         (finishes
           (field-table class))))))
 
