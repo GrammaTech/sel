@@ -3030,11 +3030,13 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 (defgeneric lookup-out-of-class-definition (class name-ast)
   (:documentation "Look up the out-of-class definition of NAME-AST.")
   (:method ((class (eql :enclosing)) name-ast)
-    (lookup-out-of-class-definition
-     (find-enclosing 'c/cpp-classoid-specifier
-                     (attrs-root*)
-                     name-ast)
-     name-ast))
+    (when-let (class
+               (find-enclosing 'c/cpp-classoid-specifier
+                               (attrs-root*)
+                               name-ast))
+      (lookup-out-of-class-definition
+       class
+       name-ast)))
   (:method ((class c/cpp-classoid-specifier) (name-ast cpp-ast))
     (when-let* ((out-of-class-defs
                  (lookup
