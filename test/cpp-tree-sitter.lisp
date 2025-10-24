@@ -3690,6 +3690,19 @@ class Unrelated {};"))))
       (let ((class (is (find-if (of-type 'cpp-class-specifier) cpp))))
         (is (not (find-in-symbol-table class :type "int")))))))
 
+(deftest test-inherit-from-typedef ()
+  "Inheriting from a typedef should work."
+  (let ((cpp (from-file 'cpp
+                        (path-join +test-data-dir+
+                                   "cpp-tree-sitter/inherit_from_typedef.cc"))))
+    (with-attr-table cpp
+      (symbol-table cpp)
+      (let ((class (lastcar (collect-if (of-type 'class-ast) cpp))))
+        (is class)
+        (is (source-text= "InheritsFromTypedef" (cpp-name class)))
+        (finishes
+          (field-table class))))))
+
 
 ;;; Module tests
 

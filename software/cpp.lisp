@@ -1353,7 +1353,7 @@ virtual methods."
                  (return-from qualify-base-field-table
                    (empty-ch-map)))
                (let ((field-table (field-table base-class))
-                     (prefix (source-text (cpp-name base-class))))
+                     (prefix (source-text (definition-name-ast base-class))))
                  (reduce (lambda (field-table key fields)
                            (if (search "::" key)
                                field-table
