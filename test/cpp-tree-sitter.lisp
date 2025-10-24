@@ -3703,6 +3703,18 @@ class Unrelated {};"))))
         (finishes
           (field-table class))))))
 
+(deftest test-parenthesized-declarator-outer-declarations ()
+  "A parenthesized declarator with extra (error) nodes should still be analyzable."
+  (let* ((cpp
+           (from-file 'cpp
+                      (path-join +test-data-dir+
+                                 "cpp-tree-sitter/parenthesized_declarator_with_error.cc")))
+         (decl
+           (is (find-if (of-type 'cpp-parenthesized-declarator)
+                        cpp))))
+    (is (= (length (children decl)) 2))
+    (finishes (outer-declarations decl))))
+
 
 ;;; Module tests
 

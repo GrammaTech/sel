@@ -621,7 +621,7 @@ pointer declarations which are nested on themselves."
            (outer-declarations declarator)))))
 
 (defmethod outer-declarations ((ast c/cpp-parenthesized-declarator))
-  (outer-declarations (only-elt (children ast))))
+  (outer-declarations-merge (children ast)))
 
 (defmethod outer-declarations ((ast c/cpp-array-declarator))
   (values (get-nested-declaration ast)
