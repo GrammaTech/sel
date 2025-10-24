@@ -59,6 +59,10 @@
    :software-evolution-library
    "test/etc/"))
 
+(defun load-test-file (path)
+  (lret ((file (from-file 'cpp (path-join +test-data-dir+ path))))
+    (is (genome file))))
+
 
 ;;; Unit tests
 
@@ -3729,6 +3733,17 @@ class Unrelated {};"))))
            (virtual-functions class)
            (virtual-functions alias)
            (virtual-functions typedef))))))
+
+(deftest test-virtual-destructors ()
+  "Virtual destructor overrides and definitions should be found."
+  (let* ((cpp (load-test-file "cpp-tree-sitter/virtual_destructors.cc"))
+         (class (is (find-if (of-type 'class-ast) cpp)))
+         (destructor (is (find-if (of-type 'cpp-declaration) cpp))))
+    (with-attr-table cpp
+      (is (member (only-elt (cpp-declarator destructor))
+                  (virtual-functions class)))
+      (is (single (cpp::virtual-method-overrides destructor)))
+      (is (length= (cpp::virtual-method-definitions destructor) 2)))))
 
 
 ;;; Module tests

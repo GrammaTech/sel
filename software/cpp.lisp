@@ -3062,7 +3062,22 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
                                       override)
                       (lookup-override-definition override)))
         (collect fn)
-        (warn "No definition for override ~a of ~a" override virtual-method)))))
+        (warn "No definition for override a of ~a" override virtual-method)))))
+
+(defun cpp-declaration-virtual-method-definitions (virtual-method)
+  (let ((overrides
+          (cpp::virtual-method-override-definitions virtual-method)))
+    ;; The virtual method is pure, but it might still
+    ;; have an out of class definition.
+    (if-let (definition
+             (lookup-out-of-class-definition
+              :enclosing
+              ;; It's not possible to have more than one declarator
+              ;; in the pure virtual function declaration.
+              (declarator-name-ast
+               (only-elt (cpp-declarator virtual-method)))))
+      (cons definition overrides)
+      overrides)))
 
 (defgeneric cpp::virtual-method-definitions (virtual-method)
   (:documentation
@@ -3076,19 +3091,9 @@ out-of-class definition, assuming it has one.")
           (cpp::virtual-method-override-definitions virtual-method)))
   ;; The virtual method is pure.
   (:method ((virtual-method cpp-field-declaration))
-    (let ((overrides
-            (cpp::virtual-method-override-definitions virtual-method)))
-      ;; The virtual method is pure, but it might still
-      ;; have an out of class definition.
-      (if-let (definition
-               (lookup-out-of-class-definition
-                :enclosing
-                ;; It's not possible to have more than one declarator
-                ;; in the pure virtual function declaration.
-                (declarator-name-ast
-                 (only-elt (cpp-declarator virtual-method)))))
-        (cons definition overrides)
-        overrides))))
+    (cpp-declaration-virtual-method-definitions virtual-method))
+  (:method ((virtual-method cpp-declaration))
+    (cpp-declaration-virtual-method-definitions virtual-method)))
 
 (defmethod c/cpp-function-declaration-definitions ((ast cpp-ast) &key root)
   "If AST is a virtual function declaration, collect its overrides as its
@@ -3132,7 +3137,13 @@ determine if a definition overrides a virtual method.")
   (:method ((decl cpp-function-declarator))
     (fset:tuple
      ;; TODO Why source-text?
-     (cpp::+vf-name+ (source-text (cpp-declarator decl)))
+     (cpp::+vf-name+
+      (let ((dc (cpp-declarator decl)))
+        ;; The names are different for destructors, but there's only
+        ;; one per class.
+        (if (typep dc 'cpp-destructor-name)
+            :destructor
+            (source-text dc))))
      (cpp::+vf-param-types+
       (mapcar #'cpp-type (direct-children (cpp-parameters decl))))))
   (:method ((decl cpp-reference-declarator))
@@ -3191,7 +3202,7 @@ determine if a definition overrides a virtual method.")
   (typecase field
     (cpp-function-definition
      (list (cpp-declarator field)))
-    (cpp-field-declaration
+    ((or cpp-field-declaration cpp-declaration)
      (filter (of-type 'cpp-function-declarator)
              (cpp-declarator field)))
     (t nil)))
