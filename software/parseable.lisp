@@ -1038,6 +1038,12 @@ of SHARED-PATH-AST's path in OBJ.")
   "Returns T if DESCENDANT is a descendant of TARGET-AST in OBJ."
   (ancestor-of-p obj descendant ancestor))
 
+(define-compiler-macro children-of-type (&whole call ast test)
+  (match test
+    ((list 'quote type)
+     `(children-of-type ,ast (of-type ',type)))
+    (otherwise call)))
+
 (-> children-of-type (ast t) list)
 (defun children-of-type (ast type)
   "Returns a list of the children of AST that are of type TYPE."
