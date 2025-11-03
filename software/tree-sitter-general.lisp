@@ -767,13 +767,28 @@ The alist should contain at least the following:
                                       (statements-in-scope obj scope ast)))))
             (scopes obj scope)))))
 
-(define-compiler-macro find-enclosing (&whole call test obj ast)
-  (match test
-    ((list 'quote type)
-     `(locally (declare (notinline find-enclosing))
-        (the (or null ,type)
-             (find-enclosing (of-type ',type) ,obj ,ast))))
-    (otherwise call)))
+(defmacro define-finder-compiler-macro (name &key returns-list)
+  "Write a compiler macro for a function with three arguments, of which
+the first is a test, that converts the test into a predicate if it's a
+quoted type.
+
+If RETURNS-LIST is nil, then if there is a literal type, it is also
+introduced into the expansion as a `the' form."
+  `(define-compiler-macro ,name (&whole call test obj ast)
+     (match test
+       ((list 'quote type)
+        `(locally (declare (notinline find-enclosing))
+           (,@(if ,returns-list '(progn) `(the (or null ,type)))
+            (,',name (of-type ',type) ,obj ,ast))))
+       (otherwise call))))
+
+(define-finder-compiler-macro find-enclosing)
+(define-finder-compiler-macro find-all-enclosing :returns-list t)
+(define-finder-compiler-macro find-outermost)
+(define-finder-compiler-macro find-preceding :returns-list t)
+(define-finder-compiler-macro find-previous-sibling)
+(define-finder-compiler-macro find-following :returns-list t)
+(define-finder-compiler-macro find-next-sibling)
 
 (defgeneric find-enclosing (test obj ast)
   (:documentation "Return the nearest enclosing AST passing TEST in OBJ.
