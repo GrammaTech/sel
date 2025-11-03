@@ -772,7 +772,7 @@ The alist should contain at least the following:
     ((list 'quote type)
      `(locally (declare (notinline find-enclosing))
         (the (or null ,type)
-             (find-enclosing ,test ,obj ,ast))))
+             (find-enclosing (of-type ',type) ,obj ,ast))))
     (otherwise call)))
 
 (defgeneric find-enclosing (test obj ast)
