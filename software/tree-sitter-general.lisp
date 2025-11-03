@@ -769,11 +769,18 @@ The alist should contain at least the following:
 
 (defmacro define-finder-compiler-macro (name &key returns-list)
   "Write a compiler macro for a function with three arguments, of which
-the first is a test, that converts the test into a predicate if it's a
-quoted type.
+the first is a test, that converts the test into a predicate at
+compile time if it's a quoted type.
+
+This is desirable because calling `typep' without a constant argument
+can be expensive, especially on CCL. For `of-type', there's a compiler
+macro that expands to inline `typep', but it won't work unless the
+argument is a constant.
 
 If RETURNS-LIST is nil, then if there is a literal type, it is also
-introduced into the expansion as a `the' form."
+introduced into the expansion as a `the' form, so we get error
+checking on the return type (which we would not otherwise get for a
+generic function)."
   `(define-compiler-macro ,name (&whole call test obj ast)
      (match test
        ((list 'quote type)

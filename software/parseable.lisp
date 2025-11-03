@@ -758,10 +758,18 @@ time."
             :initial-value ast)))
 
 (defun of-type* (type)
-  "Like `of-type', but compile the predicate at run time."
+  "Like `of-type', but compile the predicate at run time.
+
+Calling `typep' without a constant argument can be very expensive,
+especially on CCL. If we are using a type predicate to scan a large
+AST, the cost of compiling the predicate is negligible vs. the cost of
+evaluating it at runtime for every AST node."
   (compile nil `(lambda (x) (typep x ',type))))
 
 (define-compiler-macro of-type* (&whole call type &environment env)
+  "If the argument to `of-type*' is constant, convert it into an
+`of-type' call so the compiler macro for `of-type' can take over
+inlining the `typep' call."
   (if (constantp type env)
       `(of-type ,type)
       call))
