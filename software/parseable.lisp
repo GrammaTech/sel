@@ -1044,10 +1044,13 @@ of SHARED-PATH-AST's path in OBJ.")
      `(children-of-type ,ast (of-type ',type)))
     (otherwise call)))
 
-(-> children-of-type (ast t) list)
-(defun children-of-type (ast type)
-  "Returns a list of the children of AST that are of type TYPE."
-  (remove-if-not (of-type* type) (children ast)))
+(defgeneric children-of-type (ast type)
+  (:documentation
+   "Returns a list of the children of AST that are of type TYPE.")
+  (:method ((ast ast) (pred function))
+    (remove-if-not pred (children ast)))
+  (:method ((ast ast) (type t))
+    (children-of-type ast (of-type* type))))
 
 
 ;;; Core parseable methods
