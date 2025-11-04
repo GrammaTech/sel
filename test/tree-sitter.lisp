@@ -145,6 +145,8 @@
     (let* ((new-children (list child1))
            (new-parent (copy parent :children new-children)))
       (is (not (slot-boundp new-parent 'ordered-children)))
+      ;; The original AST is not affected.
+      (is (slot-boundp parent 'ordered-children))
       (is (not (aget :ordered-children (ast-annotations new-parent))))
       (is (equal (children new-parent) new-children))
       (is (slot-boundp new-parent 'ordered-children)))))
@@ -160,6 +162,8 @@
     (is (slot-boundp parent 'ordered-children))
     (let* ((new-parent (tree-copy parent)))
       (is (not (slot-boundp new-parent 'ordered-children)))
+      ;; The original AST is not affected.
+      (is (slot-boundp parent 'ordered-children))
       (is (not (aget :ordered-children (ast-annotations new-parent))))
       (is (length= (children new-parent) children))
       (is (not (equal (children new-parent) children)))
@@ -175,8 +179,11 @@
     (is (equal (children parent) children))
     (is (slot-boundp parent 'ordered-children))
     (let* ((new-children (list child1))
+           ;; Calling fset:remove-if on the node triggers a rebuild.
            (new-parent (remove-if (eqls child2) parent)))
       (is (not (slot-boundp new-parent 'ordered-children)))
+      ;; The original is not affected.
+      (is (slot-boundp parent 'ordered-children))
       (is (not (aget :ordered-children (ast-annotations new-parent))))
       (is (equal (children new-parent) new-children))
       (is (slot-boundp new-parent 'ordered-children)))))

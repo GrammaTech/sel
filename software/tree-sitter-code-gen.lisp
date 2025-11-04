@@ -3319,6 +3319,8 @@ stored as a list of interleaved text. This should ideally only be used for leaf
       :documentation
       "A list of comments and errors that procede the after text of an AST.")
      (ordered-children
+      ;; NB This slot has no initarg because it is not meant to be
+      ;; copied.
       :reader ordered-children
       :documentation
       "A cache slot for ordered children to speed up retrieving the children

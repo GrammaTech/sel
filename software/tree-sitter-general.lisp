@@ -2438,10 +2438,6 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
                          (slot-name (eql 'ordered-children)))
   (setf (slot-value obj slot-name) (children obj)))
 
-(defmethod copy :after ((ast structured-text) &key &allow-other-keys)
-  "Invalidate the ordered-children cache after a copy."
-  (slot-makunbound ast 'ordered-children))
-
 (defmethod update-instance-for-different-class
     :after
     ((previous structured-text)
