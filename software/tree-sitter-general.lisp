@@ -4692,6 +4692,7 @@ table."
 
 (def-attr-fun outer-defs ()
   "Map of outer definitions from a node"
+  (:circular #'gt:equal? (constantly (empty-ch-map)))
   (:method ((node node))
     (convert 'fset:ch-map
              (mapcar (op (list (source-text _1) _1))
@@ -4704,6 +4705,7 @@ table."
 
 (def-attr-fun inner-defs ()
   "Map of inner definitions from a node"
+  (:circular #'gt:equal? (constantly (empty-ch-map)))
   (:method ((node node))
     (convert 'fset:ch-map
              (mapcar (op (list (source-text _1) _1))

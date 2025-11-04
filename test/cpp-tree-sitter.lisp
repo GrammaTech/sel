@@ -3754,6 +3754,71 @@ class Unrelated {};"))))
       (is (single (cpp::virtual-method-overrides destructor)))
       (is (length= (cpp::virtual-method-definitions destructor) 2)))))
 
+(deftest test-namespace-alias ()
+  "Test we can alias namespaces."
+  (let* ((cpp (load-test-file "cpp-namespaces/namespace_alias.cc"))
+         (id (is (find-if (op (source-text= _ "fbz::qux")) cpp))))
+    (with-attr-table cpp
+      (is (source-text= "int qux = 42;"
+                        (get-declaration-ast :variable id)))
+      (is (source-text= "namespace fbz = foo::bar::baz;"
+                        (get-declaration-ast
+                         :namespace
+                         (cpp-scope id)))))))
+
+(deftest test-using-namespace-1 ()
+  "Test we support `using namespace'."
+  (nest
+   (flet ((rhs* (x)
+            (rhs (car (cpp-declarator x))))))
+   (let* ((cpp (load-test-file "cpp-namespaces/using_ns_1.cc"))
+          (namespaces
+            (collect-if (of-type 'cpp-namespace-definition) cpp))))
+   (with-attr-table cpp)
+   (destructuring-bind (a b c d) namespaces
+     (declare (ignorable a)))
+   (let ((b-i (first (children (cpp-body b))))
+         (d-i (find-if (op (source-text= "i" _)) d)))
+     (is (eql b-i (get-declaration-ast :variable d-i))))
+   (let ((c-m (stmt-with-text c "int m = i;"))
+         (c-n (stmt-with-text c "int n = j;"))
+         (d-j (find-if (op (source-text= "int j;" _)) d)))
+     (is (eql b-i (get-declaration-ast :variable (rhs* c-m))))
+     (is (eql d-j (get-declaration-ast :variable (rhs* c-n)))))
+   (destructuring-bind (t0 t1 t2)
+       (last (collect-if (of-type 'cpp-declaration) cpp) 3))
+   (let ((c-a (stmt-with-text c "int a = i;")))
+     (is (eql (get-declaration-ast :variable (rhs* t0)) b-i))
+     (is (eql*
+          c-a
+          (get-declaration-ast :variable (rhs* t1))
+          (get-declaration-ast :variable (rhs* t2)))))))
+
+(deftest test-using-namespace-2 ()
+  "Test we support `using namespace' when a namespace definition is split
+up."
+  (nest
+   (let* ((cpp (load-test-file "cpp-namespaces/using_ns_2.cc"))
+          (main (lastcar (collect-if (of-type 'cpp-function-definition) cpp)))))
+   (with-attr-table cpp)
+   (destructuring-bind (d_1 e d_2)
+       (collect-if (of-type 'cpp-namespace-definition) cpp))
+   (destructuring-bind (expr1 expr2 expr3 expr4)
+       (direct-children (cpp-body main)))
+   (labels ((enclosing-namespace (x)
+              (find-enclosing 'cpp-namespace-definition cpp x))
+            (var-decl-enclosing-namespace (expr)
+              (nest
+               (enclosing-namespace)
+               (get-declaration-ast :variable)
+               (find-if (of-type 'identifier-ast))
+               expr))))
+   (progn
+     (is (null (var-decl-enclosing-namespace expr1)))
+     (is (eql d_1 (var-decl-enclosing-namespace expr2)))
+     (is (eql d_2 (var-decl-enclosing-namespace expr3)))
+     (is (eql e (var-decl-enclosing-namespace expr4))))))
+
 
 ;;; Module tests
 

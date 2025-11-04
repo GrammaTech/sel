@@ -1487,6 +1487,62 @@ definitions."
   (or (conserve-outer-def-exports ast)
       (call-next-method)))
 
+(defun alias-namespace
+    (decls &optional alias-name
+     &aux (alias-name (and alias-name (source-text alias-name))))
+  "Alias the outer definitions of NS to use ALIAS-NAME.
+If ALIAS-NAME is null, alias the outer defs to unqualified names."
+  (declare (list decls))
+  (labels ((prepend-alias (alias-name name)
+             (if alias-name
+                 (string+ alias-name "::" name)
+                 name))
+           (decl-alias-namespace (decl)
+             (nest
+              (let* ((ns-name (definition-name-ast decl))
+                     (enclosing-namespace (namespace ns-name))
+                     (ns-prefix (string+ (cpp::absolute-name ns-name) "::"))
+                     (alias-name (and alias-name (source-text alias-name)))
+                     (outer-defs (outer-defs decl))))
+              (labels ((shadow-ns-map (ns-map)
+                         (iter (for (name ast) in-map ns-map)
+                               (when (string^= ns-prefix name)
+                                 (let ((name-sans-prefix (drop-prefix ns-prefix name)))
+                                   ;; Shadow the outermost, global namespace.
+                                   (collect-map
+                                    ((prepend-alias
+                                      alias-name
+                                      name-sans-prefix)
+                                     ast)
+                                    initial-value (empty-ch-map))
+                                   ;; Shadow in the innermost namespace of the
+                                   ;; enclosing namespace.
+                                   (unless alias-name
+                                     (when (null-if-empty enclosing-namespace)
+                                       (collect-map
+                                        ((string+ enclosing-namespace
+                                                  "::"
+                                                  name-sans-prefix)
+                                         ast)
+                                        initial-value (empty-ch-map))))))))))
+              (iter (for (ns ns-map) in-map outer-defs))
+              (collect-map (ns (shadow-ns-map ns-map))
+                           initial-value (empty-ch-map)))))
+    (if (no decls) (empty-ch-map)
+        (reduce (op (symbol-table-union (car decls) _ _))
+                decls
+                :key #'decl-alias-namespace))))
+
+(defmethod outer-defs ((ast cpp-using-declaration))
+  (match ast
+    ((cpp* "using namespace $NS" :ns ns)
+     (if-let ((decls
+               (and (has-attribute-p ns 'symbol-table)
+                    (get-declaration-asts :namespace ns))))
+       (alias-namespace decls)
+       (call-next-method)))
+    (otherwise (call-next-method))))
+
 (defun const-field-declaration? (field-decl fn)
   "Is FN declared const in FIELD-DECL?"
   (match field-decl
@@ -1520,6 +1576,21 @@ definitions."
                 (thereis
                  (some (op (match _ ((cpp-type-qualifier :text "const") t)))
                        children)))))))))
+
+(defmethod outer-declarations ((ast cpp-namespace-alias-definition))
+  (values (list (cpp-name ast))
+          '(:namespace)))
+
+(defmethod outer-defs ((ast cpp-namespace-alias-definition))
+  (match ast
+    ((cpp* "namespace $ALIAS = $NS" :ns ns :alias alias)
+     (if-let ((decls (get-declaration-asts :namespace ns)))
+       (symbol-table-union
+        ast
+        (alias-namespace decls alias)
+        (call-next-method))
+       (call-next-method)))
+    (otherwise (call-next-method))))
 
 (defun declared-const? (ast &key (software (attrs-root*)))
   "Is AST declared const?"
@@ -2775,9 +2846,12 @@ for the outermost qualified namespace."
 
 ;;; Symbol Table
 
-(def +cpp-multi-declaration-keys+ '(:function :type)
+(def +cpp-multi-declaration-keys+ '(:function :type :namespace)
   "A set of keys which indicate that several definitions for a symbol may be
-available to use at any point in a C++ AST.")
+available to use at any point in a C++ AST.
+
+Namespaces are included because their definitions can be split across
+multiple locations.")
 
 (defmethod multi-declaration-keys ((root cpp-ast)) +cpp-multi-declaration-keys+)
 

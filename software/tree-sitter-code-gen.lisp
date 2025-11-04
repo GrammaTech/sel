@@ -703,11 +703,16 @@ for the language.")
         ;; E1->*E2) and compound assignment (E1 @= E2) when the parser
         ;; supports them.
         )
-       (:definition-ast cpp-class-specifier cpp-namespace-definition)
+       (:definition-ast
+        cpp-class-specifier
+        cpp-namespace-alias-definition
+        cpp-namespace-definition)
        (:type-alias-ast cpp-alias-declaration)
        (:type-declaration-ast cpp-class-specifier cpp-type-parameter-declaration)
        (:composite-type-ast cpp-class-specifier)
-       (:namespace-declaration-ast cpp-namespace-definition)
+       (:namespace-declaration-ast
+        cpp-namespace-alias-definition
+        cpp-namespace-definition)
        (:string-ast cpp-raw-string-literal)
        (:variable-declaration-ast
         cpp-optional-parameter-declaration
