@@ -3754,8 +3754,10 @@ class Unrelated {};"))))
       (is (single (cpp::virtual-method-overrides destructor)))
       (is (length= (cpp::virtual-method-definitions destructor) 2)))))
 
-(deftest test-namespace-alias ()
-  "Test we can alias namespaces."
+(deftest test-symbol-table-namespace-alias ()
+  "Test namespace aliases are added to the symbol table.
+This means not just aliasing the namespace itself, but making all its
+symbols available under the new alias."
   (let* ((cpp (load-test-file "cpp-namespaces/namespace_alias.cc"))
          (id (is (find-if (op (source-text= _ "fbz::qux")) cpp))))
     (with-attr-table cpp
@@ -3766,7 +3768,7 @@ class Unrelated {};"))))
                          :namespace
                          (cpp-scope id)))))))
 
-(deftest test-using-namespace-1 ()
+(deftest test-symbol-table-using-namespace ()
   "Test we support `using namespace'."
   (nest
    (flet ((rhs* (x)
@@ -3794,9 +3796,9 @@ class Unrelated {};"))))
           (get-declaration-ast :variable (rhs* t1))
           (get-declaration-ast :variable (rhs* t2)))))))
 
-(deftest test-using-namespace-2 ()
-  "Test we support `using namespace' when a namespace definition is split
-up."
+(deftest test-symbol-table-using-split-namespace ()
+  "Test we support `using namespace' even when a namespace definition is
+split up."
   (nest
    (let* ((cpp (load-test-file "cpp-namespaces/using_ns_2.cc"))
           (main (lastcar (collect-if (of-type 'cpp-function-definition) cpp)))))
