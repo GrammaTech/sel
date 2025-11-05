@@ -307,21 +307,24 @@ symbol table of the file including it."
 
 I.e. `#include \"x\"` and `#include <x>` should get the same results
 for non-system headers (assuming they're on the path)."
-  (with-fixture cpp-relative-include-symbol-table-project
-    (let ((project2
-           (mapcar (lambda (ast)
-                     (when (typep ast 'cpp-preproc-include)
-                       (unless (typep (cpp-path ast) 'cpp-system-lib-string)
-                         (tree-copy
-                          (copy ast
-                                :cpp-path
-                                (make 'cpp-system-lib-string
-                                      :text (source-text (cpp-path ast))))))))
-                   *project*)))
-      (is (equal (with-attr-table *project*
-                   (project-dependency-tree *project*))
-                 (with-attr-table project2
-                   (project-dependency-tree project2)))))))
+  (let ((project1
+          (with-fixture cpp-relative-include-symbol-table-project
+            *project*))
+        (project2
+          (mapcar (lambda (ast)
+                    (when (typep ast 'cpp-preproc-include)
+                      (unless (typep (cpp-path ast) 'cpp-system-lib-string)
+                        (tree-copy
+                         (copy ast
+                               :cpp-path
+                               (make 'cpp-system-lib-string
+                                     :text (source-text (cpp-path ast))))))))
+                  (with-fixture cpp-relative-include-symbol-table-project
+                    *project*))))
+    (is (equal (with-attr-table project1
+                 (project-dependency-tree project1))
+               (with-attr-table project2
+                 (project-dependency-tree project2))))))
 
 (deftest cpp-project-symbol-table-3 ()
   "Check that we handle the case where a header is added that was not
