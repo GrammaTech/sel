@@ -1,0 +1,26 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-o",
+      "main-c",
+      "main.c"
+    ],
+    "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/cpp-c-mixed",
+    "file": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/cpp-c-mixed/main.c",
+    "output": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/cpp-c-mixed/main-c"
+  },
+  {
+    "arguments": [
+      "/usr/bin/c++",
+      "-c",
+      "-o",
+      "main-cc",
+      "main.cc"
+    ],
+    "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/cpp-c-mixed",
+    "file": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/cpp-c-mixed/main.cc",
+    "output": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/cpp-c-mixed/main-cc"
+  }
+]

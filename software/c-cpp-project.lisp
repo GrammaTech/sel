@@ -372,8 +372,11 @@ Skip files that have not been parsed."
              (setf target-hash :visited)
              (collect (cons path target) into ordered-files at beginning))
             (t
-             (error "~a does not exist in evolve-files of ~a."
-                    path project)))
+             ;; This shouldn't be an error, because in a mixed C++
+             ;; project there may be C files in the compilation
+             ;; database, or vice versa.
+             (warn "~a does not exist in evolve-files of ~a."
+                   path project)))
           (finally
            (return
              (let ((ordered-files

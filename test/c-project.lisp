@@ -22,6 +22,7 @@
     :macro-name
     :macro-def)
   (:local-nicknames
+   (:cdb :software-evolution-library/components/compilation-database)
    (:c/cpp-project :software-evolution-library/software/c-cpp-project))
   (:export :test-c-project))
 (in-package :software-evolution-library/test/c-project)
@@ -287,6 +288,20 @@
   (with-fixture duplicate-compile-commands-project
     (with-attr-table *project*
       (finishes (symbol-table *project*)))))
+
+(deftest test-mixed-c/cpp-projects ()
+  "For a C project, only C files should be evolve files, even if C++
+files are present in the compilation database."
+  (let ((project
+          (from-file 'c-project (path-join +etc-dir-path+ "cpp-c-mixed"))))
+    (is (single (evolve-files project)))
+    (is (typep (cdar (evolve-files project)) 'c))
+    (let ((db (is (cdb:compilation-database project))))
+      (is (length= 2 (cdb:command-objects db)))
+      (is (set-equal '("cc" "c")
+                     (mapcar (op (pathname-type (cdb:command-file _)))
+                             (cdb:command-objects db))
+                     :test #'equal)))))
 
 
 ;;; System Headers

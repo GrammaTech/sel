@@ -20,6 +20,7 @@
                 :relative-module-defaults
                 :restrict-map)
   (:local-nicknames
+   (:cdb :software-evolution-library/components/compilation-database)
    (:dir :software-evolution-library/software/directory))
   (:export :test-cpp-project))
 (in-package :software-evolution-library/test/cpp-project)
@@ -176,6 +177,20 @@ make_config(const std::string& path_prefix,
     (is (length= 2 (evolve-files project)))
     (is (every (of-type 'cpp) (mapcar #'cdr (evolve-files project))))
     (is (some (op (string$= ".c++" (car _))) (evolve-files project)))))
+
+(deftest test-mixed-c/cpp-projects ()
+  "For a C++ project, only C++ files should be evolve files, even if C
+files are present in the compilation database."
+  (let ((project
+          (from-file 'cpp-project (path-join +etc-dir-path+ "cpp-c-mixed"))))
+    (is (single (evolve-files project)))
+    (is (typep (cdar (evolve-files project)) 'cpp))
+    (let ((db (is (cdb:compilation-database project))))
+      (is (length= 2 (cdb:command-objects db)))
+      (is (set-equal '("cc" "c")
+                     (mapcar (op (pathname-type (cdb:command-file _)))
+                             (cdb:command-objects db))
+                     :test #'equal)))))
 
 
 ;;; Module resolution tests
