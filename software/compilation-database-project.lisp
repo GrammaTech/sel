@@ -112,28 +112,35 @@ information on the format of compilation databases.")
 COMPILATION-DATABASE. Returns NIL if one isn't found."
   (gcp (mapcar #'command-directory (command-objects compilation-database))))
 
-;;; TODO: only relativizes the directory and file name.
-(defun relativized-path-p (original-path command-object)
-  "Return the relativized path of COMMAND-OBJECT to PROJECT's path
-             if it exists."
-  (let* ((directory (ensure-directory-pathname
-                     (command-directory command-object)))
-         (file (command-file command-object))
-         (path (canonical-pathname (path-join directory file)))
-         (relativized-to-original
-          (enough-pathname path original-path)))
-    (unless (pathname-equal relativized-to-original path)
-      relativized-to-original)))
-
-(defun relative-command-object (command-object original-path new-path)
+(defun relative-command-object (command-object original-path new-base)
   "Copy COMMAND object with ORIGINAL-PATH relative to NEW-PATH."
-  (if-let* ((relative-path
-             (relativized-path-p original-path command-object))
-            (new-path (fmt "~a/~a" new-path relative-path)))
-    (copy command-object
-          :file (file-namestring new-path)
-          :directory (directory-namestring new-path))
-    command-object))
+  (let* ((new-base (canonical-pathname new-base))
+         (original-path (canonical-pathname original-path))
+         (command-dir
+           (ensure-directory-pathname
+            (command-directory command-object)))
+         (raw-command-file (command-file command-object))
+         (command-file
+           (if (relative-pathname-p raw-command-file)
+               (base-path-join command-dir raw-command-file)
+               raw-command-file)))
+    (labels ((relativize (path base)
+               "If PATH is a subpath of BASE, return PATH relative to BASE."
+               (let* ((canon-path (canonical-pathname path))
+                      (relativized-to-base
+                        (enough-pathname canon-path base)))
+                 (unless (pathname-equal relativized-to-base canon-path)
+                   relativized-to-base))))
+      ;; NB We relativize the directory and the file name separately
+      ;; to keep relative include paths valid.
+      (if-let* ((relative-dir
+                 (relativize command-dir original-path))
+                (relative-file
+                 (relativize command-file original-path)))
+        (copy command-object
+              :file (namestring (base-path-join new-base relative-file))
+              :directory (namestring (base-path-join new-base relative-dir)))
+        command-object))))
 
 (defun relativize-command-objects (compilation-database original-path new-path)
   "Relativize the command objects in COMPILATION-DATABASE such that they're

@@ -53,6 +53,8 @@
     :project-dependency-tree
     :skip-include
     :system-headers
+    :unknown-header
+    :unknown-header-include
     :update-dependency-graph
     :who-includes?))
 
@@ -314,13 +316,16 @@ For development."
     (project &key (include-tree (project-dependency-tree project :allow-headers t))
                (comp-db (compilation-database project)))
   (labels ((relativized-path (project command-object)
-             "Relative the path of COMMAND-OBJECT to PROJECT's path."
+             "Relativize the path of COMMAND-OBJECT to PROJECT's path."
              (with-accessors ((directory command-directory)
                               (file command-file))
                  command-object
                (namestring
                 (enough-pathname
-                 (canonical-pathname (fmt "~a/~a" directory file))
+                 (canonical-pathname
+                  (if (absolute-pathname-p file)
+                      file
+                      (base-path-join directory file)))
                  (project-dir project)))))
            (grab-paths (include-tree &aux paths)
              "Grab all paths in INCLUDE-TREE."
@@ -1299,6 +1304,15 @@ paths."
                              header-dirs))))
     (search-header-dirs :global global)))
 
+(define-condition unknown-header (warning)
+  ((include
+    :initarg :include
+    :reader unknown-header-include
+    :type ast))
+  (:report (lambda (c s)
+             (with-slots (include) c
+               (format s "Unknown header: ~a" (source-text include))))))
+
 (defun find-include (project file include-ast
                      &key global
                        header-dirs
@@ -1326,7 +1340,7 @@ paths."
              (find-include ()
                (or (first (collect-potential-includes* nil))
                    (and global (first (collect-potential-includes* t)))
-                   (warn "Unknown header: ~a" (source-text include-ast))
+                   (warn 'unknown-header :include include-ast)
                    (make-unknown-header-with-proxy include-ast))))
       (ematch (find-include)
         ((and include (or (c/cpp-unknown-header)

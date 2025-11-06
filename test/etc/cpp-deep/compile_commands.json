@@ -1,0 +1,15 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/c++",
+      "-c",
+      "-oexecutable",
+      "-Iinclude_dir_1",
+      "-I",
+      "include_dir_2",
+      "subdir/file.cc"
+    ],
+    "directory": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/cpp-deep",
+    "file": "/home/prodriguez/quicklisp/local-projects/sel/test/etc/cpp-deep/subdir/file.cc"
+  }
+]

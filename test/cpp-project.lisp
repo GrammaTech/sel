@@ -192,6 +192,17 @@ files are present in the compilation database."
                              (cdb:command-objects db))
                      :test #'equal)))))
 
+(deftest test-relative-include-paths ()
+  "Relative include paths relative to the directory key of the
+compilation database should be preserved."
+  (let ((project
+          (from-file 'cpp-project (path-join +etc-dir-path+ "cpp-deep"))))
+    (with-attr-table project
+      (handler-bind ((unknown-header
+                       (lambda (c)
+                         (is (search "/" (source-text (unknown-header-include c)))))))
+        (symbol-table project)))))
+
 
 ;;; Module resolution tests
 
@@ -759,7 +770,6 @@ int main () {
                (evolve-files/dependency-order *project*)))
         (is (length= evolve-files evolve-files/dependency-order))
         ;; Same files
-
         (is (equal '("a.h" "b.h" "f.h" "g.h" "main.cc")
                    (mapcar #'car evolve-files/dependency-order)))))))
 
