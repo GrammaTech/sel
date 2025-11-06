@@ -86,7 +86,7 @@
     "ixx" "cppm" "ccm" "cxxm" "c++m"))
 
 (defparameter *cpp-implementation-extensions*
-  '("cpp" "cp" "cc" "cxx"))
+  '("cpp" "cp" "cc" "cxx" "c++"))
 
 (defparameter *cpp-extensions*
   (append *header-extensions*

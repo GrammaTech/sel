@@ -167,7 +167,16 @@ make_config(const std::string& path_prefix,
                                   cpp
                                   (stmt-with-text cpp "make_config")))))
 
-
+(deftest test-c++-extension-recognized ()
+  ".c++ should be recognized as a C++ extension."
+  (let ((project (from-file 'cpp-project
+                            (path-join
+                             +etc-dir-path+
+                             "c++-extension/"))))
+    (is (length= 2 (evolve-files project)))
+    (is (every (of-type 'cpp) (mapcar #'cdr (evolve-files project))))
+    (is (some (op (string$= ".c++" (car _))) (evolve-files project)))))
+
 
 ;;; Module resolution tests
 
