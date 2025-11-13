@@ -3138,7 +3138,7 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
                                       override)
                       (lookup-override-definition override)))
         (collect fn)
-        (warn "No definition for override a of ~a" override virtual-method)))))
+        (warn "No definition for override ~a of ~a" override virtual-method)))))
 
 (defun cpp-declaration-virtual-method-definitions (virtual-method)
   (let ((overrides
