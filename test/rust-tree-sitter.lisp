@@ -396,6 +396,23 @@ valid output transformation."
              (list (rust* "1")
                    (make 'rust-source-text-fragment-variation-point)))))))
 
+(deftest rust-one-source-text-fragment-in-field-declaration-list ()
+  "An argument list with a single source text fragment should have a
+valid output transformation."
+  (let ((decls (rust-body (rust* "struct s { x: i32 }"))))
+    (finishes (source-text decls))
+    (finishes
+      (source-text
+       (with decls
+             (is (find-if (of-type 'rust-field-declaration) decls))
+             (make 'rust-source-text-fragment-variation-point))))
+    (finishes
+      (source-text
+       (copy decls
+             :children
+             (append1 (children decls)
+                      (make 'rust-source-text-fragment-variation-point)))))))
+
 (deftest rust-one-source-text-fragment-in-tuple-expression ()
   "A tuple expression with a single source text fragment should have a
 valid output transformation."

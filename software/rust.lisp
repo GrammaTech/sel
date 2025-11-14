@@ -162,41 +162,72 @@ Rust macro invocations can use (), [], and {} equivalently."
 
 ;;; Methods for tree-sitter generics
 
-(defmethod output-transformation :around ((ast rust-arguments) &key &allow-other-keys)
-  ;; This is a workaround for children-parser not backtracking: the
-  ;; rule is a sequence of `(attribute_item? expression)*` ASTs. The
-  ;; problem is the alternative-ast, which is a wildcard, matches the
-  ;; attribute_item rule, so there is nothing left to be an expression
-  ;; and the match fails.
+(defun prevent-interleaved-attribute-item-eager-match (ast dummy call-next-method)
+  "Prevent eager matching attributes items interleaved with expressions.
+
+Currently, `children-parser' does not backtrack. This is a problem
+when (1) a rule matches a sequence of `(attribute_item? expression)*`
+ASTs and (2) the last child is an alternative-ast. The
+`alternative-ast', being a wildcard, matches the `attribute_item'
+rule, but there is nothing left to be an expression and the match
+fails."
   (match (direct-children ast)
+    ;; Special case: the last child is the only child.
     ((list (and real-child (alternative-ast)))
-     (let* ((id (make 'rust-identifier :text "temp"))
-            (temp (copy ast :children (list id))))
+     (let ((temp (copy ast :children (list dummy))))
        (substitute
         real-child
-        id
+        dummy
         (output-transformation temp)
         :count 1)))
     ;; Same situation, but it's the last child rather than the only
     ;; child.
     ((cl:last (list (and real-child (alternative-ast))))
-     (let* ((id (make 'rust-identifier :text "temp"))
-            (temp (copy ast :children
-                        (append1 (butlast (direct-children ast))
-                                 id))))
+     (let ((temp (copy ast
+                       :children
+                       (append1 (butlast (direct-children ast))
+                                dummy))))
        (substitute
         real-child
-        id
+        dummy
         (output-transformation temp)
         :count 1)))
-    (otherwise (call-next-method))))
+    (otherwise (funcall call-next-method))))
+
+(defun work-around-leading-attribute-items-eager-match ()
+  "Work around eager matching of attribute items preceding
+expressions..
+
+Currently, `children-parser' does not backtrack. This is a problem
+when (1) a rule matches a `(attribute_item* expression*)` sequence of
+ASTs and (2) the last child is an alternative-ast. The
+`alternative-ast', being a wildcard, matches the `attribute_item'
+rule, but there is nothing left to be an expression and the match
+fails.")
+
+(defmethod output-transformation :around ((ast rust-arguments) &key &allow-other-keys)
+  (prevent-interleaved-attribute-item-eager-match
+   ast
+   (load-time-value (make 'rust-identifier :text "temp") t)
+   #'call-next-method))
+
+(defmethod output-transformation :around ((ast rust-field-declaration-list) &key &allow-other-keys)
+  (prevent-interleaved-attribute-item-eager-match
+   ast
+   (load-time-value
+    (make 'rust-field-declaration
+          :rust-name (make 'rust-field-identifier :text "temp")
+          :rust-type (make 'rust-primitive-type :text "i32"))
+    t)
+   #'call-next-method))
 
 (defmethod output-transformation :around ((ast rust-tuple-expression) &key &allow-other-keys)
   ;; This is a workaround for children-parser not backtracking: the
-  ;; rule is `attribute_item?* expression*` ASTs. Leading alternative
-  ;; ASTs all match as attribute items. If there are no other ASTs
-  ;; after them (where the expressions should be), the output
-  ;; transformation is invalid.
+  ;; rule is `attribute_item?* expression*` ASTs. (Note this differs
+  ;; from the situation with interleaved attributes and expressions).
+  ;; Since leading alternative ASTs all match as attribute items, if
+  ;; there are no other ASTs after them (where the expressions should
+  ;; be), the output transformation is invalid.
   (let ((children (direct-children ast)))
     ;; If the child list starts with alternative ASTs, check if the
     ;; suffix starts with an attribute item. If it does, we're OK. If
@@ -210,17 +241,18 @@ Rust macro invocations can use (), [], and {} equivalently."
            ((list* (rust-attribute-item) _)
             (call-next-method))
            (otherwise
-            (let ((prefix (ldiff children suffix)))
-              (let* ((temp-id (make 'rust-identifier :text "temp"))
-                     (temp-copy
-                       (copy ast
-                             :children
-                             (append (butlast prefix)
-                                     (list temp-id)
-                                     suffix))))
-                (substitute (lastcar prefix)
-                            temp-id
-                            (output-transformation temp-copy))))))))
+            (let* ((prefix (ldiff children suffix))
+                   (temp-id (make 'rust-identifier :text "temp"))
+                   (temp-copy
+                     (copy ast
+                           :children
+                           (append (butlast prefix)
+                                   (list temp-id)
+                                   suffix))))
+              (substitute (lastcar prefix)
+                          temp-id
+                          (output-transformation temp-copy)
+                          :count 1))))))
       (otherwise (call-next-method)))))
 
 (defmethod convert ((to (eql 'rust-negative-literal))
