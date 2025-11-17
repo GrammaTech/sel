@@ -3821,6 +3821,17 @@ split up."
      (is (eql d_2 (var-decl-enclosing-namespace expr3)))
      (is (eql e (var-decl-enclosing-namespace expr4))))))
 
+(deftest test-dont-namespace-macro-names ()
+  "Names defined as macros shouldn't be namespaced."
+  (let ((source "namespace X {class Y {}; }"))
+    (let ((cpp (cpp source)))
+      (with-attr-table cpp
+        (is (@ (@ (symbol-table cpp) :type) "X::Y"))))
+    (let ((cpp (cpp (string+ "#define Y 1" #\Newline source))))
+      (with-attr-table cpp
+        (is (not (@ (@ (symbol-table cpp) :type) "X::Y")))
+        (is (@ (@ (symbol-table cpp) :type) "Y"))))))
+
 
 ;;; Module tests
 

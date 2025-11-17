@@ -265,38 +265,15 @@
 ;;; Macro handling
 
 (defun macro-name? (ast)
-  "Does AST look like a macro name (that should not be qualified)? If a
-symbol table is available for AST, check for a macro definition.
-Otherwise, use heuristics."
-  (when (typep ast 'identifier-ast)
-    (if (has-attribute-p ast 'symbol-table)
-        (when-let ((symbol-table (symbol-table ast)))
-          (find-in-symbol-table ast :macro (source-text ast)))
-        (plausible-macro-name? ast))))
+  "Does AST look like a macro name (that should not be qualified)?
 
-(defgeneric plausible-macro-name? (ast)
-  (:documentation
-   "Is AST of a class where it makes sense to check for a macro name?")
-  (:method ((id cpp-namespace-identifier))
-    ;; TODO
-    nil)
-  (:method ((id c/cpp-identifier))
-    (flet ((enumerator-name? (id)
-             "Is ID the name of an enumerator in a enum definition?"
-             (let ((parent (lookup-parent-ast (attrs-root*) id)))
-               (and (typep parent 'c/cpp-enumerator)
-                    (eql (c/cpp-name parent) id)))))
-      (let ((source-text (source-text id)))
-        (cond ((not (macro-name-string? source-text))
-               nil)
-              ;; Enumerator names are often all-caps.
-              ((enumerator-name? id)
-               nil)
-              (t (macro-name-string? source-text))))))
-  (:method ((ast c/cpp-type-identifier))
-    (macro-name-string? (source-text ast)))
-  (:method ((ast c/cpp-field-identifier))
-    (macro-name-string? (source-text ast))))
+This depends on circular evaluation of the symbol table. The first
+pass enters macros into the symbol table. Subsequent passes can then
+recognize macro identifiers."
+  (when (typep ast 'identifier-ast)
+    (when (has-attribute-p ast 'symbol-table)
+      (when-let ((symbol-table (symbol-table ast)))
+        (find-in-symbol-table ast :macro (source-text ast))))))
 
 (defun macro-name-string? (string)
   "Does STRING follow the conventions for a macro name?"

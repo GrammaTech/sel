@@ -2887,23 +2887,12 @@ multiple locations.")
         (strip-template-arguments result)
         result)))
 
-(defmethod plausible-macro-name? ((ast cpp-operator-name))
-  nil)
-
-(defmethod plausible-macro-name? ((ast cpp-destructor-name))
-  nil)
-
-(defmethod plausible-macro-name? ((ast cpp-qualified-identifier))
-  nil)
-
-(defmethod plausible-macro-name? ((ast cpp-this))
-  nil)
-
 (defmethod qualify-declared-ast-name ((type cpp-primitive-type))
   (source-text type))
 
 (def-attr-fun cpp::cached-namespace-qualified-name (name)
   (:documentation "Attribute to cache namespace-qualified names.")
+  (:circular #'equal (constantly nil))
   (:method ((ast cpp-ast) &optional name)
     name))
 
@@ -2915,13 +2904,17 @@ multiple locations.")
     ;; This gets us the behavior of only caching names on ASTs that
     ;; are not proxied. TODO: Should there be an option on
     ;; def-attr-fun for this?
-    (if (attr-proxy ast)
-        (call-next-method)
-        (if (has-attribute-p ast 'cpp::cached-namespace-qualified-name)
-            (cpp::cached-namespace-qualified-name ast)
-            (cpp::cached-namespace-qualified-name
-             ast
-             (call-next-method))))))
+    (cond ((attr-proxy ast)
+           (call-next-method))
+          ;; Don't trust the cache until the symbol table has been
+          ;; computed.
+          ((and (has-attribute-p ast 'symbol-table)
+                (has-attribute-p ast 'cpp::cached-namespace-qualified-name))
+           (cpp::cached-namespace-qualified-name ast))
+          (t
+           (cpp::cached-namespace-qualified-name
+            ast
+            (call-next-method))))))
 
 (defun cpp::absolute-name (ast &key (source-text (source-text ast)))
   "Resolve AST into an absolute (relative to global namespace) name."
@@ -2966,7 +2959,8 @@ multiple locations.")
   (qualify-declared-ast-name/namespaces id))
 
 (def-attr-fun cpp::cached-qualified-names (names)
-  (:documentation "Attribute to all the suffixes of a qualified name.")
+  (:documentation "Attribute to cache all the suffixes of a qualified name.")
+  (:circular #'equal (constantly nil))
   (:method ((ast cpp-ast) &optional names)
     names))
 
@@ -2983,13 +2977,17 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
     ;; This gets us the behavior of only caching names on ASTs that
     ;; are not proxied. TODO: Should there be an option on
     ;; def-attr-fun for this?
-    (if (attr-proxy ast)
-        (call-next-method)
-        (if (has-attribute-p ast 'cpp::cached-qualified-names)
-            (cpp::cached-qualified-names ast)
-            (cpp::cached-qualified-names
-             ast
-             (call-next-method)))))
+    (cond ((attr-proxy ast)
+           (call-next-method))
+          ;; Don't trust the cache until the symbol table has been
+          ;; computed.
+          ((and (has-attribute-p ast 'symbol-table)
+                (has-attribute-p ast 'cpp::cached-qualified-names))
+           (cpp::cached-qualified-names ast))
+          (t
+           (cpp::cached-qualified-names
+            ast
+            (call-next-method)))))
   (:method ((declared-ast cpp-ast))
     ;; If memory is still an issue, the suffixes could be displaced
     ;; arrays.
