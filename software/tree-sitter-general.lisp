@@ -8,7 +8,9 @@
         :software-evolution-library/software/tree-sitter)
   (:import-from :software-evolution-library/software/parseable
                 :of-type*)
-  (:import-from :software-evolution-library/software/tree-sitter-code-gen))
+  (:import-from :software-evolution-library/software/tree-sitter-code-gen)
+  (:local-nicknames
+   (:dbg :software-evolution-library/utility/debug)))
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 
@@ -2834,6 +2836,43 @@ determine the translation."
                                      {subtree-contains-range-p
                                       parse-tree})))))))))
     (insert-parse-tree-ranges parse-tree)))
+
+(defvar *ensure-genomes* t
+  "Whether to wrap unparsable genomes as source text fragments.")
+
+(-> ensure-genome (software) software)
+(defun ensure-genome (software)
+  "Return SOFTWARE with its genome parsed, unconditionally.
+If trying to parse the genome caused an parsing error, the genome is
+wrapped as a source text fragment."
+  (labels ((wrap-as-fragment (ast-type string)
+             (declare (symbol ast-type) (string string))
+             (convert
+              ast-type
+              `((:class . :translation-unit)
+                (:children
+                 ((:class . :source-text-fragment-variation-point)
+                  (:source-text-fragment
+                   . ((:class . :source-text-fragment)
+                      (:text . ,string)))))))))
+    (handler-bind
+        ((parse-tree-matching-error
+           (lambda (e)
+             (nest
+              (when *ensure-genomes*)
+              (return-from ensure-genome)
+              (progn
+                (dbg:note :debug "Parse tree matching error: ~a" e))
+              (with-slots (genome) software)
+              (let ((new-genome
+                      (wrap-as-fragment
+                       (language-ast-class software)
+                       (genome-string software))))
+                (setf genome new-genome))
+              software))))
+      (progn
+        (genome software)
+        software))))
 
 (defgeneric default-whitespace-style (ast)
   (:documentation "Get the default whitespace style for AST.")

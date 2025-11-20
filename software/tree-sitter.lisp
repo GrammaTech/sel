@@ -704,6 +704,8 @@
            :*use-blotting*
            :blot-out-ranges
            :blot-out
+           ;; Recovery
+           :ensure-genome
            ;; C++ modules
            :module?
            :exported?

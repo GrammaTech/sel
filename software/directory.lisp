@@ -537,7 +537,8 @@ This function will not signal an error due to a bad parse."
                (handler-case
                    (with-thread-name
                        (:name (fmt "Parsing ~a" (file:original-path software)))
-                     (genome software))
+                     (genome (ensure-genome software)))
+                 ;; TODO May no longer be needed given ensure-genome.
                  (error (e)
                    (cons :error e))))))
     (funcall progress-fn genome)))
@@ -601,6 +602,7 @@ instances."
                    (debug:note :debug "Inserting file AST at ~a" path)
                    (insert-file obj path software-object)
                    (collecting evolve-file))
+                  ;; TODO May no longer be needed given ensure-genome.
                   ((cons (eql :error) t)
                    (restart-case
                        (if skip-all
