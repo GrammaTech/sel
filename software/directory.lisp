@@ -228,9 +228,13 @@
   (unless (typep new 'parseable)
     (return-from with (call-next-method)))
   (verify-project-in-sync
-   (let ((old-root (genome old-file))
+   (let ((old-root
+           ;; Don't parse the old file if it's not parsed yet.
+           (slot-value old-file 'genome))
          (new-root (genome new)))
-     (if-let (ast-path (ast-path project old-root))
+     (if-let (ast-path
+              (and (typep old-root 'ast)
+                   (ast-path project old-root)))
        (copy project
              :evolve-files
              (mapcar (lambda (cons)
