@@ -1748,8 +1748,25 @@ when its surrounding text is removed."
     (is (find-if (of-type 'c-#endif) root))))
 
 
-;;; outer-decls tests
-(deftest outer-decls-struct-tag-specifier ()
+;;; outer-decls and inner-decls tests
+
+(deftest test-enum-specifier-inner-declarations ()
+  "Inner declarations for an enum specifier should just be the enumerators."
+  (let* ((c (c* "enum HttpVersion {
+		/// HTTP/0.9
+		ZeroDotNine,
+		/// HTTP/1.0
+		OneDotZero,
+		/// HTTP/1.1
+		OneDotOne,
+		/// Unknown HTTP version
+		HttpVersionUnknown
+	}"))
+         (enum (is (find-if (of-type 'c-enum-specifier) c)))
+         (decls (ts::inner-declarations enum)))
+    (is (every (of-type 'c-enumerator) decls))))
+
+(deftest  outer-decls-struct-tag-specifier ()
   "outer-decls returns the actual declaration and not the forward declaration."
   (let* ((root (convert 'c-ast "
 struct foo_s;

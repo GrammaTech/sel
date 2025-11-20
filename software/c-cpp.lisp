@@ -653,7 +653,7 @@ circular dependencies."
 
 (defmethod inner-declarations ((ast c/cpp-enum-specifier))
   (when-let (body (c/cpp-body ast))
-    (let ((enumerators (children body)))
+    (let ((enumerators (direct-children body)))
       (values enumerators
               (mapcar (constantly :variable) enumerators)))))
 
