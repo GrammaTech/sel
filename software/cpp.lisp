@@ -740,34 +740,48 @@ to look it up as `y::z' or just `z'."
 
 ;;; Methods common to all software objects
 
+(defun patch-child-slot (ast slot-name child-slots &key (arity 1))
+  "Patch SLOT-NAME into CHILD-SLOTS."
+  (declare (symbol slot-name))
+  (assert (slot-exists-p ast slot-name))
+  (assert (not (find slot-name child-slots :key #'car))
+    () "Workaround is obsolete")
+  (if (slot-value ast slot-name)
+      (let ((tail (member 'children child-slots :key #'car)))
+        (append (ldiff child-slots tail)
+                (list `(,slot-name . ,arity))
+                tail))
+      child-slots))
+
+(defun patch-child-slot-specifier (ast slot-name slot-specs &key (arity 1))
+  "Patch SLOT-NAME into SLOT-SPECS."
+  (declare (symbol slot-name))
+  (if (slot-value ast slot-name)
+      ;; Don't add it if it's already there.
+      (if (find slot-name slot-specs :key #'ft::slot-specifier-slot)
+          slot-specs
+          (cons (make 'ft::slot-specifier
+                      :class t
+                      :slot slot-name
+                      :arity arity)
+                slot-specs))
+      slot-specs))
+
 (defmethod child-slots ((ast cpp-declaration))
   "Work around unusual alias in cpp-condition-clause.
 See SEL issue #359."
-  (let ((child-slots (call-next-method)))
-    (assert (not (find 'cpp-value child-slots :key #'car))
-      () "Workaround is obsolete")
-    (if (slot-value ast 'cpp-value)
-        (let ((tail (member 'children child-slots :key #'car)))
-          (append (ldiff child-slots tail)
-                  (list '(cpp-value . 1))
-                  tail))
-        child-slots)))
+  (nest
+   (patch-child-slot ast 'cpp-default-value)
+   (patch-child-slot ast 'cpp-value)
+   (call-next-method)))
 
 (defmethod child-slot-specifiers ((ast cpp-declaration))
   "Work around unusual alias in cpp-condition-clause.
 See SEL issue #359."
-  (let ((specs (call-next-method)))
-    (if (slot-value ast 'cpp-value)
-        ;; Don't add it if it's already there.
-        (if (find 'cpp-value specs :key #'ft::slot-specifier-slot)
-            specs
-            (cons (load-time-value
-                   (make 'ft::slot-specifier
-                         :class t
-                         :slot 'cpp-value
-                         :arity 1))
-                  specs))
-        specs)))
+  (nest
+   (patch-child-slot-specifier ast 'cpp-value)
+   (patch-child-slot-specifier ast 'cpp-default-value)
+   (call-next-method)))
 
 
 ;;;; Methods for tree-sitter generics

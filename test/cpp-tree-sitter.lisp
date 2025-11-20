@@ -78,6 +78,12 @@ See SEL issue #359."
     (is (ast-path decl call))
     (is (ast-path cpp call))))
 
+(deftest test-deleted-operator-alias-workaround ()
+  "Check we work around cpp-default-value not being in the child slots of a deleted operator."
+  (let* ((ast (from-string 'cpp "explicit operator bool() const = delete;"))
+         (decl (is (find-if (of-type 'cpp-declaration) ast))))
+    (is (ast-path decl (cpp-default-value decl)))))
+
 #+(and tree-sitter-c tree-sitter-cpp)
 (deftest test-match-c/cpp ()
   "Using c/cpp patterns should match on both C and C++ ASTs."
