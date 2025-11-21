@@ -500,7 +500,7 @@ or comments.  NIL if no such newline exists."
 (defun get-language-from-superclass (superclass)
   "Get the tree-sitter language associated with SUPERCLASS."
   (or (gethash superclass *superclass->language*)
-      (error "No tree-sitter language known for ~a." superclass)))
+      (error "No tree-sitter language known for ~s." superclass)))
 
 (defmethod convert :around ((to-type (eql 'tree-sitter-ast)) (string string)
                             &key deepest &allow-other-keys)
