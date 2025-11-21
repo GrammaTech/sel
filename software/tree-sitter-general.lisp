@@ -1190,20 +1190,23 @@ a declaration AST, return AST unchanged."
     (get-declaration-ids type (call-function ast)))
   (:method ((type symbol) ast)
     (get-declaration-ids (assure keyword (decl-type-namespace type)) ast))
-  (:method :around ((type t) (identifier identifier-ast)
-                    &aux (decl-type (when (keywordp type)
-                                      (namespace-decl-type type))))
+  (:method :around ((ns t) (identifier identifier-ast)
+                    &aux
+                      (decl-type
+                       (when (keywordp ns)
+                         (namespace-decl-type ns)))
+                      (pred (namespace-decl-type-predicate decl-type)))
     (or
      ;; Check if this identifier is part of a declaration before
      ;; checking scopes to avoid returning a shadowed variable.
      (ensure-list
       (iter
-       (for parent in (filter (of-type* decl-type)
-                              (lookup-parent-asts* (attrs-root*) identifier)))
-       (thereis (and (typep parent decl-type)
-                     (not (typep parent 'degenerate-declaration-ast))
-                     (find-in-defs parent type
-                                   (qualify-declared-ast-name identifier))))))
+        (for parent in (filter pred
+                               (lookup-parent-asts* (attrs-root*) identifier)))
+        (thereis (and (funcall pred parent)
+                      (not (typep parent 'degenerate-declaration-ast))
+                      (find-in-defs parent ns
+                                    (qualify-declared-ast-name identifier))))))
      (call-next-method))))
 
 (def-attr-fun relevant-declaration-type ()
@@ -4519,15 +4522,16 @@ Otherwise, return PARSE-TREE."
   "Possible namespaces in a symbol table."
   (cons 'member +symbol-table-namespaces+))
 
-(def +namespace-decl-type-table+
-  '((:variable . variable-declaration-ast)
-    (:function . function-declaration-ast)
-    (:method . function-declaration-ast)
-    (:type . type-declaration-ast)
-    (:tag . type-declaration-ast)
-    (:macro . macro-declaration-ast)
-    (:namespace . namespace-declaration-ast)
-    (nil . declaration-ast)))
+(eval-always
+  (def +namespace-decl-type-table+
+    '((:variable . variable-declaration-ast)
+      (:function . function-declaration-ast)
+      (:method . function-declaration-ast)
+      (:type . type-declaration-ast)
+      (:tag . type-declaration-ast)
+      (:macro . macro-declaration-ast)
+      (:namespace . namespace-declaration-ast)
+      (nil . declaration-ast))))
 
 (defun namespace-decl-type-table ()
   "Reader for `+namespace-decl-type-table+'."
@@ -4536,6 +4540,16 @@ Otherwise, return PARSE-TREE."
 (defun namespace-decl-type (ns)
   (assure (and symbol (not null))
     (assocdr ns +namespace-decl-type-table+)))
+
+(defun namespace-decl-type-predicate (type)
+  (macrolet ((generate-case ()
+               `(ecase type
+                  ,@(remove-duplicates
+                     (iter (for (nil . type) in +namespace-decl-type-table+)
+                           (collect `(,type (of-type ',type))))
+                     :test #'equal))))
+    (ensure-function
+      (generate-case))))
 
 (defun decl-type-namespace (type)
   (assure symbol-table-namespace
@@ -4809,6 +4823,7 @@ using NAMESPACE.")
   (:method :context ((type symbol) root (id identifier-ast))
     (assert (not (keywordp type)))
     (let ((ns (decl-type-namespace type))
+          (pred (namespace-decl-type-predicate type))
           (id-string (qualify-declared-ast-name id)))
       (or
        ;; Check if this identifier is part of a declaration before
@@ -4816,7 +4831,7 @@ using NAMESPACE.")
        (iter
          (for parent in (lookup-parent-asts* (attrs-root*) id))
          (finding parent such-that
-                  (and (typep parent type)
+                  (and (funcall pred parent)
                        (find-in-defs parent ns id-string))))
        (call-next-method))))
   (:method ((type symbol) root id)
