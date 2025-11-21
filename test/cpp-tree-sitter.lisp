@@ -2287,6 +2287,12 @@ u64v;")
             (lastcar
              (collect-if (of-type 'cpp-identifier) cpp))))))))
 
+(deftest test-attributed-declarator-outer-declarations ()
+  (let ((cpp (cpp* "x* y [[maybe_unused]] = z;")))
+    (is (find-if (of-type 'cpp-attributed-declarator) cpp))
+    (is (equal (mapcar #'source-text (outer-declarations cpp))
+               '("y")))))
+
 
 ;;; Parsing tests
 

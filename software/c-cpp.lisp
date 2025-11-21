@@ -560,6 +560,11 @@ MACROS is a map from macro names to expansions."
                ((cpp-structured-binding-declarator)
                 (let ((decls (mappend #'get-declarations (children d))))
                   (values decls (mapcar (constantly :variable) decls))))
+               ((c/cpp-attributed-declarator)
+                (nest
+                 (mappend #'get-declarations)
+                 (remove-if (of-type 'c/cpp-attribute-declaration))
+                 (children d)))
                ;; Special handling for uninitialized variables.
                (otherwise
                 (values (list (c/cpp-declarator d)) '(:variable))))))

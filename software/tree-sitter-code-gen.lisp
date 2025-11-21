@@ -795,6 +795,12 @@ for the language.")
        (:c/cpp-array-declarator c-array-declarator cpp-array-declarator)
        (:c/cpp-assignment-expression c-assignment-expression
         cpp-assignment-expression)
+       (:c/cpp-attribute-declaration
+        c-attribute-declaration
+        cpp-attribute-declaration)
+       (:c/cpp-attributed-declarator
+        c-attributed-declarator
+        cpp-attributed-declarator)
        (:c/cpp-attributed-statement
         c-attributed-statement cpp-attributed-statement)
        (:c/cpp-attribute c-attribute cpp-attribute)
