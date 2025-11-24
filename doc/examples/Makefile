@@ -10,13 +10,13 @@ endif
 
 ifneq ($(LISP_HEAP),)
 ifneq (,$(findstring sbcl, $(LISP)))
-LISP_FLAGS = --dynamic-space-size $(LISP_HEAP) --no-userinit --no-sysinit
+LISP_FLAGS = --dynamic-space-size $(LISP_HEAP)
 else
 LISP_FLAGS = --heap-reserve $(LISP_HEAP)M --quiet --no-init
 endif
 else
 ifneq (,$(findstring sbcl, $(LISP)))
-LISP_FLAGS = --no-userinit --no-sysinit
+LISP_FLAGS =
 else
 LISP_FLAGS = --quiet --no-init
 endif
