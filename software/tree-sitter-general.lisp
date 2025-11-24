@@ -2862,17 +2862,20 @@ wrapped as a source text fragment."
            (wrap-as-root-fragment (ast-type string)
              (wrap-with-root
               ast-type
-              (wrap-as-fragment ast-type string))))
+              (wrap-as-fragment ast-type string)))
+           (wrap-genome-as-fragment (software)
+             (with-slots (genome) software
+               (setf genome
+                     (wrap-as-root-fragment
+                      (language-ast-class software)
+                      (genome-string software))))))
     (handler-bind
         ((parse-tree-matching-error
            (lambda (e)
              (when *ensure-genomes*
                (dbg:note :debug "Parse tree matching error: ~a" e)
-               (with-slots (genome) software
-                 (setf genome
-                       (wrap-as-root-fragment (language-ast-class software)
-                                              (genome-string software)))
-                 (return-from ensure-genome software))))))
+               (wrap-genome-as-fragment software)
+               (return-from ensure-genome software)))))
       (progn
         (genome software)
         software))))
