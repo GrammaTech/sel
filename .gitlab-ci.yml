@@ -5,6 +5,7 @@ default:
   image: $DOCKER_REGISTRY/$CI_PROJECT_PATH
   tags: [shared]
   before_script:
+    - echo '(pushnew :fset-disable-package-lock *features*)' >> ~/.sbclrc
     - cp -r $(pwd)/ /root/quicklisp/local-projects/
     - cd /root/quicklisp/local-projects/$CI_PROJECT_NAME
     - GT=yes make dependencies libcxx-src
