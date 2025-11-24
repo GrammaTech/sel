@@ -11,10 +11,23 @@
    :software-evolution-library/software/all-tree-sitter
    :software-evolution-library/test/util-clang
    :software-evolution-library/components/file
-   :software-evolution-library/components/formatting))
+   :software-evolution-library/components/formatting)
+  (:local-nicknames
+   (:ts :software-evolution-library/software/tree-sitter)))
 (in-package :software-evolution-library/test/all-tree-sitter)
 (in-readtable :curry-compose-reader-macros)
 (defsuite test-all-tree-sitter "All tree-sitter languages representation." nil)
 
 ;;; This package exists just to ensure we can actually load all the
 ;;; tree-sitter representations.
+
+(defparameter *withheld-ast-classes*
+  '(jsdoc-ast json-ast regex-ast)
+  "For these languages, an empty string is not parseable.")
+
+(deftest test-get-root-ast ()
+  "For every language, we should be able to get a `root-ast' instance."
+  (dolist (superclass
+           (set-difference (hash-table-keys ts::*superclass->language*)
+                           *withheld-ast-classes*))
+    (is (typep (convert superclass "") 'root-ast))))

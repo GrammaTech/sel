@@ -665,7 +665,11 @@ for the language.")
     "Alist from languages to classes with extra slot options.")
 
   (defparameter *tree-sitter-ast-superclasses*
-    '((:c
+    '((:ada
+       (:root-ast ada-compilation))
+      (:bash
+       (:root-ast bash-program))
+      (:c
        ;; A subclass of a declaration AST that isn't really a
        ;; declaration.
        (:degenerate-declaration-ast
@@ -909,9 +913,12 @@ for the language.")
         cl-package-lit cl-path-lit cl-quoting-lit cl-read-cond-lit
         cl-sym-lit cl-syn-quoting-lit cl-unquote-splicing-lit cl-unquoting-lit
         cl-var-quoting-lit cl-vec-lit)
+       (:root-ast cl-source)
        (:string-ast cl-str-lit)
        (:loop-expression-ast cl-loop-macro)
        (:number-ast cl-num-lit cl-complex-num-lit cl-imaginary))
+      (:css
+       (:root-ast css-stylesheet))
       (:golang
        (:root-ast golang-source-file)
        (:comment-ast golang-comment)
@@ -932,6 +939,8 @@ for the language.")
        (:type-identifier-ast golang-type-identifier)
        (:variable-declaration-ast
         golang-var-declaration golang-const-declaration))
+      (:html
+       (:root-ast html-fragment))
       (:java
        (:arguments-ast java-argument-list)
        (:assignment-ast java-assignment-expression java-update-expression)

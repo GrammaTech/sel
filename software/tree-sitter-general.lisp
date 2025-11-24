@@ -2845,31 +2845,34 @@ determine the translation."
   "Return SOFTWARE with its genome parsed, unconditionally.
 If trying to parse the genome caused an parsing error, the genome is
 wrapped as a source text fragment."
-  (labels ((wrap-as-fragment (ast-type string)
+  (labels ((get-root-ast (ast-type)
+             (assure root-ast
+               (convert ast-type "")))
+           (wrap-with-root (ast-type fragment)
+             (copy (get-root-ast ast-type)
+                   :children (list fragment)))
+           (wrap-as-fragment (ast-type string)
              (declare (symbol ast-type) (string string))
              (convert
               ast-type
-              `((:class . :translation-unit)
-                (:children
-                 ((:class . :source-text-fragment-variation-point)
-                  (:source-text-fragment
-                   . ((:class . :source-text-fragment)
-                      (:text . ,string)))))))))
+              `((:class . :source-text-fragment-variation-point)
+                (:source-text-fragment
+                 . ((:class . :source-text-fragment)
+                    (:text . ,string))))))
+           (wrap-as-root-fragment (ast-type string)
+             (wrap-with-root
+              ast-type
+              (wrap-as-fragment ast-type string))))
     (handler-bind
         ((parse-tree-matching-error
            (lambda (e)
-             (nest
-              (when *ensure-genomes*)
-              (return-from ensure-genome)
-              (progn
-                (dbg:note :debug "Parse tree matching error: ~a" e))
-              (with-slots (genome) software)
-              (let ((new-genome
-                      (wrap-as-fragment
-                       (language-ast-class software)
-                       (genome-string software))))
-                (setf genome new-genome))
-              software))))
+             (when *ensure-genomes*
+               (dbg:note :debug "Parse tree matching error: ~a" e)
+               (with-slots (genome) software
+                 (setf genome
+                       (wrap-as-root-fragment (language-ast-class software)
+                                              (genome-string software)))
+                 (return-from ensure-genome software))))))
       (progn
         (genome software)
         software))))

@@ -12,6 +12,7 @@
    :software-evolution-library/software/bash
    :software-evolution-library/software/c
    :software-evolution-library/software/c-sharp
+   :software-evolution-library/software/cl
    :software-evolution-library/software/cpp
    :software-evolution-library/software/css
    :software-evolution-library/software/go
