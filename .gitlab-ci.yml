@@ -20,6 +20,9 @@ check-format:
 build-manual:
   stage: test
   script:
+    # Hack to work around the user init file not being loaded until
+    # after quickloading the dependencies.
+    - echo '(load "~/.sbclrc")' >> $HOME/quicklisp/setup.lisp
     - make doc
   except:
     - schedules
