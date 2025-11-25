@@ -2355,14 +2355,12 @@ instance we only want to remove one).")
 (defmethod initializer-aliasee ((sw t)
                                 (lhs cpp-reference-declarator)
                                 (rhs cpp-pointer-expression))
-  (with-attr-table sw
-    (if (typep (cpp-operator rhs) 'cpp-*)
-        (aliasee (cpp-argument rhs))
-        (call-next-method))))
+  (if (typep (cpp-operator rhs) 'cpp-*)
+      (aliasee (cpp-argument rhs))
+      (call-next-method)))
 
 (defmethod initializer-aliasee ((sw t) (lhs cpp-reference-declarator) rhs)
-  (with-attr-table sw
-    (aliasee rhs)))
+  (aliasee rhs))
 
 (defmethod wrap-type-descriptor ((d cpp-pointer-declarator) type)
   (make 'cpp-type-descriptor

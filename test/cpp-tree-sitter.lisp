@@ -588,8 +588,12 @@ dereferenced pointer."
   int& r = pl;
   int* p = &pl;
   int* q = p;
+  // Assign alias indirectly.
   int *s;
   s = p;
+  // Assign alias directly.
+  int *t;
+  t = pl;
 }"))
 
 (defun test-aliasee-is-plain-var (alias-name)
@@ -613,8 +617,11 @@ dereferenced pointer."
 (deftest test-pointer-initialized-pointer-aliasee ()
   (test-aliasee-is-plain-var "q"))
 
-(deftest test-unitialized-pointer-aliasee ()
-  (test-aliasee-is-plain-var "q"))
+(deftest test-uninitialized-pointer-indirect-aliasee ()
+  (test-aliasee-is-plain-var "s"))
+
+(deftest test-uninitialized-pointer-direct-aliasee ()
+  (test-aliasee-is-plain-var "t"))
 
 (deftest test-alias-set ()
   (let* ((sw (from-string 'cpp-project +alias-fragment+))
@@ -624,7 +631,10 @@ dereferenced pointer."
       (is (typep pl 'identifier-ast))
       (is (typep (get-initialization-ast pl)
                  'cpp-init-declarator))
-      (is (length= 4 (alias-set pl))))))
+      (is (set-equal
+           '("r" "p" "q" "s" "t")
+           (alias-set pl)
+           :test #'source-text=)))))
 
 (deftest test-infer-auto-type-from-function ()
   (let* ((sw (from-string 'cpp-project (fmt "~

@@ -1692,14 +1692,29 @@ return whether they are equal.")
 ;;; TODO Consider rewriting aliasee to propagate down from the top
 ;;; (like symbol-table does) and alias-set to propagate backwards?
 
-(def-attr-fun aliasee ()
-  "If AST is a pointer variable, the plain variable it points to.")
+(define-synthesized-attribute aliasing-table ()
+  "Table from pointer variables to plain variables, and v.v."
+  (:union-fn (op (map-union _ _ #'union))))
 
-(def-attr-fun alias-set ()
+(defun aliasee (ast)
+  "If AST is a pointer variable, the plain variable it points to."
+  (when-let (aliasee->alias
+             (lookup (aliasing-table (attrs-root*)) :aliasee->alias))
+    (lookup aliasee->alias ast)))
+
+(defun alias-set (plain-var)
   "Get the declarations \(as identifiers, as in `get-declaration-id')
    of variables in SOFTWARE that are aliases \(pointers or references)
    for PLAIN-VAR."
-  (:circular #'gt:equal? (constantly nil)))
+  (when-let* ((alias->alias-set
+               (lookup (aliasing-table (attrs-root*)) :alias->alias-set))
+              (id (get-declaration-id :variable plain-var))
+              (set (lookup alias->alias-set id)))
+    (iter (for alias in-set set)
+          (set-collect (get-declaration-id :variable alias)
+                       into set
+                       initial-value (empty-ch-set))
+          (finally (return (convert 'list (less set plain-var)))))))
 
 (defgeneric constant-fold (ast)
   (:documentation "Constant-fold AST into a Lisp value.")
