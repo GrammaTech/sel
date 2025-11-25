@@ -1256,6 +1256,7 @@ declaration makes sense."
 This is useful when languages allow a single declaration to initialize
 more than one variable, and for languages that allow declaration and
 initialization to be separate."
+  (:circular #'equal? (constantly nil))
   (:method ((ast t) &aux (obj (attrs-root*)))
     (when-let (id (get-declaration-id :variable ast))
       (find-enclosing 'variable-initialization-ast
