@@ -1374,8 +1374,9 @@ Usually synthesized attributes contain information used by other
 attributes to avoid repeated tree traversal.
 
 Going up the tree, the maps returned by each child are unioned using
-`map-union' with `append-longest' as its value union function.
-You can override this for your own synthesized attributes."
+`map-union' with `append-longest' as its value union function. You can
+override the value union function for your own synthesized attributes
+by providing a `:union-fn` option."
   (let* ((docstring (and (stringp (car body)) (pop body)))
          (union-fn-option (assoc :union-fn body))
          (body (remove union-fn-option body))

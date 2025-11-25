@@ -181,14 +181,21 @@
 
 ;;; Symbol Table
 
-(defgeneric c/cpp-function-declaration-definitions (declaration &key root)
-  (:documentation
-   "Get the function(s) that define DECLARATION.")
-  (:method ((declaration c/cpp-ast) &key (root (attrs-root*)))
-    (iter (for ast in-tree (genome root))
-          (when (typep ast 'c/cpp-function-definition)
-            (when (member declaration (get-declaration-asts :function ast))
-              (collect ast))))))
+(define-synthesized-attribute c/cpp-function-declaration-definitions-table ()
+  "Table for functions that define a declaration."
+  (:union-fn #'union)
+  (:method ((fn c/cpp-function-definition))
+    ;; TODO Filter out which ones are actual overloads.
+    (iter (for decl in (get-declaration-asts :function fn))
+          (collect-map (decl (ch-set fn))
+                       initial-value (empty-ch-map)))))
+
+(defun c/cpp-function-declaration-definitions (declaration)
+  "Get the function(s) that define DECLARATION."
+  (convert 'list
+           (lookup
+            (c/cpp-function-declaration-definitions-table (attrs-root*))
+            declaration)))
 
 (defmethod symbol-table-union ((root c/cpp) table-1 table-2 &key)
   (symbol-table-union (genome root) table-1 table-2))

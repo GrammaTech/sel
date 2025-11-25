@@ -3181,12 +3181,11 @@ out-of-class definition, assuming it has one.")
   (:method ((virtual-method cpp-declaration))
     (cpp-declaration-virtual-method-definitions virtual-method)))
 
-(defmethod c/cpp-function-declaration-definitions ((ast cpp-ast) &key root)
+(defmethod c/cpp-function-declaration-definitions-table ((ast cpp-ast))
   "If AST is a virtual function declaration, collect its overrides as its
 definitions."
-  (declare (ignore root))
   (if (cpp::declared-virtual-p ast)
-      (cpp::virtual-method-definitions ast)
+      (ch-map (ast (convert 'ch-set (cpp::virtual-method-definitions ast))))
       (call-next-method)))
 
 (defun cpp::declared-virtual-p (ast)
