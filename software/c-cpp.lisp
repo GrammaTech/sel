@@ -181,6 +181,13 @@
 
 ;;; Symbol Table
 
+(defun c/cpp-function-declaration-definitions (declaration)
+  "Get the function(s) that define DECLARATION."
+  (convert 'list
+           (lookup
+            (c/cpp-function-declaration-definitions-table (attrs-root*))
+            declaration)))
+
 (define-synthesized-attribute c/cpp-function-declaration-definitions-table ()
   "Table for functions that define a declaration."
   (:union-fn #'union)
@@ -189,13 +196,6 @@
     (iter (for decl in (get-declaration-asts :function fn))
           (collect-map (decl (ch-set fn))
                        initial-value (empty-ch-map)))))
-
-(defun c/cpp-function-declaration-definitions (declaration)
-  "Get the function(s) that define DECLARATION."
-  (convert 'list
-           (lookup
-            (c/cpp-function-declaration-definitions-table (attrs-root*))
-            declaration)))
 
 (defmethod symbol-table-union ((root c/cpp) table-1 table-2 &key)
   (symbol-table-union (genome root) table-1 table-2))

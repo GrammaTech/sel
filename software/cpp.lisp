@@ -1177,7 +1177,7 @@ from a prior sibling \(`public:', `private:', `protected:').")
   (if-let ((possible-types (possible-types ast)))
     ;; TODO
     (field-table (car possible-types))
-    (empty-ch-map)))
+    (empty-symbol-table)))
 
 (-> cpp::inherited-member-access (member-access member-access) member-access)
 (defun cpp::inherited-member-access (as-inherited as-defined)
@@ -1259,7 +1259,7 @@ virtuality) from class where they are declared."
     (iter (for (name fields) in-map field-table)
           (collect-map
            (name (mapcar #'collect-properties fields))
-           initial-value (empty-ch-map)))))
+           initial-value (empty-symbol-table)))))
 
 (defmethod direct-field-table :around ((ast cpp-ast))
   (when-let (map (call-next-method))
@@ -1267,11 +1267,11 @@ virtuality) from class where they are declared."
 
 ;;; TODO
 (defmethod direct-field-table ((ast cpp-type-parameter-declaration))
-  (empty-ch-map))
+  (empty-symbol-table))
 
 ;;; TODO
 (defmethod direct-field-table ((ast cpp-type-forward-declaration))
-  (empty-ch-map))
+  (empty-symbol-table))
 
 (defun cpp::base-class-access (derived-class quals)
   "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
@@ -1365,7 +1365,7 @@ virtual methods."
                (when (typep base-class 'cpp-type-parameter-declaration)
                  ;; TODO
                  (return-from qualify-base-field-table
-                   (empty-ch-map)))
+                   (empty-symbol-table)))
                (let ((field-table (field-table base-class))
                      (prefix (source-text (definition-name-ast base-class))))
                  (reduce (lambda (field-table key fields)
@@ -1489,7 +1489,7 @@ definitions."
     ((cpp-declaration-list (direct-children children))
      (reduce (op (symbol-table-union ast _ _))
              (mapcar #'outer-defs children)
-             :initial-value (empty-ch-map)))))
+             :initial-value (empty-symbol-table)))))
 
 (defmethod outer-defs ((ast cpp-namespace-definition))
   (if-let (exports (conserve-outer-def-exports ast))
@@ -1542,7 +1542,7 @@ If ALIAS-NAME is null, alias the outer defs to unqualified names."
               (iter (for (ns ns-map) in-map outer-defs))
               (collect-map (ns (shadow-ns-map ns-map))
                            initial-value (empty-ch-map)))))
-    (if (no decls) (empty-ch-map)
+    (if (no decls) (empty-symbol-table)
         (reduce (op (symbol-table-union (car decls) _ _))
                 decls
                 :key #'decl-alias-namespace))))
@@ -3034,14 +3034,14 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 (defmethod outer-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (outer-declarations node)))
-    (convert 'fset:ch-map
+    (convert 'symbol-table
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)
               :source-text-fun #'qualify-declared-ast-name))))
 
 (defmethod inner-defs ((node cpp-ast))
   (mvlet ((declarations namespaces (inner-declarations node)))
-    (convert 'fset:ch-map
+    (convert 'symbol-table
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)
               :source-text-fun #'qualify-declared-ast-name))))

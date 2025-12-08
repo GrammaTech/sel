@@ -481,7 +481,7 @@ file including it."
                                              (:function "function"))))))))
     (with-fixture symbol-table-project
       (with-attr-table *project*
-        (symbol-table *project* (empty-ch-map))
+        (symbol-table *project* (empty-symbol-table))
         (test-main.c)))))
 
 (deftest c-project-symbol-table-2 ()
@@ -507,7 +507,7 @@ file including it."
                             system-header)))))
     (with-fixture symbol-table-project
       (with-attr-table *project*
-        (symbol-table *project* (empty-ch-map))
+        (symbol-table *project* (empty-symbol-table))
         (test-main.c)))))
 
 (deftest c-project-dependency-order-1 ()

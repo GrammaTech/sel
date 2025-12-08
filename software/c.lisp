@@ -432,7 +432,7 @@ the outer-defs for NODE are returned instead."
                       (attrs-root*))
              node))
            (declarations namespaces (outer-declarations declaration)))
-    (convert 'fset:ch-map
+    (convert 'symbol-table
              (convert-grouped-namespaces
               (group-by-namespace declarations namespaces)))))
 

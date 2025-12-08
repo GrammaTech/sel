@@ -677,6 +677,7 @@
            :attrs-root*
            ;; Symbol Table
            :symbol-table
+           :empty-symbol-table
            :find-in-symbol-table
            :find-enclosing-declaration
            :multi-map-symbol-table-union

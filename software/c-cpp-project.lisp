@@ -1539,9 +1539,9 @@ symbol-table will diverge."
   (ft/attrs::finalize-approximation)
   (let* ((implicit (ensure-header-implicit-header (attrs-root*) node))
          (in (or (implicit-header-symbol-table implicit)
-                 (empty-ch-map))))
+                 (empty-symbol-table))))
     (ts::propagate-declarations-down node in)))
 
 (defmethod symbol-table ((node c/cpp-unknown-header) &optional in)
   (declare (ignore in))
-  (empty-ch-map))) ; #+(or :TREE-SITTER-C :TREE-SITTER-CPP)
+  (empty-symbol-table))) ; #+(or :TREE-SITTER-C :TREE-SITTER-CPP)

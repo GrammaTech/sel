@@ -4651,7 +4651,7 @@ by MULTI-DECLARATION-KEYS."
                    (remove-duplicates
                     (append shadowing-value shadowable-value))
                    shadowing-value))))
-    (do-set (key keys (convert 'fset:ch-map map-list))
+    (do-set (key keys (convert 'symbol-table map-list))
       (let* ((shadowable-subtable (@ shadowable-table key))
              (shadowing-subtable (@ shadowing-table key))
              (merged-table (if (and shadowable-subtable shadowing-subtable)
@@ -4666,6 +4666,8 @@ by MULTI-DECLARATION-KEYS."
 
 (defgeneric symbol-table-union (root symbol-table-1 symbol-table-2 &key)
   (:documentation "Return the union of SYMBOL-TABLE-1 and SYMBOL-TABLE-2.")
+  (:method :around (root symbol-table-1 symbol-table-2 &key &allow-other-keys)
+    (convert 'symbol-table (call-next-method)))
   (:method (root symbol-table-1 symbol-table-2 &key &allow-other-keys)
     (map-union symbol-table-1 symbol-table-2))
   (:method ((root c-like-syntax-ast) table-1 table-2 &key &allow-other-keys)
@@ -4685,13 +4687,47 @@ table."
           children
           :initial-value (symbol-table-union ast in (inner-defs ast))))
 
+(defun string-compare (x y)
+  (fset::compare-strings (string x) (string y)))
+
+(defun string-hash (x)
+  (sxhash (string x)))
+
+(define-hash-function string-compare string-hash)
+
+(defun empty-symbol-table ()
+  (empty-ch-map nil 'string-compare 'fset2:eql-compare))
+
+(defun symbol-table-p (x)
+  (and (typep x 'fset:ch-map)
+       (fset:equal? (fset:empty-map-like x)
+                    (load-time-value (empty-symbol-table)))))
+
+(deftype symbol-table ()
+  '(and fset:ch-map (satisfies symbol-table-p)))
+
+(defmethod convert ((to-type (eql 'symbol-table)) input &key)
+  (convert 'fset:ch-map
+           input
+           :key-compare-fn-name 'string-compare
+           :val-compare-fn-name 'fset2:eql-compare))
+
+(defmethod convert ((to-type (eql 'symbol-table)) (input fset:ch-map) &key)
+  (if (symbol-table-p input) input
+      (call-next-method)))
+
 (def-attr-fun symbol-table (in)
   "Compute the symbol table at this node."
-  (:circular #'gt:equal? (constantly (empty-ch-map)))
+  (:circular #'gt:equal? (constantly (empty-symbol-table)))
   (:method ((software parseable) &optional in)
     (symbol-table (genome software) in))
   (:method ((node root-ast) &optional in)
     (propagate-declarations-down node in))
+  (:method :context ((ast functional-tree-ast) &optional in)
+    (convert 'symbol-table
+             (call-next-method
+              ast
+              (and in (convert 'symbol-table in)))))
   (:method ((node functional-tree-ast) &optional in)
     (cond
       ((scope-ast-p node)
@@ -4704,15 +4740,15 @@ table."
          in))))
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
-  (symbol-table (attrs-root *attrs*) (empty-ch-map)))
+  (symbol-table (attrs-root *attrs*) (empty-symbol-table)))
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) (node tree-sitter-ast))
   (if (or (typep node 'source-text-fragment-variation-point)
           (member node (extra-asts-symbols
                         (make-keyword (ast-language-class node)))
                   :test #'typep))
-      (symbol-table node (empty-ch-map))
-      (symbol-table (attrs-root *attrs*) (empty-ch-map))))
+      (symbol-table node (empty-symbol-table))
+      (symbol-table (attrs-root *attrs*) (empty-symbol-table))))
 
 (-> group-by-namespace
     ((soft-list-of ast)
@@ -4755,7 +4791,7 @@ table."
                                       (cons ast (@ map key))
                                       (list ast)))))
                         declarations
-                        :initial-value (empty-ch-map)))))
+                        :initial-value (empty-symbol-table)))))
     (mapcar
      (lambda (grouping &aux (type (car grouping)))
        (cons type
@@ -4764,27 +4800,27 @@ table."
 
 (def-attr-fun outer-defs ()
   "Map of outer definitions from a node"
-  (:circular #'gt:equal? (constantly (empty-ch-map)))
+  (:circular #'gt:equal? (constantly (empty-symbol-table)))
   (:method ((node node))
-    (convert 'fset:ch-map
+    (convert 'symbol-table
              (mapcar (op (list (source-text _1) _1))
                      (outer-declarations node))))
   (:method ((node c-like-syntax-ast))
     (mvlet ((declarations namespaces (outer-declarations node)))
-      (convert 'fset:ch-map
+      (convert 'symbol-table
                (convert-grouped-namespaces
                 (group-by-namespace declarations namespaces))))))
 
 (def-attr-fun inner-defs ()
   "Map of inner definitions from a node"
-  (:circular #'gt:equal? (constantly (empty-ch-map)))
+  (:circular #'gt:equal? (constantly (empty-symbol-table)))
   (:method ((node node))
-    (convert 'fset:ch-map
+    (convert 'symbol-table
              (mapcar (op (list (source-text _1) _1))
                      (inner-declarations node))))
   (:method ((node c-like-syntax-ast))
     (mvlet ((declarations namespaces (inner-declarations node)))
-      (convert 'fset:ch-map
+      (convert 'symbol-table
                (convert-grouped-namespaces
                 (group-by-namespace declarations namespaces))))))
 
@@ -5008,7 +5044,7 @@ define multiple identifiers).
 
 There may be additional keys in the tuple to record language-specific
 information such as visibility."
-  (:circular #'gt:equal? (constantly (empty-ch-map)))
+  (:circular #'gt:equal? (constantly (empty-symbol-table)))
   (:method ((ast ast))
     (direct-field-table ast))
   (:method ((alias type-alias-ast))
@@ -5016,24 +5052,24 @@ information such as visibility."
       (field-table aliasee)
       (progn
         (warn "No aliasee for ~a" alias)
-        (empty-ch-map))))
+        (empty-symbol-table))))
   (:method ((type type-ast))
     (if-let (decl (get-declaration-ast :type type))
       (field-table decl)
       (progn
         (warn "No type definition for ~a" type)
-        (empty-ch-map)))))
+        (empty-symbol-table)))))
 
 (def-attr-fun direct-field-table ()
   (:method ((class class-ast))
-    (adjoin-fields (empty-ch-map)
+    (adjoin-fields (empty-symbol-table)
                    (class-fields class)))
   (:method ((alias type-alias-ast))
     (if-let (aliasee (resolve-type-aliasee alias))
       (direct-field-table aliasee)
       (progn
         (warn "No aliasee for ~a" alias)
-        (empty-ch-map)))))
+        (empty-symbol-table)))))
 
 (-> field-table-ids (fset:ch-map &key
                      (:ns symbol-table-namespace)

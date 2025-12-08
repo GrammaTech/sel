@@ -14,17 +14,18 @@
   (:shadow :simple-ast)
   (:export :test-tree-sitter)
   (:import-from :software-evolution-library/software/tree-sitter
-                :structured-text
-                :position-after-leading-newline
-                :inner-parent
-                :surrounding-text-transform
-                :preserve-properties
-                :evolution-candidate-ast-p
+                :blot-ranges->parse-tree-ranges
                 :check-ast-swappable
+                :evolution-candidate-ast-p
+                :inner-parent
+                :insert-blots-into-parse-tree
                 :operation-matches-rule-p
                 :ordered-children
-                :blot-ranges->parse-tree-ranges
-                :insert-blots-into-parse-tree)
+                :position-after-leading-newline
+                :preserve-properties
+                :structured-text
+                :surrounding-text-transform
+                :symbol-table-p)
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:ts :software-evolution-library/software/tree-sitter)))
@@ -663,3 +664,10 @@ RIGHT_CURLY")
       (dolist (call calls)
         (is (not (call-function-p call)))
         (is (eql call (call-function-p (call-function call))))))))
+
+(deftest test-symbol-table-p ()
+  "The `symbol-table-p' predicate should recognize symbol tables only."
+  (is (symbol-table-p (empty-symbol-table)))
+  (is (not (symbol-table-p (dict))))
+  (is (not (symbol-table-p (empty-ch-map))))
+  (is (not (symbol-table-p (empty-map)))))

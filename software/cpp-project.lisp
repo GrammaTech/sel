@@ -194,7 +194,7 @@ partition."
                      (find-enclosing 'root-ast (attrs-root*) ast))
           (update-dependency-graph (attrs-root*) module)
           (let ((*dependency-stack* (cons module *dependency-stack*)))
-            (symbol-table (genome module) (empty-ch-map))))))))
+            (symbol-table (genome module) (empty-symbol-table))))))))
 
 (defmethod symbol-table ((ast cpp-module-declaration) &optional in)
   "Anonymous implementation units (and possibly module partition
