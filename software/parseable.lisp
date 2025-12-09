@@ -757,14 +757,22 @@ time."
                             fun-replacements))
             :initial-value ast)))
 
+(defvar *predicate-cache* (empty-ch-map))
+
 (defun of-type* (type)
   "Like `of-type', but compile the predicate at run time.
 
 Calling `typep' without a constant argument can be very expensive,
 especially on CCL. If we are using a type predicate to scan a large
 AST, the cost of compiling the predicate is negligible vs. the cost of
-evaluating it at runtime for every AST node."
-  (compile nil `(lambda (x) (typep x ',type))))
+evaluating it at runtime for every AST node. Furthermore, we cache the
+compiled predicates."
+  (or (lookup *predicate-cache* type)
+      (lret ((pred (compile nil `(lambda (x) (typep x ',type)))))
+        ;; Not locking since there's no way this can get into an
+        ;; invalid state and we don't care about lost updates.
+        (setf *predicate-cache*
+              (with *predicate-cache* type pred)))))
 
 (define-compiler-macro of-type* (&whole call type &environment env)
   "If the argument to `of-type*' is constant, convert it into an
