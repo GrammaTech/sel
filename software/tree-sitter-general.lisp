@@ -4757,7 +4757,7 @@ table."
                            (soft-list-of ast))
             &optional))
 (defun group-by-namespace (declarations namespaces)
-  (let ((table (make-hash-table))
+  (let ((table (make-hash-table :size 32))
         (namespaces namespaces))
     ;; If namespaces aren't supplied, default to nil.
     (iter (for declaration in declarations)
