@@ -1901,6 +1901,7 @@ to allow for successful mutation of SOFTWARE at PT."
                       :initform nil
                       :initarg :indent-adjustment)))
 
+(declaim ((and fixnum unsigned-byte) *spaces-per-tab*))
 (defparameter *spaces-per-tab* 4
   "The number of spaces per tab. This can be set to modify the
 behavior of #'source-text and #'convert")

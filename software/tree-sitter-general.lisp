@@ -4039,11 +4039,13 @@ for ASTs which need to appear in the surrounding text slots.")
 (defvar *space-strings-table* (make-array '(1000) :initial-element nil))
 (defvar *tab-strings-table* (make-array '(100) :initial-element nil))
 
+(-> space-string (array-index) simple-base-string)
 (defun space-string (n)
   "Create a string of N spaces, or use an existing one in the cache"
   (declare (type (integer 0) n))
   (cached-rep-string #\Space n '*space-strings-table*))
 
+(-> tab-string (array-index) simple-base-string)
 (defun tab-string (n)
   "Create a string of N tabs, or use an existing one in the cache"
   (declare (type (integer 0) n))
@@ -4058,7 +4060,9 @@ for ASTs which need to appear in the surrounding text slots.")
     (if (< n len)
         (or (svref tab n)
             (setf (svref tab n)
-                  (make-string n :element-type (type-of c) :initial-element c)))
+                  (coerce
+                   (make-string n :element-type (type-of c) :initial-element c)
+                   'simple-base-string)))
         (let ((newtab (make-array (list (* 2 n)) :initial-element nil)))
           (setf (cl:subseq newtab 0 len) tab
                 (symbol-value tabvar) newtab)
@@ -4127,6 +4131,7 @@ copyright notices reproduced across many files)."
            (make-indentation-string (indentation)
              "Create the string representation of INDENTATION.
             This handles converting spaces to tabs."
+             (declare (fixnum indentation))
              ;; Protect from negative numbers.
              (let ((protected-indentation (if (< indentation 0) 0 indentation)))
                (if *indent-with-tabs-p*
@@ -4135,10 +4140,8 @@ copyright notices reproduced across many files)."
                      (concatenate
                       'base-string
                       (tab-string tabs)
-                      (space-string spaces)
-                      ))
-                   (space-string protected-indentation)
-                   )))
+                      (space-string spaces)))
+                   (space-string protected-indentation))))
            (indentation-length (ast parent-list)
              "Get the indentation at AST with its parents provided
             in PARENT-LIST."
@@ -4242,7 +4245,7 @@ copyright notices reproduced across many files)."
                        (unbox indentation-ast) nil))
                (unless (or ignore-empty?
                            (not indentablep)
-                            trim)
+                           trim)
                  (write-string
                   (make-indentation-string (indentation-length ast parents))
                   stream))))
