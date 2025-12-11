@@ -444,9 +444,9 @@ is hand-written.")
         (setf ordered-children (call-next-method)))))
 
 (defmethod children ((ast structured-text))
-  (remove-if
-   (of-type 'inner-whitespace)
-   (remove-if-not (of-type 'ast) (output-transformation ast))))
+  (iter (for child in (output-transformation ast))
+        (when (typep child '(and ast (not inner-whitespace)))
+          (collect child))))
 
 ;;; TODO This handles conflict ASTs in {before-,after-,}text slots.
 (defmethod child-slots :around ((ast structured-text))
