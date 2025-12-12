@@ -10,6 +10,10 @@ default:
     - cd /root/quicklisp/local-projects/$CI_PROJECT_NAME
     - GT=yes make dependencies libcxx-src
 
+workflow:
+  auto_cancel:
+    on_job_failure: all
+
 check-format:
   stage: .pre
   script:
