@@ -1223,6 +1223,7 @@ declaration makes sense."
   ;; TODO Not every language has a separate class for type
   ;; identifiers. E.g. Python just has Python identifiers inside
   ;; Python types.
+  (:circular #'gt:equal? (constantly nil))
   (:method ((ast ast))
     nil)
   (:method ((ast identifier-ast))
@@ -5064,6 +5065,7 @@ information such as visibility."
         (empty-symbol-table)))))
 
 (def-attr-fun direct-field-table ()
+  (:circular #'gt:equal? (constantly (empty-symbol-table)))
   (:method ((class class-ast))
     (adjoin-fields (empty-symbol-table)
                    (class-fields class)))
@@ -5215,6 +5217,7 @@ subclasses.")
 
 (def-attr-fun virtual-functions ()
   "Return the virtual functions and overrides of a class (as two values)."
+  (:circular #'gt:equal? (mvconstantly nil nil))
   (:method ((alias type-alias-ast))
     (virtual-functions (resolve-type-aliasee alias))))
 
