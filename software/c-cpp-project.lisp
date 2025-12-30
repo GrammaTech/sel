@@ -714,6 +714,11 @@ the header.")
   ()
   (:documentation "Node for representing synthetic system headers."))
 
+(defmethod attrs:subroot? ((ast c/cpp-system-header))
+  (match (children ast)
+    ((list (c/cpp-translation-unit)) nil)
+    (otherwise t)))
+
 (defparameter *morally-noexcept-headers*
   ;; See https://en.cppreference.com/w/cpp/header
   (let ((c-compatibility-headers
