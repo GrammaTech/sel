@@ -4726,6 +4726,7 @@ table."
   (:method ((software parseable) &optional in)
     (symbol-table (genome software) in))
   (:method ((node root-ast) &optional in)
+    (dbg:note :debug "Recomputing symbol table for ~a" node)
     (propagate-declarations-down node in))
   (:method :context ((ast functional-tree-ast) &optional in)
     (convert 'symbol-table
@@ -4742,6 +4743,11 @@ table."
            (mapc (op (symbol-table _ parent-symtab))
                  (children node)))
          in))))
+
+(defmethod attr-missing :before ((fn-name (eql 'symbol-table)) node)
+  (dbg:note :debug "Recomputing symbol table for ~a from ~a"
+            (attrs-root*)
+            node))
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) node)
   (symbol-table (attrs-root *attrs*) (empty-symbol-table)))
