@@ -594,41 +594,43 @@ int main () {
            (hpp-ast (find-if (of-type 'cpp-field-declaration) hpp-file)))
       ;; Compute before copying.
       (symbol-table-alist project)
-      ;; Test changing the .cc file.
-      (let* ((new-ast (cpp* "mc.do_something_else()"))
-             (new-project
-               (with project cc-ast new-ast))
-             (new-file (lookup new-project "my_program.cc")))
-        (is (not (eql new-project project))
-            "The project must have changed")
-        (is (not (eql (file-root cc-file)
-                      (file-root new-file)))
-            "The cc file must have changed")
-        (is (eql (file-root hpp-file)
-                 (file-root (lookup new-project (ast-path project hpp-file))))
-            "The hpp file must not have changed")
-        (compare-projects project new-project
-                          :unchanged '("my_class.cc" "my_class.h")
-                          :changed '("my_program.cc")))
-      ;; Test changing the header file.
-      (let* ((new-ast (tree-copy hpp-ast))
-             (id (find-if (of-type 'cpp-field-identifier) new-ast))
-             (new-ast
-               (with new-ast
-                     id
-                     (copy id :text "do_something_else")))
-             (new-project
-               (with project hpp-ast new-ast))
-             (new-file (lookup new-project "my_class.h")))
-        (is (not (eql new-project project))
-            "The project must have changed")
-        (is (not (eql hpp-file
-                      new-file))
-            "The header file must have changed")
-        ;; (is (ft/attrs::reachable? new-project new-file))
-        ;; (is (not (ft/attrs::reachable? new-project hpp-file)))
-        (compare-projects project new-project
-                          :changed '("my_class.cc" "my_class.h" "my_program.cc"))))))
+      (flet ((test-change-cc-file ()
+               ;; Test changing the .cc file.
+               (let* ((new-ast (cpp* "mc.do_something_else()"))
+                      (new-project
+                        (with project cc-ast new-ast))
+                      (new-file (lookup new-project "my_program.cc")))
+                 (is (not (eql new-project project))
+                     "The project must have changed")
+                 (is (not (eql (file-root cc-file)
+                               (file-root new-file)))
+                     "The cc file must have changed")
+                 (is (eql (file-root hpp-file)
+                          (file-root (lookup new-project (ast-path project hpp-file))))
+                     "The hpp file must not have changed")
+                 (compare-projects project new-project
+                                   :unchanged '("my_class.cc" "my_class.h")
+                                   :changed '("my_program.cc"))))
+             (test-change-header-file ()
+               ;; Test changing the header file.
+               (let* ((new-ast (tree-copy hpp-ast))
+                      (id (find-if (of-type 'cpp-field-identifier) new-ast))
+                      (new-ast
+                        (with new-ast
+                              id
+                              (copy id :text "do_something_else")))
+                      (new-project
+                        (with project hpp-ast new-ast))
+                      (new-file (lookup new-project "my_class.h")))
+                 (is (not (eql new-project project))
+                     "The project must have changed")
+                 (is (not (eql hpp-file
+                               new-file))
+                     "The header file must have changed")
+                 (compare-projects project new-project
+                                   :changed '("my_class.cc" "my_class.h" "my_program.cc")))))
+        (test-change-cc-file)
+        (test-change-header-file)))))
 
 (deftest test-recursive-exports ()
   "Test that exports persist through layers of reexports."
