@@ -242,7 +242,12 @@ For development."
 
 (defmethod project-dependency-tree
     ((project c/cpp-project)
-     &key allow-headers entry-points)
+     &key allow-headers entry-points (intern t))
+  "Collect the dependency tree of PROJECT.
+INTERN controls whether to intern the leaves of the project to save
+space. This will be faster if you call it with `:intern nil', but you
+probably only want to do this if you're processing and discarding the
+tree immediately."
   (declare ((soft-list-of string) entry-points))
   (let* ((genome (genome project))
          (included-headers (included-headers genome))
@@ -257,33 +262,42 @@ For development."
              (rec (path seen)
                (if (contains? seen path)
                    (list :circle path)
-                   (let ((seen (with seen path)))
-                     (intern-leaf
-                      (cons path
-                            (mapcar (op (rec _ seen))
-                                    (gethash path included-headers))))))))
+                   (let* ((seen (with seen path))
+                          (leaf
+                            (cons path
+                                  (mapcar (op (rec _ seen))
+                                          (gethash path included-headers)))))
+                     (if intern
+                         ;; NB We can't just intern the path's tree
+                         ;; because of potential circularity.
+                         (intern-leaf leaf)
+                         leaf)))))
       (mapcar (op (rec _ (empty-ch-set)))
               (or entry-points
                   (if allow-headers
                       files
                       (remove-if #'headerp files)))))))
 
-(defgeneric file-dependency-tree (project file)
+(defgeneric file-dependency-tree (project file &key &allow-other-keys)
   (:documentation "Return the tree of includes rooted at FILE in PROJECT.")
-  (:method ((project t) (file software))
-    (file-dependency-tree project
-                       (pathname-relativize (project-dir project)
-                                            (original-path file))))
-  (:method ((project t) (file file-ast))
-    (file-dependency-tree project
-                          (namestring (full-pathname file))))
-  (:method ((project t) (file ast))
+  (:method ((project t) (file software) &rest kwargs &key)
+    (apply #'file-dependency-tree
+           project
+           (pathname-relativize (project-dir project)
+                                (original-path file))
+           kwargs))
+  (:method ((project t) (file file-ast) &rest kwargs &key)
+    (apply #'file-dependency-tree
+           project
+           (namestring (full-pathname file))
+           kwargs))
+  (:method ((project t) (file ast) &rest kwargs &key)
     (if-let (enclosing (find-enclosing 'file-ast project file))
-      (file-dependency-tree project enclosing)
+      (apply #'file-dependency-tree project enclosing kwargs)
       (error "No enclosing file for ~a in ~a" file project)))
-  (:method ((project t) (file string))
+  (:method ((project t) (file string) &rest kwargs &key)
     (aget file
-          (project-dependency-tree project)
+          (apply #'project-dependency-tree project kwargs)
           :test #'equal)))
 
 (defun who-includes? (project header)
