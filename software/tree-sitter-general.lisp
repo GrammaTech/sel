@@ -2063,7 +2063,7 @@ which slots are expected to be used."
            (populate-slot->stack ()
              "Create a table that maps a slot name to its
               corresponding stack."
-             (lret ((table (box (empty-ch-map nil 'eql-compare))))
+             (lret ((table (box (empty-ch-map nil 'eql-compare 'eql-compare))))
                (iter (for slot in slots)
                      (let ((slot-value (slot-value ast slot)))
                        (ensure-get* slot table
