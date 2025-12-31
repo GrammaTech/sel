@@ -1391,7 +1391,7 @@ by providing a `:union-fn` option."
               ,call)))
        (def-attr-fun ,name ,args
          ,@(unsplice docstring)
-         (:circular #'gt:equal? (constantly (empty-ch-map)))
+         (:circular #'fset:equal? (constantly (empty-ch-map)))
          (:method :context ((ast ast))
            (assure fset:ch-map (call-next-method)))
          (:method ((software parseable))
