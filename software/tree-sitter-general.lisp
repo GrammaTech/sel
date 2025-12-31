@@ -1306,6 +1306,7 @@ pointers into account in languages that support them.")
           (aliasee2 (or (aliasee id2) id2)))
       (same-variable-p aliasee1 aliasee2))))
 
+;;; TODO Reimplement with a var-usage-table synthesized attribute.
 (defgeneric collect-var-uses (software id)
   (:Documentation "Collect uses of ID in SOFTWARE.")
   (:method ((obj normal-scope) (id t))
