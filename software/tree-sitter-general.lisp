@@ -4810,7 +4810,7 @@ table."
 
 (def-attr-fun outer-defs ()
   "Map of outer definitions from a node"
-  (:circular #'gt:equal? (constantly (empty-symbol-table)))
+  (:circular #'fset:equal? (constantly (empty-symbol-table)))
   (:method ((node node))
     (convert 'symbol-table
              (mapcar (op (list (source-text _1) _1))
@@ -4823,7 +4823,7 @@ table."
 
 (def-attr-fun inner-defs ()
   "Map of inner definitions from a node"
-  (:circular #'gt:equal? (constantly (empty-symbol-table)))
+  (:circular #'fset:equal? (constantly (empty-symbol-table)))
   (:method ((node node))
     (convert 'symbol-table
              (mapcar (op (list (source-text _1) _1))
@@ -5054,7 +5054,7 @@ define multiple identifiers).
 
 There may be additional keys in the tuple to record language-specific
 information such as visibility."
-  (:circular #'gt:equal? (constantly (empty-symbol-table)))
+  (:circular #'fset:equal? (constantly (empty-symbol-table)))
   (:method ((ast ast))
     (direct-field-table ast))
   (:method ((alias type-alias-ast))
@@ -5071,7 +5071,7 @@ information such as visibility."
         (empty-symbol-table)))))
 
 (def-attr-fun direct-field-table ()
-  (:circular #'gt:equal? (constantly (empty-symbol-table)))
+  (:circular #'fset:equal? (constantly (empty-symbol-table)))
   (:method ((class class-ast))
     (adjoin-fields (empty-symbol-table)
                    (class-fields class)))
