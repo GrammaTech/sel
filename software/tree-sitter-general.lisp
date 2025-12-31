@@ -5142,6 +5142,10 @@ Return the matching IDs."
   (direct-superclasses nil :type list)
   (direct-subclasses nil :type list))
 
+(fset:define-equality-slots inheritance-graph-entry
+  'direct-superclasses
+  'direct-subclasses)
+
 (defmethod union ((x inheritance-graph-entry)
                   (y inheritance-graph-entry)
                   &key key test test-not)
