@@ -1049,7 +1049,7 @@ the standard path and add it to PROJECT."))
           (until (eql (evolve-files project)
                       (shiftf last-evolve-files (evolve-files project))))
           (finally
-           (debug:note :info "Preloaded ~a header~:p" preload-count)
+           (debug:note :info "Speculatively preloaded ~a header~:p" preload-count)
            (return project)))))
 
 (defmethod from-file :around ((project c/cpp-project) (dir t))
