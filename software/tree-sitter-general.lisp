@@ -4700,7 +4700,7 @@ table."
 (define-hash-function string-compare string-hash)
 
 (defun empty-symbol-table ()
-  (empty-ch-map nil 'string-compare 'fset2:eql-compare))
+  (empty-ch-map nil 'string-compare 'fset:compare))
 
 (defun symbol-table-p (x)
   (and (typep x 'fset:ch-map)
@@ -4714,7 +4714,7 @@ table."
   (convert 'fset:ch-map
            input
            :key-compare-fn-name 'string-compare
-           :val-compare-fn-name 'fset2:eql-compare))
+           :val-compare-fn-name 'fset:compare))
 
 (defmethod convert ((to-type (eql 'symbol-table)) (input fset:ch-map) &key)
   (if (symbol-table-p input) input
@@ -4722,7 +4722,7 @@ table."
 
 (def-attr-fun symbol-table (in)
   "Compute the symbol table at this node."
-  (:circular #'gt:equal? (constantly (empty-symbol-table)))
+  (:circular #'fset:equal? (constantly (empty-symbol-table)))
   (:method ((software parseable) &optional in)
     (symbol-table (genome software) in))
   (:method ((node root-ast) &optional in)
