@@ -3065,8 +3065,8 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
    (lambda (base-class-name)
      (or (get-declaration-ast :type base-class-name)
          (warn "Missing base class ~a for ~a"
-               base-class-name
-               derived-class)))
+               (source-text base-class-name)
+               (definition-name derived-class))))
    (cpp::base-class-names derived-class)))
 
 (defmethod inheritance-graph ((class c/cpp-classoid-specifier))
