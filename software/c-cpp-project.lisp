@@ -1496,7 +1496,8 @@ include files in all directories of the project."
                      (find-include project file
                                    include-ast
                                    :header-dirs *header-dirs*
-                                   :symbol-table in)
+                                   :symbol-table in
+                                   :global (not (compilation-database project)))
                      (error "Could not resolve ~a"
                             (source-text
                              (or (include-ast-path-ast include-ast :symbol-table in)
