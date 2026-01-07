@@ -65,7 +65,7 @@
   "The header search path of the current compilation unit.")
 
 (defparameter *header-extensions*
-  '("h" "hpp" "hh")
+  '("h" "hpp" "hh" "hxx")
   "Header file extensions.")
 
 ;;; TODO Extract from compilers. `echo | g++ -E -Wp,-v -'. Same for
