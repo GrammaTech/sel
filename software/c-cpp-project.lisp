@@ -295,9 +295,9 @@ tree immediately."
     (if-let (enclosing (find-enclosing 'file-ast project file))
       (apply #'file-dependency-tree project enclosing kwargs)
       (error "No enclosing file for ~a in ~a" file project)))
-  (:method ((project t) (file string) &rest kwargs &key)
+  (:method ((project t) (file string) &rest kwargs &key tree)
     (aget file
-          (apply #'project-dependency-tree project kwargs)
+          (or tree (apply #'project-dependency-tree project kwargs))
           :test #'equal)))
 
 (defun who-includes? (project header)
