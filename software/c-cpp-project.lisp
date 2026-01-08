@@ -142,13 +142,18 @@ inference.  Used to prevent circular attr propagation.")
     :initarg :isysroot
     :reader project-isysroot
     :documentation "Project-wide isysroot for header includes.")
+   (preload
+    :initarg :preload
+    :reader preloadp
+    :type boolean)
    (stdinc-dirs
     :initarg :stdinc-dirs
     :reader project-stdinc-dirs
     :documentation "Stdinc dirs for the project."))
   (:documentation "Mixin for common project functionality between C and C++.")
   (:default-initargs
-   :isysroot nil))
+   :isysroot nil
+   :preload t))
 
 (defmethod initialize-instance :after ((self c/cpp-project) &key)
   (with-slots (isysroot) self
@@ -1081,7 +1086,9 @@ the standard path and add it to PROJECT."))
     (setf (genome project)
           (make 'c/cpp-root
                 :project-directory (genome project)))
-    (preload-headers project)))
+    (if (preloadp project)
+        (preload-headers project)
+        project)))
 
 
 ;;; Program Headers
