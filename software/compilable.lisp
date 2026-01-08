@@ -19,7 +19,8 @@
 
 ;;; Data structure definition
 (defclass compilable ()
-  ((compiler :initarg :compiler :initform nil :accessor compiler)
+  ((compiler :initarg :compiler :initform nil :accessor compiler
+             :type (or null string))
    (flags :initarg :flags :initform nil :accessor flags))
   (:documentation "Mixin class for compiled software."))
 

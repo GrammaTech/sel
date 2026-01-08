@@ -15,6 +15,7 @@
         :software-evolution-library/software/compilable
         :software-evolution-library/software/directory
         :software-evolution-library/components/file)
+  (:import-from :cmd)
   (:import-from :software-evolution-library/software/tree-sitter
                 :morally-noexcept-parent?)
   (:import-from :trivia.fail :fail)
@@ -52,6 +53,7 @@
     :included-headers
     :including-files
     :project-dependency-tree
+    :project-stdinc-dirs
     :skip-include
     :system-headers
     :unknown-header
@@ -69,8 +71,6 @@
   '("h" "hpp" "hh" "hxx")
   "Header file extensions.")
 
-;;; TODO Extract from compilers. `echo | g++ -E -Wp,-v -'. Same for
-;;; `clang++'.
 (def +default-stdinc-dirs+
   '((c "/usr/local/include/" "/usr/include/")
     (cpp "/usr/local/include/" "/usr/include/")))
@@ -78,10 +78,17 @@
 (defparameter *stdinc-dirs*
   +default-stdinc-dirs+)
 
-(defgeneric project-stdinc-dirs (project)
-  (:method ((project project))
-    (or (assocdr (component-class project) *stdinc-dirs*)
-        (error "No stdinc dirs for ~a" project))))
+(defun compiler-stdinc-dirs (compiler)
+  "Dump COMPILER's stdinc dirs."
+  (when (resolve-executable compiler)
+    (sort
+     (mapcar (op (ensure-suffix (drop 1 _) "/"))
+             (filter (op (string^= " /" _))
+                     (lines
+                      (cmd:$cmd (list compiler) "-E -Wp,-v -"
+                                :<<< ""
+                                :2> :output))))
+     #'string<)))
 
 (defparameter *cpp-module-extensions*
   '(;; Module unit extensions. Visual Studio uses .ixx, Clang
@@ -134,7 +141,11 @@ inference.  Used to prevent circular attr propagation.")
   ((isysroot
     :initarg :isysroot
     :reader project-isysroot
-    :documentation "Project-wide isysroot for header includes."))
+    :documentation "Project-wide isysroot for header includes.")
+   (stdinc-dirs
+    :initarg :stdinc-dirs
+    :reader project-stdinc-dirs
+    :documentation "Stdinc dirs for the project."))
   (:documentation "Mixin for common project functionality between C and C++.")
   (:default-initargs
    :isysroot nil))
@@ -147,6 +158,18 @@ inference.  Used to prevent circular attr propagation.")
       ;; Make the trivial sysroot equivalent to no sysroot.
       (when (equal isysroot "/")
         (setf isysroot nil)))))
+
+(defmethod slot-unbound
+    ((class t) (project c/cpp-project) (slot (eql 'stdinc-dirs)))
+  (setf (slot-value project 'stdinc-dirs)
+        (or (when-let (compiler (compiler project))
+              (handler-case
+                  (compiler-stdinc-dirs compiler)
+                (error (e)
+                  (warn "Could not get stdinc directories from compiler ~a: ~a" compiler e)
+                  nil)))
+            (assocdr (component-class project) *stdinc-dirs*)
+            (error "No stdinc dirs for ~a" project))))
 
 (define-node-class c/cpp-root (functional-tree-ast normal-scope-ast)
   ((system-headers

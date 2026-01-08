@@ -319,6 +319,21 @@ files are present in the compilation database."
                 (c* "#include \"x\\n\\\\y\""))))
              "#include \"x/n//y\"")))
 
+(deftest test-stdinc-dirs ()
+  (let* ((compilers '("gcc" "clang" "cc"))
+         (compiler (some #'resolve-executable compilers)))
+    (when compiler
+      (let ((dirs
+              (finishes
+                (project-stdinc-dirs
+                 (make 'c-project
+                       :compiler compiler)))))
+        (is dirs)
+        (is (subsetp (aget 'c c/cpp-project::*stdinc-dirs*)
+                     dirs
+                     :test #'equal))
+        dirs))))
+
 
 ;;; System Headers
 (deftest c-project-system-headers-1 ()
