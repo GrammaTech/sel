@@ -3157,13 +3157,14 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
           (cpp::virtual-method-override-definitions virtual-method)))
     ;; The virtual method is pure, but it might still
     ;; have an out of class definition.
-    (if-let (definition
-             (lookup-out-of-class-definition
-              :enclosing
-              ;; It's not possible to have more than one declarator
-              ;; in the pure virtual function declaration.
-              (declarator-name-ast
-               (only-elt (cpp-declarator virtual-method)))))
+    (if-let* ((name
+               (declarator-name-ast
+                ;; It's not possible to have more than one declarator
+                ;; in the pure virtual function declaration.
+                (or (only-elt (cpp-declarator virtual-method))
+                    (warn "Invalid virtual method: ~a" virtual-method))))
+              (definition
+               (lookup-out-of-class-definition :enclosing name)))
       (cons definition overrides)
       overrides)))
 
