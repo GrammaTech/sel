@@ -17,6 +17,7 @@
         :software-evolution-library/components/file)
   (:import-from :software-evolution-library/software/tree-sitter
                 :morally-noexcept-parent?)
+  (:import-from :trivia.fail :fail)
   (:local-nicknames
    (:attrs :functional-trees/attrs)
    (:debug :software-evolution-library/utility/debug)
@@ -1332,6 +1333,40 @@ paths."
              (with-slots (include) c
                (format s "Unknown header: ~a" (source-text include))))))
 
+(defun windows-include-to-unix (x)
+  "If X is or has a Windows path, convert to Unix.
+Backslash escapes are not interpreted in includes."
+  (ematch x
+    ((and (c/cpp-preproc-include) ast)
+     (copy ast :c/cpp-path (windows-include-to-unix (c/cpp-path ast))))
+    ((and ast (c/cpp-system-lib-string))
+     (copy ast :text (windows-include-to-unix (text ast))))
+    ((and ast (c/cpp-string-literal :text (type string)))
+     (copy ast :text (windows-include-to-unix (text ast))))
+    ((and ast
+          (c/cpp-string-literal
+           :direct-children (and children (type cons))))
+     (let ((children (coerce children 'vector)))
+       (unless (length>= children 3)
+         (fail))
+       ;; Nb The parser has escape sequences here, even though it
+       ;; shouldn't. We need to flatten them out into literals.
+       (copy ast
+             :children nil
+             :text
+             (string+
+              (source-text (aref children 0))
+              (windows-include-to-unix
+               (mapconcat #'source-text
+                          (subseq children 1 (1- (length children)))
+                          ""))
+              (source-text (aref children (1- (length children))))))))
+    ((and (type string) string)
+     (if (and (not (find #\/ string))
+              (find #\\ string))
+         (substitute #\/ #\\ string)
+         string))))
+
 (defun find-include (project file include-ast
                      &key global
                        header-dirs
@@ -1342,6 +1377,7 @@ paths."
               (include-ast-path-ast
                include-ast
                :symbol-table symbol-table)))
+    (setf path-ast (windows-include-to-unix path-ast))
     (labels ((make-unknown-header-with-proxy (include-ast)
                (lret ((unknown-header (make-unknown-header include-ast)))
                  ;; Make the unknown header proxy to the include.

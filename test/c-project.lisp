@@ -21,6 +21,9 @@
     :compilation-database
     :macro-name
     :macro-def)
+  (:import-from
+    :software-evolution-library/software/c-cpp-project
+    :windows-include-to-unix)
   (:local-nicknames
    (:cdb :software-evolution-library/components/compilation-database)
    (:c/cpp-project :software-evolution-library/software/c-cpp-project))
@@ -302,6 +305,19 @@ files are present in the compilation database."
                      (mapcar (op (pathname-type (cdb:command-file _)))
                              (cdb:command-objects db))
                      :test #'equal)))))
+
+(deftest test-windows-path-conversion ()
+  "Test converting Windows path to Unix."
+  (is (equal (chomp
+              (source-text
+               (windows-include-to-unix
+                (c* "#include <x\\n\\\\y>"))))
+             "#include <x/n//y>"))
+  (is (equal (chomp
+              (source-text
+               (windows-include-to-unix
+                (c* "#include \"x\\n\\\\y\""))))
+             "#include \"x/n//y\"")))
 
 
 ;;; System Headers
