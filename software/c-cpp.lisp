@@ -335,11 +335,22 @@ MACROS is a map from macro names to expansions."
                           (error "Non-integer constant in preprocessor expression: ~a"
                                  expr))))
                    ((c/cpp-char-literal)
-                    (char-code
-                     (character
-                      (string-trim
-                       "'"
-                       (text expr)))))
+                    (econd
+                      ((text expr)
+                       (char-code
+                        (character
+                         (string-trim
+                          "'"
+                          (text expr)))))
+                      ;; A character escape.
+                      ((direct-children expr)
+                       (char-code
+                        (character
+                         (string-left-trim
+                          '(#\\)
+                          (source-text
+                           (find-if (of-type 'c/cpp-escape-sequence)
+                                    (direct-children expr)))))))))
                    ;; Not strictly allowed, but makes testing easier.
                    ((c/cpp* "($X)" :x x)
                     (rec x))
