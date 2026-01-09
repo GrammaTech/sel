@@ -574,53 +574,55 @@ instances."
 
 (defmethod collect-evolve-files :around ((obj directory-project))
   (debug:note :info "Collecting files")
-  (let* ((evolve-files (call-next-method))
-         (parsed-genomes
-           (parallel-parse-genomes obj
-                                   evolve-files
-                                   :progress-fn
-                                   (lambda (genome)
-                                     (when (> debug:*note-level* 1)
-                                       (synchronized ()
-                                         (etypecase-of parsed-genome genome
-                                           ((eql :lazy)
-                                            (format *error-output* "?"))
-                                           (ast
-                                            (format *error-output* "."))
-                                           ((cons (eql :error) t)
-                                            (format *error-output* "X"))))))))
-         (skip-all nil))
-    (debug:note :info "Inserting genomes into AST")
-    (iter (for evolve-file in evolve-files)
-          (for (path . software-object) = evolve-file)
-          (for genome = (pop parsed-genomes))
-          (handler-bind ((error (lambda (e)
-                                  (declare (ignore e))
-                                  (unless uiop:*lisp-interaction*
-                                    (invoke-restart 'continue)))))
-            (restart-case
-                (etypecase-of parsed-genome genome
-                  ((eql :lazy)
-                   (collecting evolve-file))
-                  (ast
-                   (debug:note :debug "Inserting file AST at ~a" path)
-                   (insert-file obj path software-object)
-                   (collecting evolve-file))
-                  ;; TODO May no longer be needed given ensure-genome.
-                  ((cons (eql :error) t)
-                   (restart-case
-                       (if skip-all
-                           (next-iteration)
-                           (error (cdr genome)))
-                     (skip-all-unparsed-files ()
-                       :report "Skip all unparsable files"
-                       (setf skip-all t)
-                       (next-iteration)))))
-              (continue ()
-                :report (lambda (s) (format s "Skip evolve file ~a" path))
-                (debug:note :trace "Skipping ~a" path)
-                (withf (project-parse-failures obj) path)
-                (next-iteration)))))))
+  (labels
+      ((progress-fn (genome)
+         (when (> debug:*note-level* 1)
+           (synchronized ()
+             (etypecase-of parsed-genome genome
+               ((eql :lazy)
+                (format *error-output* "?"))
+               (ast
+                (format *error-output* "."))
+               ((cons (eql :error) t)
+                (format *error-output* "X"))))))
+       (parsed-genomes (evolve-files)
+         (parallel-parse-genomes obj evolve-files :progress-fn #'progress-fn))
+       (collect-evolve-files (evolve-files parsed-genomes &aux skip-all)
+         (iter (for evolve-file in evolve-files)
+               (for (path . software-object) = evolve-file)
+               (for genome = (pop parsed-genomes))
+               (handler-bind ((error (lambda (e)
+                                       (declare (ignore e))
+                                       (unless uiop:*lisp-interaction*
+                                         (invoke-restart 'continue)))))
+                 (restart-case
+                     (etypecase-of parsed-genome genome
+                       ((eql :lazy)
+                        (collecting evolve-file))
+                       (ast
+                        (debug:note :debug "Inserting file AST at ~a" path)
+                        (insert-file obj path software-object)
+                        (collecting evolve-file))
+                       ;; TODO May no longer be needed given ensure-genome.
+                       ((cons (eql :error) t)
+                        (restart-case
+                            (if skip-all
+                                (next-iteration)
+                                (error (cdr genome)))
+                          (skip-all-unparsed-files ()
+                            :report "Skip all unparsable files"
+                            (setf skip-all t)
+                            (next-iteration)))))
+                   (continue ()
+                     :report (lambda (s) (format s "Skip evolve file ~a" path))
+                     (debug:note :trace "Skipping ~a" path)
+                     (withf (project-parse-failures obj) path)
+                     (next-iteration)))))))
+    (let* ((evolve-files (call-next-method))
+           (parsed-genomes (parsed-genomes evolve-files)))
+      (debug:note :info "Inserting genomes into AST")
+      (lret ((collected (collect-evolve-files evolve-files parsed-genomes)))
+        (debug:note :info "Collected ~:d file~:p" (length collected))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
   (walk-directory (project-dir obj)
