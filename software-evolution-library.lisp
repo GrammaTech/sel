@@ -171,6 +171,9 @@
   ((fitness :initarg :fitness :accessor fitness :initform nil))
   (:documentation "Base class for all software objects."))
 
+(defmethod hash-value ((x software))
+  (hash-mix (fset::class-hash-value x) (oid x)))
+
 (defmacro define-software
     (name direct-superclasses direct-slots &rest options)
   "Define a new `software' class NAME including a deep `copy' method.
