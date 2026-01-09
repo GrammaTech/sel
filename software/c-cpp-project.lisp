@@ -1065,7 +1065,7 @@ the standard path and add it to PROJECT."))
                    (len (length to-populate)))
               (debug:note :info "Pass ~a: Preloading ~a header~:p"
                           pass-number len)
-              (incf preload-count len)
+              (setf preload-count len)
               (task:task-map
                (parallel-parse-thread-count to-populate)
                (dynamic-closure '(*attrs*
