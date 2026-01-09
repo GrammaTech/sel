@@ -913,7 +913,8 @@ the standard path and add it to PROJECT."))
              (if (no sysroot)
                  header-dirs
                  (let ((sysroot (ensure-suffix sysroot "/")))
-                   (mapcar (op (base-path-join sysroot _))
+                   (mapcar (op (ensure-directory-pathname
+                                (base-path-join sysroot _)))
                            header-dirs))))
            (header-dirs-sysroot (header-dirs)
              (cdr (find :sysroot header-dirs :key #'car-safe))))
