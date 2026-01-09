@@ -243,6 +243,15 @@ headers and implicit headers for command-line preprocessor macros."))
   ;; macro expansions.
   (string-trim " <>\"" text))
 
+(defgeneric windows-include-to-unix (x)
+  (:documentation "If X is or has a Windows path, convert to Unix.
+Note backslash escapes are not interpreted in includes.")
+  (:method ((string string))
+    (if (and (not (find #\/ string))
+             (find #\\ string))
+        (substitute #\/ #\\ string)
+        string)))
+
 (defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
   "Get a header search path for FILE from PROJECT's compilation database."
   (when (and project file)
@@ -1363,39 +1372,33 @@ paths."
              (with-slots (include) c
                (format s "Unknown header: ~a" (source-text include))))))
 
-(defun windows-include-to-unix (x)
-  "If X is or has a Windows path, convert to Unix.
-Backslash escapes are not interpreted in includes."
-  (ematch x
-    ((and (c/cpp-preproc-include) ast)
-     (copy ast :c/cpp-path (windows-include-to-unix (c/cpp-path ast))))
-    ((and ast (c/cpp-system-lib-string))
-     (copy ast :text (windows-include-to-unix (text ast))))
-    ((and ast (c/cpp-string-literal :text (type string)))
-     (copy ast :text (windows-include-to-unix (text ast))))
-    ((and ast
-          (c/cpp-string-literal
-           :direct-children (and children (type cons))))
-     (let ((children (coerce children 'vector)))
-       (unless (length>= children 3)
-         (fail))
-       ;; Nb The parser has escape sequences here, even though it
-       ;; shouldn't. We need to flatten them out into literals.
-       (copy ast
-             :children nil
-             :text
-             (string+
-              (source-text (aref children 0))
-              (windows-include-to-unix
-               (mapconcat #'source-text
-                          (subseq children 1 (1- (length children)))
-                          ""))
-              (source-text (aref children (1- (length children))))))))
-    ((and (type string) string)
-     (if (and (not (find #\/ string))
-              (find #\\ string))
-         (substitute #\/ #\\ string)
-         string))))
+(defmethod windows-include-to-unix ((ast c/cpp-preproc-include))
+  (copy ast :c/cpp-path (windows-include-to-unix (c/cpp-path ast))))
+
+(defmethod windows-include-to-unix ((ast c/cpp-system-lib-string))
+  (copy ast :text (windows-include-to-unix (text ast))))
+
+(defmethod windows-include-to-unix ((ast c/cpp-string-literal))
+  (cond ((stringp (text ast))
+         (copy ast :text (windows-include-to-unix (text ast))))
+        ((consp (direct-children ast))
+         (let ((children (coerce (direct-children ast) 'vector)))
+           (unless (length>= children 3)
+             (return-from windows-include-to-unix
+               (call-next-method)))
+           ;; Nb The parser has escape sequences here, even though it
+           ;; shouldn't. We need to flatten them out into literals.
+           (copy ast
+                 :children nil
+                 :text
+                 (string+
+                  (source-text (aref children 0))
+                  (windows-include-to-unix
+                   (mapconcat #'source-text
+                              (subseq children 1 (1- (length children)))
+                              ""))
+                  (source-text (aref children (1- (length children))))))))
+        (t (call-next-method))))
 
 (defun find-include (project file include-ast
                      &key global
