@@ -1073,7 +1073,7 @@ the standard path and add it to PROJECT."))
           (with-attr-table project
             (let* ((to-populate (collect-find-include-arglists))
                    (len (length to-populate)))
-              (debug:note :info "Pass ~a: Preloading ~a header~:p"
+              (debug:note :info "Pass ~a: Preloading ~:d header~:p"
                           pass-number len)
               (setf preload-count len)
               (task:task-map
