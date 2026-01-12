@@ -162,57 +162,47 @@ Rust macro invocations can use (), [], and {} equivalently."
 
 ;;; Methods for tree-sitter generics
 
-(defun prevent-interleaved-attribute-item-eager-match (ast dummy call-next-method)
-  "Prevent eager matching attributes items interleaved with expressions.
+(defun prevent-attribute-item-eager-match (ast dummy call-next-method)
+  "Prevent eager matching of attribute items on wildcards.
 
 Currently, `children-parser' does not backtrack. This is a problem
 when (1) a rule matches a sequence of `(attribute_item? expression)*`
-ASTs and (2) the last child is an alternative-ast. The
-`alternative-ast', being a wildcard, matches the `attribute_item'
+ASTs and (2) all the children, or the last child, are alternative
+ASTs. Each fragment, being a wildcard, matches the `attribute_item'
 rule, but there is nothing left to be an expression and the match
 fails."
-  (match (direct-children ast)
-    ;; Special case: the last child is the only child.
-    ((list (and real-child (alternative-ast)))
-     (let ((temp (copy ast :children (list dummy))))
-       (substitute
-        real-child
-        dummy
-        (output-transformation temp)
-        :count 1)))
-    ;; Same situation, but it's the last child rather than the only
-    ;; child.
-    ((cl:last (list (and real-child (alternative-ast))))
-     (let ((temp (copy ast
+  ;; NB Technically it's source text fragment variation points that
+  ;; are the wildcards, but they are a type of alternative AST, and
+  ;; alternative ASTs can contain fragments.
+  (let* ((children (direct-children ast))
+         (wildcards
+           (filter (of-type 'alternative-ast) children)))
+    (if (no wildcards)
+        (funcall call-next-method)
+        (let* ((substitutions
+                 (mapcar
+                  (op (cons _ (tree-copy dummy)))
+                  wildcards))
+               (temp
+                 (copy ast
                        :children
-                       (append1 (butlast (direct-children ast))
-                                dummy))))
-       (substitute
-        real-child
-        dummy
-        (output-transformation temp)
-        :count 1)))
-    (otherwise (funcall call-next-method))))
-
-(defun work-around-leading-attribute-items-eager-match ()
-  "Work around eager matching of attribute items preceding
-expressions..
-
-Currently, `children-parser' does not backtrack. This is a problem
-when (1) a rule matches a `(attribute_item* expression*)` sequence of
-ASTs and (2) the last child is an alternative-ast. The
-`alternative-ast', being a wildcard, matches the `attribute_item'
-rule, but there is nothing left to be an expression and the match
-fails.")
+                       (mapcar (lambda (ast)
+                                 (or (aget ast substitutions)
+                                     ast))
+                               children))))
+          (mapcar (lambda (ast)
+                    (or (rassocar ast substitutions)
+                        ast))
+                  (output-transformation temp))))))
 
 (defmethod output-transformation :around ((ast rust-arguments) &key &allow-other-keys)
-  (prevent-interleaved-attribute-item-eager-match
+  (prevent-attribute-item-eager-match
    ast
    (load-time-value (make 'rust-identifier :text "temp") t)
    #'call-next-method))
 
 (defmethod output-transformation :around ((ast rust-field-declaration-list) &key &allow-other-keys)
-  (prevent-interleaved-attribute-item-eager-match
+  (prevent-attribute-item-eager-match
    ast
    (load-time-value
     (make 'rust-field-declaration
@@ -222,38 +212,10 @@ fails.")
    #'call-next-method))
 
 (defmethod output-transformation :around ((ast rust-tuple-expression) &key &allow-other-keys)
-  ;; This is a workaround for children-parser not backtracking: the
-  ;; rule is `attribute_item?* expression*` ASTs. (Note this differs
-  ;; from the situation with interleaved attributes and expressions).
-  ;; Since leading alternative ASTs all match as attribute items, if
-  ;; there are no other ASTs after them (where the expressions should
-  ;; be), the output transformation is invalid.
-  (let ((children (direct-children ast)))
-    ;; If the child list starts with alternative ASTs, check if the
-    ;; suffix starts with an attribute item. If it does, we're OK. If
-    ;; it doesn't, add a fake expression in place of the last
-    ;; alternative-ast, compute an output transformation, then
-    ;; substitute the last alternative-ast back in.
-    (match children
-      ((list* (alternative-ast) _)
-       (let ((suffix (drop-while (of-type 'alternative-ast) children)))
-         (match suffix
-           ((list* (rust-attribute-item) _)
-            (call-next-method))
-           (otherwise
-            (let* ((prefix (ldiff children suffix))
-                   (temp-id (make 'rust-identifier :text "temp"))
-                   (temp-copy
-                     (copy ast
-                           :children
-                           (append (butlast prefix)
-                                   (list temp-id)
-                                   suffix))))
-              (substitute (lastcar prefix)
-                          temp-id
-                          (output-transformation temp-copy)
-                          :count 1))))))
-      (otherwise (call-next-method)))))
+  (prevent-attribute-item-eager-match
+   ast
+   (make 'rust-identifier :text "temp")
+   #'call-next-method))
 
 (defmethod convert ((to (eql 'rust-negative-literal))
                     (ast rust-unary-expression)

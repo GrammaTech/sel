@@ -386,6 +386,20 @@ valid output transformation."
     (finishes (source-text args))
     (finishes
       (source-text
+       (copy args
+             :children
+             (list
+              (make 'rust-source-text-fragment-variation-point)
+              (is (find-if (of-type 'rust-integer-literal) args))))))
+    (finishes
+      (source-text
+       (copy args
+             :children
+             (list
+              (make 'rust-source-text-fragment-variation-point)
+              (make 'rust-source-text-fragment-variation-point)))))
+    (finishes
+      (source-text
        (with args
              (is (find-if (of-type 'rust-integer-literal) args))
              (make 'rust-source-text-fragment-variation-point))))
