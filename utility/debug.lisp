@@ -151,6 +151,7 @@ with `cl-user:trace'."
 (define-symbolic-note-level :information 3)
 (define-symbolic-note-level :debug 4)
 (define-symbolic-note-level :trace 5)
+(define-symbolic-note-level :dribble 6)
 (define-symbolic-note-level :everything most-positive-fixnum)
 (define-symbolic-note-level :all most-positive-fixnum)
 
