@@ -9,6 +9,7 @@
    :software-evolution-library
    :software-evolution-library/software/simple
    :software-evolution-library/software/compilable
+   :software-evolution-library/components/compilation-database
    :software-evolution-library/software/tree-sitter
    :software-evolution-library/software/parseable
    :software-evolution-library/software/project
@@ -334,6 +335,25 @@ files are present in the compilation database."
                      :test #'equal))
         dirs))))
 
+(deftest test-manual-build-flags ()
+  "Setting build flags manually should work when there is no compilation
+database."
+  (let* ((path (path-join +etc-dir-path+ "c-project-manual-options"))
+         (project (from-file
+                   (make 'c-project
+                         :flags '("-I./includes" "-DWORLD=\"world\""))
+                   path)))
+    (is (equal (include-args project) '("-I" "./includes/")))
+    (is (equal (preproc-defs project) '(("WORLD" . "\"world\""))))
+    (is (evolve-files project))
+    (with-attr-table project
+      (symbol-table project)
+      (let* ((file (is (aget "main.c" (evolve-files project) :test #'equal)))
+             (symbol-table (symbol-table (genome file)))
+             (macros (is (@ symbol-table :macro))))
+        (is (@ macros "HELLO"))
+        (is (@ macros "WORLD"))))))
+
 
 ;;; System Headers
 (deftest c-project-system-headers-1 ()
@@ -577,7 +597,7 @@ present in evolve-files/dependency-order."
   "Test implicit headers are incorporated into file symbol tables."
   (with-fixture extra-files
     (let* ((file (cdar (evolve-files *project*))))
-      (is (get-implicit-header *project* file))
+      (is (get-own-implicit-header *project* file))
       (with-attr-table *project*
         (let ((symtab (symbol-table (genome file))))
           (is symtab)

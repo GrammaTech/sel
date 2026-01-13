@@ -69,7 +69,7 @@
             :build-command "make"
             :artifacts '("sample")
             :compiler "g++"
-            :flags "-v")
+            :flags '("-v"))
           (make-pathname :directory +cpp-sample-dir+))
          *mutation-stats* (make-hash-table :test 'equal)))
   (:teardown (setf *project* nil
@@ -145,13 +145,13 @@
     (is (equal "g++"
                (compiler (cdar (member "src/sample.cc" (evolve-files *project*)
                                        :test 'equal :key 'car)))))
-    (is (equal "-v"
+    (is (equal '("-v")
                (flags (cdar (member "src/sample.cc" (evolve-files *project*)
                                        :test 'equal :key 'car)))))
     (is (equal (namestring (make-pathname :directory +cpp-sample-dir+))
                (namestring (project-dir *project*))))
     (is (equal (compiler *project*) "g++"))
-    (is (equal (flags *project*) "-v"))))
+    (is (equal (flags *project*) '("-v")))))
 
 (deftest cpp-project-can-build ()
   (with-fixture cpp-sample-project
@@ -502,20 +502,29 @@ the correct binding."
          (db-template (path-join project-dir #p"compile_commands_template.json")))
     (with-temp-compdb (db-template temp)
       (let* ((project
-              (is (from-file
-                   (make 'cpp-project :compilation-database-path temp)
-                   project-dir)))
+               (is (from-file
+                    (make 'cpp-project :compilation-database-path temp)
+                    project-dir)))
              (main
-              (is (assocdr "main.cc" (evolve-files project) :test #'equal)))
+               (is (assocdr "main.cc" (evolve-files project) :test #'equal)))
              (const-2
-              (is (find-if (op (source-text= "MYCONST_2" _))
-                           (genome main)))))
+               ;; Use of variable MYCONST_2 defined in includes1/include1.h.
+               (is (find-if (op (source-text= "MYCONST_2" _))
+                            (genome main)))))
         (with-attr-table project
           (let* ((const-2-decl
-                  (is (get-declaration-ast :variable const-2)))
+                   ;; Declaration of MYCONST_2 in
+                   ;; includes1/include1.h, referencing MYCONST_1 in
+                   ;; includes2/include2.h.
+                   (is (get-declaration-ast :variable const-2)))
                  (const-1
-                  (find-if (op (source-text= "MYCONST_1" _))
-                           const-2-decl)))
+                   ;; Use of MYCONST_1.
+                   (find-if (op (source-text= "MYCONST_1" _))
+                            const-2-decl)))
+            (symbol-table const-1)
+            ;; Get where MYCONST_1 is defined (in
+            ;; includes2/include2.h) from its use in
+            ;; includes1/include1.h.
             (is (get-declaration-ast :variable const-1))))))))
 
 (deftest test-cpp-project-circular-inclusion ()

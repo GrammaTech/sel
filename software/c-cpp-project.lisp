@@ -42,7 +42,7 @@
     :find-enclosing-software
     :find-include
     :find-symbol-table-from-include
-    :get-implicit-header
+    :get-own-implicit-header
     :get-standard-path-header
     :header-name
     :implicit-headers
@@ -135,9 +135,21 @@ inference.  Used to prevent circular attr propagation.")
           *cpp-module-extensions*
           :test #'equal))
 
+;;; TODO Currently the compiler options stored in the project (include
+;;; directories, macro definitions) are only used as fallbacks. This
+;;; is to avoid breaking the current behavior for headers, where if
+;;; they have no compiler options of their own they fall back to the
+;;; options of the file they are being included from. We might
+;;; alternately want them to augment or override the settings in the
+;;; compilation database.
+
+;;; TODO Should flags be normalized (with `normalize-flags') relative
+;;; the project directory? But that's not necessarily the build
+;;; directory.
+
 (defclass c/cpp-project
-    (directory-project compilation-database-project parseable-project compilable
-     include-paths-mixin normal-scope)
+    (directory-project compilation-database-project parseable-project
+     c/cpp-compilable include-paths-mixin normal-scope)
   ((isysroot
     :initarg :isysroot
     :reader project-isysroot
@@ -252,11 +264,11 @@ Note backslash escapes are not interpreted in includes.")
         (substitute #\/ #\\ string)
         string)))
 
-(defun file-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
+(defun file-own-header-dirs (project ast &key (file (find-enclosing 'file-ast project ast)))
   "Get a header search path for FILE from PROJECT's compilation database."
   (when (and project file)
     (when-let ((co (command-object project file)))
-      (command-header-dirs co))))
+      (header-dirs co))))
 
 (define-node-class implicit-header (synthetic-header
                                     ;; Inherit symbol-table-union
@@ -648,38 +660,41 @@ available, or from a predefined list."
 
 ;;; Implicit Headers
 
-(defgeneric command-implicit-header (command lang)
-  (:documentation "Synthesize an implicit header for COMMAND.
-Implicit headers give us a place to inject code \"as if\" it had been
-included in a header.")
-  (:method ((co command-object) lang)
-    (when-let (alist
-               (append (default-preproc-defs
-                        (command-compiler co)
-                        (command-platform co))
-                       (command-preproc-defs co)))
-      (let* ((alist
-               (if (eql lang 'cpp)
-                   (cons '("__cplusplus" . "1") alist)
-                   alist))
-             (source
-               (mapconcat (lambda (cons)
-                            (preproc-macro-source (car cons) (cdr cons)))
-                          (reverse alist)
-                          ""))
-             (children
-               (collect-if
-                (of-type '(or c/cpp-preproc-def c/cpp-preproc-function-def))
-                (from-string lang source)))
-             (root-class
-               (ecase lang
-                 (c 'c-translation-unit)
-                 (cpp 'cpp-translation-unit))))
-        (make 'implicit-header
-              :source-file (command-file co)
-              :children
-              (list
-               (make root-class :children children)))))))
+(defun synthesize-implicit-header
+ (lang file alist)
+  (declare (string file))
+  (when alist
+    (let* ((alist
+             (if (eql lang 'cpp)
+                 (cons '("__cplusplus" . "1") alist)
+                 alist))
+           (source
+             (mapconcat (lambda (cons)
+                          (preproc-macro-source (car cons) (cdr cons)))
+                        (reverse alist)
+                        ""))
+           (children
+             (collect-if
+              (of-type '(or c/cpp-preproc-def c/cpp-preproc-function-def))
+              (from-string lang source)))
+           (root-class
+             (ecase lang
+               (c 'c-translation-unit)
+               (cpp 'cpp-translation-unit))))
+      (make 'implicit-header
+            :source-file file
+            :children
+            (list (make root-class :children children))))))
+
+(defun command-implicit-header (project co lang)
+  (declare (c/cpp-project project) (command-object co))
+  (synthesize-implicit-header
+   lang
+   (command-file co)
+   (append (default-preproc-defs
+            (compiler co)
+            (command-platform co))
+           (preproc-defs co))))
 
 (defgeneric implicit-header-key (project file)
   (:method ((project c/cpp-project) (file file-ast))
@@ -694,7 +709,11 @@ included in a header.")
         (enough-pathname file
                          (project-relative-pathname project "")))))
 
-(defun get-implicit-header (project file)
+(defun get-own-implicit-header (project file)
+  "Return an implicit header based on FILE's command object.
+NB This needs to return nil if the file has no command object, so we
+can fall back to looking at an including file's symbol table for
+headers. (See `ensure-header-implicit-header')."
   (let ((key (implicit-header-key project file)))
     (when-let ((co (command-object project key)))
       (let* ((genome (genome project))
@@ -702,13 +721,45 @@ included in a header.")
              (lang (component-class project)))
         (synchronized (project)
           (ensure2 (gethash key table)
-            (lret ((header (command-implicit-header co lang)))
+            (lret ((header (command-implicit-header project co lang)))
               (when header
                 (setf (genome project)
                       (copy (genome project)
                             :implicit-headers
                             (adjoin header
                                     (implicit-headers genome))))))))))))
+
+(defun ensure-header-implicit-header (root header)
+  "Get the implicit header for a header. This has to be cached or
+symbol-table will diverge."
+  (when (and (typep root 'c/cpp-project)
+             (headerp header))
+    (synchronized (root)
+      ;; NB We rely on the symbol table of a header only being computed
+      ;; once.
+      (ft/attrs::finalize-approximation)
+      (let ((table (implicit-headers-table (genome root)))
+            (key (implicit-header-key root header)))
+        (or (gethash key table)
+            (setf (gethash key table)
+                  (some
+                   (lambda (includer)
+                     (get-own-implicit-header (attrs-root*) includer))
+                   (remove-if (of-type 'c/cpp-system-header)
+                              *dependency-stack*))))))))
+
+(defun project-flags-implicit-header (project file)
+  "Synthesize an implicit header for FILE based on the project's flags."
+  (when-let (preproc-defs (preproc-defs project))
+    (synchronized (project)
+      (let ((table (implicit-headers-table (genome project)))
+            (key (implicit-header-key project file)))
+        (or (gethash key table)
+            (setf (gethash key table)
+                  (synthesize-implicit-header
+                   (component-class project)
+                   key
+                   preproc-defs)))))))
 
 (defun implicit-header-symbol-table (implicit-header)
   "Get the symbols exported from IMPLICIT-HEADER."
@@ -737,8 +788,9 @@ included in a header.")
                    (file (find-enclosing 'file-ast root ast))
                    (extra
                     (implicit-header-symbol-table
-                     (or (get-implicit-header root file)
-                         (ensure-header-implicit-header root file)))))
+                     (or (get-own-implicit-header root file)
+                         (ensure-header-implicit-header root file)
+                         (project-flags-implicit-header root file)))))
           (let ((augmented-table (symbol-table-union ast in extra)))
             (call-next-method ast augmented-table)))
         (call-next-method))))
@@ -1054,8 +1106,9 @@ the standard path and add it to PROJECT."))
                                           ;; them forward? Or
                                           ;; leave to the symbol
                                           ;; table?
-                                          (or (file-header-dirs project ast
+                                          (or (file-own-header-dirs project ast
                                                                 :file file-ast)
+                                              (header-dirs project)
                                               *default-header-dirs*)
                                           include-ast)))))))))
            (find-include-in-project (args)
@@ -1552,8 +1605,9 @@ include files in all directories of the project."
            (*header-dirs*
              (if header-dirs-supplied?
                  header-dirs
-                 (or (file-header-dirs project include-ast :file file)
+                 (or (file-own-header-dirs project include-ast :file file)
                      *header-dirs*
+                     (header-dirs project)
                      *default-header-dirs*))))
       (nlet retry ()
         (restart-case
@@ -1589,24 +1643,6 @@ include files in all directories of the project."
               (return-from find-symbol-table-from-include
                 in))))))))
 
-(defun ensure-header-implicit-header (root header)
-  "Get the implicit header for a header. This has to be cached or
-symbol-table will diverge."
-  (when (and (typep root 'c/cpp-project)
-             (headerp header))
-    ;; NB We rely on the symbol table of a header only being computed
-    ;; once.
-    (ft/attrs::finalize-approximation)
-    (let ((table (implicit-headers-table (genome root)))
-          (key (implicit-header-key root header)))
-      (or (gethash key table)
-          (setf (gethash key table)
-                (some
-                 (lambda (includer)
-                   (get-implicit-header (attrs-root*) includer))
-                 (remove-if (of-type 'c/cpp-system-header)
-                            *dependency-stack*)))))))
-
 (defmethod symbol-table ((node c/cpp-preproc-include) &optional (in (empty-ch-map)))
   (debug:note :trace "Including symbol table for ~a" node)
   (let ((root (attrs-root *attrs*)))
@@ -1627,7 +1663,9 @@ symbol-table will diverge."
   ;; NB We rely on the symbol table of a header only being computed
   ;; once.
   (ft/attrs::finalize-approximation)
-  (let* ((implicit (ensure-header-implicit-header (attrs-root*) node))
+  (let* ((implicit
+           (or (ensure-header-implicit-header (attrs-root*) node)
+               (project-flags-implicit-header (attrs-root*) node)))
          (in (or (implicit-header-symbol-table implicit)
                  (empty-symbol-table))))
     (ts::propagate-declarations-down node in)))

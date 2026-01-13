@@ -1,7 +1,9 @@
 ;;; compilation-database.lisp --- Compilation database data structures
 
 (defpackage :software-evolution-library/components/compilation-database
-  (:use :gt/full)
+  (:use
+    :gt/full
+    :software-evolution-library/software/compilable)
   (:local-nicknames
    (:json :cl-json))
   (:shadow :path :macro-name)
@@ -9,6 +11,7 @@
   (:import-from :shlex)
   (:export
     :*default-header-dirs*
+    :c/cpp-compilable
     :command-arguments
     :command-compiler
     :command-directory
@@ -31,10 +34,14 @@
     :get-command-objects
     :header-dir
     :header-dirs
+    :include-args
+    :isysroot
     :normalize-flags
     :normalize-flags-string
     :parse-compilation-database
     :parse-macro-def-arg
+    :platform
+    :preproc-defs
     :preproc-macro-source)
   (:nicknames
    :sel/components/compilation-database
@@ -201,7 +208,61 @@ command object."
   (lookup self (namestring key)))
 
 (eval-always
-  (defclass command-object ()
+  (defclass c/cpp-compilable (compilable)
+    ((preprocessor-definitions
+      :type macro-alist
+      :reader preproc-defs
+      :documentation "Preprocessor definition alist.")
+     (header-dirs
+      :type header-dirs
+      :reader header-dirs
+      :documentation "Symbolic search path")
+     (include-args
+      :type (soft-list-of string)
+      :reader include-args
+      :documentation "Arguments configuring the search path")
+     (isysroot
+      :type (or null string)
+      :reader isysroot)
+     (platform
+      :type :keyword
+      :initarg :platform
+      :reader platform))
+    (:default-initargs
+     ;; TODO Detect meaningfully.
+     :platform :linux))
+
+  (defmethod initialize-instance :after ((obj c/cpp-compilable)
+                                         &key (flags nil flags-supplied-p))
+    (when flags-supplied-p
+      (setf (slot-value obj 'flags) (normalize-flags "" flags))))
+
+  (defmethod copy :around ((obj c/cpp-compilable)
+                           &key
+                             (flags nil flags-supplied-p)
+                             (platform nil platform-supplied-p)
+                           &allow-other-keys)
+    (lret ((copy (multiple-value-call #'call-next-method
+                   (if flags-supplied-p
+                       (values :flags (normalize-flags "" flags))
+                       (values)))))
+      (setf (slot-value copy 'platform)
+            (if platform-supplied-p platform
+                (slot-value obj 'platform)))
+      ;; If the flags were changed, don't copy the slots computed
+      ;; based on the value of the flags.
+      (unless flags-supplied-p
+        ;; Only copy the lazily initialized slots if they've already
+        ;; been initialized.
+        (macrolet ((copy-bound-slot (slot)
+                     `(when (slot-boundp obj ',slot)
+                        (setf (slot-value copy ',slot) (slot-value obj ',slot)))))
+          (copy-bound-slot preprocessor-definitions)
+          (copy-bound-slot header-dirs)
+          (copy-bound-slot include-args)
+          (copy-bound-slot isysroot)))))
+
+  (defclass command-object (c/cpp-compilable)
     ((directory
       :type string
       :initarg :directory
@@ -228,7 +289,7 @@ command object."
       :reader command-output
       :documentation "The output file.")
      (flags
-      :type (soft-list-of string)
+      :Type (soft-list-of string)
       :reader command-flags
       :documentation "Compiler flags.")
      (compiler
@@ -236,30 +297,20 @@ command object."
       :reader command-compiler
       :documentation "compiler")
      (preprocessor-definitions
-      :type macro-alist
-      :reader command-preproc-defs
-      :documentation "Preprocessor definition alist.")
+      :reader command-preproc-defs)
      (header-dirs
-      :type header-dirs
-      :reader command-header-dirs
-      :documentation "Symbolic search path")
+      :reader command-header-dirs)
      (include-args
-      :type (soft-list-of string)
-      :reader command-include-args
-      :documentation "Arguments configuring the search path")
+      :reader command-include-args)
      (isysroot
       :type (or null string)
       :reader command-isysroot)
      (platform
-      :type :keyword
-      :initarg :platform
       :reader command-platform))
     (:documentation "Entry in a compiler database")
     (:default-initargs
      :directory (required-argument :directory)
-     :file (required-argument :file)
-     ;; TODO Detect meaningfully.
-     :platform :linux)))
+     :file (required-argument :file))))
 
 (define-default-copy command-object ())
 
@@ -299,41 +350,43 @@ command object."
         (compilation-db-entry-flags self)))
 
 (defmethod slot-unbound ((class t)
-                         (self command-object)
+                         (self c/cpp-compilable)
                          (slot-name (eql 'preprocessor-definitions)))
   "Lazily compute preprocessor definitions."
   (setf (slot-value self 'preprocessor-definitions)
-        (preprocessor-definition-alist-from-flags (command-flags self))))
+        (preprocessor-definition-alist-from-flags (flags self))))
 
 (defmethod slot-unbound ((class t)
-                         (self command-object)
+                         (self c/cpp-compilable)
                          (slot-name (eql 'header-dirs)))
   "Lazily compute header search path."
   (values
    (setf (values
           (slot-value self 'header-dirs)
           (slot-value self 'include-args))
-         (compute-header-dirs (command-flags self)))))
+         (compute-header-dirs (flags self)))))
 
 (defmethod slot-unbound ((class t)
-                         (self command-object)
+                         (self c/cpp-compilable)
                          (slot-name (eql 'include-args)))
   "Lazily compute arguments affecting the include search path."
   (setf (values
          (slot-value self 'header-dirs)
          (slot-value self 'include-args))
-        (compute-header-dirs (command-flags self)))
+        (compute-header-dirs (flags self)))
   (slot-value self 'include-args))
 
 (defmethod slot-unbound ((class t)
-                         (self command-object)
+                         (self c/cpp-compilable)
                          (slot-name (eql 'isysroot)))
   "Lazily compute sysroot for standard includes."
   (setf (slot-value self 'isysroot)
-        (extract-isysroot (command-flags self))))
+        (extract-isysroot (flags self))))
 
 (defmethod initialize-instance :after ((self command-object) &key command arguments)
   "Require that at least one of COMMAND or ARGUMENTS is provided."
+  (slot-makunbound self 'compiler)
+  (slot-makunbound self 'flags)
   (unless (or command arguments)
     (error "Either ~s or ~s is required for a command object."
            :arguments
@@ -523,13 +576,13 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
              (iter (for f in split-flags)
                    (for p previous f)
                    (collecting
-                    (if (and dir (gethash p *path-flags-table*))
-                        ;; Ensure include/library paths
-                        ;; point to the correct location
-                        ;; and not a temporary build directory.
-                        (normalize-dir f sysroot)
-                        ;; Pass the flag thru.
-                        f)))))
+                     (if (and dir (gethash p *path-flags-table*))
+                         ;; Ensure include/library paths
+                         ;; point to the correct location
+                         ;; and not a temporary build directory.
+                         (normalize-dir f sysroot)
+                         ;; Pass the flag thru.
+                         f)))))
     (declare (ftype (-> (string) list) split-flag))
     (let* ((flags (split-flags flags))
            (sysroot (extract-isysroot flags)))
