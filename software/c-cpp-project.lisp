@@ -1116,7 +1116,7 @@ the standard path and add it to PROJECT."))
            (insert-software-into-project (project path software)
              (synchronized (project)
                (unless (lookup (genome project) path)
-                 (debug:note :debug "~%Inserting ~a into tree~%"
+                 (debug:note :trace "~%Inserting ~a into tree~%"
                              path)
                  (let ((temp-project (with project path software)))
                    (setf (genome project)
@@ -1209,7 +1209,7 @@ the standard path and add it to PROJECT."))
                       (lambda (file1 file2)
                         (file= (path-join project-dir (car file1))
                                (path-join project-dir (car file2))))))))
-      (debug:note :debug "Doing global search for ~a" absolute-include-path)
+      (debug:note :trace "Doing global search for ~a" absolute-include-path)
       (let* ((matches
                (remove-duplicate-evolve-files
                 (prefer-full-path-matches
