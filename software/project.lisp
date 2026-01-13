@@ -553,6 +553,10 @@ making a directory."
   (mappend [{convert 'list} #'cdr] (evolve-files project)))
 
 
+;;; NB These are not currently used and perhaps should be removed.
+;;; Look under c-cpp-project.lisp to see the actual implementation of
+;;; C/C++ include handling.
+
 ;;; Include file processing
 ;;;
 ;;; In order to associate identifiers with definitions in C and C++,
