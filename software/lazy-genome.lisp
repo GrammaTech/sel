@@ -18,7 +18,7 @@
   (:documentation "Parse GENOME, the genome of SOFTWARE."))
 
 (defgeneric serialize-lazy-genome (software genome stream)
-  (:documentation "Seriailize GENOME, the genome of SOFTWARE, to STREAM."))
+  (:documentation "Serialize GENOME, the genome of SOFTWARE, to STREAM."))
 
 (defmethod genome-string ((obj lazy-genome) &optional stream)
   "Return the source code of OBJ, optionally writing to STREAM"
