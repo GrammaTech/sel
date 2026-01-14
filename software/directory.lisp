@@ -600,7 +600,7 @@ instances."
                        ((eql :lazy)
                         (collecting evolve-file))
                        (ast
-                        (debug:note :debug "Inserting file AST at ~a" path)
+                        (debug:note :trace "Inserting file AST at ~a" path)
                         (insert-file obj path software-object)
                         (collecting evolve-file))
                        ;; TODO May no longer be needed given ensure-genome.
