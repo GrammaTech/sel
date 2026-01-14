@@ -99,6 +99,7 @@
           :documentation "Name of the directory")
     (full-pathname
      :accessor full-pathname
+     :reader file:original-path
      :initarg :full-pathname
      :type pathname
      :documentation "Full pathname (relative to project root)."))
