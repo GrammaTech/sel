@@ -4721,6 +4721,8 @@ table."
   "Compute the symbol table at this node."
   (:circular #'fset:equal? (constantly (empty-symbol-table)))
   (:method ((software parseable) &optional in)
+    (dbg:note :debug "Recomputing symbol table for ~a"
+              (original-path software))
     (symbol-table (genome software) in))
   (:method ((node root-ast) &optional in)
     (dbg:note :debug "Recomputing symbol table for ~a" node)

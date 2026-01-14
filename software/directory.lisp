@@ -714,43 +714,43 @@ instances."
 
 
 ;;; Attrs
-(defmacro define-attr-methods (attr-name (&rest optional-args)
+(defmacro define-attr-methods (attr-name (node &rest optional-args)
                                &body return-body)
   "Create a set of attr methods for ATTR-NAME that has optional arguments
 OPTIONAL-ARGS and returns the ending value of RETURN-BODY. `node' is defined
 for forms inside RETURN-BODY and holds the current AST."
-  (with-unique-names (node)
-    `(progn
-       (defmethod ,attr-name ((,node directory-ast)
-                              ,@(when optional-args
-                                  `(&optional ,@optional-args)))
-         (mapc (op (,attr-name _ ,@optional-args)) (entries ,node))
-         ,@return-body)
+  `(progn
+     (defmethod ,attr-name ((,node directory-ast)
+                            ,@(when optional-args
+                                `(&optional ,@optional-args)))
+       (mapc (op (,attr-name _ ,@optional-args)) (entries ,node))
+       ,@return-body)
 
-       (defmethod ,attr-name ((,node file-ast)
-                              ,@(when optional-args
-                                  `(&optional ,@optional-args)))
-         (mapc (op (,attr-name _ ,@optional-args)) (contents ,node))
-         ,@return-body)
+     (defmethod ,attr-name ((,node file-ast)
+                            ,@(when optional-args
+                                `(&optional ,@optional-args)))
+       (mapc (op (,attr-name _ ,@optional-args)) (contents ,node))
+       ,@return-body)
 
-       (defmethod ,attr-name ((,node directory-project)
-                              ,@(when optional-args
-                                  `(&optional ,@optional-args)))
-         ;; TODO This used to operate on the evolve-files. The bigger
-         ;; question here: how to keep the evolve-files and the
-         ;; directory-ast in sync?
-         (,attr-name (genome ,node) ,@optional-args)
-         ,@return-body))))
+     (defmethod ,attr-name ((,node directory-project)
+                            ,@(when optional-args
+                                `(&optional ,@optional-args)))
+       ;; TODO This used to operate on the evolve-files. The bigger
+       ;; question here: how to keep the evolve-files and the
+       ;; directory-ast in sync?
+       (,attr-name (genome ,node) ,@optional-args)
+       ,@return-body)))
 
 
 ;;; Symbol Table
 
-(define-attr-methods symbol-table (in)
+(define-attr-methods symbol-table (node in)
+  (debug:note :debug "Recomputing symbol table for ~a" node)
   (empty-symbol-table))
 
 
 ;;; Namespace
-(define-attr-methods namespace (in)
+(define-attr-methods namespace (node in)
   "")
 
 
