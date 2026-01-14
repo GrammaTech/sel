@@ -45,6 +45,7 @@
     :get-own-implicit-header
     :get-standard-path-header
     :header-name
+    :headerp
     :implicit-headers
     :include-conflict-error
     :include-conflict-error.ast
