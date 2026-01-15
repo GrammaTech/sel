@@ -56,6 +56,12 @@ unit-test-sbcl:
     TARGET: 'long-unit-check'
   extends: .test
 
+long-unit-test-sbcl:
+  variables:
+    LISP: 'sbcl'
+    TARGET: 'long-unit-check'
+  extends: .test
+
 bin-test-sbcl:
   variables:
     LISP: 'sbcl'
@@ -63,6 +69,12 @@ bin-test-sbcl:
   extends: .test
 
 unit-test-ccl:
+  variables:
+    LISP: 'ccl'
+    TARGET: 'unit-check'
+  extends: .test
+
+long-unit-test-ccl:
   variables:
     LISP: 'ccl'
     TARGET: 'long-unit-check'
