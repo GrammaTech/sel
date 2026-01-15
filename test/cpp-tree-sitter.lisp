@@ -130,6 +130,15 @@ See SEL issue #359."
                            (cpp* "void process(int &&);"))))
              'cpp-&&)))
 
+(deftest test-convert-float ()
+  (is (= 1d-8 (convert 'float (cpp* "1e-8"))))
+  (is (= 1d10 (convert 'float (cpp* "1e10"))))
+  (is (= 1d-5 (convert 'float (cpp* "1e-5L"))))
+  (is (= 1s-5 (convert 'float (cpp* "1e-5f"))))
+  (is (= 1.1d-1 (convert 'float (cpp* "1.1e-1L"))))
+  (is (= 1.1s-1 (convert 'float (cpp* "1.1e-1f"))))
+  (is (= 10d0 (convert 'float (cpp* "0x1.4p3")))))
+
 
 ;;; Analysis tests
 

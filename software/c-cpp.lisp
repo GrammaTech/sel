@@ -11,7 +11,8 @@
         :cl-json
         :software-evolution-library
         :software-evolution-library/software/tree-sitter-base
-        :software-evolution-library/software/template))
+        :software-evolution-library/software/template)
+  (:import-from :with-c-syntax.core))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -1590,6 +1591,7 @@ Should return `:failure' in the base case.")
             (cond
               ((string-prefix-p "0x" text)
                (values 16 2))
+              ;; C++14, C23.
               ((string-prefix-p "0b" text)
                (values 2 2))
               ;; C23?
@@ -1605,8 +1607,25 @@ Should return `:failure' in the base case.")
     (parse-integer text :radix radix :start start)))
 
 (defmethod convert ((to-type (eql 'float))
-                    (ast c/cpp-number-literal) &key)
-  (parse-float (text ast)))
+                    (ast c/cpp-number-literal)
+                    &key
+                    &aux (*read-default-float-format* 'double-float))
+  (flet ((hex-float-p (string)
+           (scan "(?i)^0x.*?p" string))
+         (float+suffix (string)
+           (let ((base (chomp string '("f" "F" "l" "L"))))
+             (values (remove #\' base)
+                     (drop (length base) string)))))
+    (let ((string (text ast)))
+      (if (hex-float-p string)
+          (with-c-syntax.core::parse-hexadecimal-floating-constant string)
+          (multiple-value-bind (base suffix) (float+suffix string)
+            (parse-float
+             base
+             :type (string-case suffix
+                     ("" 'double-float)
+                     (("f" "F") 'single-float)
+                     (("l" "L") 'long-float))))))))
 
 (defmethod convert ((to-type (eql 'number))
                     (ast c/cpp-number-literal) &key)

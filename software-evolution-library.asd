@@ -23,6 +23,7 @@ techniques."
                                        :eclector.readtable
                                        :eclector.reader))
 (register-system-packages "trivia" '(:trivia.fail))
+(register-system-packages "with-c-syntax" '(:with-c-syntax.core))
 
 ;; This one needs a defsystem to ensure fare-quasiquote-extras is loaded.
 (defsystem "software-evolution-library/utility/fare-qq"
