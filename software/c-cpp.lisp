@@ -70,6 +70,52 @@
   "Match C or C++ AST fragments."
   `(or (c* ,@args) (cpp* ,@args)))
 
+(defclass data-model ()
+  ((name :initarg :name :reader name-of :type symbol)
+   (char-size :initarg :char-size :reader char-size :type (integer 8))
+   (short-size :initarg :short-size :reader short-size :type (integer 16))
+   (int-size :initarg :int-size :reader int-size :type (integer 16))
+   (long-size :initarg :long-size :reader long-size :type (integer 32))
+   (long-long-size
+    :initarg :long-long-size
+    :reader long-long-size
+    :type (integer 64)))
+  (:default-initargs
+   :char-size 8
+   :short-size 16)
+  (:documentation "A C/C++ data model."))
+
+(def +lp64+
+  (make 'data-model
+   :name :lp64
+   :int-size 32
+   :long-size 32
+   :long-long-size 64))
+
+(def +llp64+
+  (make 'data-model
+   :name :lp64
+   :int-size 32
+   :long-size 32
+   :long-long-size 64))
+
+(def +lp32+
+  (make 'data-model
+   :name :lp32
+   :int-size 16
+   :long-size 32
+   :long-long-size 64))
+
+(def +ilp32+
+  (make 'data-model
+   :name :lp32
+   :int-size 32
+   :long-size 32
+   :long-long-size 64))
+
+(defparameter *c/cpp-data-model*
+  +lp64+)
+
 #+(or :tree-sitter-c :tree-sitter-cpp)
 (progn
 
@@ -868,8 +914,7 @@ circular dependencies."
 (defmethod infer-type ((field c/cpp-field-declaration))
   (c/cpp-type field))
 
-(defmethod infer-type ((ast c/cpp-field-expression)
-                       &aux (obj (attrs-root*)))
+(defmethod infer-type ((ast c/cpp-field-expression))
   "Return the inferred field type."
   (if (call-function-p ast)
       (when-let (fn (get-declaration-ast :function ast))
@@ -1581,6 +1626,23 @@ Should return `:failure' in the base case.")
   (when (source-text= "*" (c/cpp-operator target))
     (collect-arg-uses (c/cpp-argument target) alias)))
 
+(defun c/cpp-integer-radix+start (text)
+  (declare (string text))
+  (cond
+    ((string-prefix-p "0x" text)
+     (values 16 2))
+    ;; C++14, C23.
+    ((string-prefix-p "0b" text)
+     (values 2 2))
+    ;; C23?
+    ((string-prefix-p "0o" text)
+     (values 8 2))
+    ((and
+      (length> text 1)
+      (string-prefix-p "0" text))
+     (values 8 1))
+    (t (values 10 0))))
+
 (defmethod convert ((to-type (eql 'integer))
                     (ast c/cpp-number-literal) &key)
   (mvlet* ((text (text ast))
@@ -1588,20 +1650,7 @@ Should return `:failure' in the base case.")
            (text
             (string-right-trim "uUlLzZ" text))
            (radix start
-            (cond
-              ((string-prefix-p "0x" text)
-               (values 16 2))
-              ;; C++14, C23.
-              ((string-prefix-p "0b" text)
-               (values 2 2))
-              ;; C23?
-              ((string-prefix-p "0o" text)
-               (values 8 2))
-              ((and
-                (length> text 1)
-                (string-prefix-p "0" text))
-               (values 8 1))
-              (t (values 10 0)))))
+            (c/cpp-integer-radix+start text)))
     (declare ((integer 2 36) radix)
              (array-index start))
     (parse-integer text :radix radix :start start)))
@@ -1637,8 +1686,80 @@ Should return `:failure' in the base case.")
           (etypecase ast
             (c-ast 'c-ast)
             (cpp-ast 'cpp-ast))))
-    (labels ((dummy-type (s)
-               (c/cpp-type (convert ast-type s :deepest t)))
+    (labels ((ntype (s)
+               (c/cpp-type
+                (convert ast-type
+                         (string+ s " x;")
+                         :deepest t)))
+             (integer-suffix-possible-type (ast)
+               ;; TODO Actually find the smallest size that can
+               ;; accomodate the parsed value.
+               (first (integer-suffix-possible-types (text ast))))
+             (integer-suffix-possible-types (text)
+               (let* ((text (string-downcase text))
+                      (decimal? (eql 10 (c/cpp-integer-radix+start text)))
+                      (suffix
+                        (drop (length (string-right-trim "ulz" text))
+                              text))
+                      (z? (find #\z suffix))
+                      (u? (find #\u suffix))
+                      (ll? (search "ll" suffix))
+                      (l? (find #\l suffix)))
+                 ;; See
+                 ;; https://en.cppreference.com/w/cpp/language/integer_literal.html.
+                 (cond
+                   ((or (and z? u?)
+                        z?)
+                    (list
+                     (if (eql ast-type 'cpp-ast)
+                         (ntype "std::size_t")
+                         (ntype "size_t"))))
+                   ((and ll? u?)
+                    (list
+                     (ntype "unsigned long long int")))
+                   (ll?
+                    (if decimal?
+                        (list
+                         (ntype "long long int"))
+                        (list
+                         (ntype "long long int")
+                         (ntype "unsigned long long int"))))
+                   ((and l? u?)
+                    (list
+                     (ntype "unsigned long int")
+                     (ntype "unsigned long long int")))
+                   (l?
+                    (if decimal?
+                        (list
+                         (ntype "long int")
+                         (ntype "unsigned long int")
+                         (ntype "long long int"))
+                        (list
+                         (ntype "long int")
+                         (ntype "unsigned long int")
+                         (ntype "long long int")
+                         (ntype "unsigned long long int"))))
+                   (u?
+                    (list
+                     (ntype "unsigned int")
+                     (ntype "unsigned long int")
+                     (ntype "unsigned long long int")))
+                   (t
+                    nil
+                    ;; TODO
+                    ;; (if decimal?
+                    ;;     (list
+                    ;;      (ntype "int")
+                    ;;      (ntype "long int")
+                    ;;      (ntype "long long int"))
+                    ;;     (list
+                    ;;      "int"
+                    ;;      "unsigned int"
+                    ;;      "long int"
+                    ;;      "unsigned long int"
+                    ;;      "long long int"
+                    ;;      "unsigned long long int"))
+                    ))))
              (integer-type (int)
                ;; NB There are officially no negative integer literals in
                ;; C/C++; they are handed through implicit conversion with
@@ -1648,22 +1769,27 @@ Should return `:failure' in the base case.")
                  ;; TODO Allow configuring the thresholds? Extract them
                  ;; from the environment? This is accurate for LP64 and
                  ;; LLP64.
-                 ((< int (expt 2 16))
-                  (dummy-type "short a;"))
-                 ((< int (expt 2 32))
-                  (dummy-type "int a;"))
-                 ((< int (expt 2 64))
-                  (dummy-type "long long a;"))))
+                 ;; ((< int (expt 2 (char-size *c/cpp-data-model*)))
+                 ;;  (ntype "char"))
+                 ((< int (expt 2 (short-size *c/cpp-data-model*)))
+                  (ntype "short"))
+                 ((< int (expt 2 (int-size *c/cpp-data-model*)))
+                  (ntype "int"))
+                 ((< int (expt 2 (long-size *c/cpp-data-model*)))
+                  (ntype "long"))
+                 ((< int (expt 2 (long-long-size *c/cpp-data-model*)))
+                  (ntype "long long"))))
              (float-type (float)
                (etypecase float
-                 (single-float (dummy-type "float f;"))
-                 (double-float (dummy-type "double f;")))))
-      (when-let (n
-                 (ignore-some-conditions (parse-error)
-                   (convert 'number ast)))
-        (etypecase n
-          (integer (integer-type n))
-          (float (float-type n)))))))
+                 (single-float (ntype "float"))
+                 (double-float (ntype "double")))))
+      (or (integer-suffix-possible-type ast)
+          (when-let (n
+                     (ignore-some-conditions (parse-error)
+                       (convert 'number ast)))
+            (etypecase n
+              (integer (integer-type n))
+              (float (float-type n))))))))
 
 (defmethod entry-control-flow ((switch-ast c/cpp-switch-statement))
   (children (body switch-ast)))

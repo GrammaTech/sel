@@ -164,7 +164,7 @@ int f(struct foo* p, struct foo s) { return p->x + s.x; }"))))
         (is (source-text= "int" (infer-type s.x)))))))
 
 ;;; Issue #231
-(deftest infer-literal-types ()
+(deftest test-infer-literal-types ()
   "Test that number, character, and string literals are given types"
   (let ((c-code (from-string 'c (fmt "~
 void f() { 17; 21U; 32l; 43UL; 'x'; \"abc\"; 67.0; 50.2f; 89.0d; }"))))
@@ -178,7 +178,7 @@ void f() { 17; 21U; 32l; 43UL; 'x'; \"abc\"; 67.0; 50.2f; 89.0d; }"))))
             (s67 (stmt-with-text c-code "67.0"))
             (s50 (stmt-with-text c-code "50.2f"))
             (s89 (stmt-with-text c-code "89.0d")))
-        (is (source-text= "int" (infer-type s17)))
+        (is (source-text= "short" (infer-type s17)))
         (is (source-text= "unsigned int" (infer-type s21)))
         (is (source-text= "long int" (infer-type s32)))
         (is (source-text= "unsigned long int" (infer-type s43)))

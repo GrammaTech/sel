@@ -724,6 +724,18 @@
            :module-partition-interface-unit
            :module-partition-implementation-unit
            ;; C/C++ analysis
+           :*c/cpp-data-model*
+           :+lp64+
+           :+llp64+
+           :+lp32+
+           :+ilp32+
+           :data-model
+           :char-size
+           :int-size
+           :long-long-size
+           :long-size
+           :short-size
+           :pointer-size
            :public? :private? :protected?
            :skip-include
            :circular-inclusion

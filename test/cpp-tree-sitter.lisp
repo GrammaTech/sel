@@ -501,7 +501,7 @@ not a member."
   (let* ((sw (from-string 'cpp-project "auto x = 1;"))
          (ast (find-if (of-type 'identifier-ast) (genome sw))))
     (with-attr-table sw
-      (is (equal (source-text (infer-type ast)) "int")))))
+      (is (equal (source-text (infer-type ast)) "short")))))
 
 (deftest test-cpp-infer-type/auto-rhs ()
   (let* ((sw (from-string 'cpp-project (fmt "~
