@@ -131,9 +131,7 @@
 
 (defvar +software-evolution-library-dir+
   (pathname-directory
-   #.(or *compile-file-truename*
-         *load-truename*
-         *default-pathname-defaults*))
+   (asdf:system-relative-pathname :software-evolution-library ""))
   "Path to directory holding SOFTWARE-EVOLUTION-LIBRARY.")
 
 (define-constant +software-evolution-library-major-version+ "v0.1.0"

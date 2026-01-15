@@ -85,13 +85,13 @@
 
 (define-constant +etc-dir+
     (append (pathname-directory
-             #.(or *compile-file-truename*
-                   *load-truename*
-                   *default-pathname-defaults*))
+             (asdf:system-relative-pathname
+              :software-evolution-library
+              "test/"))
             (list "etc"))
   :test #'equalp
   :documentation
-  "Pathname directory componet for pathname holding testing artifacts.")
+  "Pathname directory component for pathname holding testing artifacts.")
 
 (define-constant +etc-dir-path+
   (make-pathname :directory +etc-dir+)
