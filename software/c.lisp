@@ -133,27 +133,6 @@ field."
 (defmethod maybe-side-effect-p ((ast c-init-declarator))
   (maybe-side-effect-p (c-value ast)))
 
-(defmethod expression-type ((ast c-number-literal))
-  ;; There should be a global controlling the integer size model
-  (match
-   (string-downcase (text ast))
-   ;; TODO: hex constants
-   ((ppcre "^[0-9]+$")
-    (make 'c-primitive-type :text "int"))
-   ((ppcre "^[0-9]+u$")
-    (c-type (convert 'c-ast "unsigned int a;" :deepest t)))
-   ((ppcre "^[0-9]+l$")
-    (c-type (convert 'c-ast "long int a;" :deepest t)))
-   ((ppcre "^[0-9]+ul$")
-    (c-type (convert 'c-ast "unsigned long int a;" :deepest t)))
-   ;; TODO: ll constants
-   ((ppcre "^[0-9]+\\.[0-9]*(|[ep][0-9]+)(|d)$" _ _)
-    (make 'c-primitive-type :text "double"))
-   ((ppcre "^[0-9]+\\.[0-9]*(|[ep][0-9]+)l$" _)
-    (c-type (convert 'c-ast "long double a;" :deepest t)))
-   ((ppcre "^[0-9]+\\.[0-9]*(|[ep][0-9]+)f$" _)
-    (make 'c-primitive-type :text "float"))))
-
 (defmethod expression-type ((ast c-concatenated-string))
   (make 'c-type-descriptor
         :c-type (make 'c-primitive-type :text "char")

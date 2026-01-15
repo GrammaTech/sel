@@ -1632,6 +1632,39 @@ Should return `:failure' in the base case.")
   (or (ignore-errors (convert 'integer ast))
       (ignore-errors (convert 'float ast))))
 
+(defmethod expression-type ((ast c/cpp-number-literal))
+  (let ((ast-type
+          (etypecase ast
+            (c-ast 'c-ast)
+            (cpp-ast 'cpp-ast))))
+    (labels ((dummy-type (s)
+               (c/cpp-type (convert ast-type s :deepest t)))
+             (integer-type (int)
+               ;; NB There are officially no negative integer literals in
+               ;; C/C++; they are handed through implicit conversion with
+               ;; the unary minus operator.
+               (setf int (abs int))
+               (econd
+                 ;; TODO Allow configuring the thresholds? Extract them
+                 ;; from the environment? This is accurate for LP64 and
+                 ;; LLP64.
+                 ((< int (expt 2 16))
+                  (dummy-type "short a;"))
+                 ((< int (expt 2 32))
+                  (dummy-type "int a;"))
+                 ((< int (expt 2 64))
+                  (dummy-type "long long a;"))))
+             (float-type (float)
+               (etypecase float
+                 (single-float (dummy-type "float f;"))
+                 (double-float (dummy-type "double f;")))))
+      (when-let (n
+                 (ignore-some-conditions (parse-error)
+                   (convert 'number ast)))
+        (etypecase n
+          (integer (integer-type n))
+          (float (float-type n)))))))
+
 (defmethod entry-control-flow ((switch-ast c/cpp-switch-statement))
   (children (body switch-ast)))
 

@@ -745,6 +745,13 @@ separators."
          (lit (is (find-if (of-type 'c-string-literal) c))))
     (is (equal "const char[8]" (source-text (expression-type lit))))))
 
+(deftest test-float-expression-type ()
+  (is (source-text= "double" (expression-type (cpp* "1.0"))))
+  (is (source-text= "float" (expression-type (cpp* "1.0f")))))
+
+(deftest test-int-expression-type ()
+  (is (source-text= "short" (expression-type (cpp* "1")))))
+
 (deftest test-simple-typedef-aliasee ()
   "Calling type-aliasee should resolve typedefs to structs."
   (let ((c (c* "struct Foo { int x; };
