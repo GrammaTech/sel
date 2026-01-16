@@ -311,6 +311,19 @@ fails."
                     (value integer) &key)
   (make 'rust-integer-literal :text (fmt "~a" value)))
 
+(defmethod constant-fold ((ast rust-boolean-literal))
+  (string-ecase (text ast)
+    ("true" :true)
+    ("false" :false)))
+
+(defmethod constant-fold ((ast rust-char-literal))
+  (let ((s (drop-prefix "\\"
+                        (drop-prefix "'"
+                                     (drop-suffix "'" (text ast))))))
+    (if (length= s 1)
+        (character s)
+        s)))
+
 (defmethod constant-fold ((ast rust-block))
   (match ast
     ((rust-block
@@ -320,6 +333,53 @@ fails."
          (children
           (list expr))))))
      (constant-fold expr))))
+
+(defmethod constant-fold ((ast rust-type-cast-expression))
+  ;; TODO Unclear how/if to handle case to/from str.
+  (match ast
+    ((rust* "$EXPR as $TYPE"
+            :expr expr
+            :type (rust-primitive-type))
+     (nlet cast-val ((val (constant-fold expr)))
+       (let ((type (source-text (rust-type ast))))
+         (string-case type
+           ;; TODO overflowing_literals attribute?
+           (("u8"
+             "i8"
+             "u16"
+             "i16"
+             "u32"
+             "i32"
+             "u64"
+             "i64"
+             "u128"
+             "i128"
+             "isize"
+             "usize")
+            (typecase val
+              ((eql :true) 1)
+              ((eql :false) 0)
+              (character (char-code val))
+              (float (cast-val (truncate val)))
+              (integer
+               (string-case type
+                 ("u8" (logand val (1- (expt 2 8))))
+                 ("u16" (logand val (1- (expt 2 16))))
+                 ("u32" (logand val (1- (expt 2 32))))
+                 ;; TODO Base on platform?
+                 (("usize" "u64") (logand val (1- (expt 2 64))))
+                 ("u128" (logand val (1- (expt 2 128))))
+                 ("i8" (1+ (lognot (logand val (1- (expt 2 8))))))
+                 ("i16" (1+ (lognot (logand val (1- (expt 2 16))))))
+                 ("i32" (1+ (lognot (logand val (1- (expt 2 32))))))
+                 (("isize" "i64") (1+ (lognot (logand val (1- (expt 2 64))))))
+                 ("i128" (1+ (lognot (logand val (1- (expt 2 128))))))))))
+           ("f32" (float val 0s0))
+           ("f64" (float val 0d0))
+           ("char"
+            (typecase val
+              (character val)
+              (integer (code-char val))))))))))
 
 (defmethod exit-control-flow ((ast rust-implicit-return-expression))
   (find-enclosing 'compound-ast (attrs-root*) ast))

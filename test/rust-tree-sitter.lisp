@@ -23,13 +23,66 @@
 ;;; Utility
 
 (deftest constant-fold-rust ()
+  "Simple Rust expressions should be foldable."
   (is (eql 2 (constant-fold (rust* "2"))))
   (is (eql 4 (constant-fold (rust* "2 + 2"))))
   (is (null (constant-fold (rust* "2 + x"))))
   (is (eql 4 (constant-fold (rust* "2 + { 2 }"))))
   (is (eql 5 (constant-fold (rust* "(2+2)+1"))))
   (is (eql 5 (constant-fold (rust* "{ 2+2 }+1"))))
+  (is (eql 7 (constant-fold (rust* "2*3+1"))))
+  (is (eql 7 (constant-fold (rust* "2*3+1"))))
   (is (eql 7 (constant-fold (rust* "2*3+1")))))
+
+(deftest constant-fold-rust-comparison ()
+  "Rust comparisons of foldable expressions should be foldable."
+  (is (eql :true (constant-fold (rust* "0 == 0"))))
+  (is (eql :false (constant-fold (rust* "0 < 0"))))
+  (is (eql :true (constant-fold (rust* "0 <= 0"))))
+  (is (eql :false (constant-fold (rust* "0 > 0"))))
+  (is (eql :true (constant-fold (rust* "0 >= 0"))))
+  (is (eql :false (constant-fold (rust* "0 == 1"))))
+  (is (eql :true (constant-fold (rust* "0 < 1"))))
+  (is (eql :true (constant-fold (rust* "0 <= 1"))))
+  (is (eql :false (constant-fold (rust* "0 > 1"))))
+  (is (eql :false (constant-fold (rust* "0 >= 1"))))
+  (is (eql :true (constant-fold (rust* "0 != 1"))))
+  (is (eql :false (constant-fold (rust* "0 != 0")))))
+
+(deftest constant-fold-rust-chars ()
+  "Rust char literals should be foldable."
+  (is (eql (constant-fold (rust* "'a'")) #\a))
+  (is (eql (constant-fold (rust* "'\\''")) #\')))
+
+(deftest constant-fold-rust-char-casts ()
+  "Casts between Rust char literals and integers should be foldable."
+  (is (eql (constant-fold (rust* "97 as char")) #\a))
+  (is (= (constant-fold (rust* "'a' as u8")) 97)))
+
+(deftest constant-fold-rust-booleans ()
+  "Rust boolean literals should be foldable."
+  (is (eql (constant-fold (rust* "true")) :true))
+  (is (eql (constant-fold (rust* "false")) :false)))
+
+(deftest constant-fold-rust-boolean-casts ()
+  "Rust casts from booleans to integers should be foldable.
+Rust does not allowing casting integers to booleans."
+  (is (eql (constant-fold (rust* "true as u8")) 1))
+  (is (eql (constant-fold (rust* "false as u8")) 0)))
+
+(deftest constant-fold-rust-numeric-casts ()
+  "Casts between Rust numeric literals should be foldable."
+  (is (= (constant-fold (rust* "1000 as u16"))) 1000)
+  (is (= (constant-fold (rust* "1000 as u8"))) 232)
+  (is (= (constant-fold (rust* "-1 as u8"))) 255)
+  (is (= (constant-fold (rust* "128 as i16"))) 128)
+  (is (= (constant-fold (rust* "128 as i8"))) -128)
+  (is (= (constant-fold (rust* "1000 as u8"))) 232)
+  (is (= (constant-fold (rust* "232 as i8"))) -24)
+  (is (= (constant-fold (rust* "300.0 as u8"))) 255)
+  (is (= (constant-fold (rust* "-100.0 as u8"))) 0)
+  (is (= (constant-fold (rust* "300.0 as u8"))) 44)
+  (is (= (constant-fold (rust* "-100.0 as u8"))) 156))
 
 (deftest test-parse-rust-integer ()
   "Parsing Rust integers should handle delimiters, type suffixes, and
