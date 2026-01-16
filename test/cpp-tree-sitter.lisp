@@ -468,6 +468,7 @@ not a member."
                  (source-text
                   (infer-type (find-if (of-type 'cpp-binary-expression) cpp)))))))
   (let ((cpp (from-string 'cpp-project "1 + 2.0f;")))
+    (find-if (of-type 'cpp-binary-expression) cpp)
     (with-attr-table cpp
       (is (equal "float"
                  (source-text
@@ -501,7 +502,7 @@ not a member."
   (let* ((sw (from-string 'cpp-project "auto x = 1;"))
          (ast (find-if (of-type 'identifier-ast) (genome sw))))
     (with-attr-table sw
-      (is (equal (source-text (infer-type ast)) "short")))))
+      (is (equal (source-text (infer-type ast)) "int")))))
 
 (deftest test-cpp-infer-type/auto-rhs ()
   (let* ((sw (from-string 'cpp-project (fmt "~

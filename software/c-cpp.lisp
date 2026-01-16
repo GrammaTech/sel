@@ -116,6 +116,9 @@
 (defparameter *c/cpp-data-model*
   +lp64+)
 
+;;; TODO Promote to tree-sitter?
+(defgeneric equivalent-lisp-type (c/cpp-type))
+
 #+(or :tree-sitter-c :tree-sitter-cpp)
 (progn
 
@@ -853,6 +856,61 @@ circular dependencies."
   "Get the declaration for a C/C++ function definition."
   (find-in-symbol-table ast type (definition-name-ast ast)))
 
+(defmethod equivalent-lisp-type
+    ((type c/cpp-primitive-type) &aux (data-model *c/cpp-data-model*))
+  (string-case (text type)
+    ;; TODO
+    ("float" 'single-float)
+    ("double" 'double-float)
+    ("char" `(signed-byte ,(char-size data-model)))
+    ("int" `(signed-byte ,(int-size data-model)))
+    ;; TODO size_t, ssize_t, uintptr_t, charptr_t
+    ("int8_t" `(signed-byte 8))
+    ("int16_t" `(signed-byte 16))
+    ("int32_t" `(signed-byte 32))
+    ("int64_t" `(signed-byte 64))
+    ("uint8_t" `(unsigned-byte 8))
+    ("uint16_t" `(unsigned-byte 16))
+    ("uint32_t" `(unsigned-byte 32))
+    ("uint64_t" `(unsigned-byte 64))
+    ("char8_t" `(signed-byte 8))
+    ("char16_t" `(signed-byte 16))
+    ("char32_t" `(signed-byte 32))
+    ("char64_t" `(signed-byte 64))))
+
+(defmethod equivalent-lisp-type
+    ((type c/cpp-sized-type-specifier)
+     &aux (data-model *c/cpp-data-model*))
+  (let* ((unsigned?
+           (find-if (of-type 'c/cpp-unsigned)
+                    (c/cpp-modifiers type)))
+         (signed?
+           ;; TODO Char?
+           (not unsigned?))
+         (short?
+           (find-if (of-type 'c/cpp-short)
+                    (c/cpp-modifiers type)))
+         (long-count
+           (count-if (of-type 'c/cpp-long)
+                     (c/cpp-modifiers type)))
+         (long?
+           (= 1 long-count))
+         (long-long?
+           (= 2 long-count)))
+    (ematch (c/cpp-type type)
+      ((c/cpp-primitive-type :text "double")
+       (if long? 'long-float 'double-float))
+      ((c/cpp-primitive-type :text "char")
+       (if signed?
+           `(signed-byte ,(char-size data-model))
+           `(unsigned-byte ,(char-size data-model))))
+      ((or nil (c/cpp-primitive-type :text "int"))
+       `(,(if signed? 'signed-byte 'unsigned-byte)
+         ,(cond (long-long? (long-long-size data-model))
+                (long? (long-size data-model))
+                (short? (short-size data-model))
+                (t (int-size data-model))))))))
+
 (defmethod expression-type ((ast c/cpp-function-definition))
   "Use the return type of a function definition as its expression type."
   (c/cpp-type ast))
@@ -1270,10 +1328,10 @@ appears as a return statement is assumed to be the type of the function."
     (("double" "float") type1)
     (("float" "double") type2)
     (("double" "int") type1)
-    (("int" "double") type1)
+    (((or "int" "short") "double") type1)
     ;; There's a float.
     (("float" "int") type1)
-    (("int" "float") type2)
+    (((or "int" "short") "float") type2)
     ((x y) (and (equal x y) type1))))
 
 (defmethod infer-expression-type ((ast c/cpp-binary-expression))
@@ -1691,10 +1749,12 @@ Should return `:failure' in the base case.")
                 (convert ast-type
                          (string+ s " x;")
                          :deepest t)))
-             (integer-suffix-possible-type (ast)
-               ;; TODO Actually find the smallest size that can
-               ;; accomodate the parsed value.
-               (first (integer-suffix-possible-types (text ast))))
+             (integer-suffix-possible-type (n ast)
+               (some (lambda (type)
+                       (let ((ntype (ntype type)))
+                         (and (typep n (equivalent-lisp-type ntype))
+                              ntype)))
+                     (integer-suffix-possible-types (text ast))))
              (integer-suffix-possible-types (text)
                (let* ((text (string-downcase text))
                       (decimal? (eql 10 (c/cpp-integer-radix+start text)))
@@ -1708,88 +1768,70 @@ Should return `:failure' in the base case.")
                  ;; See
                  ;; https://en.cppreference.com/w/cpp/language/integer_literal.html.
                  (cond
+                   ;; signed size_t type?
                    ((or (and z? u?)
                         z?)
                     (list
                      (if (eql ast-type 'cpp-ast)
-                         (ntype "std::size_t")
-                         (ntype "size_t"))))
+                         "std::size_t"
+                         "size_t")))
                    ((and ll? u?)
                     (list
-                     (ntype "unsigned long long int")))
+                     "unsigned long long int"))
                    (ll?
                     (if decimal?
                         (list
-                         (ntype "long long int"))
+                         "long long int")
                         (list
-                         (ntype "long long int")
-                         (ntype "unsigned long long int"))))
+                         "long long int"
+                         "unsigned long long int")))
                    ((and l? u?)
                     (list
-                     (ntype "unsigned long int")
-                     (ntype "unsigned long long int")))
+                     "unsigned long int"
+                     "unsigned long long int"))
                    (l?
                     (if decimal?
                         (list
-                         (ntype "long int")
-                         (ntype "unsigned long int")
-                         (ntype "long long int"))
+                         "long int"
+                         "unsigned long int"
+                         "long long int")
                         (list
-                         (ntype "long int")
-                         (ntype "unsigned long int")
-                         (ntype "long long int")
-                         (ntype "unsigned long long int"))))
+                         "long int"
+                         "unsigned long int"
+                         "long long int"
+                         "unsigned long long int")))
                    (u?
                     (list
-                     (ntype "unsigned int")
-                     (ntype "unsigned long int")
-                     (ntype "unsigned long long int")))
+                     "unsigned int"
+                     "unsigned long int"
+                     "unsigned long long int"))
                    (t
-                    nil
-                    ;; TODO
-                    ;; (if decimal?
-                    ;;     (list
-                    ;;      (ntype "int")
-                    ;;      (ntype "long int")
-                    ;;      (ntype "long long int"))
-                    ;;     (list
-                    ;;      "int"
-                    ;;      "unsigned int"
-                    ;;      "long int"
-                    ;;      "unsigned long int"
-                    ;;      "long long int"
-                    ;;      "unsigned long long int"))
-                    ))))
-             (integer-type (int)
-               ;; NB There are officially no negative integer literals in
-               ;; C/C++; they are handed through implicit conversion with
-               ;; the unary minus operator.
-               (setf int (abs int))
-               (econd
-                 ;; TODO Allow configuring the thresholds? Extract them
-                 ;; from the environment? This is accurate for LP64 and
-                 ;; LLP64.
-                 ;; ((< int (expt 2 (char-size *c/cpp-data-model*)))
-                 ;;  (ntype "char"))
-                 ((< int (expt 2 (short-size *c/cpp-data-model*)))
-                  (ntype "short"))
-                 ((< int (expt 2 (int-size *c/cpp-data-model*)))
-                  (ntype "int"))
-                 ((< int (expt 2 (long-size *c/cpp-data-model*)))
-                  (ntype "long"))
-                 ((< int (expt 2 (long-long-size *c/cpp-data-model*)))
-                  (ntype "long long"))))
+                    (if decimal?
+                        (list
+                         "int"
+                         "long int"
+                         "long long int")
+                        (list
+                         "int"
+                         "unsigned int"
+                         "long int"
+                         "unsigned long int"
+                         "long long int"
+                         "unsigned long long int"))))))
              (float-type (float)
                (etypecase float
-                 (single-float (ntype "float"))
-                 (double-float (ntype "double")))))
-      (or (integer-suffix-possible-type ast)
-          (when-let (n
-                     (ignore-some-conditions (parse-error)
-                       (convert 'number ast)))
-            (etypecase n
-              (integer (integer-type n))
-              (float (float-type n))))))))
+                 (single-float "float")
+                 (double-float "double"))))
+      (when-let (n
+                 (ignore-some-conditions (parse-error)
+                   (convert 'number ast)))
+        ;; NB There are officially no negative integer literals in
+        ;; C/C++; they are handed through implicit conversion with
+        ;; the unary minus operator.
+        (setf n (abs n))
+        (etypecase n
+          (integer (integer-suffix-possible-type n ast))
+          (float (ntype (float-type n))))))))
 
 (defmethod entry-control-flow ((switch-ast c/cpp-switch-statement))
   (children (body switch-ast)))
