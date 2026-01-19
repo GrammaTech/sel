@@ -725,6 +725,7 @@ circular dependencies."
                    #1#))))))
 
 (defmethod inner-declarations ((ast c/cpp-enum-specifier))
+  "Enumerators are in scope for other enumerators."
   (when-let (body (c/cpp-body ast))
     (let ((enumerators (direct-children body)))
       (values enumerators
