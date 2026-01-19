@@ -96,6 +96,7 @@
 (def +contents+ "2+2;")
 
 (deftest test-lazy-load-parseable-genome-string ()
+  "Lazy genomes from strings should parse on demand."
   (with-temporary-file-of (:pathname p) +contents+
     (let ((sw (from-file 'javascript p)))
       (is (equal (slot-value sw 'genome) (pathname p)))
@@ -104,6 +105,7 @@
       (is (equal (slot-value sw 'genome) +contents+)))))
 
 (deftest test-lazy-load-parseable-genome ()
+  "Lazy genomes from pathnames should parse on demand."
   (with-temporary-file-of (:pathname p) +contents+
     (let ((sw (from-file 'javascript p)))
       (is (equal (slot-value sw 'genome) (pathname p)))
@@ -111,6 +113,7 @@
       (is (equal (genome-string sw) +contents+)))))
 
 (deftest test-lazy-copy-parseable-from-path ()
+  "Unparsed lazy genomes from pathnames shouldn't copy their genomes."
   (with-temporary-file-of (:pathname p) +contents+
     (let ((sw1 (from-file 'javascript p)))
       (is (equal (slot-value sw1 'genome) (pathname p)))
@@ -120,6 +123,7 @@
                  (slot-value sw2 'genome)))))))
 
 (deftest test-lazy-copy-parseable-genome-from-string ()
+  "Unparsed lazy genomes from strings shouldn't copy their genomes."
   (let ((sw1 (from-string 'javascript +contents+)))
     (is (equal (slot-value sw1 'genome) +contents+))
     (let ((sw2 (copy sw1)))
@@ -128,6 +132,7 @@
                (slot-value sw2 'genome))))))
 
 (deftest test-lazy-copy-parseable-genome ()
+  "Parsed lazy genomes shouldn't copy their genomes when being copied."
   (with-temporary-file-of (:pathname p) +contents+
     (let ((sw1 (from-string 'javascript +contents+)))
       (is (stringp (slot-value sw1 'genome)))
@@ -138,3 +143,14 @@
         (is (typep (slot-value sw2 'genome) 'ast))
         (is (eql (genome sw1)
                  (genome sw2)))))))
+
+(deftest test-lazy-to-file-doesnt-load ()
+  "Writing out lazy genomes from paths shouldn't load them."
+  (with-temporary-file-of (:pathname p1) +contents+
+    (let ((sw1 (from-file 'javascript p1)))
+      (is (pathnamep (slot-value sw1 'genome)))
+      (with-temporary-file (:pathname p2)
+        (to-file sw1 p2)
+        (is (file-exists-p p2))
+        (is (equal +contents+ (read-file-into-string p2)))
+        (is (pathnamep (slot-value sw1 'genome)))))))

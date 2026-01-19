@@ -53,6 +53,13 @@
     (setf (genome obj) path))
   obj)
 
+(defmethod to-file ((obj lazy-genome) path)
+  "Initialize LAZY-GENOME with PATH."
+  (with-slots (genome) obj
+    (typecase genome
+      (pathname (copy-file genome path))
+      (t (call-next-method)))))
+
 (defmethod from-string ((obj lazy-genome) string)
   "Initialize OBJ with the contents of STRING."
   (setf (genome obj) string)
