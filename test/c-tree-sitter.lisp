@@ -759,7 +759,10 @@ separators."
 
 (deftest test-int-expression-type ()
   (macrolet ((test-type (type string)
-               `(is (source-text= ,type (expression-type (cpp* ,string))))))
+               `(is (equal ,type
+                           (trim-whitespace
+                            (source-text
+                             (expression-type (c* ,string))))))))
     (test-type "int" "0")
     (test-type "int" "1")
     (test-type "long int" "1l")
@@ -770,7 +773,8 @@ separators."
     (test-type "unsigned long long int" "18446744073709550592ull")
     (test-type "unsigned long long int" "18'446'744'073'709'550'592llu")
     (test-type "unsigned long long int" "1844'6744'0737'0955'0592uLL")
-    (test-type "unsigned long long int" "184467'440737'0'95505'92LLU")))
+    (test-type "unsigned long long int" "184467'440737'0'95505'92LLU")
+    (test-type "long long int" "-184467'440737'0'95505'92LLU")))
 
 (deftest test-simple-typedef-aliasee ()
   "Calling type-aliasee should resolve typedefs to structs."

@@ -1048,6 +1048,12 @@ circular dependencies."
 (defmethod expression-type ((ast c/cpp-unary-expression))
   (match (c/cpp-operator ast)
     ((c/cpp-!) (make-c/cpp-bool-type ast))
+    ((c/cpp--)
+     (when-let ((type (call-next-method)))
+       (typecase type
+         (c/cpp-sized-type-specifier
+          (remove-if (of-type 'c/cpp-unsigned) type))
+         (t type))))
     (otherwise (call-next-method))))
 
 (defmethod infer-type ((ast c/cpp-comma-expression))
@@ -1834,10 +1840,15 @@ Should return `:failure' in the base case.")
         ;; NB There are officially no negative integer literals in
         ;; C/C++; they are handed through implicit conversion with
         ;; the unary minus operator.
-        (setf n (abs n))
-        (etypecase n
-          (integer (integer-suffix-possible-type n ast))
-          (float (ntype (float-type n))))))))
+        (multiple-value-bind (n minusp)
+            (values (abs n) (minusp (signum n)))
+          (etypecase n
+            (integer
+             (let ((type (integer-suffix-possible-type n ast)))
+               (if minusp
+                   (remove-if (of-type 'c/cpp-unsigned) type)
+                   type)))
+            (float (ntype (float-type n)))))))))
 
 (defmethod entry-control-flow ((switch-ast c/cpp-switch-statement))
   (children (body switch-ast)))
