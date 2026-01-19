@@ -740,6 +740,14 @@ separators."
               "184467'440737'0'95505'92LLU"
               :test #'=))))
 
+(deftest test-constant-fold-quotient ()
+  "/ should be the quotient for C/C++."
+  (is (= 1 (constant-fold (cpp* "3/2")))))
+
+(deftest test-constant-fold-rem ()
+  "% should be the remainder for C/C++."
+  (is (= 1 (constant-fold (cpp* "5%2")))))
+
 (deftest test-infer-escaped-string-type ()
   (let* ((c (c* "char* x = \"foo\\nbar\";"))
          (lit (is (find-if (of-type 'c-string-literal) c))))

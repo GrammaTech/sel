@@ -1873,6 +1873,19 @@ Should return `:failure' in the base case.")
   (or (find-next-sibling 'c/cpp-init-declarator (attrs-root*) ast)
       decl))
 
+(defmethod constant-fold ((ast c/cpp-binary-expression))
+  (let ((lhs (constant-fold (lhs ast)))
+        (rhs (constant-fold (rhs ast))))
+    (if (not (and lhs rhs))
+        (call-next-method)
+        (case (operator ast)
+          (:/ (if (and (integerp lhs)
+                       (integerp rhs))
+                  (truncate lhs rhs)
+                  (call-next-method)))
+          (:% (rem lhs rhs))
+          (t (call-next-method))))))
+
 
 ;;; Fset
 
