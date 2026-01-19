@@ -1902,6 +1902,10 @@ Should return `:failure' in the base case.")
           (:% (rem lhs rhs))
           (t (call-next-method))))))
 
+(defmethod constant-fold ((ast c/cpp-comma-expression))
+  (and (constant-fold (c/cpp-left ast))
+       (constant-fold (c/cpp-right ast))))
+
 
 ;;; Fset
 
