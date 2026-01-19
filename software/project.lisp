@@ -226,13 +226,12 @@ If PATH is a string, it is parsed using Unix syntax.")
 
 (defmethod genome-string ((obj project) &optional stream)
   "Returns all genomes joined with separators, optionally writing to STREAM."
-  (let ((genome-string (format nil "~{~a~%~}"
-                               (loop for (f . c) in (all-files obj)
-                                  collect "=============================="
-                                  collect f
-                                  collect "=============================="
-                                  collect (genome-string c)))))
-    (if stream (write-string genome-string stream) genome-string)))
+  (format stream "~{~a~%~}"
+          (loop for (f . c) in (all-files obj)
+                collect "=============================="
+                collect f
+                collect "=============================="
+                collect (genome-string c))))
 
 (defmethod (setf genome) (text (project project))
   (declare (ignore text project))
