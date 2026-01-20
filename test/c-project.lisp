@@ -187,6 +187,33 @@
   (is (sel/sw/project::ignored-path-p
        #p"dist/x.min.js" :ignore-paths '("*.min.js"))))
 
+(deftest not-ignored-paths-are-not-ignored ()
+  "The ! prefix for an ignored path should reverse its meaning."
+  (is (not (sel/sw/project::ignored-path-p
+            "README" :ignore-paths '("*" "!README"))))
+  (let ((ignore-paths '("etc/*" "!etc/bar")))
+    (is (sel/sw/project::ignored-path-p
+         "etc/foo" :ignore-paths ignore-paths))
+    (is (not (sel/sw/project::ignored-path-p
+              "etc/bar" :ignore-paths ignore-paths))))
+  (let ((ignore-paths '("etc/**/*" "!etc/**/quux")))
+    (is (sel/sw/project::ignored-path-p
+         "./etc/foo/bar/baz" :ignore-paths ignore-paths))
+    (is (not (sel/sw/project::ignored-path-p
+              "./etc/foo/bar/quux" :ignore-paths ignore-paths)))))
+
+(deftest test-inverted-ignore-paths ()
+  "Inverted ignore paths should be handled when creating projects."
+  (let ((project
+          (from-file (make 'c-project
+                           :ignore-paths '("subdir/**/*.*"
+                                           "!subdir/**/subdir2/*.*"))
+                     (path-join +etc-dir-path+ "inverted-patterns"))))
+    (is (length= (evolve-files project) 2))
+    (is (set-equal '("main.c" "subdir/subdir2/d.c")
+                   (mapcar #'car (evolve-files project))
+                   :test #'equal))))
+
 #-ccl ; TODO: fails with ccl
 (deftest only-paths-are-only ()
   (is (not (sel/sw/project::ignored-path-p

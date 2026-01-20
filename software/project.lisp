@@ -142,10 +142,22 @@ object (e.g., the original program).")
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
-  (labels ((included (patterns)
-             (find-if {pathname-match-p canonical-path} patterns)))
-    (or (and only-paths (not (included only-paths)))
-        (included ignore-paths))))
+  (labels ((includedp (patterns)
+             (reduce (lambda (ignore? pattern)
+                       (let* ((namestring (namestring pattern))
+                              (inverted? (string^= "!" namestring))
+                              (pattern
+                                (if inverted?
+                                    (drop-prefix "!" namestring)
+                                    pattern))
+                              (match? (pathname-match-p canonical-path pattern)))
+                         (if match?
+                             (not inverted?)
+                             ignore?)))
+                     patterns
+                     :initial-value nil)))
+    (or (and only-paths (not (includedp only-paths)))
+        (includedp ignore-paths))))
 
 (defgeneric evolve-files-ref (software path)
   (:documentation "Lookup PATH in the evolve-files of SOFTWARE.")
