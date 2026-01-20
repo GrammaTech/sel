@@ -641,6 +641,7 @@
            :comparisonp
            :contains-error-ast-p
            :aliasee
+           :type-aliasee
            :alias-set
            :entry-control-flow
            :exit-control-flow

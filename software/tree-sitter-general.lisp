@@ -1587,6 +1587,7 @@ for the compiler to infer the type.")
 By default this first tries `expression-type', then invokes
 `resolve-declaration-type' on the result of
 `get-declaration-ast'.")
+  ;; Needs to be gt:equal? in case of proxies.
   (:circular #'gt:equal? (constantly nil))
   (:method :context ((ast ast))
     (restart-case
@@ -5023,7 +5024,11 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
 (defgeneric type-aliasee (ast)
   (:documentation "Resolve a type alias to its actual type.")
   (:method ((ast ast))
-    nil))
+    nil)
+  (:method ((ast type-ast))
+    (when-let (decl (get-declaration-ast :type ast))
+      (unless (eql decl ast)
+        (type-aliasee decl)))))
 
 (defun resolve-type-aliasee (type)
   "If TYPE is a type alias, return the recursively resolved type."
@@ -5088,7 +5093,9 @@ information such as visibility."
       (direct-field-table aliasee)
       (progn
         (warn "No aliasee for ~a" alias)
-        (empty-symbol-table)))))
+        (empty-symbol-table))))
+  (:method ((type type-ast))
+    (empty-ch-map)))
 
 (-> field-table-ids (fset:ch-map &key
                      (:ns symbol-table-namespace)

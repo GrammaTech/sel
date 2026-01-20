@@ -1124,6 +1124,12 @@ is the operator of a binary ast.")
      (if (c/cpp-body struct)
          struct
          (get-declaration-ast :type struct)))
+    ((c/cpp-type-definition
+      (c/cpp-type
+       (and aliasee
+            (or (c/cpp-primitive-type)
+                (c/cpp-sized-type-specifier)))))
+     aliasee)
     (otherwise
      (or (get-declaration-ast :tag (c/cpp-type ast))
          (get-declaration-ast :type (c/cpp-type ast))))))
