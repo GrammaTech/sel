@@ -142,8 +142,8 @@ object (e.g., the original program).")
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
-  (flet ((included (files)
-           (find-if {pathname-match-p canonical-path} files)))
+  (labels ((included (patterns)
+             (find-if {pathname-match-p canonical-path} patterns)))
     (or (and only-paths (not (included only-paths)))
         (included ignore-paths))))
 
