@@ -560,7 +560,7 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
                    ((string^= "$SYSROOT" path)
                     (string+ sysroot (drop-prefix "$SYSROOT" path)))
                    (t nil)))
-           (normalize-dir (f sysroot)
+           (normalize-dir-1 (f sysroot)
              "Normalize dir F, maybe prepending SYSROOT."
              (or (maybe-prepend-sysroot sysroot f)
                  (namestring
@@ -572,6 +572,12 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
                              (ensure-directory-pathname dir)
                              (make-pathname :directory
                                             (list :relative f))))))))
+           (normalize-dir (f sysroot)
+             (let ((dir (normalize-dir-1 f sysroot)))
+               (and dir
+                    (if (emptyp (namestring dir))
+                        "."
+                        dir))))
            (normalize-flags (split-flags sysroot)
              (iter (for f in split-flags)
                    (for p previous f)

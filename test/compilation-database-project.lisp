@@ -69,6 +69,9 @@
   (is (find "/foo/" (normalize-flags "/foo/" (list "-L" "."))
             :test (lambda (s1 s2) (search s1 s2 :test #'equal)))))
 
+(deftest test-normalize-flags-relative ()
+  (is (equal '("-I" ".") (normalize-flags nil '("-I.")))))
+
 (deftest test-normalize-flags-string ()
   (is (equal '("-D" "name(args)=def")
              (normalize-flags-string "" "-D'name(args)=def'")))
