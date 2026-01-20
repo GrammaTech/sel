@@ -235,7 +235,7 @@ command object."
   (defmethod initialize-instance :after ((obj c/cpp-compilable)
                                          &key (flags nil flags-supplied-p))
     (when flags-supplied-p
-      (setf (slot-value obj 'flags) (normalize-flags "" flags))))
+      (setf (slot-value obj 'flags) (normalize-flags "." flags))))
 
   (defmethod copy :around ((obj c/cpp-compilable)
                            &key
