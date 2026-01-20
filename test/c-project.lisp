@@ -371,7 +371,13 @@ database."
                    (make 'c-project
                          :flags '("-I./includes" "-DWORLD=\"world\""))
                    path)))
-    (is (equal (include-args project) '("-I" "./includes/")))
+    (is (equal (include-args project)
+               (list
+                "-I" (string+ (project-dir project) "./includes//"))))
+    (let ((*build-dir* #p"/tmp/"))
+      (is (equal (include-args project)
+                 (list
+                  "-I" "/tmp/./includes//"))))
     (is (equal (preproc-defs project) '(("WORLD" . "\"world\""))))
     (is (evolve-files project))
     (with-attr-table project

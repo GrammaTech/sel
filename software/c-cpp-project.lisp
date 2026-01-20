@@ -177,6 +177,10 @@ inference.  Used to prevent circular attr propagation.")
       (when (equal isysroot "/")
         (setf isysroot nil)))))
 
+(defmethod include-args :around ((self c/cpp-project))
+  (normalize-flags (or *build-dir* (project-dir self))
+                   (call-next-method)))
+
 (defmethod slot-unbound
     ((class t) (project c/cpp-project) (slot (eql 'stdinc-dirs)))
   (setf (slot-value project 'stdinc-dirs)
