@@ -1045,6 +1045,7 @@ the standard path and add it to PROJECT."))
 
 (defmethod collect-evolve-files :context ((project c/cpp-project))
   "Remove non-header files not in compilation database."
+  (debug:note :trace "Filtering evolve files by compilation database")
   (flet ((filter-by-compilation-database (evolve-files)
            (mvlet* ((db-files other-files
                      (partition

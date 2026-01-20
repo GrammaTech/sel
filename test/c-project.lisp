@@ -27,7 +27,8 @@
     :windows-include-to-unix)
   (:local-nicknames
    (:cdb :software-evolution-library/components/compilation-database)
-   (:c/cpp-project :software-evolution-library/software/c-cpp-project))
+   (:c/cpp-project :software-evolution-library/software/c-cpp-project)
+   (:debug :software-evolution-library/utility/debug))
   (:export :test-c-project))
 (in-package :software-evolution-library/test/c-project)
 (in-readtable :curry-compose-reader-macros)
@@ -353,6 +354,20 @@ database."
              (macros (is (@ symbol-table :macro))))
         (is (@ macros "HELLO"))
         (is (@ macros "WORLD"))))))
+
+(deftest test-load-after-filter ()
+  "Test parsing is only done after filtering by the compilation database."
+  (let* ((logs (with-output-to-string (debug:*note-out*)
+                 (let ((debug:*note-level*
+                         debug:*note-level*))
+                   (setf (debug:note-level) :trace)
+                   (from-file 'c-project (path-join +etc-dir-path+ "grep-prj")))))
+         (collect-index (search "Collecting evolve files from filesystem" logs))
+         (filter-index (search "Filtering evolve files by compilation database" logs))
+         (parse-index (search "Collecting files" logs)))
+    ;; The functions log on entry. Parsing calls filtering calls
+    ;; collecting.
+    (is (< parse-index filter-index collect-index))))
 
 
 ;;; System Headers

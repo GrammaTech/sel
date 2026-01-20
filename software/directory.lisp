@@ -573,7 +573,7 @@ instances."
            fn
            files)))))
 
-(defmethod collect-evolve-files :around ((obj directory-project))
+(defmethod collect-evolve-files :context ((obj directory-project))
   (debug:note :info "Collecting files")
   (labels
       ((progress-fn (genome)
@@ -626,28 +626,13 @@ instances."
         (debug:note :info "Collected ~:d file~:p" (length collected))))))
 
 (defmethod collect-evolve-files ((obj directory-project) &aux result)
-  (walk-directory (project-dir obj)
-                  (op (let ((language (language-alias->language-symbol
-                                       (pathname-type _1)
-                                       :pathname _1)))
-                        (handler-case 
-                            (push (cons (pathname-relativize (project-dir obj) _1)
-                                        (from-file (make-instance (if (find-class-safe language)
-                                                                      language
-                                                                      'simple))
-                                                   _1))
-                                  result)
-                          (file-error () nil))))
-                  :test (op (and (text-file-p _1)
-                                 (not (nest
-                                       (ignored-evolve-path-p obj)
-                                       (pathname-relativize (project-dir obj) _1))))))
-  result)
+  (collect-evolve-files* obj))
 
 (defun collect-evolve-files* (project &key (extensions nil extensions-p)
                               &aux result (project-dir (project-dir project))
                               (compilable (subtypep (component-class project) 'compilable)))
   (assert project-dir (project-dir) "project-dir must be set on ~S" project)
+  (debug:note :trace "Collecting evolve files from filesystem")
   (with-current-directory (project-dir)
     (walk-directory
      (project-dir project)
