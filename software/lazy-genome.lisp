@@ -10,6 +10,7 @@
 
 (define-software lazy-genome (software)
   ((genome  :initarg :genome :accessor genome :initform ""
+            :reader lazy-genome
             :documentation "Lazily parsed AST representation of the code."
             ;; We don't want to force parsing the genome when copying.
             :copier :direct)))
