@@ -2313,6 +2313,12 @@ u64v;")
     (is (equal (mapcar #'source-text (outer-declarations cpp))
                '("y")))))
 
+(deftest test-linkage-specification-has-symbol-table ()
+  "A linkage specification should have a symbol table."
+  (let ((cpp (from-string 'cpp "extern \"C\" { int x(); }")))
+    (with-attr-table cpp
+      (is (@ (symbol-table cpp) :function)))))
+
 
 ;;; Parsing tests
 
