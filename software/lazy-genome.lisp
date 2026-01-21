@@ -2,6 +2,8 @@
   (:documentation "Software with a lazily-parsed genome")
   (:use :gt/full
         :software-evolution-library)
+  (:import-from :software-evolution-library/components/file
+                :original-path)
   (:export
     :parse-lazy-genome
     :serialize-lazy-genome
@@ -45,7 +47,15 @@
   (with-slots (genome) obj
     (typecase genome
       ((or string pathname)
-       (setf genome (parse-lazy-genome obj genome))))))
+       (setf
+        genome
+        (let ((genome (parse-lazy-genome obj genome)))
+          ;; Store the software's path in the genome. For a root-ast,
+          ;; there's a slot, but if the genome is not a root-ast, the
+          ;; path will end up in the annotations.
+          (if (original-path obj)
+              (copy genome :original-path (original-path obj))
+              genome)))))))
 
 (defmethod from-file ((obj lazy-genome) path)
   "Initialize LAZY-GENOME with PATH."

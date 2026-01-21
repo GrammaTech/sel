@@ -231,6 +231,15 @@ do not have."
   (finishes (copy (make 'conflict-ast)))
   (finishes (copy (make 'text-fragment))))
 
+(deftest test-store-original-path-in-root-ast ()
+  "The original path of the software object should also be stored in the
+root AST."
+  (with-temporary-file-of (:pathname p) "2+2;"
+    (let ((obj (from-file 'cpp p)))
+      (is (typep (genome obj) 'root-ast))
+      (is (equal (original-path obj)
+                 (original-path (genome obj)))))))
+
 
 ;;; Mutations
 #+ignore

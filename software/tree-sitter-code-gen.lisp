@@ -3450,8 +3450,15 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass preprocessor-ast (ast) ()
     (:documentation "Mix-in for ASTs representing preprocessor directives."))
 
-  (defclass root-ast (ast subroot) ()
-    (:documentation "Mix-in for AST classes which are roots."))
+  (defclass root-ast (ast subroot)
+    ((original-path :initarg :original-path :reader original-path))
+    (:documentation "Mix-in for AST classes which are roots.")
+    (:default-initargs :original-path nil))
+
+  (defmethod print-object ((ast root-ast) stream)
+    (print-unreadable-object (ast stream :type t :identity t)
+      (when-let (path (original-path ast))
+        (format stream "~a" path))))
 
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
