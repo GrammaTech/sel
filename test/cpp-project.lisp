@@ -194,14 +194,18 @@ files are present in the compilation database."
 
 (deftest test-relative-include-paths ()
   "Relative include paths relative to the directory key of the
-compilation database should be preserved."
+compilation database should be resolved."
   (let ((project
           (from-file 'cpp-project (path-join +etc-dir-path+ "cpp-deep"))))
     (with-attr-table project
-      (handler-bind ((unknown-header
-                       (lambda (c)
-                         (is (search "/" (source-text (unknown-header-include c)))))))
-        (symbol-table project)))))
+      (is (set-equal
+           '((:|iostream| (:|streambuf|) (:|ostream|)
+              (:|istream|) (:|ios| (:|iosfwd|)))
+             ("include_dir_2/include2.h")
+             ("include_dir_1/include1.h"))
+           (aget "subdir/file.cc" (project-dependency-tree project)
+                 :test #'equal)
+           :test #'equal)))))
 
 
 ;;; Module resolution tests
