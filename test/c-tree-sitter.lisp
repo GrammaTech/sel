@@ -1795,7 +1795,11 @@ when its surrounding text is removed."
 	}"))
          (enum (is (find-if (of-type 'c-enum-specifier) c)))
          (decls (ts::inner-declarations enum)))
-    (is (every (of-type 'c-enumerator) decls))))
+    (with-attr-table c
+      (is (every (of-type 'c-enumerator)
+                 (mapcar (op (get-declaration-ast :variable _))
+                         (filter (of-type 'c-identifier)
+                                 decls)))))))
 
 (deftest  outer-decls-struct-tag-specifier ()
   "outer-decls returns the actual declaration and not the forward declaration."
