@@ -202,6 +202,16 @@
     (is (not (sel/sw/project::ignored-path-p
               "./etc/foo/bar/quux" :ignore-paths ignore-paths)))))
 
+(deftest test-predicates-in-ignored-paths ()
+  "Predicates in ignore-paths should be supported."
+  (is (sel/sw/project::ignored-path-p
+       "README"
+       :ignore-paths (list (op (pathname-match-p _ "README")))))
+  (is (not (sel/sw/project::ignored-path-p
+            "README"
+            :ignore-paths (list (op (pathname-match-p _ "*"))
+                                "!README")))))
+
 (deftest test-inverted-ignore-paths ()
   "Inverted ignore paths should be handled when creating projects."
   (let ((project

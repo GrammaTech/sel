@@ -143,18 +143,24 @@ object (e.g., the original program).")
 
 (defun ignored-path-p (path &key ignore-paths only-paths
                        &aux (canonical-path (canonical-pathname path)))
-  (labels ((includedp (patterns)
-             (reduce (lambda (ignore? pattern)
-                       (let* ((namestring (namestring pattern))
-                              (inverted? (string^= "!" namestring))
-                              (pattern
-                                (if inverted?
-                                    (drop-prefix "!" namestring)
-                                    pattern))
-                              (match? (pathname-match-p canonical-path pattern)))
-                         (if match?
-                             (not inverted?)
-                             ignore?)))
+  (labels ((inverted? (pattern)
+             (and (typep pattern '(or string pathname))
+                  (string^= "!" (namestring pattern))))
+           (uninvert (pattern)
+             (if (inverted? pattern)
+                 (drop-prefix "!" (namestring pattern))
+                 pattern))
+           (match? (pattern path)
+             (etypecase pattern
+               ((or pathname string)
+                (pathname-match-p path (uninvert pattern)))
+               (function
+                (funcall pattern path))))
+           (includedp (patterns)
+             (reduce (lambda (include? pattern)
+                       (if (match? pattern canonical-path)
+                           (not (inverted? pattern))
+                           include?))
                      patterns
                      :initial-value nil)))
     (or (and only-paths (not (includedp only-paths)))
