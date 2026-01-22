@@ -81,13 +81,14 @@ This holds a list of cons cells of the form (path . software-object-for-path)."
     :reader ignore-paths
     :documentation
     "List of paths to ignore when collecting evolve-files.
-Paths may contain wildcards.")
+Paths may contain wildcards."
+    :type (soft-list-of (or pathname string function)))
    (only-paths
     :initarg :only-paths
     :reader only-paths
     :initform nil
     :documentation
-    "List of paths to only consider when collecting evolve-files.
+    "List of paths to exclusively consider when collecting evolve-files.
 Paths may contain wildcards.")
    (ignore-other-paths
     :initarg :ignore-other-paths
@@ -100,7 +101,7 @@ Paths may contain wildcards.")
     :reader only-other-paths
     :initform nil
     :documentation
-    "List of paths to only consider when collecting other-files.
+    "List of paths to exlusively consider when collecting other-files.
 Paths may contain wildcards.")
    (component-class
     :initarg :component-class :accessor component-class :initform nil
