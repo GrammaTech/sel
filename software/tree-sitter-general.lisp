@@ -2996,30 +2996,34 @@ STYLE."))
        (emptyp x)))
 
 (defun copy-with-surrounding-text (copy-node reference-node)
-  "Copy COPY-NODE with the surrounding text of REFERENCE-NODE. This is done
-on a per slot basis, and the copy of text only happens if the relevant slot
-doesn't already have a non-empty value and the value in REFERENCE-NODE isn't
-also empty. This will prevent unnecessary copying."
-  (let* ((before-copy (before-text copy-node))
-         (after-copy (after-text copy-node))
-         (before-reference (before-text reference-node))
-         (after-reference (after-text reference-node))
-         (empty-before-copy (empty-sequence-p before-copy))
-         (empty-after-copy (empty-sequence-p after-copy))
-         (not-empty-before-reference
-          (not (empty-sequence-p before-reference)))
-         (not-empty-after-reference
-          (not (empty-sequence-p after-reference))))
-    (cond
-      ((and empty-before-copy empty-after-copy
-            not-empty-before-reference not-empty-after-reference)
-       (copy copy-node :before-text before-reference
-                       :after-text after-reference))
-      ((and empty-before-copy not-empty-before-reference)
-       (copy copy-node :before-text before-reference))
-      ((and empty-after-copy not-empty-after-reference)
-       (copy copy-node :after-text after-reference))
-      (t copy-node))))
+  "Copy COPY-NODE with the surrounding text and comments
+of REFERENCE-NODE.
+
+Copying only happens if a relevant slot doesn't already have a
+non-empty value and the value in REFERENCE-NODE also isn't empty. This
+will prevent unnecessary copying."
+  (flet ((final (reader)
+           (declare (function reader))
+           (let ((copy-value (funcall reader copy-node)))
+             (if (empty-sequence-p copy-value)
+                 (or (funcall reader reference-node)
+                     copy-value)
+                 copy-value))))
+    (declare (inline final))
+    (let ((final-after-asts (final #'after-asts))
+          (final-after-text (final #'after-text))
+          (final-before-asts (final #'before-asts))
+          (final-before-text (final #'before-text)))
+      (if (and (equal (after-asts copy-node) final-after-asts)
+               (equal (after-text copy-node) final-after-text)
+               (equal (before-asts copy-node) final-before-asts)
+               (equal (before-text copy-node) final-before-text))
+          copy-node
+          (copy copy-node
+                :after-asts final-after-asts
+                :after-text final-after-text
+                :before-asts final-before-asts
+                :before-text final-before-text)))))
 
 (defmethod with :around ((ast structured-text) (value1 structured-text)
                          &optional value2)
