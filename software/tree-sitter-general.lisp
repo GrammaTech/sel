@@ -26,6 +26,11 @@
 (defgeneric ast-language-class (ast)
   (:documentation "Get the name of the language for AST."))
 
+(defun ast-language-ast-class (ast)
+  "Get the name of the superclass common to all AST classes for the
+language of AST."
+  (language-ast-class (ast-language-class ast)))
+
 (defgeneric extra-asts (language)
   (:method (language) nil)
   (:documentation "Return a list of extra ASTs for LANGUAGE. These are the ASTs

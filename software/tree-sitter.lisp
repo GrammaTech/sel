@@ -429,6 +429,7 @@
            :ast-mixin-subclasses
            :ast-language-class
            :language-ast-class
+           :ast-language-ast-class
            :parse-tree
            :copy-with-surrounding-text
 
