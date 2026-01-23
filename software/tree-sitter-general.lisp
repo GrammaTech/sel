@@ -559,15 +559,18 @@ should be rebound.")
   (first (cached-parent-asts* ast)))
 
 (defun lookup-parent-asts (obj ast)
+  "Return the parent ASTs of AST in OBJ, including AST itself."
   (if (and (boundp 'ft/attrs:*attrs*)
            (eql (attrs-root*) obj))
       (cached-parent-asts ast)
       (get-parent-asts obj ast)))
 
 (defun lookup-parent-asts* (obj ast)
+  "Like `lookup-parent-asts', but exclude AST itself."
   (rest (lookup-parent-asts obj ast)))
 
 (defun lookup-parent-ast (obj ast)
+  "Get the parent AST of AST in OBJ."
   (first (lookup-parent-asts* obj ast)))
 
 (defmethod enclosing-scope ((obj tree-sitter) (ast ast))
