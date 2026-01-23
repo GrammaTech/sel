@@ -768,7 +768,10 @@
            :inherited-virtual-functions
            :subclasses
            :superclasses
-           :virtual-functions)
+           :virtual-functions
+           :qualify-name
+           :qualify-function-name
+           :qualify-type-name)
   (:local-nicknames
    (:dbg :software-evolution-library/utility/debug)
    #+sbcl (:md5 :sb-md5)

@@ -159,6 +159,25 @@ Rust macro invocations can use (), [], and {} equivalently."
       (setf rust-path
             (convert 'rust-identifier rust-path)))))
 
+(defmethod qualify-name ((id rust-identifier) (path rust-type-identifier))
+  (make 'rust-scoped-identifier
+        :rust-path (convert 'rust-identifier path)
+        :rust-name id))
+
+(defmethod qualify-type-name ((id rust-identifier) path)
+  (qualify-type-name (convert 'rust-type-identifier id) path))
+
+(defmethod qualify-type-name ((id rust-type-identifier) (path rust-identifier))
+  (make 'rust-scoped-type-identifier
+        :rust-name id
+        :rust-path path))
+
+(defmethod qualify-type-name ((id rust-type-identifier)
+                              (path rust-scoped-identifier))
+  (make 'rust-scoped-type-identifier
+        :rust-name id
+        :rust-path (convert 'rust-scoped-type-identifier path)))
+
 
 ;;; Methods for tree-sitter generics
 

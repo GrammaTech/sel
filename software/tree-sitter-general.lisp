@@ -2004,6 +2004,49 @@ sets.")
       ;; If we have no definition, assume it could throw anything.
       +exception-top-type+)))
 
+(defun promote-around-text-to-qualified-name
+    (qualified qualifier call-next-method)
+  (copy-with-surrounding-text
+   (funcall call-next-method
+            (copy qualified
+                  :after-asts nil
+                  :after-text nil
+                  :before-ast nil
+                  :before-text nil)
+            qualifier)
+   qualified))
+
+(defgeneric qualify-name (qualified qualifier)
+  (:documentation "Qualify QUALIFIED with QUALIFIER.")
+  (:method-combination standard/context)
+  (:method :context (qualified qualifier)
+    (promote-around-text-to-qualified-name
+     qualified
+     qualifier
+     #'call-next-method)))
+
+(defgeneric qualify-type-name (qualified qualifier)
+  (:documentation "Qualify the name of a type.")
+  (:method-combination standard/context)
+  (:method :context (qualified qualifier)
+    (promote-around-text-to-qualified-name
+     qualified
+     qualifier
+     #'call-next-method))
+  (:method (qualified qualifier)
+    (qualify-name qualified qualifier)))
+
+(defgeneric qualify-function-name (qualified qualifier)
+  (:documentation "Qualify the name of a function.")
+  (:method-combination standard/context)
+  (:method :context (qualified qualifier)
+    (promote-around-text-to-qualified-name
+     qualified
+     qualifier
+     #'call-next-method))
+  (:method (qualified qualifier)
+    (qualify-name qualified qualifier)))
+
 
 ;;;; Structured text
 ;;; TODO: remove this; it's for debugging.

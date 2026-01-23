@@ -2212,6 +2212,28 @@ this involves handling some translations between types."
         (return-from list->qualified-name
           (list->qualified-name (rest list)))))))
 
+(defmethod qualify-name ((id cpp-ast) scope)
+  (list->qualified-name (list scope id)))
+
+(defmethod qualify-name ((id cpp-identifier) (ns cpp-identifier))
+  (qualify-name id (convert 'cpp-namespace-identifier ns)))
+
+(defmethod qualify-name ((id cpp-identifier) (ns cpp-type-identifier))
+  (qualify-name id (convert 'cpp-namespace-identifier ns)))
+
+(defmethod qualify-name ((id cpp-qualified-identifier)
+                         (ns cpp-namespace-identifier))
+  (cpp* "$NS::$NAME"
+        :ns ns
+        :name (qualify-name (cpp-name id) (cpp-scope id))))
+
+(defmethod qualify-name ((id cpp-qualified-identifier)
+                         (ns cpp-identifier))
+  (qualify-name id (convert 'cpp-namespace-identifier ns)))
+
+(defmethod qualify-name ((id cpp-identifier) (ns cpp-namespace-identifier))
+  (cpp* "$NS::$NAME" :ns ns :name id))
+
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")
   (:method ((ast cpp-ast)) nil)
