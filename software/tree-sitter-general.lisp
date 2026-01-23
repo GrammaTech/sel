@@ -795,6 +795,7 @@ generic function)."
        (otherwise call))))
 
 (define-finder-compiler-macro find-enclosing)
+(define-finder-compiler-macro find-enclosing*)
 (define-finder-compiler-macro find-all-enclosing :returns-list t)
 (define-finder-compiler-macro find-outermost)
 (define-finder-compiler-macro find-preceding :returns-list t)
@@ -811,6 +812,18 @@ If TEST is a function, it is used as a predicate. Otherwise it is assumed to be 
     (find-enclosing pred (genome obj) ast))
   (:method ((pred function) (root ast) (ast ast))
     (find-if pred (lookup-parent-asts root ast))))
+
+(defgeneric find-enclosing* (test obj ast)
+  (:documentation "Return the nearest enclosing AST passing TEST in OBJ, excluding AST
+itself.
+
+If TEST is a function, it is used as a predicate. Otherwise it is assumed to be a type.")
+  (:method ((type t) (obj t) (ast ast))
+    (find-enclosing* (of-type* type) obj ast))
+  (:method ((pred function) (obj parseable) (ast ast))
+    (find-enclosing* pred (genome obj) ast))
+  (:method ((pred function) (root ast) (ast ast))
+    (find-if pred (lookup-parent-asts* root ast))))
 
 (defgeneric find-all-enclosing (test obj ast)
   (:documentation "Return the enclosing ASTs passing TEST in OBJ.

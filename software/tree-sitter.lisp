@@ -623,6 +623,7 @@
            :resolve-declaration-type
            :declaration-type
            :find-enclosing
+           :find-enclosing*
            :find-all-enclosing
            :find-outermost
            :find-preceding
