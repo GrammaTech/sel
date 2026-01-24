@@ -1014,6 +1014,22 @@ switch(r)
         (is (typep ast 'cpp-qualified-identifier))
         (is (typep (get-declaration-ast :variable ast) 'cpp-enumerator))))))
 
+(deftest test-using-enum ()
+  (let* ((cpp (from-string 'cpp "enum class Color { RED, GREEN = 20, BLUE };
+using enum Color;
+Color r = BLUE;
+
+switch(r)
+{
+    case RED  : std::cout << \"red\n\";   break;
+    case GREEN: std::cout << \"green\n\"; break;
+    case BLUE : std::cout << \"blue\n\";  break;
+}")))
+    (with-attr-table cpp
+      (let ((ast (lastcar (collect-if (op (source-text= "BLUE" _)) cpp))))
+        (is (typep ast 'cpp-identifier))
+        (is (typep (get-declaration-ast :variable ast) 'cpp-enumerator))))))
+
 (deftest infer-template-type-through-subsequent-typedef ()
   "Test inferring the types of template members when the template is typedef'd."
   (let ((cpp (from-string 'cpp (fmt "~

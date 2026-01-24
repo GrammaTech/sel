@@ -1554,7 +1554,22 @@ If ALIAS-NAME is null, alias the outer defs to unqualified names."
                (and (has-attribute-p ns 'symbol-table)
                     (get-declaration-asts :namespace ns))))
        (alias-namespace decls)
-       (call-next-method)))
+       (fail)))
+    ((cpp* "using enum $ENUM" :enum enum)
+     (if-let ((decl
+               (and (has-attribute-p enum 'symbol-table)
+                    (get-declaration-ast :type enum))))
+       (if (not (cpp-body decl))
+           (fail)
+           (with (empty-symbol-table)
+                 :variable
+                 (reduce (lambda (map enumerator)
+                           (with map
+                                 (source-text (cpp-name enumerator))
+                                 (list (cpp-name enumerator))))
+                         (collect-if (of-type 'cpp-enumerator) decl)
+                         :initial-value (empty-symbol-table))))
+       (fail)))
     (otherwise (call-next-method))))
 
 (defun const-field-declaration? (field-decl fn)
