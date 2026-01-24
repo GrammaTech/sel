@@ -728,13 +728,18 @@ circular dependencies."
   "Enumerators are in scope for other enumerators."
   (outer-declarations ast))
 
+(defgeneric c/cpp-enum-underlying-type (enum)
+  ;; TODO Base on the literal type of the largest enum. Also, C23
+  ;; allows specifying it.
+  (:method ((ast c/cpp-enum-specifier))
+    (convert (ast-language-ast-class ast)
+             `((:class . :primitive-type)
+               (:text . "int")))))
+
 (defmethod resolve-declaration-type ((decl c/cpp-enumerator) ast
                                      &aux (root (attrs-root*)))
   (let ((enum (find-enclosing 'c/cpp-enum-specifier root decl)))
-    ;; If the enum is typedef'd, we probably want the typedef name.
-    (or (when-let (typedef (find-enclosing 'c/cpp-type-definition root enum))
-          (definition-name-ast typedef))
-        (definition-name-ast enum))))
+    (c/cpp-enum-underlying-type enum)))
 
 (defmethod outer-declarations ((ast c/cpp-function-declarator))
   ;; TODO: in regards to function overloading, may need to add a keyword argument
@@ -1255,6 +1260,7 @@ appears as a return statement is assumed to be the type of the function."
                                 parents)))
           (declaration-type fn)))))
 
+;;; TODO Should this be specialized on C++?
 (defmethod infer-expression-type :around ((ast expression-ast))
   (or (call-next-method)
       (infer-type-as-c/cpp-expression (attrs-root*) ast)))

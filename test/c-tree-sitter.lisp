@@ -484,7 +484,7 @@ void f() { FOO; }~%")))))
      (is (source-text= "FOO" (get-declaration-ast :variable foo)))
      (is (typep (get-declaration-ast :variable foo)
                 'c-enumerator))
-     (is (source-text= "f" (infer-type foo))))))
+     (is (source-text= "int" (infer-type foo))))))
 
 (deftest test-infer-type-on-enum/typedef ()
   (nest
@@ -497,7 +497,7 @@ void f() { FOO; }~%")))))
                (collect-if (op (source-text= "FOO" _))
                            c))))
      (is (source-text= "FOO" (get-declaration-ast :variable foo)))
-     (is (source-text= "f_t" (infer-type foo))))))
+     (is (source-text= "int" (infer-type foo))))))
 
 (deftest test-infer-type-on-enum/constant ()
   (nest
@@ -508,7 +508,7 @@ void f() { kRandom; }~%")))))
    (with-attr-table c)
    (let ((k-random (lastcar (collect-if (op (source-text= "kRandom" _)) c))))
      (is (source-text= "kRandom = 17" (get-declaration-ast :variable k-random)))
-     (is (source-text= "f" (infer-type k-random))))))
+     (is (source-text= "int" (infer-type k-random))))))
 
 (deftest test-infer-type-on-enum/constant-and-typedef ()
   (nest
@@ -519,7 +519,7 @@ void f() { kRandom; }~%")))))
    (with-attr-table c)
    (let ((k (lastcar (collect-if (op (source-text= "kRandom" _)) c))))
      (is (source-text= "kRandom = 17" (get-declaration-ast :variable k)))
-     (is (source-text= "f_t" (infer-type k))))))
+     (is (source-text= "int" (infer-type k))))))
 
 (deftest test-infer-type-on-enum/constant-and-typedef/enum-name ()
   (nest
@@ -530,7 +530,7 @@ void f() { kRandom; }~%")))))
    (with-attr-table c)
    (let ((k-random (lastcar (collect-if (op (source-text= "kRandom" _)) c))))
      (is (source-text= "kRandom = 17" (get-declaration-ast :variable k-random)))
-     (is (source-text= "f_t" (infer-type k-random))))))
+     (is (source-text= "int" (infer-type k-random))))))
 
 (deftest test-infer-type-on-tag-specifiers ()
   (let* ((c (from-string 'c "

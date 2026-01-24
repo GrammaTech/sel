@@ -1702,6 +1702,16 @@ consideration as overloads."
      ;; Go with the original result.
      first-try)))
 
+(defmethod resolve-declaration-type ((decl cpp-enumerator) ast
+                                     &aux (root (attrs-root*)))
+  (let ((enum (find-enclosing* 'c/cpp-enum-specifier root decl)))
+    (if (cpp-scope enum)
+        ;; If the enum is typedef'd, we probably want the typedef name.
+        (or (when-let (typedef (find-enclosing 'c/cpp-type-definition root enum))
+              (definition-name-ast typedef))
+            (definition-name-ast enum))
+        (call-next-method))))
+
 (defmethod resolve-declaration-type :around ((decl cpp-field-declaration)
                                              (ast call-ast))
   "If AST is a call AST, and the declaration is a field declaration,
@@ -1850,6 +1860,15 @@ then the return type of the call is the return type of the field."
 (defmethod placeholder-type-p ((ast cpp-type-descriptor))
   (placeholder-type-p (cpp-type ast)))
 
+(defun cpp-enumerator-rhs-type (ast)
+  "If AST is the RHS of an enumerator, return the enumerator's underlying type."
+  (let ((parent (lookup-parent-ast (attrs-root*) ast)))
+    (when (typep parent 'cpp-enumerator)
+      (c/cpp-enum-underlying-type
+       (find-enclosing* 'c/cpp-enum-specifier
+                        (attrs-root*)
+                        parent)))))
+
 (defmethod infer-type :context ((ast cpp-ast))
   (match (call-next-method)
     ;; Unwrap trivial type descriptors.
@@ -1879,7 +1898,12 @@ then the return type of the call is the return type of the field."
                   (position type2 template-param-names
                             :test #'source-text=)))
        (nth offset args)))
-    (result result)))
+    (result
+     ;; TODO infer-type-as-c/cpp-expression would ideally handle this.
+     ;; But it's only used as a fallback.
+     (or (and (typep ast 'expression-ast)
+              (cpp-enumerator-rhs-type ast))
+         result))))
 
 (defmethod infer-type :context ((id cpp-identifier))
   "When computing the type of a C++ identifier, if the identifier is
