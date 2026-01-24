@@ -4757,18 +4757,6 @@ by MULTI-DECLARATION-KEYS."
      table-1 table-2
      :allow-multiple (multi-declaration-keys root))))
 
-(defun propagate-declarations-down (ast in &key (children (children ast)))
-  "Propagate the symbol table declarations down through CHILDREN.
-Add the outer definitions of each child to the next child's symbol
-table."
-  (reduce (lambda (in2 child)
-            (symbol-table-union
-             ast
-             (symbol-table child in2)
-             (outer-defs child)))
-          children
-          :initial-value (symbol-table-union ast in (inner-defs ast))))
-
 (defun string-compare (x y)
   (fset::compare-strings (string x) (string y)))
 
@@ -4798,9 +4786,27 @@ table."
   (if (symbol-table-p input) input
       (call-next-method)))
 
+(defvar *symbol-table-in-progress* (empty-symbol-table))
+
+(defun propagate-declarations-down (ast in &key (children (children ast)))
+  "Propagate the symbol table declarations down through CHILDREN.
+Add the outer definitions of each child to the next child's symbol
+table."
+  (reduce (lambda (in2 child)
+            (symbol-table-union
+             ast
+             ;; TODO Should this be automatic for symbol tables with
+             ;; optional arguments, that they act as the seed for the
+             ;; next iteration?
+             (let ((*symbol-table-in-progress* in2))
+               (symbol-table child in2))
+             (outer-defs child)))
+          children
+          :initial-value (symbol-table-union ast in (inner-defs ast))))
+
 (def-attr-fun symbol-table (in)
   "Compute the symbol table at this node."
-  (:circular #'fset:equal? (constantly (empty-symbol-table)))
+  (:circular #'fset:equal? (lambda () *symbol-table-in-progress*))
   (:method ((software parseable) &optional in)
     (dbg:note :debug "Recomputing symbol table for ~a"
               (original-path software))
@@ -4941,21 +4947,27 @@ This is an inlined function, but if `find-in-symbol-table' is compiled
 with debug settings it can be traced."
   (lookup symbol-table query))
 
-(defgeneric find-in-symbol-table (ast namespace query)
+(defgeneric find-in-symbol-table (ast namespace query &key symbol-table)
   (:documentation "Lookup QUERY in the symbol table for AST using NAMESPACE.")
-  (:method ((ast ast) (ns null) (query string))
-    (let* ((symbol-table (symbol-table ast)))
-      (symbol-table-lookup symbol-table query)))
-  (:method ((ast ast) (ns null) (query ast))
-    (find-in-symbol-table ast ns (qualify-declared-ast-names-for-lookup query)))
-  (:method ((ast ast) (ns symbol) (query ast))
-    (find-in-symbol-table ast ns (qualify-declared-ast-names-for-lookup query)))
-  (:method ((ast ast) (namespace symbol) (query string))
-    (when-let* ((symbol-table (symbol-table ast))
+  (:method ((ast ast) (ns null) (query string)
+            &key (symbol-table (symbol-table ast)))
+    (symbol-table-lookup symbol-table query))
+  (:method ((ast ast) (ns null) (query ast)
+            &key (symbol-table (symbol-table ast)))
+    (find-in-symbol-table ast ns (qualify-declared-ast-names-for-lookup query)
+                          :symbol-table symbol-table))
+  (:method ((ast ast) (ns symbol) (query ast)
+            &key (symbol-table (symbol-table ast)))
+    (find-in-symbol-table ast ns (qualify-declared-ast-names-for-lookup query)
+                          :symbol-table symbol-table))
+  (:method ((ast ast) (namespace symbol) (query string)
+            &key (symbol-table (symbol-table ast)))
+    (when-let* ((symbol-table symbol-table)
                 (ns-table (lookup-namespace symbol-table namespace)))
       (values (symbol-table-lookup ns-table query))))
-  (:method ((ast ast) (namespace symbol) (query sequence))
-    (some (op (find-in-symbol-table ast namespace _))
+  (:method ((ast ast) (namespace symbol) (query sequence)
+            &key (symbol-table (symbol-table ast)))
+    (some (op (find-in-symbol-table ast namespace _ :symbol-table symbol-table))
           query)))
 
 (defun outer-and-inner-defs (ast)

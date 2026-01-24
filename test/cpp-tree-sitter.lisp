@@ -2190,6 +2190,27 @@ int MyClass::myfun() {
       (is (member fn (lookup (cpp::out-of-class-function-definitions cpp)
                              class))))))
 
+(deftest test-out-of-class-definitions-have-members-in-scope ()
+  "Out of class function definitions should still have the members in scope."
+  (let ((cpp
+          (nest (from-file 'cpp)
+                (path-join +etc-dir-path+)
+                "cpp-fragments/out_of_class_definition_members_in_scope.cc")))
+    (with-attr-table cpp
+      (let ((class (is (find-if (of-type 'cpp-struct-specifier) cpp)))
+            (fn (is (find-if (of-type 'cpp-function-definition) cpp))))
+        (is (not (empty? (symbol-table fn))))
+        (is (source-text= (definition-name fn) "Summable::sum"))
+        (is (eql class (ts::out-of-class-function-definition-class fn)))
+        (is (not (empty? (symbol-table fn))))
+        (let* ((x (is (find-if (op (source-text= _ "x")) fn)))
+               (y (is (find-if (op (source-text= _ "y")) fn))))
+          (let ((x-decl (is (get-declaration-ast :variable x)))
+                (y-decl (is (get-declaration-ast :variable y))))
+            (is (ancestor-of-p cpp x-decl class))
+            (is (ancestor-of-p cpp y-decl class))
+            (symbol-table fn)))))))
+
 (deftest test-infer-class-type-from-constructor ()
   "Class types should be inferred for constructor calls."
   (let ((cpp (cpp* "struct S {

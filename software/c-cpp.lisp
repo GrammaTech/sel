@@ -695,19 +695,25 @@ circular dependencies."
                  (error "No enclosing class at ~a" ast))))
     (mvlet* ((class (find-enclosing-class ast))
              (field-table (field-table class))
-             (members
-              (field-table-ids field-table :ns :variable :sort-root ast))
-             (methods
-              (field-table-ids field-table :ns :function :sort-root ast))
-             (types
-              (field-table-ids field-table :ns :type :sort-root ast))
+             (field-table-decls field-table-decl-types
+              (field-table-declarations field-table :sort-root ast))
              (outer-decls outer-decl-types
               (outer-declarations ast)))
-      (values (append outer-decls members methods types)
+      (values (append outer-decls field-table-decls)
               (append outer-decl-types
-                      (mapcar (constantly :variable) members)
-                      (mapcar (constantly :function) methods)
-                      (mapcar (constantly :type)     types))))))
+                      field-table-decl-types)))))
+
+(defun field-table-declarations (field-table &key sort-root)
+  (mvlet ((members
+           (field-table-ids field-table :ns :variable :sort-root sort-root))
+          (methods
+           (field-table-ids field-table :ns :function :sort-root sort-root))
+          (types
+           (field-table-ids field-table :ns :type :sort-root sort-root)))
+    (values (append members methods types)
+            (append (mapcar (constantly :variable) members)
+                    (mapcar (constantly :function) methods)
+                    (mapcar (constantly :type)     types)))))
 
 (defmethod outer-declarations ((ast c/cpp-enum-specifier))
   (match ast

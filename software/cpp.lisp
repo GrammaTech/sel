@@ -2003,13 +2003,35 @@ types."
                              (list->qualified-name
                               (butlast
                                (cpp::qualified-name->list id))))))
-            (types (find-in-symbol-table fn :type query))
+            (types
+              (or (find-in-symbol-table fn :type query
+                                           :symbol-table
+                                           *symbol-table-in-progress*)
+                  (find-in-symbol-table fn :type query)))
             (decls (filter-map
                     (op (find-enclosing 'c/cpp-classoid-specifier
                                         (attrs-root*)
                                         _))
                     types)))
        (resolve-overloads :type fn decls)))))
+
+(defmethod inner-defs ((fn cpp-function-definition))
+  "Add field table names to symbol table of out-of-class function definition."
+  (flet ((strip-namespace (namespace map)
+           (let ((out (empty-map-like map))
+                 (prefix (string+ namespace "::")))
+             (do-map (k v map out)
+               (withf out (drop-prefix prefix k) v)))))
+    (let ((inner-defs (call-next-method)))
+      (if-let* ((class (out-of-class-function-definition-class fn))
+                (body (cpp-body class))
+                (body-ns (namespace body))
+                (class-inner-defs (inner-defs body)))
+        (symbol-table-union fn inner-defs
+                            (let ((map class-inner-defs))
+                              (do-map (k v class-inner-defs map)
+                                (withf map k (strip-namespace body-ns v)))))
+        inner-defs))))
 
 (defgeneric cpp::constructorp (ast)
   (:method ((ast t)) nil)
