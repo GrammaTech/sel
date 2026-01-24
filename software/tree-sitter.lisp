@@ -615,6 +615,7 @@
            :variable-name
            :no-fallthrough
            :infer-type
+           :infer-expected-type
            :infer-type-as-nil          ;Restart
            :infer-expression-type
            :expression-type

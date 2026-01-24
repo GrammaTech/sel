@@ -1239,7 +1239,7 @@ There can be multiple classes if FIELD occurs in a template."
       nil
       (call-next-method)))
 
-(defun infer-type-as-c/cpp-expression (obj ast)
+(defmethod infer-expected-type ((ast c/cpp-ast))
   "Fall back to inferring the expression type from the surrounding declaration.
 
 That is, if the type of an expression cannot be extracted, then if it
@@ -1254,7 +1254,7 @@ Then if we cannot infer the type of y per se we infer its type to be int.
 
 Other strategies may also be used. E.g. the type of an expression that
 appears as a return statement is assumed to be the type of the function."
-  (let ((parents (lookup-parent-asts* obj ast)))
+  (let ((parents (lookup-parent-asts* (attrs-root*) ast)))
     (or (match (take 2 parents)
           ((list (type c/cpp-init-declarator)
                  (and decl (type c/cpp-declaration)))
@@ -1265,11 +1265,6 @@ appears as a return statement is assumed to be the type of the function."
                    (fn (find-if (of-type 'function-declaration-ast)
                                 parents)))
           (declaration-type fn)))))
-
-;;; TODO Should this be specialized on C++?
-(defmethod infer-expression-type :around ((ast expression-ast))
-  (or (call-next-method)
-      (infer-type-as-c/cpp-expression (attrs-root*) ast)))
 
 (defmethod expression-type ((ast c/cpp-char-literal))
   (etypecase ast

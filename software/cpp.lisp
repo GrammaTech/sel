@@ -1884,6 +1884,10 @@ then the return type of the call is the return type of the field."
                         (attrs-root*)
                         parent)))))
 
+(defmethod infer-expected-type ((ast cpp-ast))
+  (or (cpp-enumerator-rhs-type ast)
+      (call-next-method)))
+
 (defmethod infer-type :context ((ast cpp-ast))
   (match (call-next-method)
     ;; Unwrap trivial type descriptors.
@@ -1914,7 +1918,7 @@ then the return type of the call is the return type of the field."
                             :test #'source-text=)))
        (nth offset args)))
     (result
-     ;; TODO infer-type-as-c/cpp-expression would ideally handle this.
+     ;; TODO infer-expected-type would ideally handle this.
      ;; But it's only used as a fallback.
      (or (and (typep ast 'expression-ast)
               (cpp-enumerator-rhs-type ast))
@@ -1987,7 +1991,7 @@ types."
 
 (defmethod infer-expression-type :around ((ast cpp-initializer-list))
   (or (call-next-method)
-      (infer-type-as-c/cpp-expression (attrs-root*) ast)))
+      (infer-expected-type ast)))
 
 ;;; TODO Also use this to look up free variables (not just this) in a
 ;;; function.
