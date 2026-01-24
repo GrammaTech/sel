@@ -1321,9 +1321,6 @@ appears as a return statement is assumed to be the type of the function."
       (make-string-lit-type cpp)))))
 
 (defun usual-arithmetic-conversions (type1 type2)
-  ;; TODO These rules have been taken from C++ and should be checked
-  ;; against C.
-
   ;; TODO Sized integer types. Complex and imaginary types? Note that
   ;; one thing we would want from type descriptors is to be able to
   ;; have, e.g. an integer type descriptor that matches all integer
