@@ -798,6 +798,15 @@ typedef Foo foo_t;")))
     (with-attr-table c
       (is (null (relevant-declaration-type id))))))
 
+(deftest test-boolean-operator-expression-type ()
+  "Binary ASTs with boolean operators should be inferred as boolean."
+  (is (equal*
+       (source-text (expression-type (cpp* "2<2")))
+       (let ((cpp (cpp* "2<2")))
+         (with-attr-table cpp
+           (source-text (infer-type cpp))))
+       "bool")))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

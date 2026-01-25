@@ -24,6 +24,9 @@
 (create-tree-sitter-language-cache "cpp")
 ;;;===================================================
 
+(defconst +c/cpp-boolean-operators+
+  '("<" ">" "<=" ">=" "==" "!="))
+
 (defconst +c/cpp-implicitly-converting-arithmetic-operators+
   '("+" "-" "*" "/" "%"
     "<" ">" "<=" ">=" "==" "!="
@@ -1349,22 +1352,32 @@ appears as a return statement is assumed to be the type of the function."
     (((or "int" "short") "float") type2)
     (("float" "float") "float")))
 
+(defmethod expression-type ((ast c/cpp-binary-expression))
+  (string-case (source-text (c/cpp-operator ast))
+    (#.+c/cpp-boolean-operators+
+     (make 'cpp-primitive-type :text "bool"))
+    (t (call-next-method))))
+
 (defmethod infer-expression-type ((ast c/cpp-binary-expression))
   (string-case (source-text (c/cpp-operator ast))
-    (#.+c/cpp-implicitly-converting-arithmetic-operators+
-     (let* ((left-type (infer-type (c/cpp-left ast)))
-            (right-type (infer-type (c/cpp-right ast)))
-            (left-type-descriptor (type-descriptor left-type))
-            (right-type-descriptor (type-descriptor right-type))
-            (conversion (usual-arithmetic-conversions
-                         left-type-descriptor
-                         right-type-descriptor)))
-       (econd
-         ((source-text= conversion left-type-descriptor)
-          left-type)
-         ((source-text= conversion right-type-descriptor)
-          right-type)
-         ((null conversion) nil))))))
+    (#.(set-difference
+        +c/cpp-implicitly-converting-arithmetic-operators+
+        +c/cpp-boolean-operators+
+        :test #'equal)
+       (let* ((left-type (infer-type (c/cpp-left ast)))
+              (right-type (infer-type (c/cpp-right ast)))
+              (left-type-descriptor (type-descriptor left-type))
+              (right-type-descriptor (type-descriptor right-type))
+              (conversion (usual-arithmetic-conversions
+                           left-type-descriptor
+                           right-type-descriptor)))
+         (econd
+           ((source-text= conversion left-type-descriptor)
+            left-type)
+           ((source-text= conversion right-type-descriptor)
+            right-type)
+           ((null conversion) nil))))
+    (t (call-next-method))))
 
 (defmethod expression-type ((ast c/cpp-declaration))
   (c/cpp-type ast))
