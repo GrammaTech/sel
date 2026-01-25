@@ -1878,11 +1878,12 @@ then the return type of the call is the return type of the field."
 (defun cpp-enumerator-rhs-type (ast)
   "If AST is the RHS of an enumerator, return the enumerator's underlying type."
   (let ((parent (lookup-parent-ast (attrs-root*) ast)))
-    (when (typep parent 'cpp-enumerator)
-      (c/cpp-enum-underlying-type
-       (find-enclosing* 'c/cpp-enum-specifier
-                        (attrs-root*)
-                        parent)))))
+    (and (typep parent 'cpp-enumerator)
+         (eql ast (rhs parent))
+         (c/cpp-enum-underlying-type
+          (find-enclosing* 'c/cpp-enum-specifier
+                           (attrs-root*)
+                           parent)))))
 
 (defun cpp-initializer-list-type (ast)
   "If AST is in an initializer list, infer it's type from a constructor."

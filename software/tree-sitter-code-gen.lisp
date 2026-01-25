@@ -324,6 +324,9 @@ for the language.")
         (c-operator :initarg :operator :reader operator)
         (c-left :initarg :lhs :reader lhs :reader assignee)
         (c-right :initarg :rhs :reader rhs))
+       (c-enumerator
+        (c-name :initarg :lhs :reader lhs)
+        (c-value :initarg :rhs :reader rhs))
        (c-call-expression
         (c-function :reader call-function :initarg :function)
         (c-arguments :reader call-arguments-ast :initarg :arguments))
@@ -387,6 +390,9 @@ for the language.")
         (cpp-operator :initarg :operator :reader operator)
         (cpp-left :initarg :lhs :reader lhs :reader assignee)
         (cpp-right :initarg :rhs :reader rhs))
+       (cpp-enumerator
+        (cpp-name :initarg :lhs :reader lhs)
+        (cpp-value :initarg :rhs :reader rhs))
        (cpp-call-expression
         (cpp-function :reader call-function :initarg :function)
         (cpp-arguments :reader call-arguments-ast :initarg :arguments))
