@@ -1884,8 +1884,102 @@ then the return type of the call is the return type of the field."
                         (attrs-root*)
                         parent)))))
 
+(defun cpp-initializer-list-type (ast)
+  "If AST is in an initializer list, infer it's type from a constructor."
+  (labels ((get-type-from-implicit-constructor (definition ast init-list)
+             ;; It's possible not to be in the child list for an error node.
+             (and-let* ((position (position ast (direct-children init-list)))
+                        ;; TODO Do something with possible-types?
+                        ((not (typep definition 'cpp-type-parameter-declaration)))
+                        (field-table (field-table definition))
+                        (members
+                         (field-table-ids field-table
+                                          :ns :variable
+                                          :sort-root (attrs-root*)))
+                        (member (assure (or null ast)
+                                  (nth position members)))
+                        (member-type (infer-type member)))
+               ;; TODO If the member type is a template type,
+               ;; specify it from the template.
+               (if (member member-type '("T" "U") :test #'source-text=)
+                   nil
+                   member-type)))
+           (get-type-from-constructor (definition ast init-list)
+             (labels ((get-type-from-arg-position (definition ast init-list)
+                        (and-let* ((args (direct-children init-list))
+                                   ;; TODO variadic
+                                   (arity (length args))
+                                   (position (position ast args))
+                                   (constructors (cpp::list-all-constructors definition)))
+                          (dolist (ctor constructors)
+                            (and-let* ((params-ast (find-if (of-type 'cpp-parameter-list) ctor))
+                                       (params (direct-children params-ast)))
+                              (when (length= params arity)
+                                ;; TODO Overloading.
+                                (return (cpp-type (nth position params))))))))
+                      (init-list-constructor? (ctor)
+                        (and-let*
+                            ((params-ast
+                              (find-if (of-type 'cpp-parameter-list) ctor))
+                             (params (direct-children params-ast))
+                             (param (car params))
+                             (type (cpp-type param))
+                             (type-name
+                              (typecase type
+                                (cpp-type-identifier type)
+                                (cpp-template-type (cpp-name type))))
+                             ((source-text= "initializer_list" type-name))))))
+               (unless (typep definition 'cpp-type-parameter-declaration)
+                 (let ((constructors (cpp::list-all-constructors definition)))
+                   (if (no constructors)
+                       (get-type-from-implicit-constructor definition ast init-list)
+                       (if-let (init-list-constructors
+                                (and (typep init-list 'cpp-initializer-list)
+                                     (filter #'init-list-constructor? constructors)))
+                         ;; TODO Infer a type from initalizer list parameter
+                         ;; type parameter. E.g. list has
+                         ;; initializer_list<value_type>. We should infer what
+                         ;; value_type is.
+                         nil
+                         (get-type-from-arg-position definition ast init-list))))))))
+    (let ((parents (lookup-parent-asts* (attrs-root*) ast)))
+      (match parents
+        ((or (list*
+              (and init-list (cpp-initializer-list))
+              (cpp-compound-literal-expression
+               (cpp-type type))
+              _)
+             (list*
+              (and init-list (cpp-initializer-list))
+              (cpp-init-declarator
+               (cpp-declarator
+                ;; Don't cast nested initializer lists.
+                (not (cpp-array-declarator))))
+              (cpp-declaration (cpp-type type))
+              _))
+         ;; It's possible not to be in the child list for an error node.
+         (when (position ast (direct-children init-list))
+           (and-let* ((definition (get-declaration-ast :type type)))
+             (get-type-from-constructor
+              definition
+              ast
+              init-list))))
+        ((list*
+          (or (cpp-argument-list
+               (children (list expr)))
+              (cpp-initializer-list
+               (children (list expr))))
+          (cpp-field-initializer
+           :children (list var _))
+          (cpp-field-initializer-list)
+          _)
+         (unless (eql expr ast)
+           (fail))
+         (infer-type var))))))
+
 (defmethod infer-expected-type ((ast cpp-ast))
   (or (cpp-enumerator-rhs-type ast)
+      (cpp-initializer-list-type ast)
       (call-next-method)))
 
 (defmethod infer-type :context ((ast cpp-ast))
