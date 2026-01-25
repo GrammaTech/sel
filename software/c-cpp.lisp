@@ -1341,12 +1341,13 @@ appears as a return statement is assumed to be the type of the function."
     ;; There's a double.
     (("double" "float") type1)
     (("float" "double") type2)
+    (("double" "double") "double")
     (("double" "int") type1)
     (((or "int" "short") "double") type1)
     ;; There's a float.
     (("float" "int") type1)
     (((or "int" "short") "float") type2)
-    ((x y) (and (equal x y) type1))))
+    (("float" "float") "float")))
 
 (defmethod infer-expression-type ((ast c/cpp-binary-expression))
   (string-case (source-text (c/cpp-operator ast))
@@ -1359,11 +1360,11 @@ appears as a return statement is assumed to be the type of the function."
                          left-type-descriptor
                          right-type-descriptor)))
        (econd
-        ((equal? conversion left-type-descriptor)
-         left-type)
-        ((equal? conversion right-type-descriptor)
-         right-type)
-        ((null conversion) nil))))))
+         ((source-text= conversion left-type-descriptor)
+          left-type)
+         ((source-text= conversion right-type-descriptor)
+          right-type)
+         ((null conversion) nil))))))
 
 (defmethod expression-type ((ast c/cpp-declaration))
   (c/cpp-type ast))
