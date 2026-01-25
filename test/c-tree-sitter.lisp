@@ -892,7 +892,7 @@ typedef Foo foo_t;")))
     (is (stmt-with-text *soft* "int y = 1" :at-start t))
     (is (not (find-if {typep _ 'c-error} (genome *soft*))))))
 
-(deftest (test-c-source-ranges :long-running) ()
+(deftest test-c-source-ranges ()
   ;; There are a lot of C source files and parsing them is slow
   ;; so set a limit. Note the files actually tested are chosen at
   ;; random from the set of all files.
@@ -1052,7 +1052,7 @@ tree."
         (format nil "Found ASTS of types (and ~{~a~^ ~})" ast-types))
     soft))
 
-(deftest (c-tree-sitter-parsing-test :long-running) ()
+(deftest c-tree-sitter-parsing-test ()
   (mapc {apply {parse-test _ t}}
         '((#P"abstract-array-declarator.c" c-abstract-array-declarator)
           (#P"abstract-pointer-declarator.c" c-abstract-pointer-declarator)
@@ -1127,7 +1127,7 @@ tree."
           (#P"variadic-function.c" c-parameter-declaration)
           (#P"variadic-macro.c" c-parameter-declaration))))
 
-(deftest (c-tree-sitter-round-trip-parsing-test :long-running) ()
+(deftest c-tree-sitter-round-trip-parsing-test ()
   ;; Use this test when a round-trip could contain error ASTs.
   (mapc {apply {parse-test _ nil}}
         '((#P"language-redefining-macro.c")
