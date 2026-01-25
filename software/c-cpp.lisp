@@ -1729,8 +1729,7 @@ Should return `:failure' in the base case.")
      (values 8 1))
     (t (values 10 0))))
 
-(defmethod convert ((to-type (eql 'integer))
-                    (ast c/cpp-number-literal) &key)
+(defun cpp-number-literal->integer (ast)
   (mvlet* ((text (text ast))
            (text (remove #\' text))
            (text
@@ -1741,10 +1740,11 @@ Should return `:failure' in the base case.")
              (array-index start))
     (parse-integer text :radix radix :start start)))
 
-(defmethod convert ((to-type (eql 'float))
-                    (ast c/cpp-number-literal)
-                    &key
-                    &aux (*read-default-float-format* 'double-float))
+(defmethod convert ((to-type (eql 'integer))
+                    (ast c/cpp-number-literal) &key)
+  (cpp-number-literal->integer ast))
+
+(defun cpp-number-literal->float (ast)
   (flet ((hex-float-p (string)
            (scan "(?i)^0x.*?p" string))
          (float+suffix (string)
@@ -1761,6 +1761,12 @@ Should return `:failure' in the base case.")
                      ("" 'double-float)
                      (("f" "F") 'single-float)
                      (("l" "L") 'long-float))))))))
+
+(defmethod convert ((to-type (eql 'float))
+                    (ast c/cpp-number-literal)
+                    &key
+                    &aux (*read-default-float-format* 'double-float))
+  (cpp-number-literal->float ast))
 
 (defmethod convert ((to-type (eql 'number))
                     (ast c/cpp-number-literal) &key)
