@@ -2024,12 +2024,7 @@ then the return type of the call is the return type of the field."
                   (position type2 template-param-names
                             :test #'source-text=)))
        (nth offset args)))
-    (result
-     ;; TODO infer-expected-type would ideally handle this.
-     ;; But it's only used as a fallback.
-     (or (and (typep ast 'expression-ast)
-              (cpp-enumerator-rhs-type ast))
-         result))))
+    (result result)))
 
 (defmethod infer-type :context ((id cpp-identifier))
   "When computing the type of a C++ identifier, if the identifier is
@@ -2095,10 +2090,6 @@ types."
       (cpp-type type))
      type)
     (otherwise (call-next-method))))
-
-(defmethod infer-expression-type :around ((ast cpp-initializer-list))
-  (or (call-next-method)
-      (infer-expected-type ast)))
 
 ;;; TODO Also use this to look up free variables (not just this) in a
 ;;; function.

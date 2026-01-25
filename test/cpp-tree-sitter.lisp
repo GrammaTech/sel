@@ -474,14 +474,18 @@ not a member."
                  (source-text
                   (infer-type (find-if (of-type 'cpp-binary-expression) cpp))))))))
 
-(deftest test-infer-expression-type ()
+(deftest test-infer-expected-type ()
+  "Infer the type of an untyped RHS from its declaration."
   (let* ((cpp (from-string 'cpp-project "int x = fn(b);"))
          (expression (find-if (op (source-text= "fn(b)" _)) cpp)))
     (with-attr-table cpp
       (is (typep expression 'expression-ast))
       (is (equal "int"
                  (source-text
-                  (infer-expression-type expression))))))
+                  (infer-type expression)))))))
+
+(deftest test-infer-expression-type ()
+  "Infer the type of an expression."
   (with-fixture/attrs trim-front
     (is (equal "double"
                (source-text

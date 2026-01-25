@@ -1620,15 +1620,14 @@ By default this first tries `expression-type', then invokes
         :report "Return nil from infer-type"
         nil)))
   (:method (ast)
-    (let ((expression-type
-            (or (infer-expected-type ast)
-                (infer-expression-type ast))))
-      (cond ((null expression-type)
-             (infer-type-from-declaration ast))
-            ((placeholder-type-p expression-type)
-             (or (infer-type-from-declaration ast)
-                 expression-type))
-            (t expression-type)))))
+    (or (let ((expression-type (infer-expression-type ast)))
+          (cond ((null expression-type)
+                 (infer-type-from-declaration ast))
+                ((placeholder-type-p expression-type)
+                 (or (infer-type-from-declaration ast)
+                     expression-type))
+                (t expression-type)))
+        (infer-expected-type ast))))
 
 (def-attr-fun infer-expression-type ()
   "Infer the type of AST in SOFTWARE as an expression.
@@ -1639,10 +1638,7 @@ Calls `expression-type' by default."
   (:method ((ast call-ast))
     "Infer the type of a call from its declaration."
     (or (infer-type (call-function ast))
-        (call-next-method)))
-  (:method :around ((ast expression-ast))
-    (or (call-next-method)
-        (infer-expected-type ast))))
+        (call-next-method))))
 
 (defgeneric infer-expected-type (ast)
   (:documentation "Infer the type of AST from its context.
