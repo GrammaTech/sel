@@ -5112,13 +5112,13 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
                       initial-value map)))))
 
 (defgeneric type-aliasee (ast)
-  (:documentation "Resolve a type alias to its actual type.")
+  (:documentation "Resolve a type alias to its aliasee.")
   (:method ((ast ast))
     nil)
   (:method ((ast type-ast))
     (when-let (decl (get-declaration-ast :type ast))
       (unless (eql decl ast)
-        (type-aliasee decl)))))
+        decl))))
 
 (defun resolve-type-aliasee (type)
   "If TYPE is a type alias, return the recursively resolved type."
