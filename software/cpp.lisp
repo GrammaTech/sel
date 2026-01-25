@@ -1977,9 +1977,22 @@ then the return type of the call is the return type of the field."
            (fail))
          (infer-type var))))))
 
+(defun concrete-type-p (type)
+  "Is TYPE a concrete type (not from a type parameter)?"
+  (nor
+   ;; Used in header synopses.
+   (source-text= type "floating_point")
+   (typep (get-declaration-ast :type type)
+          'cpp-type-parameter-declaration)))
+
 (defmethod infer-expected-type ((ast cpp-ast))
-  (or (cpp-enumerator-rhs-type ast)
-      (cpp-initializer-list-type ast)
+  ;; Only return the expected type if it's concrete. Return a template
+  ;; type here would interfere with template analysis.
+  (or (when-let (expected-type
+                 (or (cpp-enumerator-rhs-type ast)
+                     (cpp-initializer-list-type ast)))
+        (and (concrete-type-p expected-type)
+             expected-type))
       (call-next-method)))
 
 (defmethod infer-type :context ((ast cpp-ast))
