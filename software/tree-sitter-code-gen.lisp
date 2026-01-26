@@ -3351,6 +3351,12 @@ stored as a list of interleaved text. This should ideally only be used for leaf
 of an AST."))
     (:documentation "Mix-in for structured text ASTs."))
 
+  (defmethod initialize-instance :after ((self structured-text) &key before-text after-text)
+    (unless (after-text self)
+      (setf (after-text self) ""))
+    (unless (before-text self)
+      (setf (before-text self) "")))
+
   (defclass tree-sitter-ast (indentation
                              structured-text
                              functional-tree-ast)
