@@ -442,8 +442,6 @@
            :parse-tree-matching-error-parse-tree
            :parse-tree-matching-error-subclasses
            :parse-tree-matching-error-child-types
-           :no-enclosing-declaration
-           :unresolved-overloads
            :unqualifiable-ast-error
            :unqualifiable-ast-error.asts
            :unqualifiable-ast-error.error

@@ -1081,23 +1081,13 @@ Every element in the list has the following form:
 (defgeneric variable-use-p (software ast &key &allow-other-keys)
   (:documentation "Return T if IDENTIFIER occurs in SOFTWARE as a variable."))
 
-(define-condition unresolved-overloads (warning)
-  ((ast :initarg :ast :type ast)
-   (overloads :initarg :overloads :type list))
-  (:documentation "Warning when overloads cannot be resolved.")
-  (:report
-   (lambda (c s)
-     (with-slots (ast overloads) c
-       (format s "Multiple overloads for ~a:~%~{~a~%~^~}"
-               ast overloads)))))
-
 (-> unresolved-overloads (ast list)
   (values null &optional))
 (defun unresolved-overloads (ast overloads)
-  (warn 'unresolved-overloads
-        :ast ast
-        :overloads overloads)
-  nil)
+  (dbg:note
+   :debug
+   "Multiple overloads for ~a:~%~{~a~%~^~}"
+   ast overloads))
 
 (defgeneric resolve-overloads (type ast &optional overloads)
   (:method-combination standard/context)
@@ -4999,16 +4989,6 @@ using NAMESPACE.")
                 (ns-table (lookup-namespace defs namespace)))
       (values (lookup ns-table query)))))
 
-(define-condition no-enclosing-declaration (warning)
-  ((type :initarg :type :type symbol)
-   (root :initarg :root)
-   (id :initarg :id :type ast))
-  (:report (lambda (c s)
-             (with-slots (type root id) c
-               (format s "No ~a enclosing ~a in ~a~%Path: ~a"
-                       type id root
-                       (ast-path root id))))))
-
 (defgeneric find-enclosing-declaration (type root id)
   (:documentation "Like `find-enclosing', but implement special
   handling when languages don't clearly distinguish different kinds of
@@ -5017,10 +4997,12 @@ using NAMESPACE.")
   (:method :context (type root id)
     (cond ((primitive-type-p id) nil)
           ((call-next-method))
-          (t (warn 'no-enclosing-declaration
-                   :type type
-                   :root root
-                   :id id))))
+          (t
+           (dbg:lazy-note
+            :debug
+            "No ~a enclosing ~a in ~a~%Path: ~a"
+            type id root
+            (ast-path root id)))))
   (:method :context (type (root software) id)
     (find-enclosing-declaration type (genome root) id))
   (:method :context ((type symbol) root id)
@@ -5135,7 +5117,7 @@ Note that adding FIELD may introduce multiple identifiers into MAP.")
   (:method ((alias type-alias-ast))
     (if-let (aliasee (resolve-type-aliasee alias))
       (class-fields aliasee)
-      (warn "No aliasee for ~a" alias))))
+      (dbg:note :debug "No aliasee for ~a" alias))))
 
 (-> adjoin-fields (fset:ch-map (or ast list)) fset:ch-map)
 (defun adjoin-fields (map fields)
@@ -5164,7 +5146,7 @@ information such as visibility."
     (if-let (aliasee (resolve-type-aliasee alias))
       (field-table aliasee)
       (progn
-        (warn "No aliasee for ~a" alias)
+        (dbg:note :debug "No aliasee for ~a" alias)
         (empty-symbol-table))))
   (:method ((type type-ast))
     (if-let (decl (get-declaration-ast :type type))
@@ -5182,7 +5164,7 @@ information such as visibility."
     (if-let (aliasee (resolve-type-aliasee alias))
       (direct-field-table aliasee)
       (progn
-        (warn "No aliasee for ~a" alias)
+        (dbg:note :debug "No aliasee for ~a" alias)
         (empty-symbol-table))))
   (:method ((type type-ast))
     (empty-ch-map)))

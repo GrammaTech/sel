@@ -1405,7 +1405,8 @@ inherits from."
                                                   base-class
                                                   quals))
                      (progn
-                       (warn
+                       (dbg:lazy-note
+                        :debug
                         "No definition found for base class ~a of ~a"
                         (source-text id)
                         (source-text class-name))
@@ -3225,9 +3226,11 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
   (filter-map
    (lambda (base-class-name)
      (or (get-declaration-ast :type base-class-name)
-         (warn "Missing base class ~a for ~a"
-               (source-text base-class-name)
-               (definition-name derived-class))))
+         (dbg:lazy-note
+          :debug
+          "Missing base class ~a for ~a"
+          (source-text base-class-name)
+          (definition-name derived-class))))
    (cpp::base-class-names derived-class)))
 
 (defmethod inheritance-graph ((class c/cpp-classoid-specifier))
@@ -3309,9 +3312,10 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
                                       override)
                       (lookup-override-definition override)))
         (collect fn)
-        (warn "No definition for override ~a of ~a"
-              (source-text override)
-              (source-text virtual-method))))))
+        (dbg:lazy-note :debug
+                       "No definition for override ~a of ~a"
+                       (source-text override)
+                       (source-text virtual-method))))))
 
 (defun cpp-declaration-virtual-method-definitions (virtual-method)
   (let ((overrides
