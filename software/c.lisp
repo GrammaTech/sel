@@ -150,23 +150,6 @@ field."
 (defmethod expression-type ((ast c-false))
   (make 'c-primitive-type :text "bool"))
 
-(defmethod infer-type ((ast c-ast) &aux (obj (attrs-root*)))
-  (let ((ancestors (lookup-parent-asts* obj ast))
-        (prev ast))
-    (iter (for a in ancestors)
-          (typecase a
-            ((or c-declaration c-parameter-declaration)
-             (return
-               (let ((d (c-declarator a)))
-                 (if (typep d 'c-pointer-declarator)
-                     d
-                     (c-type a)))))
-            (c-init-declarator
-             (when (eql prev (c-value a))
-               (return (call-next-method)))))
-          (setf prev a)
-          (finally (return (call-next-method))))))
-
 ;; TODO -- binary arithmetic, bit operators
 
 (defmethod infer-type ((ast c-unary-expression))
