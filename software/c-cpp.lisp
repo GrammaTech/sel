@@ -838,7 +838,9 @@ circular dependencies."
   (declarator-name-ast (c/cpp-declarator ast)))
 
 (defmethod declaration-type ((ast c/cpp-function-definition))
-  (c/cpp-type ast))
+  (wrap-type-descriptor
+   (c/cpp-declarator ast)
+   (c/cpp-type ast)))
 (defmethod declaration-type ((ast c/cpp-field-declaration))
   (c/cpp-type ast))
 (defmethod declaration-type ((ast c/cpp-parameter-declaration))

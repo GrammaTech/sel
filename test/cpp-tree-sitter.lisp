@@ -2407,6 +2407,19 @@ class C {
                     (canonicalize-structured-text
                      (infer-type (second exprs))))))))))
 
+(deftest test-infer-return-type-as-reference ()
+  (nest
+   (let ((cpp
+           (from-string
+            'cpp
+            "std::ostream& operator<<(std::ostream& os, P& p) { return os; }"))))
+   (with-attr-table cpp)
+   (is)
+   (source-text= "std::ostream&")
+   (infer-type)
+   (lastcar)
+   (collect-if (of-type 'identifier-ast) cpp)))
+
 
 ;;; Parsing tests
 
