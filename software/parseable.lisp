@@ -308,6 +308,9 @@ RECURSIVE is passed, recursive AST children will also be returned.")
         (cdr (reverse (reduce (flip #'cons) ast)))
         (remove-if-not {typep _ 'ast} (children ast)))))
 
+;;; TODO What's the value of these? They cause us to miss errors due
+;;; to misspelled keywords.
+
 (defmethod initialize-instance :after ((ast functional-tree-ast)
                                        &rest args &key)
   "Wrapper around MAKE-INSTANCE to transform all keyword arguments
