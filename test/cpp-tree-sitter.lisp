@@ -2380,6 +2380,33 @@ u64v;")
                          (collect-if (of-type 'cpp-init-declarator)
                                      cpp))))))))))
 
+(deftest test-field-expression-type ()
+  "The type of a field expression should not include the namespace of the
+class unless it's defined there."
+  (let ((cpp (from-string 'cpp-project "
+#include <iostream>
+#include <string>
+class C {
+  enum E { X };
+
+  std::string s;
+  E t;
+
+  void printme() {
+    std::cout << this.s << \"and\" << this.t << std::endl;
+  }
+};")))
+    (with-attr-table cpp
+      (let ((exprs (take 2 (collect-if (of-type 'cpp-field-expression) cpp))))
+        (is (equal "std::string"
+                   (source-text
+                    (canonicalize-structured-text
+                     (infer-type (first exprs))))))
+        (is (equal "C::E"
+                   (source-text
+                    (canonicalize-structured-text
+                     (infer-type (second exprs))))))))))
+
 
 ;;; Parsing tests
 

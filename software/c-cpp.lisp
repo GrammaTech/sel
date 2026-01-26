@@ -1373,8 +1373,10 @@ appears as a return statement is assumed to be the type of the function."
         :test #'equal)
        (let* ((left-type (infer-type (c/cpp-left ast)))
               (right-type (infer-type (c/cpp-right ast)))
-              (left-type-descriptor (canonicalize-structured-text left-type))
-              (right-type-descriptor (canonicalize-structured-text right-type))
+              (left-type-descriptor
+                (and left-type (canonicalize-structured-text left-type)))
+              (right-type-descriptor
+                (and right-type (canonicalize-structured-text right-type)))
               (conversion (usual-arithmetic-conversions
                            left-type-descriptor
                            right-type-descriptor)))

@@ -2052,16 +2052,28 @@ types."
     (result result)))
 
 (defmethod infer-type :around ((ast cpp-field-expression))
-  (let* ((field-type (call-next-method))
-         (arg-type (infer-type (cpp-argument ast))))
+  (when-let (type (call-next-method))
+    (qualify-field-type ast type)))
+
+(defun qualify-field-type (ast field-type)
+  (declare (cpp-field-expression ast) (ast field-type))
+  (let ((arg-type (infer-type (cpp-argument ast))))
     (cond
       ((placeholder-type-p field-type)
        field-type)
       ((typep field-type 'cpp-decltype)
        field-type)
       ((and arg-type field-type)
-       (let ((field-ns (namespace field-type))
-             (qualified-arg-type (qualify-declared-ast-name arg-type)))
+       (let* ((field-type-decl-id
+                (unless (typep field-type 'cpp-type-descriptor)
+                  (unless (typep (get-declaration-ast :type field-type)
+                                 'cpp-type-parameter-declaration)
+                    (get-declaration-id :type field-type))))
+              (field-ns
+                (if field-type-decl-id
+                    (namespace field-type-decl-id)
+                    (namespace field-type)))
+              (qualified-arg-type (qualify-declared-ast-name arg-type)))
          (if (equal field-ns qualified-arg-type)
              ;; If the type of the argument is (modulo template
              ;; arguments) the same as the namespace of the field
@@ -2077,8 +2089,8 @@ types."
                                 (cpp::qualified-name->list new-field-type)))))
                  (setf (attr-proxy qname) field-type)))
              field-type)))
-          (t
-           field-type))))
+      (t
+       field-type))))
 
 (defmethod infer-type ((ast cpp-call-expression))
   (or (call-next-method)
