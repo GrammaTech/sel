@@ -2031,9 +2031,9 @@ sets.")
    (funcall call-next-method
             (copy qualified
                   :after-asts nil
-                  :after-text nil
-                  :before-ast nil
-                  :before-text nil)
+                  :after-text ""
+                  :before-asts nil
+                  :before-text "")
             qualifier)
    qualified))
 
