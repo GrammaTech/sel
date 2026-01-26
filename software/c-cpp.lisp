@@ -844,9 +844,10 @@ circular dependencies."
 (defmethod declaration-type ((ast c/cpp-parameter-declaration))
   (c/cpp-type ast))
 (defmethod declaration-type ((ast c/cpp-declaration))
-  (c/cpp-type ast))
-(defmethod declaration-type ((ast c/cpp-enumerator))
-  (c/cpp-name (find-enclosing 'c/cpp-enum-specifier (attrs-root*) ast)))
+  (match (c/cpp-declarator ast)
+    ((list (and init (c/cpp-init-declarator)))
+     (wrap-type-descriptor (lhs init) (c/cpp-type ast)))
+    (otherwise (c/cpp-type ast))))
 
 (defmethod field-name-asts ((ast c/cpp-field-declaration))
   (collect-if (of-type 'c/cpp-field-identifier) ast))

@@ -807,6 +807,15 @@ typedef Foo foo_t;")))
            (source-text (infer-type cpp))))
        "bool")))
 
+(deftest test-c-pointer-declaration-type ()
+  "The type of a pointer declaration should be a pointer declarator."
+  (with-attr-table (from-string 'c "int* p = &r;")
+    (is (equal "int*"
+               (source-text
+                (infer-type
+                 (find-if (of-type 'c-init-declarator)
+                          (attrs-root*))))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

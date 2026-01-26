@@ -2360,6 +2360,15 @@ u64v;")
     (with-attr-table cpp
       (is (@ (symbol-table cpp) :function)))))
 
+(deftest test-cpp-pointer-declaration-type ()
+  "The type of a pointer declaration should be a pointer declarator."
+  (with-attr-table (from-string 'cpp "int* p = &r;")
+    (is (equal "int*"
+               (source-text
+                (infer-type
+                 (find-if (of-type 'cpp-init-declarator)
+                          (attrs-root*))))))))
+
 
 ;;; Parsing tests
 
