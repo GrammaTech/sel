@@ -542,6 +542,12 @@ MACROS is a map from macro names to expansions."
 (defmethod primitive-type-p ((ast c/cpp-type-descriptor))
   (primitive-type-p (c/cpp-type ast)))
 
+(defmethod qualify-declared-ast-name ((type c/cpp-primitive-type))
+  (source-text type))
+
+(defmethod qualify-declared-ast-name ((ast c/cpp-ast))
+  (canon-string (source-text-take 2048 ast)))
+
 (defmethod function-body ((ast c/cpp-function-declarator))
   nil)
 

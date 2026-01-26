@@ -4921,9 +4921,9 @@ table."
   (:documentation "Qualify the name of AST.
 This is used both when adding ASTs to the symbol table and when
 looking them up.")
-  (:method ((ast identifier-ast))
+  (:method ((ast ast))
     (or (declarator-name ast)
-        (source-text ast)))
+        (source-text-take 4096 ast)))
   (:method ((ast alternative-ast))
     (source-text ast)))
 

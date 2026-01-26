@@ -3062,6 +3062,7 @@ multiple locations.")
         result)))
 
 (defmethod qualify-declared-ast-name ((type cpp-primitive-type))
+  "Override to prevent namespacing primitive types."
   (source-text type))
 
 (def-attr-fun cpp::cached-namespace-qualified-name (name)
