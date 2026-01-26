@@ -1887,7 +1887,7 @@ then the return type of the call is the return type of the field."
                            parent)))))
 
 (defun cpp-initializer-list-type (ast)
-  "If AST is in an initializer list, infer it's type from a constructor."
+  "If AST is in an initializer list, infer its type from a constructor."
   (labels ((get-type-from-implicit-constructor (definition ast init-list)
              ;; It's possible not to be in the child list for an error node.
              (and-let* ((position (position ast (direct-children init-list)))
