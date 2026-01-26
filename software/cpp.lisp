@@ -2036,10 +2036,17 @@ types."
     ((and type
           (cpp-type-descriptor
            (cpp-declarator (cpp-abstract-reference-declarator))))
-     (if (or (find-if (of-type 'expression-ast)
-                      (lookup-parent-asts* (attrs-root*) id))
-             (typep (lookup-parent-ast (attrs-root*) id)
-                    'cpp-expression-statement))
+     (if (or
+          ;; Appears in an expression.
+          (find-if (of-type 'expression-ast)
+                   (lookup-parent-asts* (attrs-root*) id))
+          (let ((parent (lookup-parent-ast (attrs-root*) id)))
+            (or
+             ;; Parent is an expression statement.
+             (typep parent 'cpp-expression-statement)
+             ;; The AST is the RHS of an init declarator.
+             (and (typep parent 'c/cpp-init-declarator)
+                  (eql id (rhs parent))))))
          (deref-type type)
          (fail)))
     (result result)))

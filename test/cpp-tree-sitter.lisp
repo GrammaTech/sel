@@ -2369,6 +2369,17 @@ u64v;")
                  (find-if (of-type 'cpp-init-declarator)
                           (attrs-root*))))))))
 
+(deftest test-dereference-reference-in-init-declarator ()
+  "The type of a reference that appears as the RHS of an init declarator should be dereferenced."
+  (let ((cpp (from-string 'cpp "const T& u = t; T v = u;")))
+    (with-attr-table cpp
+      (is (equal "T"
+                 (source-text
+                  (infer-type
+                   (rhs (lastcar
+                         (collect-if (of-type 'cpp-init-declarator)
+                                     cpp))))))))))
+
 
 ;;; Parsing tests
 
