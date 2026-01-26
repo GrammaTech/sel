@@ -1661,14 +1661,18 @@ By default simply calls `declaration-type' on DECL-AST.")
   (:documentation "Return the type specified by DECLARATION-AST, as an AST, if no context is required to do so.")
   (:method ((ast ast)) nil))
 
-;;; TODO Replace with canonicalize-type.
-(defgeneric type-descriptor (type-ast)
-  (:documentation "Return the type denoted by AST in some canonical form.
-Equivalent type descriptors should be equal under `equal?'.")
-  (:method ((type-ast null)) nil)
-  (:method ((type-ast ast))
-    ;; TODO A canonical that doesn't destroy the internal structure.
-    (make-keyword (source-text type-ast))))
+(defun canonicalize-structured-text (ast)
+  "Strip a `structured-text' AST down to just its structure.
+Removes whitespace, comments, etc."
+  (declare (structured-text ast))
+  (labels ((strip (ast)
+             (copy ast
+                   :after-asts nil
+                   :after-text ""
+                   :before-asts nil
+                   :before-text "")))
+    (do-tree (ast ast :rebuild t)
+      (strip ast))))
 
 (defmethod is-stmt-p ((ast statement-ast)) t)
 
