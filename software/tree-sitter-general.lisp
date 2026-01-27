@@ -566,7 +566,8 @@ should be rebound.")
 (defun lookup-parent-asts (obj ast)
   "Return the parent ASTs of AST in OBJ, including AST itself."
   (if (and (boundp 'ft/attrs:*attrs*)
-           (eql (attrs-root*) obj))
+           (or (eql (attrs-root*) obj)
+               (eql (convert 'node (attrs-root*)) obj)))
       (cached-parent-asts ast)
       (get-parent-asts obj ast)))
 
