@@ -4765,7 +4765,7 @@ by MULTI-DECLARATION-KEYS."
   (fset::compare-strings (string x) (string y)))
 
 (defun string-hash (x)
-  (murmurhash (string x)))
+  (sxhash (string x)))
 
 (define-hash-function string-compare string-hash)
 
