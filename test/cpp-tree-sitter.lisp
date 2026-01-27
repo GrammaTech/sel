@@ -1893,8 +1893,9 @@ textual order."
         (symbol-table cpp)
         (destructuring-bind (base derived derived2) classes
           (let ((derived-table (field-table derived)))
-            (is (equal? (domain derived-table)
-                        (fset:ch-set "a" "b" "c")))
+            (is (set-equal (convert 'list (domain derived-table))
+                           (convert 'list (fset:ch-set "a" "b" "c"))
+                           :test #'equal))
             (is (eql (get-defining-class derived-table "a")
                      base))
             (is (eql (get-defining-class derived-table "c")
