@@ -57,8 +57,6 @@
     :project-stdinc-dirs
     :skip-include
     :system-headers
-    :unknown-header
-    :unknown-header-include
     :update-dependency-graph
     :who-includes?))
 
@@ -1423,15 +1421,6 @@ paths."
                              header-dirs))))
     (search-header-dirs :global global)))
 
-(define-condition unknown-header (warning)
-  ((include
-    :initarg :include
-    :reader unknown-header-include
-    :type ast))
-  (:report (lambda (c s)
-             (with-slots (include) c
-               (format s "Unknown header: ~a" (source-text include))))))
-
 (defmethod windows-include-to-unix ((ast c/cpp-preproc-include))
   (copy ast :c/cpp-path (windows-include-to-unix (c/cpp-path ast))))
 
@@ -1488,7 +1477,7 @@ paths."
              (find-include ()
                (or (first (collect-potential-includes* nil))
                    (and global (first (collect-potential-includes* t)))
-                   (warn 'unknown-header :include include-ast)
+                   (debug:note :debug "Unknown header: ~a" include-ast)
                    (make-unknown-header-with-proxy include-ast))))
       (ematch (find-include)
         ((and include (or (c/cpp-unknown-header)
