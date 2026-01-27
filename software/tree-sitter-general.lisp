@@ -3063,7 +3063,7 @@ STYLE."))
   (and (sequencep x)
        (emptyp x)))
 
-(defun copy-with-surrounding-text (copy-node reference-node)
+(defun copy-with-surrounding-text (copy-node reference-node &key override)
   "Copy COPY-NODE with the surrounding text and comments
 of REFERENCE-NODE.
 
@@ -3072,11 +3072,13 @@ non-empty value and the value in REFERENCE-NODE also isn't empty. This
 will prevent unnecessary copying."
   (flet ((final (reader)
            (declare (function reader))
-           (let ((copy-value (funcall reader copy-node)))
-             (if (empty-sequence-p copy-value)
-                 (or (funcall reader reference-node)
-                     copy-value)
-                 copy-value))))
+           (if override
+               (funcall reader reference-node)
+               (let ((copy-value (funcall reader copy-node)))
+                 (if (empty-sequence-p copy-value)
+                     (or (funcall reader reference-node)
+                         copy-value)
+                     copy-value)))))
     (declare (inline final))
     (let ((final-after-asts (final #'after-asts))
           (final-after-text (final #'after-text))
