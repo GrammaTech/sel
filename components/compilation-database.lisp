@@ -293,7 +293,10 @@ command object."
       :reader command-flags
       :documentation "Compiler flags.")
      (compiler
-      :type string
+      ;; This isn't really meant to be nullable, but that's the type
+      ;; it has in `compilable'. The `initialize-instance' method will
+      ;; make it unbound if it's null.
+      :type (or null string)
       :reader command-compiler
       :documentation "compiler")
      (preprocessor-definitions
