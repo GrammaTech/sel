@@ -432,6 +432,7 @@
            :ast-language-ast-class
            :parse-tree
            :copy-with-surrounding-text
+           :copy-without-surrounding-text
 
            :matching-error
            :rule-matching-error

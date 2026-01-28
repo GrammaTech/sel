@@ -3096,6 +3096,14 @@ will prevent unnecessary copying."
                 :before-asts final-before-asts
                 :before-text final-before-text)))))
 
+(defun copy-without-surrounding-text (ast)
+  "Copy AST without its before- and after- text and ASTs."
+  (copy ast
+        :after-asts nil
+        :after-text nil
+        :before-asts nil
+        :before-text nil))
+
 (defmethod with :around ((ast structured-text) (value1 structured-text)
                          &optional value2)
   (if  (typep value2 'structured-text)
