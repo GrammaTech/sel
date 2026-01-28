@@ -1190,6 +1190,9 @@ the `genome' of the software object."
 
 (defmethod parse-asts :around ((sw parseable) &optional text)
   (declare (ignorable text))
+  (when *load-pathname*
+    (warn "Do not call ~s at load time"
+          'parse-asts))
   ;; TODO: remove this if it is not needed as it appears to
   ;;       have been used as a work-around for a clang issue.
   (handler-bind
