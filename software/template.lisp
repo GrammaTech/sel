@@ -366,6 +366,8 @@ Note that multiple instances of the same variable unify:
       t))
     => NIL
 "
+  (when *load-pathname*
+    (warn "Do not execute templates at load time"))
   (nest
    ;; Build tables between names, placeholders, and subtrees.
    (mvlet* ((template names placeholders subtrees
