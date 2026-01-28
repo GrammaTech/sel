@@ -1160,7 +1160,7 @@ the standard path and add it to PROJECT."))
 
 ;;; Program Headers
 
-(defun ensure-header-in-project-ast (project path software)
+(defun ensure-software-in-project-ast (project path software)
   "Ensure SOFTWARE is present in PROJECT's AST at PATH."
   (labels ((force-parse-genome (software)
              "If SOFTWARE isn't parsed yet, parse it. This can happen when a
@@ -1171,6 +1171,7 @@ the standard path and add it to PROJECT."))
                    (with-thread-name (:name (fmt "Parsing ~a" path))
                      (genome (ensure-genome software)))))))
            (insert-software-into-project (project path software)
+             (force-parse-genome software)
              (synchronized (project)
                (unless (lookup (genome project) path)
                  (debug:note :trace "~%Inserting ~a into tree~%"
@@ -1181,22 +1182,23 @@ the standard path and add it to PROJECT."))
                          (evolve-files project)
                          (evolve-files temp-project))))
                project))
-           (insert-program-header (project path software)
+           (already-present? (genome)
+             (and (typep genome 'ast)
+                  (reachable? genome :from project)))
+           (ensure-software-in-project-ast (project path software)
              (with-slots (genome) software
-               (unless (and (typep genome 'ast)
-                            (reachable? genome :from project))
+               (unless (already-present? genome)
                  (restart-case
-                     (progn
-                       (force-parse-genome software)
-                       (insert-software-into-project
-                        project path software))
+                     (insert-software-into-project project path software)
                    (continue ()
                      :report (lambda (s) (format s "Skip inserting ~a" path))
                      (withf (project-parse-failures project) path)))))))
     (etypecase software
       (c/cpp-system-header project)
       (c/cpp-unknown-header project)
-      (c/cpp (insert-program-header project path software)))))
+      (c/cpp
+       (prog1 (ensure-software-in-project-ast project path software)
+         (assert (equal (ast-path project (genome software)) path)))))))
 
 (defun include-path-string (project file path-ast base)
   (let* ((project-dir (project-dir project))
@@ -1484,7 +1486,7 @@ paths."
                           (c/cpp-system-header)))
          include)
         ((cons path software)
-         (ensure-header-in-project-ast project path software)
+         (ensure-software-in-project-ast project path software)
          (debug:note :trace "Found include ~a for ~a"
                      software include-ast)
          software)))))
