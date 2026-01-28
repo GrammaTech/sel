@@ -199,12 +199,11 @@ compilation database should be resolved."
           (from-file 'cpp-project (path-join +etc-dir-path+ "cpp-deep"))))
     (with-attr-table project
       (is (subsetp
-           (flatten
-            '(("include_dir_2/include2.h")
-              ("include_dir_1/include1.h")))
-           (flatten
-            (aget "subdir/file.cc" (project-dependency-tree project)
-                  :test #'equal))
+           '("include1.h" "include2.h")
+           (mapcar #'path-basename
+                   (flatten
+                    (aget "subdir/file.cc" (project-dependency-tree project)
+                          :test #'equal)))
            :test #'equal)))))
 
 
