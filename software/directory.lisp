@@ -708,6 +708,7 @@ instances."
      (enough-namestring path (project-dir project))
      software))
   (:method ((project directory-project) (path string) (software software))
+    (assert (relative-pathname-p path))
     (labels ((force-parse-genome (software)
                "If SOFTWARE isn't parsed yet, parse it. This can happen when a
               file is only lazy-loaded."
