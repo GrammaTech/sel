@@ -28,6 +28,11 @@
 (in-package :software-evolution-library/components/file)
 
 
+
+(defgeneric original-path (file)
+  (:documentation "Return the original path of FILE.")
+  (:method ((file pathname)) file))
+
 (defclass file ()
   ((original-path
     :initarg :original-path
