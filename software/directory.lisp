@@ -703,7 +703,10 @@ instances."
   (:documentation
    "If SOFTWARE's genome is not present in PROJECT's AST, insert it at PATH.")
   (:method (project (path pathname) software)
-    (ensure-software-in-project-ast project (namestring path) software))
+    (ensure-software-in-project-ast
+     project
+     (enough-namestring path (project-dir project))
+     software))
   (:method ((project directory-project) (path string) (software software))
     (labels ((force-parse-genome (software)
                "If SOFTWARE isn't parsed yet, parse it. This can happen when a
