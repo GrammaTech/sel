@@ -1160,45 +1160,13 @@ the standard path and add it to PROJECT."))
 
 ;;; Program Headers
 
-(defun ensure-software-in-project-ast (project path software)
-  "Ensure SOFTWARE is present in PROJECT's AST at PATH."
-  (labels ((force-parse-genome (software)
-             "If SOFTWARE isn't parsed yet, parse it. This can happen when a
-              file is only lazy-loaded."
-             (with-slots (genome) software
-               (synchronized (software)
-                 (unless (typep genome 'ast)
-                   (with-thread-name (:name (fmt "Parsing ~a" path))
-                     (genome (ensure-genome software)))))))
-           (insert-software-into-project (project path software)
-             (force-parse-genome software)
-             (synchronized (project)
-               (unless (lookup (genome project) path)
-                 (debug:note :trace "~%Inserting ~a into tree~%"
-                             path)
-                 (let ((temp-project (with project path software)))
-                   (setf (genome project)
-                         (genome temp-project)
-                         (evolve-files project)
-                         (evolve-files temp-project))))
-               project))
-           (already-present? (genome)
-             (and (typep genome 'ast)
-                  (reachable? genome :from project)))
-           (ensure-software-in-project-ast (project path software)
-             (with-slots (genome) software
-               (unless (already-present? genome)
-                 (restart-case
-                     (insert-software-into-project project path software)
-                   (continue ()
-                     :report (lambda (s) (format s "Skip inserting ~a" path))
-                     (withf (project-parse-failures project) path)))))))
-    (etypecase software
-      (c/cpp-system-header project)
-      (c/cpp-unknown-header project)
-      (c/cpp
-       (prog1 (ensure-software-in-project-ast project path software)
-         (assert (equal (ast-path project (genome software)) path)))))))
+(defmethod ensure-software-in-project-ast :around
+    (project path (software c/cpp-system-header))
+  project)
+
+(defmethod ensure-software-in-project-ast :around
+    (project path (software c/cpp-unknown-header))
+  project)
 
 (defun include-path-string (project file path-ast base)
   (let* ((project-dir (project-dir project))

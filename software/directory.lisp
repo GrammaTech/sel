@@ -31,6 +31,7 @@
     :directory-ast
     :directory-project
     :enclosing-file-pathname
+    :ensure-software-in-project-ast
     :entries
     :evolve-files
     :evolve-files-ref
@@ -697,6 +698,45 @@ instances."
         :contents
         (mapcar (op (patch-whitespace _ :prettify prettify))
                 (contents ast))))
+
+(defgeneric ensure-software-in-project-ast (project path software)
+  (:documentation
+   "If SOFTWARE's genome is not present in PROJECT's AST, insert it at PATH.")
+  (:method (project (path pathname) software)
+    (ensure-software-in-project-ast project (namestring path) software))
+  (:method ((project directory-project) (path string) (software software))
+    (labels ((force-parse-genome (software)
+               "If SOFTWARE isn't parsed yet, parse it. This can happen when a
+              file is only lazy-loaded."
+               (with-slots (genome) software
+                 (synchronized (software)
+                   (unless (typep genome 'ast)
+                     (with-thread-name (:name (fmt "Parsing ~a" path))
+                       (genome (ensure-genome software)))))))
+             (insert-software-into-project (project path software)
+               (force-parse-genome software)
+               (synchronized (project)
+                 (unless (lookup (genome project) path)
+                   (debug:note :trace "~%Inserting ~a into tree~%"
+                               path)
+                   (let ((temp-project (with project path software)))
+                     (setf (genome project)
+                           (genome temp-project)
+                           (evolve-files project)
+                           (evolve-files temp-project))))
+                 project))
+             (already-present? (genome)
+               (and (typep genome 'ast)
+                    (attrs:reachable? genome :from project)))
+             (ensure-software-in-project-ast (project path software)
+               (with-slots (genome) software
+                 (unless (already-present? genome)
+                   (restart-case
+                       (insert-software-into-project project path software)
+                     (continue ()
+                       :report (lambda (s) (format s "Skip inserting ~a" path))
+                       (withf (project-parse-failures project) path)))))))
+      (ensure-software-in-project-ast project path software))))
 
 
 ;;; Attrs
