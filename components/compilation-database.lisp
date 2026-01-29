@@ -315,8 +315,6 @@ command object."
      :directory (required-argument :directory)
      :file (required-argument :file))))
 
-(define-default-copy command-object ())
-
 (defmethod print-object ((self command-object) stream)
   (print-unreadable-object (self stream :type t)
     (format stream (command-file self))))
@@ -387,13 +385,29 @@ command object."
         (extract-isysroot (flags self))))
 
 (defmethod initialize-instance :after ((self command-object) &key command arguments)
-  "Require that at least one of COMMAND or ARGUMENTS is provided."
+  ;; Unbind slots for lazy computation.
   (slot-makunbound self 'compiler)
   (slot-makunbound self 'flags)
+  ;; Require that at least one of COMMAND or ARGUMENTS is provided.
   (unless (or command arguments)
     (error "Either ~s or ~s is required for a command object."
            :arguments
            :command)))
+
+(defmethod copy :around ((co command-object)
+                         &rest kwargs
+                         &key (directory nil directory-supplied-p)
+                           (file nil file-supplied-p))
+  "Invalidate derived slots when copying command objects."
+  (declare (ignore directory file))
+  (if (or directory-supplied-p file-supplied-p)
+      (multiple-value-call #'make 'command-object
+        (values-list kwargs)
+        :directory (command-directory co)
+        :file (command-file co)
+        :arguments (command-arguments co)
+        :command (command-string co))
+      (call-next-method)))
 
 (defgeneric parse-compilation-database (source &key path)
   (:documentation "Parse SOURCE into a compilation database.

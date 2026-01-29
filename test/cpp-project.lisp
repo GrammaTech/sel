@@ -193,18 +193,22 @@ files are present in the compilation database."
                      :test #'equal)))))
 
 (deftest test-relative-include-paths ()
-  "Relative include paths relative to the directory key of the
-compilation database should be resolved."
-  (let ((project
-          (from-file 'cpp-project (path-join +etc-dir-path+ "cpp-deep"))))
-    (with-attr-table project
-      (is (subsetp
-           '("include1.h" "include2.h")
-           (mapcar #'path-basename
-                   (flatten
-                    (aget "subdir/file.cc" (project-dependency-tree project)
-                          :test #'equal)))
-           :test #'equal)))))
+  "Include paths relative to the directory key of the
+compilation database should be correctly resolved when the project is
+relocated."
+  (let ((real-project
+          (from-file 'cpp-project
+                     (path-join +etc-dir-path+ "cpp-deep"))))
+    (with-temporary-directory (:pathname d)
+      (to-file real-project d)
+      (let ((project (from-file 'cpp-project d)))
+        (with-attr-table project
+          (is (subsetp
+               '("include_dir_1/include1.h" "include_dir_2/include2.h")
+               (flatten
+                (aget "subdir/file.cc" (project-dependency-tree project)
+                      :test #'equal))
+               :test #'equal)))))))
 
 
 ;;; Module resolution tests
