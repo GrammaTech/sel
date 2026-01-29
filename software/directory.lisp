@@ -188,7 +188,9 @@
   (:method (dir (path pathname))
     (get-path dir (pathname-to-list path)))
   (:method (dir (path string))
-    (get-path dir (pathname path))))
+    (if (search "/" path)
+        (get-path dir (pathname path))
+        (get-path dir (list path)))))
 
 (defgeneric filepath-to-treepath (directory filepath)
   (:documentation "Ensure that PATH exists under DIRECTORY.")
