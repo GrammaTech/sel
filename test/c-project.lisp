@@ -366,7 +366,7 @@ files are present in the compilation database."
               (finishes
                 (project-stdinc-dirs
                  (make 'c-project
-                       :compiler compiler)))))
+                       :compiler (namestring compiler))))))
         (is dirs)
         (is (subsetp (aget 'c c/cpp-project::*stdinc-dirs*)
                      dirs
