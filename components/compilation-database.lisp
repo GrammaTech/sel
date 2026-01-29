@@ -587,8 +587,9 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
                       (canonical-pathname
                        (merge-pathnames-as-directory
                         (ensure-directory-pathname base-dir)
-                        (make-pathname :directory
-                                       (list :relative f))))))))
+                        (if (find #\/ f)
+                            (ensure-directory-pathname f)
+                            (make-pathname :directory (list :relative f)))))))))
            (normalize-dir (f sysroot)
              (let ((dir (normalize-dir-1 f sysroot)))
                (and dir
