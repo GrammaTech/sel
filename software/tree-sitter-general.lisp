@@ -3064,6 +3064,35 @@ STYLE."))
   (and (sequencep x)
        (emptyp x)))
 
+(defun steal-before-text (dest source)
+  "Return copies of DEST and SOURCE where SOURCE's
+before-text and before-asts have been transferred to DEST."
+  (values
+   (copy dest
+         :before-asts (before-asts source)
+         :before-text (before-text source))
+   (copy source
+         :before-asts nil
+         :before-text "")))
+
+(defun steal-after-text (dest source)
+  "Return copies of DEST and SOURCE where SOURCE's
+after-text and after-asts have been transferred to DEST."
+  (values
+   (copy dest
+         :after-asts (after-asts source)
+         :after-text (after-text source))
+   (copy source
+         :after-asts nil
+         :after-text "")))
+
+(defun steal-surrounding-text (dest source)
+  "Return copies of DEST and SOURCE where SOURCE's
+surrounding text and ASTs have been transferred to DEST."
+  (values
+   (copy-without-surrounding-text dest)
+   (copy-with-surrounding-text dest source)))
+
 (defun copy-with-surrounding-text (copy-node reference-node &key override)
   "Copy COPY-NODE with the surrounding text and comments
 of REFERENCE-NODE.

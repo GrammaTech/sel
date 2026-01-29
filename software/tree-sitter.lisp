@@ -433,6 +433,9 @@
            :parse-tree
            :copy-with-surrounding-text
            :copy-without-surrounding-text
+           :steal-before-text
+           :steal-after-text
+           :steal-surrounding-text
 
            :matching-error
            :rule-matching-error
