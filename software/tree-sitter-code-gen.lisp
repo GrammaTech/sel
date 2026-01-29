@@ -3308,6 +3308,8 @@ stored on the AST or external rules.")
 
   ;; TODO: let over a basic string for empty strings?
   (defclass structured-text ()
+    ;; NB before-text and after-text cannot be declared as strings as
+    ;; they may contain conflict ASTs.
     ((before-text
       :accessor before-text
       :initarg :before-text
@@ -3351,11 +3353,27 @@ stored as a list of interleaved text. This should ideally only be used for leaf
 of an AST."))
     (:documentation "Mix-in for structured text ASTs."))
 
-  (defmethod initialize-instance :after ((self structured-text) &key before-text after-text)
-    (unless (after-text self)
-      (setf (after-text self) ""))
-    (unless (before-text self)
-      (setf (before-text self) "")))
+  (defmethod initialize-instance :after ((self structured-text)
+                                         &key (before-text nil before-text-supplied-p)
+                                           (after-text nil after-text-supplied-p))
+    (when (and before-text-supplied-p (null before-text))
+      (setf (before-text self) ""))
+    (when (and after-text-supplied-p (null after-text))
+        (setf (after-text self) "")))
+
+  (defmethod copy :around ((self structured-text)
+                           &rest kwargs
+                           &key (before-text nil before-text-supplied-p)
+                             (after-text nil after-text-supplied-p))
+    (multiple-value-call #'call-next-method
+      self
+      (if (and before-text-supplied-p (null before-text))
+          (values :before-text "")
+          (values))
+      (if (and after-text-supplied-p (null after-text))
+          (values :after-text "")
+          (values))
+      (values-list kwargs)))
 
   (defclass tree-sitter-ast (indentation
                              structured-text
@@ -3363,27 +3381,27 @@ of an AST."))
     ()
     (:documentation "AST for input from tree-sitter."))
 
- (defmethod initialize-instance :after ((self tree-sitter-ast) &key)
-   "Ensure we also canonize when creating ASTs from scratch."
-   (when-let (text (text self))
-     (setf (text self)
-           (canon-string text))))
+  (defmethod initialize-instance :after ((self tree-sitter-ast) &key)
+    "Ensure we also canonize when creating ASTs from scratch."
+    (when-let (text (text self))
+      (setf (text self)
+            (canon-string text))))
 
   (defclass computed-text ()
     ()
     (:documentation "A mixin for computed text ASTs."))
 
- (defmethod source-text :around ((ast computed-text) &key stream (trim nil trim-supplied?))
-   "Avoid needless copying when calling `source-text' on a `computed-text' ast."
-   (declare (ignore trim))
-   (or (and
-        ;; Not invoked recursively.
-        (no stream)
-        ;; Not computing indentation.
-        (not trim-supplied?)
-        ;; Has text.
-        (text ast))
-       (call-next-method)))
+  (defmethod source-text :around ((ast computed-text) &key stream (trim nil trim-supplied?))
+    "Avoid needless copying when calling `source-text' on a `computed-text' ast."
+    (declare (ignore trim))
+    (or (and
+         ;; Not invoked recursively.
+         (no stream)
+         ;; Not computing indentation.
+         (not trim-supplied?)
+         ;; Has text.
+         (text ast))
+        (call-next-method)))
 
   (defclass text-fragment (tree-sitter-ast)
     ((text
@@ -3475,21 +3493,21 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
 
- (defclass expression-statement-ast (statement-ast) ()
+  (defclass expression-statement-ast (statement-ast) ()
     (:documentation "Mix-in for AST classes that are expression statements."))
 
- (defclass expression-ast (ast) ()
+  (defclass expression-ast (ast) ()
     (:documentation "Mix-in for AST classes that are expressions."))
 
- (defclass parenthesized-expression-ast (expression-ast) ()
+  (defclass parenthesized-expression-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are parenthesized
     expressions."))
 
- (defclass field-ast (expression-ast) ()
-   (:documentation "Mix-in for AST classes that are field
+  (defclass field-ast (expression-ast) ()
+    (:documentation "Mix-in for AST classes that are field
     expressions (not field declarations)."))
 
- (defclass compound-ast (ast) ()
+  (defclass compound-ast (ast) ()
     (:documentation "Mix-in for AST classes that are compounds."))
 
   (defclass conditional-ast (ast) ()
@@ -3498,102 +3516,102 @@ Superclass of every generated LANGUAGE-comment class."))
   (defclass if-ast (control-flow-fork-ast conditional-ast) ()
     (:documentation "Mix-in for AST classes that are ifs."))
 
- (defclass if-expression-ast (if-ast expression-ast) ()
-   (:documentation "Mix-in for conditional expressions."))
+  (defclass if-expression-ast (if-ast expression-ast) ()
+    (:documentation "Mix-in for conditional expressions."))
 
- (defclass if-statement-ast (if-ast statement-ast) ()
-   (:documentation "Mix-in for if statements."))
+  (defclass if-statement-ast (if-ast statement-ast) ()
+    (:documentation "Mix-in for if statements."))
 
- (defclass loop-ast (control-flow-ast) ()
-   (:documentation "Mix-in for AST classes that are loops."))
+  (defclass loop-ast (control-flow-ast) ()
+    (:documentation "Mix-in for AST classes that are loops."))
 
- (defclass loop-expression-ast (loop-ast expression-ast) ()
-   (:documentation "Mix-in for AST classes that are loops."))
+  (defclass loop-expression-ast (loop-ast expression-ast) ()
+    (:documentation "Mix-in for AST classes that are loops."))
 
- (defclass loop-statement-ast (loop-ast statement-ast) ()
-   (:documentation "Mix-in for AST classes that are loops."))
+  (defclass loop-statement-ast (loop-ast statement-ast) ()
+    (:documentation "Mix-in for AST classes that are loops."))
 
- (defclass jump-ast (ast) ()
-   (:documentation "Mixin for ASTs that are implicit gotos."))
+  (defclass jump-ast (ast) ()
+    (:documentation "Mixin for ASTs that are implicit gotos."))
 
- (defclass continue-ast (jump-ast) ()
-   (:documentation "Mix-in for an AST that skips an iteration of a loop."))
+  (defclass continue-ast (jump-ast) ()
+    (:documentation "Mix-in for an AST that skips an iteration of a loop."))
 
- (defclass continue-expression-ast (continue-ast expression-ast) ()
-   (:documentation "Mix-in for an expression that skips an iteration of a loop."))
+  (defclass continue-expression-ast (continue-ast expression-ast) ()
+    (:documentation "Mix-in for an expression that skips an iteration of a loop."))
 
- (defclass continue-statement-ast (continue-ast statement-ast) ()
-   (:documentation "Mix-in for a statement that skips an iteration of a loop."))
+  (defclass continue-statement-ast (continue-ast statement-ast) ()
+    (:documentation "Mix-in for a statement that skips an iteration of a loop."))
 
- (defclass continuable-ast (control-flow-ast) ()
-   (:documentation "A control flow AST that supports continue."))
+  (defclass continuable-ast (control-flow-ast) ()
+    (:documentation "A control flow AST that supports continue."))
 
- (defclass break-ast (jump-ast) ()
-   (:documentation "Mix-in for an AST that breaks (exits) a loop."))
+  (defclass break-ast (jump-ast) ()
+    (:documentation "Mix-in for an AST that breaks (exits) a loop."))
 
- (defclass break-expression-ast (break-ast expression-ast) ()
-   (:documentation "Mix-in for an AST that breaks (exits) a loop."))
+  (defclass break-expression-ast (break-ast expression-ast) ()
+    (:documentation "Mix-in for an AST that breaks (exits) a loop."))
 
- (defclass break-statement-ast (break-ast statement-ast) ()
-   (:documentation "Mix-in for an AST that breaks (exits) a loop."))
+  (defclass break-statement-ast (break-ast statement-ast) ()
+    (:documentation "Mix-in for an AST that breaks (exits) a loop."))
 
- (defclass throw-ast (ast) ()
-   (:documentation "Mix-in for an AST that throws an error."))
+  (defclass throw-ast (ast) ()
+    (:documentation "Mix-in for an AST that throws an error."))
 
- (defclass throw-statement-ast (throw-ast statement-ast) ()
-   (:documentation "Mix-in for a statement that throws an error."))
+  (defclass throw-statement-ast (throw-ast statement-ast) ()
+    (:documentation "Mix-in for a statement that throws an error."))
 
- (defclass breakable-ast (control-flow-ast) ()
-   (:documentation "A control flow AST that supports break."))
+  (defclass breakable-ast (control-flow-ast) ()
+    (:documentation "A control flow AST that supports break."))
 
- (defclass returnable-ast (control-flow-ast) ()
-   (:documentation "An AST that supports return."))
+  (defclass returnable-ast (control-flow-ast) ()
+    (:documentation "An AST that supports return."))
 
- (defclass while-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
-   (:documentation "Mix-in for AST classes that are whiles.
+  (defclass while-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
+    (:documentation "Mix-in for AST classes that are whiles.
 A while statement is expected to support continue and break."))
 
- (defclass while-expression-ast (while-ast loop-expression-ast) ()
-   (:documentation "Mix-in for while expressions."))
+  (defclass while-expression-ast (while-ast loop-expression-ast) ()
+    (:documentation "Mix-in for while expressions."))
 
- (defclass while-statement-ast (while-ast loop-statement-ast) ()
-   (:documentation "Mix-in for while statements."))
+  (defclass while-statement-ast (while-ast loop-statement-ast) ()
+    (:documentation "Mix-in for while statements."))
 
- (defclass do-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
-   (:documentation "Mix-in for AST classes that are do-while loops.
+  (defclass do-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
+    (:documentation "Mix-in for AST classes that are do-while loops.
 A do-while statement is expected to support continue and break."))
 
- (defclass do-statement-ast (do-ast loop-statement-ast) ()
-   (:documentation "Mix-in for do-while statements."))
+  (defclass do-statement-ast (do-ast loop-statement-ast) ()
+    (:documentation "Mix-in for do-while statements."))
 
- (defclass for-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
-   (:documentation "Mix-in for AST classes that are for loops.
+  (defclass for-ast (loop-ast continuable-ast breakable-ast conditional-ast) ()
+    (:documentation "Mix-in for AST classes that are for loops.
 A for while is expected to support continue and break."))
 
- (defclass for-expression-ast (for-ast loop-expression-ast) ()
-   (:documentation "Mix-in for for expressions."))
+  (defclass for-expression-ast (for-ast loop-expression-ast) ()
+    (:documentation "Mix-in for for expressions."))
 
- (defclass for-statement-ast (for-ast loop-statement-ast) ()
-   (:documentation "Mix-in for for statements."))
+  (defclass for-statement-ast (for-ast loop-statement-ast) ()
+    (:documentation "Mix-in for for statements."))
 
- (defclass switch-ast (control-flow-fork-ast breakable-ast) ()
-   (:documentation "Mix-in for switches."))
+  (defclass switch-ast (control-flow-fork-ast breakable-ast) ()
+    (:documentation "Mix-in for switches."))
 
- (defclass switch-expression-ast (switch-ast expression-ast) ()
-   (:documentation "Mix-in for switch expression."))
+  (defclass switch-expression-ast (switch-ast expression-ast) ()
+    (:documentation "Mix-in for switch expression."))
 
- (defclass switch-statement-ast (switch-ast statement-ast) ()
-   (:documentation "Mix-in for switch statements."))
+  (defclass switch-statement-ast (switch-ast statement-ast) ()
+    (:documentation "Mix-in for switch statements."))
 
- (defclass declaration-ast (ast) ()
-   (:documentation "Mixin for AST classes that declare/define something."))
+  (defclass declaration-ast (ast) ()
+    (:documentation "Mixin for AST classes that declare/define something."))
 
- (defclass degenerate-declaration-ast (ast) ()
-   (:documentation "Mixin for AST classes that are subclasses of
+  (defclass degenerate-declaration-ast (ast) ()
+    (:documentation "Mixin for AST classes that are subclasses of
    declaration ASTs, but don't actually declare/define anything."))
 
- (defclass definition-ast (declaration-ast) ()
-   (:documentation "AST for something that associates a name with a
+  (defclass definition-ast (declaration-ast) ()
+    (:documentation "AST for something that associates a name with a
 
 thing. The name string is obtained by by DEFINITION-NAME, and the AST by
 DEFINITION-NAME-AST.
@@ -3601,23 +3619,23 @@ DEFINITION-NAME-AST.
 Note this is distinct from `declaration-ast' in that a declaration
 need not associate a name with anything."))
 
- (defclass type-declaration-ast (declaration-ast) ()
-   (:documentation "Mix-in for AST classes that are type declarations."))
+  (defclass type-declaration-ast (declaration-ast) ()
+    (:documentation "Mix-in for AST classes that are type declarations."))
 
   (defclass type-alias-ast (type-declaration-ast) ()
-   (:documentation "Mix-in for AST classes that are type alias declarations."))
+    (:documentation "Mix-in for AST classes that are type alias declarations."))
 
- (defclass macro-declaration-ast (declaration-ast) ()
-   (:documentation "Mix-in for AST classes that are macro declarations."))
+  (defclass macro-declaration-ast (declaration-ast) ()
+    (:documentation "Mix-in for AST classes that are macro declarations."))
 
- (defclass namespace-declaration-ast (declaration-ast) ()
-   (:documentation "Mix-in for AST classes that are namespace declarations."))
+  (defclass namespace-declaration-ast (declaration-ast) ()
+    (:documentation "Mix-in for AST classes that are namespace declarations."))
 
- (defclass class-ast (type-declaration-ast) ()
-   (:documentation "Mix-in for AST classes that are class declarations."))
+  (defclass class-ast (type-declaration-ast) ()
+    (:documentation "Mix-in for AST classes that are class declarations."))
 
- (defclass c/cpp-classoid-specifier (class-ast) ()
-   (:documentation "Common superclass for all three ways of defining
+  (defclass c/cpp-classoid-specifier (class-ast) ()
+    (:documentation "Common superclass for all three ways of defining
     a class in C++ -- class, struct, and union -- and their C
     equivalents (when they exist)."))
 
@@ -3627,8 +3645,8 @@ need not associate a name with anything."))
 
 Superclass of every generated LANGUAGE-error class."))
 
- (defclass function-ast (ast) ()
-   (:documentation "Mix-in for AST classes that are functions.
+  (defclass function-ast (ast) ()
+    (:documentation "Mix-in for AST classes that are functions.
 
 An AST that declares a function should be a
 `function-declaration-ast'; an anonymous function AST should be a
@@ -3636,49 +3654,49 @@ An AST that declares a function should be a
 things like JavaScript function expressions (which have names but are
 not declarations)."))
 
- ;; NB While function-declaration-ast and lambda-ast are disjoint
- ;; subtypes of function-ast they are not exhaustive.
+  ;; NB While function-declaration-ast and lambda-ast are disjoint
+  ;; subtypes of function-ast they are not exhaustive.
 
- (defclass function-declaration-ast (function-ast declaration-ast) ()
-   (:documentation "Mix-in for AST classes that are function declarations."))
+  (defclass function-declaration-ast (function-ast declaration-ast) ()
+    (:documentation "Mix-in for AST classes that are function declarations."))
 
- (defclass lambda-ast (function-ast) ()
-   (:documentation "Mix-in for AST classes that are lambdas."))
+  (defclass lambda-ast (function-ast) ()
+    (:documentation "Mix-in for AST classes that are lambdas."))
 
   (defclass parameters-ast (ast) ()
     (:documentation "Mix-in for AST classes that are parameter lists."))
 
- (defclass parameter-ast (variable-declaration-ast) ()
-   (:documentation "Mix-in for AST classes that are individual parameters."))
+  (defclass parameter-ast (variable-declaration-ast) ()
+    (:documentation "Mix-in for AST classes that are individual parameters."))
 
- (defclass variable-declaration-ast (declaration-ast) ()
+  (defclass variable-declaration-ast (declaration-ast) ()
     (:documentation "Mix-in for AST classes that are variable declarations."))
 
- (defclass variable-initialization-ast (variable-declaration-ast) ()
-   (:documentation "Mix-in for AST classes that are variable initializers."))
+  (defclass variable-initialization-ast (variable-declaration-ast) ()
+    (:documentation "Mix-in for AST classes that are variable initializers."))
 
- (defclass assignment-ast (expression-ast) ()
-   (:documentation "Mix-in for AST classes that are assignment expressions."))
+  (defclass assignment-ast (expression-ast) ()
+    (:documentation "Mix-in for AST classes that are assignment expressions."))
 
- (defclass identifier-ast (ast) ()
+  (defclass identifier-ast (ast) ()
     (:documentation "Mix-in for AST classes that are identifiers."))
 
- (defclass identifier-expression-ast (identifier-ast expression-ast) ()
-   (:documentation "Mix-in for AST classes that are identifiers."))
+  (defclass identifier-expression-ast (identifier-ast expression-ast) ()
+    (:documentation "Mix-in for AST classes that are identifiers."))
 
- (defclass type-ast (ast) ()
-   (:documentation "Mixin for AST classes that designate types."))
+  (defclass type-ast (ast) ()
+    (:documentation "Mixin for AST classes that designate types."))
 
- (defclass type-identifier-ast (identifier-ast type-ast) ()
-   (:documentation "Mix-in for AST classes that are type identifiers \(when they are distinct)."))
+  (defclass type-identifier-ast (identifier-ast type-ast) ()
+    (:documentation "Mix-in for AST classes that are type identifiers \(when they are distinct)."))
 
   (defclass primitive-type-ast (type-ast) ()
-   (:documentation "Mix-in for AST classes that are primitive (built-in) types."))
+    (:documentation "Mix-in for AST classes that are primitive (built-in) types."))
 
- (defclass subscript-ast (expression-ast) ()
+  (defclass subscript-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are subscripts."))
 
- (defclass literal-ast (expression-ast) ()
+  (defclass literal-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are literals."))
 
   (defclass boolean-ast (literal-ast) ()
@@ -3708,7 +3726,7 @@ not declarations)."))
   (defclass call-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are calls."))
 
- (defclass arguments-ast () ()
+  (defclass arguments-ast () ()
     (:documentation "Mix-in for AST classes that are lists of arguments."))
 
   (defclass unary-ast (expression-ast) ()
@@ -3717,32 +3735,32 @@ not declarations)."))
   (defclass binary-ast (expression-ast) ()
     (:documentation "Mix-in for AST classes that are binary expressions."))
 
- (defclass return-ast (jump-ast) ()
-   (:documentation "Mix-in for AST classes that are returns."))
+  (defclass return-ast (jump-ast) ()
+    (:documentation "Mix-in for AST classes that are returns."))
 
- (defclass return-expression-ast (return-ast expression-ast) ()
-   (:documentation "Mix-in for AST classes that are return statements."))
-
- (defclass return-statement-ast (return-ast statement-ast) ()
+  (defclass return-expression-ast (return-ast expression-ast) ()
     (:documentation "Mix-in for AST classes that are return statements."))
 
- (defclass goto-statement-ast (jump-ast statement-ast) ()
-   (:documentation "Mix-in for AST classes that are explicit goto statements."))
+  (defclass return-statement-ast (return-ast statement-ast) ()
+    (:documentation "Mix-in for AST classes that are return statements."))
 
- (defclass catch-ast (ast) ()
+  (defclass goto-statement-ast (jump-ast statement-ast) ()
+    (:documentation "Mix-in for AST classes that are explicit goto statements."))
+
+  (defclass catch-ast (ast) ()
     (:documentation "Mix-in for AST classes that are error catch clauses."))
 
- (defclass operator-ast (ast) ()
-   (:documentation "Mixin for an operator AST."))
+  (defclass operator-ast (ast) ()
+    (:documentation "Mixin for an operator AST."))
 
- (defclass semicolon-ast (operator-ast) ()
-   (:documentation "Mix-in for a semicolon."))
+  (defclass semicolon-ast (operator-ast) ()
+    (:documentation "Mix-in for a semicolon."))
 
- (defclass increment-operator-ast (operator-ast) ()
-   (:documentation "Mix-in for ++."))
+  (defclass increment-operator-ast (operator-ast) ()
+    (:documentation "Mix-in for ++."))
 
- (defclass decrement-operator-ast (operator-ast) ()
-   (:documentation "Mix-in for --."))
+  (defclass decrement-operator-ast (operator-ast) ()
+    (:documentation "Mix-in for --."))
 
   (defclass terminal-symbol (ast)
     ()
@@ -4045,15 +4063,15 @@ then whole substitutions (from
                        (if-let ((relevant-patches (aget-all rule-type patches)))
                          (collect (cons rule-type
                                         (patch-rule rule relevant-patches))
-                                  into patched)
+                           into patched)
                          (collect (cons rule-type rule) into unchanged))
                        ;; Preserve the property that the changed rules
                        ;; are moved to the front of the list.
                        (finally (return (nconc patched unchanged))))))
              (substitute-rules (rules)
                (let ((substitutions
-                      (aget-all (make-keyword language)
-                                *tree-sitter-json-rule-substitutions*)))
+                       (aget-all (make-keyword language)
+                                 *tree-sitter-json-rule-substitutions*)))
                  (reduce
                   (lambda (rules substitution)
                     (areplace (car substitution) (cdr substitution) rules))
@@ -4063,21 +4081,21 @@ then whole substitutions (from
   (defun substitute-json-node-types (substitutions node-types)
     "Substitute types in NODE-TYPES based on mappings found for LANGUAGE."
     (let* ((node-types
-            ;; NOTE: this will become inefficient with a lot of node
-            ;;       type substitutions.
-            (reduce
-             (lambda (node-types substitution)
-               (cons substitution (remove (cdar substitution) node-types
-                                          :key #'cdar :test #'equal)))
-             substitutions :initial-value (copy-list node-types)))
+             ;; NOTE: this will become inefficient with a lot of node
+             ;;       type substitutions.
+             (reduce
+              (lambda (node-types substitution)
+                (cons substitution (remove (cdar substitution) node-types
+                                           :key #'cdar :test #'equal)))
+              substitutions :initial-value (copy-list node-types)))
            (constraints
-            (iter constraints
-                  (for node-type in node-types)
-                  (for type = (cdar node-type))
-                  (when-let (subtypes (aget :subtypes node-type))
-                    (iter (for subtype in subtypes)
-                          (in constraints
-                              (collect (list type (cdar subtype))))))))
+             (iter constraints
+                   (for node-type in node-types)
+                   (for type = (cdar node-type))
+                   (when-let (subtypes (aget :subtypes node-type))
+                     (iter (for subtype in subtypes)
+                           (in constraints
+                               (collect (list type (cdar subtype))))))))
            (ordering (toposort constraints :test #'equal)))
       (stable-sort node-types ordering :key #'cdar)))
 
@@ -4203,10 +4221,10 @@ up due to aliases."
                     (:MEMBERS
                      ,@(aget :members rule)
                      ,(gethash
-                        (make-keyword
-                         (convert-name language-prefix
-                                       (aget :name aliased-content)))
-                        rule-table))))
+                       (make-keyword
+                        (convert-name language-prefix
+                                      (aget :name aliased-content)))
+                       rule-table))))
                  ("CHOICE"
                   (reduce #'add-aliases (aget :members aliased-content)
                           :initial-value rule))))
@@ -4519,13 +4537,13 @@ recursive calls for this function. Returns a transformed version of RULE."
                (map-json
                 (lambda (subtree &aux (type (aget :type subtree)))
                   (if type
-                    (string-case type
-                      (("STRING" "SYMBOL" "ALIAS" "BLANK")
-                       (throw 'prune `((:TYPE . "FIELD")
-                                       (:NAME . ,field-name)
-                                       (:CONTENT ,@subtree))))
-                      (t subtree))
-                    subtree))
+                      (string-case type
+                        (("STRING" "SYMBOL" "ALIAS" "BLANK")
+                         (throw 'prune `((:TYPE . "FIELD")
+                                         (:NAME . ,field-name)
+                                         (:CONTENT ,@subtree))))
+                        (t subtree))
+                      subtree))
                 (aget :content tree)
                 :traversal :preorder))
              (propagate-field-p (tree)
@@ -4591,7 +4609,7 @@ recursive calls for this function. Returns a transformed version of RULE."
                                  ;; Don't inline supertypes unless they are
                                  ;; explicitly inlined.
                                  (or (not (member name-string
-                                              (aget :supertypes grammar)
+                                                  (aget :supertypes grammar)
                                                   :test #'equal))
                                      inlinep)))
                        alist)
@@ -4793,8 +4811,8 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                 subtree)
                ((find-if
                  (lambda (symbol-substitution
-                          &aux (symbol-name (or (aget :name subtree)
-                                                (aget :value subtree))))
+                     &aux (symbol-name (or (aget :name subtree)
+                                           (aget :value subtree))))
                    (member symbol-name symbol-substitution :test #'equal))
                  symbol-substitutions :key (op (getf _ :symbol-names)))
                 ;; Check if the filter function passes.
@@ -4810,7 +4828,7 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
     (labels ((gather-field-types (content)
                "Return a list of symbols that CONTENT could be for a field."
                ;; TODO: this WHEN check should not be necessary
-               (when (listp content) ; ignore if not a list
+               (when (listp content)    ; ignore if not a list
                  ;; TODO: remove duplicates from the gathered field types.
                  (remove-duplicates
                   (string-case (aget :type content)
@@ -4865,21 +4883,21 @@ CLASS-NAME->PARSE-TREE-TRANSFORMS."
                ;;       the grammar.json files has changed.
                ;; TODO: this WHEN check of the rule should not be necessary
                (when rule
-                   (string-ecase (aget :type rule)
-                     ("ALIAS" (handle-alias rule))
-                     (("BLANK" "IMMEDIATE_TOKEN" "TOKEN"
-                               "PATTERN" "STRING"))
-                     (("CHOICE" "SEQ" "REPEAT" "REPEAT1")
-                      (handle-seq rule))
-                     ("FIELD" (handle-field rule))
-                     ("SLOT" (handle-slot rule))
-                     ("SYMBOL"
-                      ;; NOTE: this assumes that all 'SYMBOL's that are seen
-                      ;;       going into the children slot. Also NOTE that
-                      ;;       the inline rules should be inlined before entering
-                      ;;       this function.
-                      (handle-symbol rule))))))
-      (if transformed-json-rule ; watch for null rule
+                 (string-ecase (aget :type rule)
+                   ("ALIAS" (handle-alias rule))
+                   (("BLANK" "IMMEDIATE_TOKEN" "TOKEN"
+                             "PATTERN" "STRING"))
+                   (("CHOICE" "SEQ" "REPEAT" "REPEAT1")
+                    (handle-seq rule))
+                   ("FIELD" (handle-field rule))
+                   ("SLOT" (handle-slot rule))
+                   ("SYMBOL"
+                    ;; NOTE: this assumes that all 'SYMBOL's that are seen
+                    ;;       going into the children slot. Also NOTE that
+                    ;;       the inline rules should be inlined before entering
+                    ;;       this function.
+                    (handle-symbol rule))))))
+      (if transformed-json-rule         ; watch for null rule
           (handle-rule transformed-json-rule))))
 
   ;; TODO: update doc string
@@ -5037,17 +5055,17 @@ expands :REPEAT1 rules, and collapses contiguous, nested
                       (finally
                        (return (values subtree-repeat-alist)))))
                    (:repeat
-                    (iter
-                      (for subtree in tree)
-                      (for (values subtree-repeat-alist use-after?)
-                           first (values repeat-alist)
-                           then (use-after-repeat-p
-                                 subtree :in-repeat? tree
-                                 :repeat-alist subtree-repeat-alist))
-                      (when use-after?
-                        (leave (values nil use-after?)))
-                      (finally
-                       (return (values subtree-repeat-alist)))))
+                       (iter
+                         (for subtree in tree)
+                         (for (values subtree-repeat-alist use-after?)
+                              first (values repeat-alist)
+                              then (use-after-repeat-p
+                                    subtree :in-repeat? tree
+                                    :repeat-alist subtree-repeat-alist))
+                         (when use-after?
+                           (leave (values nil use-after?)))
+                         (finally
+                          (return (values subtree-repeat-alist)))))
                    (:choice
                     (iter
                       (for subtree in tree)
@@ -5121,18 +5139,18 @@ outside of repeats."
              (replace-at-json-path (json-tree path value)
                (if (endp path) value
                    (let* ((entry
-                           (or (assoc :members json-tree)
-                               (assoc :content json-tree)))
+                            (or (assoc :members json-tree)
+                                (assoc :content json-tree)))
                           (new-cdr
-                           (replace-at (cdr entry)
-                                       (1- (car path))
-                                       (replace-at-json-path
-                                        (nth (1- (car path))
-                                             (cdr entry))
-                                        (cdr path)
-                                        value)))
+                            (replace-at (cdr entry)
+                                        (1- (car path))
+                                        (replace-at-json-path
+                                         (nth (1- (car path))
+                                              (cdr entry))
+                                         (cdr path)
+                                         value)))
                           (new-entry
-                           (reuse-cons (car entry) new-cdr entry)))
+                            (reuse-cons (car entry) new-cdr entry)))
                      (if (eql entry new-entry) json-tree
                          (substitute new-entry entry json-tree :count 1)))))
              (get-leaf-choice (tree &optional (path nil))
@@ -5173,8 +5191,8 @@ outside of repeats."
                 removing the 'same' item from JSON-BRANCHES. The two
                 modified lists are returned as values."
                (let ((removed-duplicates
-                      (filter-map (distinct :key #'car :test #'equal)
-                                  (mapcar #'cons pruned-branches json-branches))))
+                       (filter-map (distinct :key #'car :test #'equal)
+                                   (mapcar #'cons pruned-branches json-branches))))
                  (values
                   (mapcar #'car removed-duplicates)
                   (mapcar #'cdr removed-duplicates))))
@@ -5209,50 +5227,50 @@ outside of repeats."
              (aget (make-keyword language) *tree-sitter-computed-text-asts*))
      (walk-json
       (lambda (subtree)
-        ;(format t "subtree: ~A~%" subtree)
+                                        ;(format t "subtree: ~A~%" subtree)
         ;; TODO: maybe also look at node types to see if it has any children
         ;;       default to computed text node p if it doesn't?
         (when-let (type (and (listp subtree) (aget :type subtree)))
           ;; TODO: this WHEN check shouldn't be necessary as type should always
           ;; be a string if it is found at all.
           (when (stringp type)
-              (string-case type
-                ;; TODO: figure out a way to remove the token rules from this.
-                (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
-                 ;; PATTERN indicates that there
-                 ;; is variable text.
-                 ;; TOKEN and IMMEDIATE_TOKEN don't
-                 ;; necessarily indicate variable text,
-                 ;; but they generally have a CHOICE that
-                 ;; selects from some default values, and
-                 ;; since this isn't stored in a slot, it's
-                 ;; generally a good idea to store it since
-                 ;; things break otherwise. An example of this
-                 ;; can be seen with language-provided types in
-                 ;; C.
-                 (return-from computed-text-ast-p t))
-                ("ALIAS"
-                 (if (and (listp subtree) (aget :named subtree))
-                     ;; A named alias should be treated like a symbol.
-                     (setf children? t)
-                     ;; Aliases can have patterns in them,
-                     ;; but they are recast to something else,
-                     ;; so they do not need to be stored.
-                     (throw 'prune nil)))
-                (("FIELD" "SYMBOL" "SLOT")
-                 ;; The presence of any of these indicate that there are
-                 ;; children.
-                 (setf children? t))))))
+            (string-case type
+              ;; TODO: figure out a way to remove the token rules from this.
+              (("PATTERN" "TOKEN" "IMMEDIATE_TOKEN")
+               ;; PATTERN indicates that there
+               ;; is variable text.
+               ;; TOKEN and IMMEDIATE_TOKEN don't
+               ;; necessarily indicate variable text,
+               ;; but they generally have a CHOICE that
+               ;; selects from some default values, and
+               ;; since this isn't stored in a slot, it's
+               ;; generally a good idea to store it since
+               ;; things break otherwise. An example of this
+               ;; can be seen with language-provided types in
+               ;; C.
+               (return-from computed-text-ast-p t))
+              ("ALIAS"
+               (if (and (listp subtree) (aget :named subtree))
+                   ;; A named alias should be treated like a symbol.
+                   (setf children? t)
+                   ;; Aliases can have patterns in them,
+                   ;; but they are recast to something else,
+                   ;; so they do not need to be stored.
+                   (throw 'prune nil)))
+              (("FIELD" "SYMBOL" "SLOT")
+               ;; The presence of any of these indicate that there are
+               ;; children.
+               (setf children? t))))))
       json-rule)
      (not children?)))
 
-  ;;; TODO: clean up everything that calls this. This no longer generates
-  ;;;       anything but instead adds a superclass to a relevant class
-  ;;;       definition. All of the callsites should be updated to reflect
-  ;;;       this, and it should be renamed.
-  ;;;
-  ;;;       This was created before the class-name->class-definition hash table
-  ;;;       was available.
+;;; TODO: clean up everything that calls this. This no longer generates
+;;;       anything but instead adds a superclass to a relevant class
+;;;       definition. All of the callsites should be updated to reflect
+;;;       this, and it should be renamed.
+;;;
+;;;       This was created before the class-name->class-definition hash table
+;;;       was available.
   (defun generate-computed-text-method
       (transformed-json-rule class-name language class-name->class-definition
        &key skip-checking-json)
@@ -5449,18 +5467,18 @@ any slot usages in JSON-SUBTREE."
                   ;; the full thing.
                   (add-slot-to-class-definition
                    class-name class-name->class-definition
-                   `(text ; computed-text
+                   `(text               ; computed-text
                      :accessor text
                      :initarg :text
                      :allocation :class
                      :initform
                      ',(get-json-subtree-string transformed-json-rule
-                                                 choice-resolver)))
+                                                choice-resolver)))
                   nil)
                  (t `(defmethod output-transformation
-                       ((ast ,class-name) &rest rest &key &aux (parse-stack (parse-order ast)))
-                     (declare (ignorable parse-stack rest))
-                     (flatten ,(generate-body transformed-json-rule pruned-rule)))))))
+                         ((ast ,class-name) &rest rest &key &aux (parse-stack (parse-order ast)))
+                       (declare (ignorable parse-stack rest))
+                       (flatten ,(generate-body transformed-json-rule pruned-rule)))))))
       (generate-method transformed-json-rule pruned-rule)))
 
   (defgeneric convert-to-lisp-type (prefix type-string)
@@ -5587,21 +5605,21 @@ subclass based on the order of the children were read in."
                     ((class (eql ',superclass)) parse-tree
                      &aux (child-types ',child-types))
                   (cond
-                   ,@(mapcar
-                      (lambda (json-rule subclass-pair)
-                        `((match-parsed-children
-                           ,language-prefix
-                           ',json-rule
-                           ',(caddr subclass-pair) child-types parse-tree)
-                          ',(car subclass-pair)))
-                      json-expansions
-                      subclass-pairs)
-                   (t
-                    (error 'parse-tree-matching-error
-                           :superclass ',superclass
-                           :parse-tree parse-tree
-                           :child-types ',child-types
-                           :subclasses ',(mapcar #'car subclass-pairs))))))
+                    ,@(mapcar
+                       (lambda (json-rule subclass-pair)
+                         `((match-parsed-children
+                            ,language-prefix
+                            ',json-rule
+                            ',(caddr subclass-pair) child-types parse-tree)
+                           ',(car subclass-pair)))
+                       json-expansions
+                       subclass-pairs)
+                    (t
+                     (error 'parse-tree-matching-error
+                            :superclass ',superclass
+                            :parse-tree parse-tree
+                            :child-types ',child-types
+                            :subclasses ',(mapcar #'car subclass-pairs))))))
              (generate-computed-text-methods (json-expansions subclass-pairs)
                "Generate the variable text methods for the rules in
                 JSON-EXPANSION."
@@ -5930,7 +5948,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                class->extra-slot-options)
              (initialize-class->extra-slots ()
                (iter (for (class . slots) in ast-extra-slots)
-                 (setf (gethash class class->extra-slots) slots))
+                     (setf (gethash class class->extra-slots) slots))
                ;; Return for easier debugging.
                class->extra-slots)
              (populate-supertypes ()
@@ -6220,7 +6238,7 @@ AST-EXTRA-SLOTS is an alist from classes to extra slots."
                      (#4=,(convert-to-lisp-type
                            name-prefix  "source-text-fragment-tree")
                          :accessor ,(make-accessor-name name-prefix
-                                     'source-text-fragment-tree)
+                                                        'source-text-fragment-tree)
                          :accessor source-text-fragment-tree
                          :initform nil
                          ,@(make-node-initargs name-prefix
@@ -6390,8 +6408,8 @@ Unlike the `children` methods which collects all children of an AST from any slo
 
              (export/tree-sitter
               ',(iter
-                 (for (symbol) in-hashtable symbols-to-export)
-                 (collect symbol))))
+                  (for (symbol) in-hashtable symbols-to-export)
+                  (collect symbol))))
 
            (defmethod convert
                ((to-type (eql ',ast-superclass)) (spec ,ast-superclass)
@@ -6447,11 +6465,11 @@ Unlike the `children` methods which collects all children of an AST from any slo
                :inner-whitespace
                :blot
                ,@(iter
-                  (for extra in (aget :extras grammar))
-                  (when (equal (aget :type extra) "SYMBOL")
-                    (collect
-                        (make-keyword
-                         (convert-name name-prefix (aget :name extra))))))))
+                   (for extra in (aget :extras grammar))
+                   (when (equal (aget :type extra) "SYMBOL")
+                     (collect
+                         (make-keyword
+                          (convert-name name-prefix (aget :name extra))))))))
 
            ,structured-text-code)))))
 

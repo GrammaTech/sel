@@ -254,8 +254,8 @@ fails."
            :children
            (list
             (copy lit
-                  :before-text nil
-                  :after-text nil
+                  :before-text ""
+                  :after-text ""
                   :before-asts nil
                   :after-asts nil))))
     (otherwise (call-next-method))))

@@ -3129,9 +3129,9 @@ will prevent unnecessary copying."
   "Copy AST without its before- and after- text and ASTs."
   (copy ast
         :after-asts nil
-        :after-text nil
+        :after-text ""
         :before-asts nil
-        :before-text nil))
+        :before-text ""))
 
 (defmethod with :around ((ast structured-text) (value1 structured-text)
                          &optional value2)
