@@ -536,13 +536,13 @@ This is the value of `-isysroot', or the value of `--sysroot' if
       ((relative-pathname-p sysroot)
        (error "Relative sysroot: ~a" sysroot)))))
 
-(defun normalize-flags (dir flags
+(defun normalize-flags (base-dir flags
                         &aux (nflags *normalizable-flags*)
                           (nflags-table *normalizable-flags-table*))
   "Normalize the list of compiler FLAGS so all search paths are fully
-expanded relative to DIR.
+expanded relative to BASE-DIR.
 
-* DIR base directory for all relative paths
+* BASE-DIR base directory for all relative paths
 * FLAGS list of compiler flags
 
 This function also expands = and $SYSROOT prefixes when --sysroot or
@@ -582,13 +582,13 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
              (or (maybe-prepend-sysroot sysroot f)
                  (namestring
                   (if (absolute-pathname-p f)
-                      (nest (ensure-directory-pathname)
-                            (canonical-pathname f))
-                      (nest (canonical-pathname)
-                            (merge-pathnames-as-directory
-                             (ensure-directory-pathname dir)
-                             (make-pathname :directory
-                                            (list :relative f))))))))
+                      (ensure-directory-pathname
+                       (canonical-pathname f))
+                      (canonical-pathname
+                       (merge-pathnames-as-directory
+                        (ensure-directory-pathname base-dir)
+                        (make-pathname :directory
+                                       (list :relative f))))))))
            (normalize-dir (f sysroot)
              (let ((dir (normalize-dir-1 f sysroot)))
                (and dir
@@ -599,7 +599,7 @@ This function also expands = and $SYSROOT prefixes when --sysroot or
              (iter (for f in split-flags)
                    (for p previous f)
                    (collecting
-                     (if (and dir (gethash p *path-flags-table*))
+                     (if (and base-dir (gethash p *path-flags-table*))
                          ;; Ensure include/library paths
                          ;; point to the correct location
                          ;; and not a temporary build directory.
