@@ -680,3 +680,70 @@ RIGHT_CURLY")
   (is (not (symbol-table-p (dict))))
   (is (not (symbol-table-p (empty-ch-map))))
   (is (not (symbol-table-p (empty-map)))))
+
+(defun list-surrounding-text (ast)
+  (list (before-text ast)
+        (before-asts ast)
+        (after-text ast)
+        (after-asts ast)))
+
+(defun steal-source ()
+  "Return a node with surrounding text/ASTs worth stealing."
+  (let* ((c (from-string 'c "//Hello
+x(y); //Goodbye"))
+         (stmt (find-if (of-type 'c-expression-statement) c))
+         (stmt (copy stmt :after-text " ")))
+    (is (equal (list-surrounding-text stmt)
+               (list
+                (string #\Newline)
+                (list (find-if (of-type 'comment-ast) c))
+                " "
+                (list (second (collect-if (of-type 'comment-ast) c))))))
+    stmt))
+
+(deftest test-steal-before-text ()
+  "Calling `steal-before-text' should copy all and only the before text."
+  (let ((c (steal-source)))
+    (multiple-value-bind (dest source)
+        (steal-before-text (c* "2+2;") c)
+      (is (equal (list-surrounding-text dest)
+                 (list
+                  (string #\Newline)
+                  (list (find-if (of-type 'comment-ast) c))
+                  ""
+                  nil)))
+      (is (equal (list-surrounding-text source)
+                 (list
+                  ""
+                  nil
+                  " "
+                  (list (second (collect-if (of-type 'comment-ast) c)))))))))
+
+(deftest test-steal-after-text ()
+  "Calling `steal-after-text' should copy all and only the after text."
+  (let ((c (steal-source)))
+    (multiple-value-bind (dest source)
+        (steal-after-text (c* "2+2;") c)
+      (is (equal (list-surrounding-text dest)
+                 (list
+                  ""
+                  nil
+                  " "
+                  (list (second (collect-if (of-type 'comment-ast) c))))))
+      (is (equal (list-surrounding-text source)
+                 (list
+                  (string #\Newline)
+                  (list (find-if (of-type 'comment-ast) c))
+                  ""
+                  nil))))))
+
+(deftest test-steal-surrounding-text ()
+  "Calling `steal-after-text' should copy all the surrounding text and
+ASTs."
+  (let ((c (steal-source)))
+    (multiple-value-bind (dest source)
+        (steal-surrounding-text (c* "2+2;") c)
+      (is (equal (list-surrounding-text dest)
+                 (list-surrounding-text c)))
+      (is (equal (list-surrounding-text source)
+                 (list "" nil "" nil))))))

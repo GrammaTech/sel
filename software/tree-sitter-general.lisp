@@ -3064,6 +3064,10 @@ STYLE."))
   (and (sequencep x)
        (emptyp x)))
 
+(-> (steal-before-text steal-after-text steal-surrounding-text)
+    (structured-text structured-text)
+    (values structured-text structured-text &optional))
+
 (defun steal-before-text (dest source)
   "Return copies of DEST and SOURCE where SOURCE's
 before-text and before-asts have been transferred to DEST."
@@ -3090,8 +3094,8 @@ after-text and after-asts have been transferred to DEST."
   "Return copies of DEST and SOURCE where SOURCE's
 surrounding text and ASTs have been transferred to DEST."
   (values
-   (copy-without-surrounding-text dest)
-   (copy-with-surrounding-text dest source)))
+   (copy-with-surrounding-text dest source)
+   (copy-without-surrounding-text source)))
 
 (defun copy-with-surrounding-text (copy-node reference-node &key override)
   "Copy COPY-NODE with the surrounding text and comments
