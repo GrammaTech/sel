@@ -3356,6 +3356,7 @@ of an AST."))
   (defmethod initialize-instance :after ((self structured-text)
                                          &key (before-text nil before-text-supplied-p)
                                            (after-text nil after-text-supplied-p))
+    "Canonicalize nil before and after text to empty strings."
     (when (and before-text-supplied-p (null before-text))
       (setf (before-text self) ""))
     (when (and after-text-supplied-p (null after-text))
@@ -3365,6 +3366,7 @@ of an AST."))
                            &rest kwargs
                            &key (before-text nil before-text-supplied-p)
                              (after-text nil after-text-supplied-p))
+    "Canonicalize nil before and after text to empty strings."
     (multiple-value-call #'call-next-method
       self
       (if (and before-text-supplied-p (null before-text))
