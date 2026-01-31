@@ -905,6 +905,51 @@ for the language.")
         c-subscript-expression cpp-subscript-expression)
        (:c/cpp-switch-statement c-switch-statement cpp-switch-statement)
        (:c/cpp-system-lib-string c-system-lib-string cpp-system-lib-string)
+       ;; From the grammar, but implementing it at the grammar level
+       ;; breaks precedence.
+       (:c/cpp-top-level-item
+        ;; C
+        c-function-definition
+        c-linkage-specification
+        c-declaration
+        c--statement
+        c-attributed-statement
+        c-type-definition
+        c--empty-declaration
+        c-preproc-if
+        c-preproc-ifdef
+        c-preproc-include
+        c-preproc-def
+        c-preproc-function-def
+        c-preproc-function-call
+        ;; Common
+        cpp-function-definition
+        cpp-linkage-specification
+        cpp-declaration
+        cpp--statement
+        cpp-attributed-statement
+        cpp-type-definition
+        ;; TODO Do we need this?
+        ;; cpp--empty-declaration
+        cpp-preproc-if
+        cpp-preproc-ifdef
+        cpp-preproc-include
+        cpp-preproc-def
+        cpp-preproc-function-def
+        cpp-preproc-function-call
+        ;; CPP-specifier
+        cpp-namespace-definition
+        cpp-concept-definition
+        cpp-namespace-alias-definition
+        cpp-using-declaration
+        cpp-alias-declaration
+        cpp-static-assert-declaration
+        cpp-template-declaration
+        cpp-template-instantiation
+        cpp-module-declaration
+        cpp-module-fragment-declaration
+        cpp-import-declaration
+        cpp-export-block)
        (:c/cpp-translation-unit c-translation-unit cpp-translation-unit)
        (:c/cpp-type-definition c-type-definition cpp-type-definition)
        (:c/cpp-type-descriptor c-type-descriptor cpp-type-descriptor)
