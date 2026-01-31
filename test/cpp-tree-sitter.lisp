@@ -2437,6 +2437,20 @@ int main() {
                           (cpp::absolute-name
                            (infer-type cout))))))))
 
+(deftest test-infer-ostream-type ()
+  "Binary ASTs with an ostream LHS should be inferred as an ostream."
+  (let ((cpp (from-string 'cpp-project "
+#include <iostream>
+int main() {
+  std::cout << \"Hello, world\";
+}")))
+    (with-attr-table cpp
+      (project:project-dependency-tree cpp)
+      (is (source-text= "ostream&"
+                        (canonicalize-structured-text
+                         (infer-type
+                          (find-if (of-type 'binary-ast) cpp))))))))
+
 
 ;;; Parsing tests
 

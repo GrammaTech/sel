@@ -1854,6 +1854,23 @@ then the return type of the call is the return type of the field."
     (otherwise
      (call-next-method))))
 
+(defmethod infer-expression-type ((ast cpp-binary-expression))
+  (string-case (source-text (cpp-operator ast))
+    ;; Infer the type of a write to an ostream as an ostream.
+    ("<<"
+     (or (and-let* ((lhs-type (infer-type (lhs ast)))
+                    ((source-text= "std::ostream" (cpp::absolute-name lhs-type)))
+                    (type
+                     (make 'cpp-type-descriptor
+                           :cpp-declarator
+                           (make 'cpp-abstract-reference-declarator
+                                 :cpp-valueness (make 'cpp-&))
+                           :cpp-type (tree-copy lhs-type))))
+           (setf (attr-proxy type) lhs-type)
+           type)
+         (call-next-method)))
+    (t (call-next-method))))
+
 (defmethod expression-type ((ast cpp-new-expression))
   (cpp-type ast))
 
