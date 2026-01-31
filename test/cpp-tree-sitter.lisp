@@ -2451,6 +2451,24 @@ int main() {
                          (infer-type
                           (find-if (of-type 'binary-ast) cpp))))))))
 
+(deftest test-infer-field-initializer-expression-expected-type ()
+  "The expected type of a field initializer should be inferred based on
+the type of the field it's intializing."
+  (let* ((cpp
+           (from-file 'cpp
+                      (path-join +test-data-dir+ "cpp-fragments/field_initializer_type.cc")))
+         (list (is (find-if (of-type 'cpp-field-initializer-list) cpp))))
+    (with-attr-table cpp
+      ;; TODO Need accessors for the field and arglist.
+      (let ((vars (mapcar #'car
+                          (mapcar #'direct-children
+                                  (mapcar #'second
+                                          (mapcar #'direct-children
+                                                  (direct-children list)))))))
+        (is (every (op (source-text= "float" (canonicalize-structured-text _)))
+                   (mapcar #'infer-expected-type vars)))))))
+
+
 
 ;;; Parsing tests
 

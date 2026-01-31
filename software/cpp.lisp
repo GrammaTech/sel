@@ -1989,12 +1989,22 @@ then the return type of the call is the return type of the field."
               (cpp-initializer-list
                (children (list expr))))
           (cpp-field-initializer
-           :children (list var _))
+           :children (list field _))
           (cpp-field-initializer-list)
           _)
          (unless (eql expr ast)
            (fail))
-         (infer-type var))))))
+         (when-let* ((class
+                      (or (find-if (of-type 'c/cpp-classoid-specifier) parents)
+                          (out-of-class-function-definition-class
+                           (find-if (of-type 'cpp-function-definition) parents))))
+                     (field-table (field-table class))
+                     (field
+                      (car (field-table-lookup
+                            field-table
+                            (source-text field)
+                            :ns :variable))))
+           (infer-type field)))))))
 
 (defun concrete-type-p (type)
   "Is TYPE a concrete type (not from a type parameter)?"
