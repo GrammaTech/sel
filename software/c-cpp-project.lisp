@@ -36,7 +36,6 @@
     :c/cpp-project
     :c/cpp-root
     :c/cpp-system-header
-    :command-implicit-header
     :evolve-files/dependency-order
     :file-dependency-tree
     :find-enclosing-software
@@ -689,8 +688,8 @@ available, or from a predefined list."
             :children
             (list (make root-class :children children))))))
 
-(defun command-implicit-header (project co lang)
-  (declare (c/cpp-project project) (command-object co))
+(defun command-implicit-header (co lang)
+  (declare (command-object co))
   (synthesize-implicit-header
    lang
    (command-file co)
@@ -724,7 +723,7 @@ headers. (See `ensure-header-implicit-header')."
              (lang (component-class project)))
         (synchronized (project)
           (ensure2 (gethash key table)
-            (lret ((header (command-implicit-header project co lang)))
+            (lret ((header (command-implicit-header co lang)))
               (when header
                 (setf (genome project)
                       (copy (genome project)
