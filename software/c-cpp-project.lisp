@@ -785,6 +785,7 @@ symbol-table will diverge."
            (call-next-method))))
 
 (defmethod symbol-table :context ((ast c/cpp-translation-unit) &optional in)
+  "Augment the file's symbol table with its implicit header."
   (let ((root (attrs-root*)))
     (or (and-let* (((typep root 'c/cpp-project))
                    ((compilation-database root))
