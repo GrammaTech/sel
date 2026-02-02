@@ -2421,6 +2421,22 @@ class C {
    (lastcar)
    (collect-if (of-type 'identifier-ast) cpp)))
 
+(deftest test-preproc-outer-defs ()
+  "Preprocessor outer defs should be available."
+  (let ((cpp (from-string 'cpp-project "
+#include <iostream>
+int main() {
+  std::cout << \"Hello, world\";
+}")))
+    (with-attr-table cpp
+      (project:project-dependency-tree cpp)
+      (let ((cout (find-if (op (source-text= "std::cout" _)) cpp)))
+        (symbol-table cout)
+        (is (get-declaration-ast :variable cout))
+        (is (source-text= "std::ostream"
+                          (cpp::absolute-name
+                           (infer-type cout))))))))
+
 
 ;;; Parsing tests
 
