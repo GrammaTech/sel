@@ -9,7 +9,8 @@
         :software-evolution-library/software/c-cpp)
   (:export
     :absolute-name
-    :constructorp))
+    :constructorp
+    :destructorp))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -2189,13 +2190,27 @@ types."
 (defgeneric cpp:constructorp (ast)
   (:method ((ast t)) nil)
   (:method ((fn cpp-function-definition))
-    (not (cpp-type fn)))
+    (no (cpp-type fn)))
   (:method ((decl cpp-declaration))
     ;; Only in a field declaration list?
-    (and (not (cpp-type decl))
-         ;; Correct?
-         (every (of-type 'cpp-function-declarator)
-                (cpp-declarator decl)))))
+    (unless (cpp-type decl)
+      ;; Correct?
+      (every (of-type 'cpp-function-declarator)
+             (cpp-declarator decl))))
+  (:method ((decl cpp-function-declarator))
+    (cpp:constructorp
+     (find-enclosing 'cpp-declaration
+                     (attrs-root*)
+                     decl))))
+
+(defgeneric cpp:destructorp (ast)
+  (:method ((ast t)) nil)
+  (:method ((fn cpp-function-definition))
+    (typep (definition-name-ast fn) 'cpp-destructor-name))
+  (:method ((d cpp-declaration))
+    (every #'cpp:destructorp (cpp-declarator d)))
+  (:method ((d cpp-function-declarator))
+    (typep (declarator-name-ast d) 'cpp-destructor-name)))
 
 (define-synthesized-attribute cpp::out-of-class-function-definitions ()
   (:union-fn #'union)

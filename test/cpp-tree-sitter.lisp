@@ -139,6 +139,37 @@ See SEL issue #359."
   (is (= 1.1s-1 (convert 'float (cpp* "1.1e-1f"))))
   (is (= 10d0 (convert 'float (cpp* "0x1.4p3")))))
 
+(deftest test-constructorp ()
+  "Noexcept shouldn't affect recognizing constructors."
+  (let ((cpp (cpp* "struct T { T(int p, int q, int r) noexcept; }")))
+    (with-attr-table cpp
+      (is (null
+           (remove-if #'cpp:constructorp
+                      (is (collect-if (of-type '(or cpp-declaration cpp-function-declarator))
+                                      cpp))))))))
+
+(deftest test-destructorp ()
+  "`destructorp' should recognize virtual and non-virtual destructors."
+  (let ((asts
+          (list
+           (cpp* "class C { virtual ~C() {}; }")
+           (cpp* "class C { virtual ~C(); }")
+           (cpp* "class C { ~C() {}; }")
+           (cpp* "class C { ~C(); }")
+           (cpp* "struct C { virtual ~C() {}; }")
+           (cpp* "struct C { virtual ~C(); }")
+           (cpp* "struct C { ~C() {}; }")
+           (cpp* "struct C { ~C(); }"))))
+    (is (null
+         (remove-if #'cpp:destructorp
+                    (mappend (lambda (c)
+                               (with-attr-table c
+                                 (collect-if (of-type '(or cpp-declaration
+                                                        cpp-function-declarator
+                                                        cpp-function-definition))
+                                             c)))
+                             asts))))))
+
 
 ;;; Analysis tests
 
