@@ -826,6 +826,8 @@ the header.")
 (defmethod attrs:subroot? ((ast c/cpp-system-header))
   (match (children ast)
     ((list (c/cpp-translation-unit)) nil)
+    ;; TODO How does this happen? Children attached directly without a
+    ;; translation unit.
     (otherwise t)))
 
 (defparameter *morally-noexcept-headers*
