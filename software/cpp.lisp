@@ -8,7 +8,8 @@
         :software-evolution-library/software/string-clauses
         :software-evolution-library/software/c-cpp)
   (:export
-    :absolute-name))
+    :absolute-name
+    :constructorp))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -2124,7 +2125,7 @@ types."
 (defmethod infer-type ((ast cpp-call-expression))
   (or (call-next-method)
       (and-let* ((decl (get-declaration-ast :function ast))
-                 ((cpp::constructorp decl))
+                 ((cpp:constructorp decl))
                  (class
                   (find-enclosing 'c/cpp-classoid-specifier
                                   (attrs-root*)
@@ -2185,7 +2186,7 @@ types."
                                 (withf map k (strip-namespace body-ns v)))))
         inner-defs))))
 
-(defgeneric cpp::constructorp (ast)
+(defgeneric cpp:constructorp (ast)
   (:method ((ast t)) nil)
   (:method ((fn cpp-function-definition))
     (not (cpp-type fn)))
@@ -2224,10 +2225,10 @@ types."
             type)))
   (:method ((class c/cpp-classoid-specifier))
     (append
-     (filter #'cpp::constructorp
+     (filter #'cpp:constructorp
              (and (cpp-body class)
                   (children (cpp-body class))))
-     (filter #'cpp::constructorp
+     (filter #'cpp:constructorp
              (lookup
               (cpp::out-of-class-function-definitions
                (attrs-root*))
@@ -2245,9 +2246,9 @@ This includes an explicitly defaulted constructor.")
     nil)
   (:method ((type-ast c/cpp-classoid-specifier))
     (or (and (cpp-body type-ast)
-             (find-if #'cpp::constructorp
+             (find-if #'cpp:constructorp
                       (children (cpp-body type-ast))))
-        (some #'cpp::constructorp
+        (some #'cpp:constructorp
               (lookup
                (cpp::out-of-class-function-definitions
                 (attrs-root*))
