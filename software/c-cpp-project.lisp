@@ -752,6 +752,8 @@ symbol-table will diverge."
 
 (defun project-flags-implicit-header (project file)
   "Synthesize an implicit header for FILE based on the project's flags."
+  (unless (typep project 'c/cpp-project)
+    (return-from project-flags-implicit-header))
   (when-let (preproc-defs (preproc-defs project))
     (synchronized (project)
       (let ((table (implicit-headers-table (genome project)))
