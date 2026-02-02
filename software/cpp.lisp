@@ -3129,6 +3129,10 @@ multiple locations.")
   "Override to prevent namespacing primitive types."
   (source-text type))
 
+(defmethod qualify-declared-ast-name ((type cpp-operator-name))
+  "Override to prevent namespacing primitive types."
+  (source-text type))
+
 (def-attr-fun cpp::cached-namespace-qualified-name (name)
   (:documentation "Attribute to cache namespace-qualified names.")
   (:circular #'equal (constantly nil))
@@ -3159,6 +3163,8 @@ multiple locations.")
   (:documentation
    "Resolve AST into an absolute (relative to global namespace) name.")
   (:method ((ast cpp-primitive-type) &key (source-text (source-text ast)))
+    source-text)
+  (:method ((ast cpp-operator-name) &key (source-text (source-text ast)))
     source-text)
   (:method ((ast cpp-ast) &key (source-text (source-text ast)))
     (let* ((namespace (namespace ast))
