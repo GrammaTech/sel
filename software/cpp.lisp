@@ -6,7 +6,9 @@
         :software-evolution-library/software/tree-sitter-base
         :software-evolution-library/software/template
         :software-evolution-library/software/string-clauses
-        :software-evolution-library/software/c-cpp))
+        :software-evolution-library/software/c-cpp)
+  (:export
+    :absolute-name))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -3137,20 +3139,24 @@ multiple locations.")
             ast
             (call-next-method))))))
 
-(defun cpp::absolute-name (ast &key (source-text (source-text ast)))
-  "Resolve AST into an absolute (relative to global namespace) name."
-  (let* ((namespace (namespace ast))
-         (implicit (split "::" namespace))
-         (parts (split "::" source-text))
-         (explicit
-           (append
-            (and (string^= "::" source-text)
-                 (list :global))
-            (butlast parts)))
-         (combined
-           (combine-namespace-qualifiers explicit implicit)))
-    (string-join (append1 combined (lastcar parts))
-                 "::")))
+(defgeneric cpp::absolute-name (ast &key source-text)
+  (:documentation
+   "Resolve AST into an absolute (relative to global namespace) name.")
+  (:method ((ast cpp-primitive-type) &key (source-text (source-text ast)))
+    source-text)
+  (:method ((ast cpp-ast) &key (source-text (source-text ast)))
+    (let* ((namespace (namespace ast))
+           (implicit (split "::" namespace))
+           (parts (split "::" source-text))
+           (explicit
+             (append
+              (and (string^= "::" source-text)
+                   (list :global))
+              (butlast parts)))
+           (combined
+             (combine-namespace-qualifiers explicit implicit)))
+      (string-join (append1 combined (lastcar parts))
+                   "::"))))
 
 (defmethod qualify-declared-ast-name/namespaces ((declared-ast cpp-ast))
   (labels ((enough-source-text (declared-ast)
