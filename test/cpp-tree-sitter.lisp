@@ -159,7 +159,9 @@ See SEL issue #359."
            (cpp* "struct C { virtual ~C() {}; }")
            (cpp* "struct C { virtual ~C(); }")
            (cpp* "struct C { ~C() {}; }")
-           (cpp* "struct C { ~C(); }"))))
+           (cpp* "struct C { ~C(); }")
+           (cpp* " ~C() {}")
+           (cpp* "Ns::~C() {}"))))
     (is (null
          (remove-if #'cpp:destructorp
                     (mappend (lambda (c)
