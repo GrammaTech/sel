@@ -53,7 +53,7 @@ build-no-tree-sitter:
 unit-test-sbcl:
   variables:
     LISP: 'sbcl'
-    TARGET: 'long-unit-check'
+    TARGET: 'unit-check'
   extends: .test
 
 long-unit-test-sbcl:
