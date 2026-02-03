@@ -3379,8 +3379,9 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
                (declarator-name-ast
                 ;; It's not possible to have more than one declarator
                 ;; in the pure virtual function declaration.
-                (or (only-elt (cpp-declarator virtual-method))
-                    (warn "Invalid virtual method: ~a" virtual-method))))
+                (handler-case (only-elt (cpp-declarator virtual-method))
+                  (type-error ()
+                    (warn "Invalid virtual method: ~a" virtual-method)))))
               (definition
                (lookup-out-of-class-definition :enclosing name)))
       (cons definition overrides)
