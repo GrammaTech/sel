@@ -848,6 +848,7 @@ for the language.")
        (:c/cpp--expression c--expression cpp--expression)
        (:c/cpp-expression-statement
         c-expression-statement cpp-expression-statement)
+       (:c/cpp-false c-false cpp-false)
        (:c/cpp-field-declaration c-field-declaration cpp-field-declaration)
        (:c/cpp-field-declaration-list c-field-declaration-list cpp-field-declaration-list)
        (:c/cpp-field-expression c-field-expression cpp-field-expression)
@@ -951,6 +952,7 @@ for the language.")
         cpp-import-declaration
         cpp-export-block)
        (:c/cpp-translation-unit c-translation-unit cpp-translation-unit)
+       (:c/cpp-true c-true cpp-true)
        (:c/cpp-type-definition c-type-definition cpp-type-definition)
        (:c/cpp-type-descriptor c-type-descriptor cpp-type-descriptor)
        (:c/cpp-type-forward-declaration
