@@ -236,6 +236,12 @@ fails."
    (make 'rust-identifier :text "temp")
    #'call-next-method))
 
+(defmethod output-transformation :around ((ast rust-array-expression) &key &allow-other-keys)
+  (prevent-attribute-item-eager-match
+   ast
+   (make 'rust-integer-literal :text "0")
+   #'call-next-method))
+
 (defmethod convert ((to (eql 'rust-negative-literal))
                     (ast rust-unary-expression)
                     &key)

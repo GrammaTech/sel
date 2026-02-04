@@ -489,6 +489,15 @@ valid output transformation."
            :children
            (list (make 'rust-source-text-fragment-variation-point))))))
 
+(deftest rust-one-source-text-fragment-in-array-expression ()
+  "An array expression with a single source text fragment should have a
+valid output transformation."
+  (finishes
+    (source-text
+     (make 'rust-array-expression
+           :children
+           (list (make 'rust-source-text-fragment-variation-point))))))
+
 (deftest rust-range-operators ()
   (let* ((sources
           '("1..2;"
