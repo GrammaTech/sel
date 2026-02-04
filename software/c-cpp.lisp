@@ -544,6 +544,16 @@ MACROS is a map from macro names to expansions."
   (unless (text self)
     (setf (text self) ";")))
 
+(defmethod initialize-instance :after
+    ((self c/cpp-true) &key &allow-other-keys)
+  (unless (text self)
+    (setf (text self) "true")))
+
+(defmethod initialize-instance :after
+    ((self c/cpp-false) &key &allow-other-keys)
+  (unless (text self)
+    (setf (text self) "false")))
+
 (defmethod primitive-type-p ((ast c/cpp-type-descriptor))
   (primitive-type-p (c/cpp-type ast)))
 

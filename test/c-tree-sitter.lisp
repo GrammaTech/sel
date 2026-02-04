@@ -930,6 +930,12 @@ typedef Foo foo_t;")))
   (is (typep (c-operator (c* "x|y")) 'c/cpp-\|))
   (is (typep (c-operator (c* "x||y")) 'c/cpp-\|\|)))
 
+(deftest test-default-text ()
+  "Text should be defaulted sensibly."
+  (is (equal ";" (text (make 'c-empty-statement))))
+  (is (equal "true" (text (make 'c-true))))
+  (is (equal "false" (text (make 'c-false)))))
+
 
 ;;;; tree-sitter rule substitution tests
 
