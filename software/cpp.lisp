@@ -2343,6 +2343,11 @@ constructor OR a default constructor.")
                     &key)
   (convert-terminal to id))
 
+(defmethod convert ((to (eql 'cpp-identifier))
+                    (text string)
+                    &key)
+  (make 'cpp-identifier :text text))
+
 (defmethod convert ((to (eql 'cpp-field-identifier))
                     (id identifier-ast)
                     &key)

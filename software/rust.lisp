@@ -271,6 +271,11 @@ fails."
                     &key)
   (convert-terminal to id))
 
+(defmethod convert ((to (eql 'rust-identifier))
+                    (text string)
+                    &key)
+  (make 'rust-identifier :text text))
+
 (defmethod convert ((to (eql 'rust-field-identifier))
                     (id identifier-ast)
                     &key)
