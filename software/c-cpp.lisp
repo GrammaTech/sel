@@ -1282,16 +1282,41 @@ Then if we cannot infer the type of y per se we infer its type to be int.
 Other strategies may also be used. E.g. the type of an expression that
 appears as a return statement is assumed to be the type of the function."
   (let ((parents (lookup-parent-asts* (attrs-root*) ast)))
-    (or (match (take 2 parents)
-          ((list (type c/cpp-init-declarator)
-                 (and decl (type c/cpp-declaration)))
-           (unless (placeholder-type-p (cpp-type decl))
-             (resolve-declaration-type decl ast))))
-        (and-let* (((typep (first parents) 'c/cpp-return-statement))
-                   ((equal (list ast) (children (first parents))))
-                   (fn (find-if (of-type 'function-declaration-ast)
-                                parents)))
-          (declaration-type fn)))))
+    (match parents
+      ;; Get a declared type from the surrounding declaration.
+      ((list* (type c/cpp-init-declarator)
+              (and decl (type c/cpp-declaration))
+              _)
+       (unless (placeholder-type-p (cpp-type decl))
+         (resolve-declaration-type decl ast)))
+      ((list* (and parent (c/cpp-return-statement)) _)
+       (and-let* (((equal (list ast) (children parent)))
+                  (fn (find-if (of-type 'function-declaration-ast)
+                               parents)))
+         (declaration-type fn)))
+      ;; Boolean if it's in an if statement (or do-while condition).
+      ((or (list* (c/cpp-condition-clause)
+                  ;; TODO An integral type for C, integer/enum/class
+                  ;; for C++.
+                  (not (c/cpp-switch-statement))
+                  _)
+           (list* (c/cpp-parenthesized-expression)
+                  (c/cpp-do-statement)
+                  _))
+       (convert (ast-language-ast-class ast)
+                `((:class . :primitive-type)
+                  (:text . "bool"))))
+      ;; Boolean if it's a for condition.
+      ((list* (and for-stmt (cpp-for-statement)) _)
+       (when (eql (cpp-condition for-stmt) ast)
+         (convert (ast-language-ast-class ast)
+                  `((:class . :primitive-type)
+                    (:text . "bool"))))))))
+
+(defmethod infer-expected-type ((ast c/cpp-condition-clause))
+  (convert (ast-language-ast-class ast)
+           `((:class . :primitive-type)
+             (:text . "bool"))))
 
 (defmethod expression-type ((ast c/cpp-char-literal))
   (etypecase ast
