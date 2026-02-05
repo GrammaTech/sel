@@ -10,6 +10,8 @@
    :software-evolution-library/software/parseable
    :software-evolution-library/software/lisp
    :software-evolution-library/software/tree-sitter
+   ;; For c-switch-statement.
+   :software-evolution-library/software/c
    :software-evolution-library/software/javascript
    :software-evolution-library/software/python)
   (:import-from :software-evolution-library/software/parseable
