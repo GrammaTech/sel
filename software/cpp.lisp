@@ -629,7 +629,10 @@ to look it up as `y::z' or just `z'."
 
 (defmethod ext :around ((obj cpp)) (or (call-next-method) "cpp"))
 
-(defmethod function-body ((ast cpp-function-definition)) (cpp-body ast))
+(defmethod function-body ((ast cpp-field-declaration))
+  (if (typep (car (cpp-declarator ast)) 'cpp-function-declarator)
+      nil
+      (call-next-method)))
 
 (defmethod cpp-declarator ((ast cpp-reference-declarator))
   "Extract the declarator from a reference declarator AST."

@@ -566,6 +566,11 @@ MACROS is a map from macro names to expansions."
 (defmethod function-body ((ast c/cpp-function-declarator))
   nil)
 
+(defmethod function-body ((ast c/cpp-declaration))
+  (if (typep (car (c/cpp-declarator ast)) 'c/cpp-function-declarator)
+      nil
+      (call-next-method)))
+
 (defmethod function-name ((ast c/cpp-function-definition))
   (source-text (definition-name-ast ast)))
 
@@ -588,8 +593,6 @@ MACROS is a map from macro names to expansions."
 
 (defmethod call-arguments ((node c/cpp-call-expression))
   (direct-children (c/cpp-arguments node)))
-
-(defmethod function-body ((ast c/cpp-function-definition)) (c-body ast))
 
 (defmethod no-fallthrough ((ast c/cpp-continue-statement)) t)
 (defmethod no-fallthrough ((ast c/cpp-break-statement)) t)
