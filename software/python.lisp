@@ -812,8 +812,8 @@ list of form (FUNCTION-NAME UNUSED UNUSED NUM-PARAMS).
 (defmethod function-name ((node python-attribute))
   (source-text (python-attribute node)))
 
-(defmethod function-parameters ((ast python-function-definition))
-  (function-parameters (second (children ast))))
+(defmethod function-parameters-ast ((ast python-function-definition))
+  (second (children ast)))
 
 (defmethod function-parameters ((ast python-parameters))
   (direct-children ast))

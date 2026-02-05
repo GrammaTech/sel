@@ -875,17 +875,30 @@ given name if the function is inherited by the specified superclass."
          (cpp-name function)
          function))))
 
-(defmethod function-parameters ((field cpp-field-declaration))
+(defmethod function-parameters-ast ((field cpp-field-declaration))
   (match field
     ((cpp-field-declaration
       (cpp-declarator
        (list (and declarator (cpp-function-declarator)))))
-     (function-parameters declarator))
+     (function-parameters-ast declarator))
     (otherwise (call-next-method))))
 
-(defmethod function-parameters ((fn cpp-lambda-expression))
+(defmethod return-type ((field cpp-field-declaration))
+  (match field
+    ((cpp-field-declaration
+      (cpp-declarator
+       (list (cpp-function-declarator))))
+     (cpp-type field))
+    (otherwise (call-next-method))))
+
+(defmethod function-parameters-ast ((fn cpp-lambda-expression))
   (when-let (d (cpp-declarator fn))
     (cpp-parameters d)))
+
+(defmethod function-parameters ((fn cpp-lambda-expression))
+  (if (function-parameters-ast fn)
+      (call-next-method)
+      nil))
 
 (defmethod definition-name-ast ((field cpp-field-declaration))
   (match field

@@ -27,10 +27,10 @@
 (defmethod function-name ((ast golang-method-declaration))
   (source-text (golang-name ast)))
 
-(defmethod function-parameters ((ast golang-function-declaration))
-  (direct-children (golang-parameters ast)))
-(defmethod function-parameters ((ast golang-method-declaration))
-  (direct-children (golang-parameters ast)))
+(defmethod function-parameters-ast ((ast golang-function-declaration))
+  (golang-parameters ast))
+(defmethod function-parameters-ast ((ast golang-method-declaration))
+  (golang-parameters ast))
 
 (defmethod no-fallthrough ((ast golang-break-statement)) t)
 (defmethod no-fallthrough ((ast golang-continue-statement)) t)

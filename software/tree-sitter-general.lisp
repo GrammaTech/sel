@@ -617,10 +617,15 @@ should be rebound.")
   (:documentation "Return the arguments of AST."))
 
 (defgeneric function-parameters (ast)
-  (:documentation "Return the parameters of AST.")
-  (:method-combination standard/context)
-  (:method :context ((ast ast))
-    (ensure-children (call-next-method))))
+  (:documentation "Return a list of the parameters of AST.")
+  (:method ((ast ast))
+    ;; TODO Should call function-parameters?
+    (direct-children (function-parameters-ast ast)))
+  (:method ((ast parameters-ast))
+    (direct-children ast)))
+
+(defgeneric function-parameters-ast (ast)
+  (:documentation "Return the parameters AST of AST."))
 
 (defgeneric return-type (ast)
   (:documentation "Get the return type of AST."))

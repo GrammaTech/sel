@@ -435,7 +435,7 @@ for the language.")
         (cpp-operator :initarg :operator :reader operator)
         (cpp-argument :initarg :argument :reader argument))
        (cpp-template-declaration
-        (cpp-parameters :reader function-parameters))
+        (cpp-parameters :reader function-parameters-ast))
        (cpp-comma-expression
         (cpp-left :reader lhs :initarg :lhs)
         (cpp-right :reader rhs :initarg :rhs))
@@ -470,7 +470,7 @@ for the language.")
       (:java
        (java-method-declaration
         (java-name :reader function-name)
-        (java-parameters :reader function-parameters)
+        (java-parameters :reader function-parameters-ast)
         (java-body :reader function-body))
        (java-method-invocation
         (java-name :reader call-function)
@@ -549,16 +549,16 @@ for the language.")
        (rust-for-expression
         (rust-body :reader body :initarg :body))
        (rust-closure-expression
-        (rust-parameters :reader function-parameters)
+        (rust-parameters :reader function-parameters-ast)
         (rust-body :reader function-body :reader body :initarg :body))
        (rust-function-item
         (rust-name :reader function-name :reader definition-name-ast)
-        (rust-parameters :reader function-parameters)
+        (rust-parameters :reader function-parameters-ast)
         (rust-body :reader function-body :reader body :initarg :body)
         (rust-return-type :reader return-type :initarg :return-type))
        (rust-function-signature-item
         (rust-name :reader function-name :reader definition-name-ast)
-        (rust-parameters :reader function-parameters)
+        (rust-parameters :reader function-parameters-ast)
         (rust-return-type :reader return-type :initarg :return-type))
        (rust-if-expression
         (rust-condition :initarg :condition :reader condition)

@@ -574,7 +574,7 @@ MACROS is a map from macro names to expansions."
 (defmethod function-name ((ast c/cpp-function-definition))
   (source-text (definition-name-ast ast)))
 
-(defmethod function-parameters ((ast c/cpp-function-definition))
+(defmethod function-parameters-ast ((ast c/cpp-function-definition))
   ;; NOTE: the rule currently allows for any declarator. When
   ;;       macros are involved, this can leave a definition without
   ;;       a function declarator.
@@ -583,10 +583,17 @@ MACROS is a map from macro names to expansions."
               ;;       declarator.
               (find-if (of-type 'c/cpp-function-declarator)
                        (c/cpp-declarator ast))))
-    (function-parameters function-declarator)))
+    (function-parameters-ast function-declarator)))
 
-(defmethod function-parameters ((ast c/cpp-function-declarator))
-  (direct-children (c/cpp-parameters ast)))
+(defmethod function-parameters-ast ((ast c/cpp-function-declarator))
+  (c/cpp-parameters ast))
+
+(defmethod function-parameters-ast ((ast c/cpp-declaration))
+  (match ast
+    ((c/cpp-declaration
+      (c/cpp-declarator (list (and d (c/cpp-function-declarator)))))
+     (function-parameters-ast d))
+    (otherwise (call-next-method))))
 
 (defmethod parameter-type ((ast c/cpp-parameter-declaration))
   (c/cpp-type ast))

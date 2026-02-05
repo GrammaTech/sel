@@ -56,8 +56,8 @@
 (defmethod phenome ((obj javascript) &key (bin (temp-file-name)))
   (interpreted-phenome obj bin))
 
-(defmethod function-parameters ((ast javascript-function-declaration))
-  (javascript-children (javascript-parameters ast)))
+(defmethod function-parameters-ast ((ast javascript-function-declaration))
+  (javascript-parameters ast))
 
 (defmethod function-body ((ast javascript-function-declaration)) (javascript-body ast))
 

@@ -1273,6 +1273,7 @@ frob(Distance::Unit::IN);
 (deftest test-lambda/no-parameters ()
   (let ((cpp (cpp* "[] {}")))
     (is (typep cpp 'cpp-lambda-expression))
+    (is (null (function-parameters-ast cpp)))
     (is (null (function-parameters cpp)))))
 
 (deftest test-access ()

@@ -189,8 +189,8 @@ specialized on `typescript-tsx'."
   (defmethod function-name ((ast typescript-ts-function-declaration))
     (source-text (typescript-ts-name ast)))
 
-  (defmethod function-parameters ((ast typescript-ts-function-declaration))
-    (direct-children (typescript-ts-parameters ast)))
+  (defmethod function-parameters-ast ((ast typescript-ts-function-declaration))
+    (typescript-ts-parameters ast))
 
   (defmethod end-of-parameter-list ((software typescript-ts)
                                     (fn typescript-ts-function-declaration))
@@ -204,8 +204,8 @@ specialized on `typescript-tsx'."
   (defmethod function-name ((ast typescript-ts-function-signature))
     (source-text (typescript-ts-name ast)))
 
-  (defmethod function-parameters ((ast typescript-ts-function-signature))
-    (direct-children (typescript-ts-parameters ast)))
+  (defmethod function-parameters-ast ((ast typescript-ts-function-signature))
+    (typescript-ts-parameters ast))
 
   (defmethod end-of-parameter-list ((software typescript-ts)
                                     (fn typescript-ts-function-signature))
@@ -215,8 +215,8 @@ specialized on `typescript-tsx'."
 
   ;; Anonymous function (with function keyword)
 
-  (defmethod function-parameters ((ast typescript-ts-function))
-    (direct-children (typescript-ts-parameters ast)))
+  (defmethod function-parameters-ast ((ast typescript-ts-function))
+    (typescript-ts-parameters ast))
 
   (defmethod end-of-parameter-list ((software typescript-ts)
                                     (fn typescript-ts-function))

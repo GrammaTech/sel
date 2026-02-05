@@ -607,6 +607,7 @@
            :call-arguments
            :call-arguments-ast
            :function-parameters
+           :function-parameters-ast
            :parameter-type
            :parameter-name
            :parameter-names
