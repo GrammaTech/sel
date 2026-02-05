@@ -406,3 +406,11 @@ That is, test that the result of calling `source-text' on an AST is the same as 
   `(with-temporary-directory (:pathname ,pathname ,@kwargs)
      (to-file ,project ,pathname)
      ,@body))
+
+(defmethod stefil::progress-char-of :around ((x t))
+  "Hack to print the name of a test when it fails."
+  ;; NB This method is only called when a test fails.
+  (when (boundp 'stefil::*context*)
+    (format *error-output* "~&FAILURE: ~a~%"
+            (stefil::name-of (stefil::test-of (stefil::current-context)))))
+  (call-next-method))
