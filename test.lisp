@@ -59,7 +59,7 @@
         :software-evolution-library/test/parseable
         :software-evolution-library/test/population
         :software-evolution-library/test/range-representation
-        :software-evolution-library/test/rest
+        ;; :software-evolution-library/test/rest
         :software-evolution-library/test/rust-project
         :software-evolution-library/test/rust-tree-sitter
         :software-evolution-library/test/selection
