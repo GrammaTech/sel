@@ -571,6 +571,11 @@ MACROS is a map from macro names to expansions."
       nil
       (call-next-method)))
 
+(defmethod return-type ((ast c/cpp-declaration))
+  (if (typep (car (c/cpp-declarator ast)) 'c/cpp-function-declarator)
+      (c/cpp-type ast)
+      (call-next-method)))
+
 (defmethod function-name ((ast c/cpp-function-definition))
   (source-text (definition-name-ast ast)))
 
