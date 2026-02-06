@@ -33,9 +33,10 @@
     (:documentation "Error thrown when a rule fails to match on an AST.")
     (:report
      (lambda (condition stream)
-       (format stream "Unable to match~%~a~%on AST of type ~%~a"
+       (format stream "Unable to match~%~a~%on AST of type ~%~a~%Children:~%~a~%"
                (rule-matching-error-rule condition)
-               (type-of (rule-matching-error-ast condition))))))
+               (type-of (rule-matching-error-ast condition))
+               (children-alist (rule-matching-error-ast condition))))))
 
   (define-condition parse-tree-matching-error (matching-error)
     ((superclass :initarg :superclass :initform nil
