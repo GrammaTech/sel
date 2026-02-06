@@ -9,6 +9,9 @@
         :software-evolution-library/components/configuration)
   (:import-from :software-evolution-library/software/parseable
                 :ast-path)
+  (:import-from
+    :functional-trees/attrs
+    :with-attr-session)
   (:export
     :*build-dir*
     :all-files
@@ -792,6 +795,9 @@ For example:
       ;; dependencies of a file.
       (\"dir/file5\" (:circle \"dir/file5\"))")
   (:method-combination standard/context)
+  (:method :context ((project t) &key)
+    (with-attr-session (project :ensure t)
+      (call-next-method)))
   (:method :context ((p project) &key)
     (assure dependency-tree
       (call-next-method)))
