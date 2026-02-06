@@ -662,11 +662,48 @@ available, or from a predefined list."
 
 ;;; Implicit Headers
 
-(defun synthesize-implicit-header
- (lang file alist)
-  (declare (string file))
+(defgeneric implicit-header-key (project file)
+  (:method ((project c/cpp-project) (file file-ast))
+    (implicit-header-key project (full-pathname file)))
+  (:method ((project c/cpp-project) (file software))
+    (implicit-header-key project (original-path file)))
+  (:method ((project c/cpp-project) (file string))
+    (implicit-header-key project (pathname file)))
+  (:method ((project c/cpp-project) (file pathname))
+    (if (relative-pathname-p file)
+        file
+        (enough-pathname file
+                         (project-relative-pathname project "")))))
+
+(defgeneric project-implicit-header (project file)
+  (:documentation "Get FILE's implicit header in PROJECT.")
+  (:method ((project t) (file t))
+    (let ((key (implicit-header-key project file))
+          (table (implicit-headers-table (genome project))))
+      (synchronized (project)
+        (gethash key table)))))
+
+(defgeneric (setf project-implicit-header) (header project file)
+  (:documentation "Set the implicit header for FILE in PROJECT to HEADER.")
+  (:method ((header null) (project t) (file t))
+    nil)
+  (:method ((header t) (project t) (file t))
+    (let* ((genome (genome project))
+           (table (implicit-headers-table genome))
+           (key (implicit-header-key project file)))
+      (synchronized (project)
+        (setf (gethash key table) header
+              (genome project)
+              (copy (genome project)
+                    :implicit-headers
+                    (adjoin header (implicit-headers genome)))))
+      header)))
+
+(defun synthesize-implicit-header (project file alist)
   (when alist
-    (let* ((alist
+    (let* ((lang (component-class project))
+           (file (implicit-header-key project file))
+           (alist
              (if (eql lang 'cpp)
                  (cons '("__cplusplus" . "1") alist)
                  alist))
@@ -688,67 +725,39 @@ available, or from a predefined list."
             :children
             (list (make root-class :children children))))))
 
-(defun command-implicit-header (co lang)
+(defun command-implicit-header (project co)
   (declare (command-object co))
   (synthesize-implicit-header
-   lang
+   project
    (command-file co)
    (append (default-preproc-defs
             (compiler co)
             (command-platform co))
            (preproc-defs co))))
 
-(defgeneric implicit-header-key (project file)
-  (:method ((project c/cpp-project) (file file-ast))
-    (implicit-header-key project (full-pathname file)))
-  (:method ((project c/cpp-project) (file software))
-    (implicit-header-key project (original-path file)))
-  (:method ((project c/cpp-project) (file string))
-    (implicit-header-key project (pathname file)))
-  (:method ((project c/cpp-project) (file pathname))
-    (if (relative-pathname-p file)
-        file
-        (enough-pathname file
-                         (project-relative-pathname project "")))))
-
 (defun get-own-implicit-header (project file)
   "Return an implicit header based on FILE's command object.
 NB This needs to return nil if the file has no command object, so we
 can fall back to looking at an including file's symbol table for
 headers. (See `ensure-header-implicit-header')."
-  (let ((key (implicit-header-key project file)))
-    (when-let ((co (command-object project key)))
-      (let* ((genome (genome project))
-             (table (implicit-headers-table genome))
-             (lang (component-class project)))
-        (synchronized (project)
-          (ensure2 (gethash key table)
-            (lret ((header (command-implicit-header co lang)))
-              (when header
-                (setf (genome project)
-                      (copy (genome project)
-                            :implicit-headers
-                            (adjoin header
-                                    (implicit-headers genome))))))))))))
+  (when-let ((co (command-object project file)))
+    (ensure2 (project-implicit-header project file)
+      (command-implicit-header project co))))
 
 (defun ensure-header-implicit-header (root header)
   "Get the implicit header for a header. This has to be cached or
 symbol-table will diverge."
-  (when (and (typep root 'c/cpp-project)
-             (headerp header))
+  (when (and (typep root 'c/cpp-project) (headerp header))
     (synchronized (root)
       ;; NB We rely on the symbol table of a header only being computed
       ;; once.
       (ft/attrs::finalize-approximation)
-      (let ((table (implicit-headers-table (genome root)))
-            (key (implicit-header-key root header)))
-        (or (gethash key table)
-            (setf (gethash key table)
-                  (some
-                   (lambda (includer)
-                     (get-own-implicit-header (attrs-root*) includer))
-                   (remove-if (of-type 'c/cpp-system-header)
-                              *dependency-stack*))))))))
+      (ensure2 (project-implicit-header root header)
+        (some
+         (lambda (includer)
+           (get-own-implicit-header (attrs-root*) includer))
+         (remove-if (of-type 'c/cpp-system-header)
+                    *dependency-stack*))))))
 
 (defun project-flags-implicit-header (project file)
   "Synthesize an implicit header for FILE based on the project's flags."
@@ -756,14 +765,11 @@ symbol-table will diverge."
     (return-from project-flags-implicit-header))
   (when-let (preproc-defs (preproc-defs project))
     (synchronized (project)
-      (let ((table (implicit-headers-table (genome project)))
-            (key (implicit-header-key project file)))
-        (or (gethash key table)
-            (setf (gethash key table)
-                  (synthesize-implicit-header
-                   (component-class project)
-                   key
-                   preproc-defs)))))))
+      (ensure2 (project-implicit-header project file)
+        (synthesize-implicit-header
+         project
+         file
+         preproc-defs)))))
 
 (defun implicit-header-symbol-table (implicit-header)
   "Get the symbols exported from IMPLICIT-HEADER."
