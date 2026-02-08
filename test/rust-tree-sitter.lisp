@@ -547,6 +547,25 @@ source text."
   "A Rust declaration list with no children should not have a comma."
   (is (equal "{}" (source-text (make 'rust-field-declaration-list :children nil)))))
 
+(deftest test-rust-static-item-ref ()
+  "Test no spurious `ref' appears in a static item's source text after
+adding a visibility modifier."
+  (is (equal "pub static x:i32 = 0;"
+             (source-text
+              (copy (rust "static x:i32 = 0;")
+                    :children (list
+                               (make 'rust-visibility-modifier
+                                     :after-text " ")))))))
+
+(deftest test-rust-trait-item-unsafe ()
+  "Test no spurious `unsafe' appears in a trait item's source text after
+adding a visibility modifier."
+  (is (equal "pub trait T {}"
+             (source-text
+              (copy (rust "trait T {}")
+                    :children (list
+                               (make 'rust-visibility-modifier
+                                     :after-text " ")))))))
 
 ;;; Parsing tests.
 

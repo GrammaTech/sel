@@ -2816,6 +2816,14 @@ tree-sitter.")
           (:MEMBERS ((:TYPE . "SYMBOL") (:NAME . "mutable_specifier"))
            ((:TYPE . "BLANK"))))
          :as "mutable_specifier"))
+       (:static-item
+        (:replace
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "ref")) ((:TYPE . "BLANK"))))
+         :with
+         ;; Put the blank first.
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "BLANK")) ((:TYPE . "STRING") (:VALUE . "ref"))))))
        (:token-tree
         (:label ((:TYPE . "STRING") (:VALUE . "(")) :as "left_delimiter")
         (:label ((:TYPE . "STRING") (:VALUE . ")")) :as "right_delimiter")
@@ -2823,6 +2831,15 @@ tree-sitter.")
         (:label ((:TYPE . "STRING") (:VALUE . "]")) :as "right_delimiter")
         (:label ((:TYPE . "STRING") (:VALUE . "{")) :as "left_delimiter")
         (:label ((:TYPE . "STRING") (:VALUE . "}")) :as "right_delimiter"))
+       (:trait-item
+        (:replace
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "STRING") (:VALUE . "unsafe")) ((:TYPE . "BLANK"))))
+         :with
+         ;; Put the blank first.
+         ((:TYPE . "CHOICE")
+          (:MEMBERS ((:TYPE . "BLANK"))
+           ((:TYPE . "STRING") (:VALUE . "unsafe"))))))
        (:unary-expression
         (:label
           ((:TYPE . "CHOICE")
