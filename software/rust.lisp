@@ -159,6 +159,14 @@ Rust macro invocations can use (), [], and {} equivalently."
       (setf rust-path
             (convert 'rust-identifier rust-path)))))
 
+(defmethod initialize-instance :after ((self rust-crate) &key)
+  (unless (text self)
+    (setf (text self) "crate")))
+
+(defmethod initialize-instance :after ((self rust-super) &key)
+  (unless (text self)
+    (setf (text self) "super")))
+
 (defmethod qualify-name ((id rust-identifier) (path rust-type-identifier))
   (make 'rust-scoped-identifier
         :rust-path (convert 'rust-identifier path)
