@@ -47,6 +47,7 @@
            :source-text-take-lines
            :rebind-vars
            :collect-if
+           :genome-parsed-p
            ;; Parseable software object.
            :parseable
            :asts
@@ -138,6 +139,10 @@
   ()
   (:documentation "Parsed AST tree software representation."))
 
+(defgeneric genome-parsed-p (software)
+  (:documentation "Has the genome of SOFTWARE been parsed?")
+  (:method ((software t)) nil))
+
 (defmethod convert ((to-type (eql 'node)) (p parseable) &key)
   (genome p))
 
@@ -154,9 +159,15 @@
 for objects to allow method dispatch on generic AST objects regardless of
 whether they inherit from the functional trees library."))
 
+(defmethod genome-parsed-p ((software parseable))
+  (typep (slot-value software 'genome) 'ast))
+
 (defmethod genome ((ast ast))
   "An AST is its own genome."
   ast)
+
+(defmethod genome-parsed-p ((ast ast))
+  t)
 
 ;; All hash values are of typer HASH-TYPE.
 ;; This was chosen to be large enough that collisions
