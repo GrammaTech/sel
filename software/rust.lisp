@@ -225,17 +225,15 @@ fails."
 (defmethod output-transformation :around ((ast rust-arguments) &key &allow-other-keys)
   (prevent-attribute-item-eager-match
    ast
-   (load-time-value (make 'rust-identifier :text "temp") t)
+   (make 'rust-identifier :text "temp")
    #'call-next-method))
 
 (defmethod output-transformation :around ((ast rust-field-declaration-list) &key &allow-other-keys)
   (prevent-attribute-item-eager-match
    ast
-   (load-time-value
-    (make 'rust-field-declaration
-          :rust-name (make 'rust-field-identifier :text "temp")
-          :rust-type (make 'rust-primitive-type :text "i32"))
-    t)
+   (make 'rust-field-declaration
+         :rust-name (make 'rust-field-identifier :text "temp")
+         :rust-type (make 'rust-primitive-type :text "i32"))
    #'call-next-method))
 
 (defmethod output-transformation :around ((ast rust-tuple-expression) &key &allow-other-keys)
