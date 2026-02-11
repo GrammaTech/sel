@@ -231,6 +231,8 @@ string.")
         (format stream "~a~a~%" (repeat-sequence format-delimiter level)
                 (type-of root)))
     (iter
+      ;; TODO This breaks for ASTs that need backtracking because it
+      ;; doesn't use output-transformation.
       (for child in (remove-if #'listp (parse-order root)))
       (apply #'format-tree stream child :level (1+ level) rest))))
 
