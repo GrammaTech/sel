@@ -243,7 +243,8 @@ Nested lists are not allowed as template arguments:~%~a"
                    placeholders)))
       (when-let (diff (set-difference placeholders found :test #'equal))
         (simple-style-warning
-         "Some placeholders in template were not parsed as ASTs: ~a"
+         "Some placeholders in template ~s were not parsed as ASTs: ~a"
+         template
          diff)))
     ;; Check that placeholder paths are valid.
     (dolist (p placeholders)
