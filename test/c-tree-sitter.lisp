@@ -816,6 +816,20 @@ typedef Foo foo_t;")))
                  (find-if (of-type 'c-init-declarator)
                           (attrs-root*))))))))
 
+(deftest test-predefined-macros-types ()
+  "Types should be inferred for some predefined macros."
+  (with-attr-table (from-string 'c "fun(__FILE__, __LINE__);")
+    (is (equal "int"
+               (source-text
+                (infer-type
+                 (find-if (op (source-text= _ "__LINE__"))
+                          (attrs-root*))))))
+    (is (equal "char*"
+               (source-text
+                (infer-type
+                 (find-if (op (source-text= _ "__FILE__"))
+                          (attrs-root*))))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

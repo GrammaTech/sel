@@ -962,6 +962,21 @@ circular dependencies."
                 (short? (short-size data-model))
                 (t (int-size data-model))))))))
 
+(defmethod expression-type :around ((ast c/cpp-identifier))
+  (string-case (text ast)
+    ("__LINE__"
+     (convert (ast-language-ast-class ast)
+              '((:class . :primitive-type)
+                (:text . "int"))))
+    ("__FILE__"
+     (convert
+      (ast-language-ast-class ast)
+      `((:class . :type-descriptor)
+        (:declarator . ((:class . :abstract-pointer-declarator)))
+        (:type . ((:class . :primitive-type)
+                  (:text . "char"))))))
+    (t (call-next-method))))
+
 (defmethod expression-type ((ast c/cpp-function-definition))
   "Use the return type of a function definition as its expression type."
   (c/cpp-type ast))
