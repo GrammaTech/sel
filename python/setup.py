@@ -2,6 +2,7 @@
 
 See: https://grammatech.github.io/sel
 """
+
 from importlib.util import module_from_spec, spec_from_file_location
 from setuptools import find_packages, setup
 from os import path

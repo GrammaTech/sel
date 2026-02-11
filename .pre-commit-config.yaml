@@ -19,7 +19,7 @@ repos:
           - --config
           - python/.flake8
   - repo: https://github.com/ambv/black
-    rev: 22.3.0
+    rev: 24.10.0
     hooks:
       - id: black
         args:
