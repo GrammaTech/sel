@@ -6,7 +6,6 @@ import json
 import multiprocessing
 import os
 import psutil
-import pkg_resources
 import re
 import shutil
 import socket
@@ -15,6 +14,7 @@ import time
 
 import pygments.lexers
 
+from importlib import resources
 from pathlib import Path
 from typing import (
     Any,
@@ -38,6 +38,7 @@ LiteralOrAST = Union[int, float, str, "AST"]
 PathOrAST = Union[List, "AST"]
 
 ASTS_REMOTE_SEL_PORT: Final[str | None] = os.environ.get("ASTS_REMOTE_SEL_PORT")
+
 
 # Auxillary classes
 class ASTLanguage(enum.Enum):
@@ -342,12 +343,10 @@ class AST:
     def child_slot(
         self,
         slot: Literal["children", "CHILDREN", "Children"],
-    ) -> List["AST"]:
-        ...
+    ) -> List["AST"]: ...
 
     @overload
-    def child_slot(self, slot: str) -> Union[Optional["AST"], List["AST"]]:
-        ...
+    def child_slot(self, slot: str) -> Union[Optional["AST"], List["AST"]]: ...
 
     def child_slot(self, slot: str) -> Union[Optional["AST"], List["AST"]]:
         """Return the contents of the AST's child slot value."""
@@ -632,8 +631,10 @@ class _interface:
                 # installed python wheel.
                 cmd = _interface._DEFAULT_CMD_NAME
                 if not shutil.which(cmd):
-                    cmd = pkg_resources.resource_filename(
-                        __name__, _interface._DEFAULT_CMD_NAME
+                    cmd = (
+                        resources.files(__name__)
+                        .joinpath(_interface._DEFAULT_CMD_NAME)
+                        .name
                     )
                     if not Path(cmd).exists():
                         raise RuntimeError(
