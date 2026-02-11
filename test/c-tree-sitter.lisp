@@ -818,17 +818,24 @@ typedef Foo foo_t;")))
 
 (deftest test-predefined-macros-types ()
   "Types should be inferred for some predefined macros."
-  (with-attr-table (from-string 'c "fun(__FILE__, __LINE__);")
-    (is (equal "int"
-               (source-text
-                (infer-type
-                 (find-if (op (source-text= _ "__LINE__"))
-                          (attrs-root*))))))
-    (is (equal "char*"
-               (source-text
-                (infer-type
-                 (find-if (op (source-text= _ "__FILE__"))
-                          (attrs-root*))))))))
+  (with-attr-table
+      (from-string
+       'c
+       "fun(__FILE__, __LINE__, __STDC__, __STDC_HOSTED__, __cplusplus,
+__STDC_VERSION__, __DATE__, __TIME__);")
+    (flet ((macro-type (macro)
+             (source-text
+              (infer-type
+               (is (find-if (op (source-text= _ macro))
+                            (attrs-root*)))))))
+      (is (equal (macro-type "__LINE__") "int"))
+      (is (equal (macro-type "__FILE__") "char*"))
+      (is (equal (macro-type "__STDC__") "int"))
+      (is (equal (macro-type "__STDC_HOSTED__") "int"))
+      (is (equal (macro-type "__cplusplus") "int"))
+      (is (equal (macro-type "__STDC_VERSION__") "long int"))
+      (is (equal (macro-type "__DATE__") "const char[12]"))
+      (is (equal (macro-type "__TIME__") "const char[9]")))))
 
 
 ;;; Tests

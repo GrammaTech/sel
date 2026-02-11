@@ -963,18 +963,49 @@ circular dependencies."
                 (t (int-size data-model))))))))
 
 (defmethod expression-type :around ((ast c/cpp-identifier))
+  ;; TODO https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
   (string-case (text ast)
-    ("__LINE__"
+    (("__LINE__"
+      "__STDC__"
+      "__STDC_HOSTED__"
+      "__cplusplus"
+      "__COUNTER__"
+      "__INCLUDE_LEVEL__"
+      )
      (convert (ast-language-ast-class ast)
               '((:class . :primitive-type)
                 (:text . "int"))))
-    ("__FILE__"
+    (("__STDC_VERSION__")
+     (c/cpp-type
+      (convert
+       (ast-language-ast-class ast)
+       "long int x;"
+       :deepest t)))
+    (("__FILE__" "__VERSION__")
      (convert
       (ast-language-ast-class ast)
       `((:class . :type-descriptor)
         (:declarator . ((:class . :abstract-pointer-declarator)))
         (:type . ((:class . :primitive-type)
                   (:text . "char"))))))
+    ("__DATE__"
+     ;; Always 11 characters.
+     (expression-type
+      (convert
+       (ast-language-ast-class ast)
+       `((:class . :string-literal)
+         (:text . "??? ?? ????")))))
+    ("__TIME__"
+     ;; Always 8 characters.
+     (expression-type
+      (convert
+       (ast-language-ast-class ast)
+       `((:class . :string-literal)
+         (:text . "??:??:??")))))
+
+
+
+
     (t (call-next-method))))
 
 (defmethod expression-type ((ast c/cpp-function-definition))
