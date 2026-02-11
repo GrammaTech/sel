@@ -740,7 +740,9 @@ available, or from a predefined list."
 NB This needs to return nil if the file has no command object, so we
 can fall back to looking at an including file's symbol table for
 headers. (See `ensure-header-implicit-header')."
-  (when-let ((co (command-object project file)))
+  (when-let ((co (command-object
+                  project
+                  (implicit-header-key project file))))
     (ensure2 (project-implicit-header project file)
       (command-implicit-header project co))))
 
