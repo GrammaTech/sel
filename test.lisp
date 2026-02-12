@@ -75,6 +75,13 @@
   (:import-from :software-evolution-library
                 :+software-evolution-library-branch+)
   (:import-from :software-evolution-library/test/util :test)
-  (:export :test :batch-test :testbot-test))
+  (:shadow :run-batch)
+  (:export :test :batch-test :testbot-test :run-batch))
 (in-package :software-evolution-library/test)
 (in-readtable :curry-compose-reader-macros)
+
+(defun run-batch (&optional (test stefil+::*root-suite*) &rest args)
+  (declare (ignore args))
+  (if (uiop:getenvp "DEBUG_ON_ERROR")
+      (funcall test)
+      (stefil+:run-batch test)))
