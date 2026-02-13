@@ -969,14 +969,14 @@ circular dependencies."
 
 (defmethod expression-type :around ((ast c/cpp-identifier))
   ;; TODO https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
-  (string-case (text ast)
+  (string-case (or (text ast) "")
+    ("" (call-next-method))
     (("__LINE__"
       "__STDC__"
       "__STDC_HOSTED__"
       "__cplusplus"
       "__COUNTER__"
-      "__INCLUDE_LEVEL__"
-      )
+      "__INCLUDE_LEVEL__")
      (convert (ast-language-ast-class ast)
               '((:class . :primitive-type)
                 (:text . "int"))))
