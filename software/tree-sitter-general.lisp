@@ -620,7 +620,8 @@ should be rebound.")
   (:documentation "Return a list of the parameters of AST.")
   (:method ((ast ast))
     ;; TODO Should call function-parameters?
-    (direct-children (function-parameters-ast ast)))
+    (when-let (ast (function-parameters-ast ast))
+      (direct-children ast)))
   (:method ((ast parameters-ast))
     (direct-children ast)))
 
