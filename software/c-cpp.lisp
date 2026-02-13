@@ -586,9 +586,14 @@ MACROS is a map from macro names to expansions."
   (when-let ((function-declarator
               ;; NOTE: pointer declarators can be wrapped around the function
               ;;       declarator.
-              (find-if (of-type 'c/cpp-function-declarator)
+              (find-if (of-type '(or
+                                  c/cpp-abstract-function-declarator
+                                  c/cpp-function-declarator))
                        (c/cpp-declarator ast))))
     (function-parameters-ast function-declarator)))
+
+(defmethod function-parameters-ast ((ast c/cpp-abstract-function-declarator))
+  (c/cpp-parameters ast))
 
 (defmethod function-parameters-ast ((ast c/cpp-function-declarator))
   (c/cpp-parameters ast))

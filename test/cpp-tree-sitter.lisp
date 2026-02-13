@@ -172,6 +172,10 @@ See SEL issue #359."
                                              c)))
                              asts))))))
 
+(deftest test-function-parameters-ast-handles-abstract-function-declarators ()
+  "Calling `function-parameters' should work on an abstract function declarator."
+  (is (function-parameters-ast (cpp* "operator bool() { }"))))
+
 
 ;;; Analysis tests
 
