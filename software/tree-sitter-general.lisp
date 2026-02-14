@@ -4891,9 +4891,10 @@ table."
 
 (defmethod attr-missing ((fn-name (eql 'symbol-table)) (node tree-sitter-ast))
   (if (or (typep node 'source-text-fragment-variation-point)
-          (member node (extra-asts-symbols
-                        (make-keyword (ast-language-class node)))
-                  :test #'typep))
+          (and (not (typep node 'text-fragment))
+               (member node (extra-asts-symbols
+                             (make-keyword (ast-language-class node)))
+                       :test #'typep)))
       (symbol-table node (empty-symbol-table))
       (symbol-table (attrs-root *attrs*) (empty-symbol-table))))
 
