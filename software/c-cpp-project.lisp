@@ -486,6 +486,8 @@ should already have been computed as part of their compilation units."
                        files)))
     (dolist (file non-headers)
       (symbol-table file in))
+    ;; NB New headers may have been added as side effects, but if so
+    ;; their symbol tables have already been computed.
     (dolist (file headers)
       (symbol-table file in))
     ;; Fill in symbol tables for directories.
