@@ -568,7 +568,10 @@ should be rebound.")
   (if (and (boundp 'ft/attrs:*attrs*)
            (or (eql (attrs-root*) obj)
                (eql (convert 'node (attrs-root*)) obj)))
-      (cached-parent-asts ast)
+      (handler-case
+          (cached-parent-asts ast)
+        (ft/attrs:read-only-attributes ()
+          (get-parent-asts obj ast)))
       (get-parent-asts obj ast)))
 
 (defun lookup-parent-asts* (obj ast)
