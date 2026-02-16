@@ -28,6 +28,7 @@
    (:ts :software-evolution-library/software/tree-sitter))
   (:shadowing-import-from :serapeum :~> :~>>)
   (:export
+    :*c-extensions*
     :*cpp-extensions*
     :*cpp-implementation-extensions*
     :*cpp-module-extensions*
@@ -95,6 +96,10 @@
 
 (defparameter *cpp-implementation-extensions*
   '("cpp" "cp" "cc" "cxx" "c++"))
+
+(defparameter *c-extensions*
+  '("c" "h")
+  "List of extensions we will consider for evolving.")
 
 (defparameter *cpp-extensions*
   (append *header-extensions*

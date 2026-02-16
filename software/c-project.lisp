@@ -17,10 +17,6 @@
 (in-package :software-evolution-library/software/c-project)
 (in-readtable :curry-compose-reader-macros)
 
-(defparameter *c-extensions*
-  '("c" "h")
-  "List of extensions we will consider for evolving.")
-
 (define-software c-project (c/cpp-project)
   ()
   (:documentation "Project specialization for c software objects."))
