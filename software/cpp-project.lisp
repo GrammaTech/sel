@@ -28,8 +28,13 @@
 (in-readtable :curry-compose-reader-macros)
 
 (define-software cpp-project (c/cpp-project)
-  ()
-  (:documentation "Project specialization for c++ software objects."))
+  ((c-files-are-evolve-files
+    :documentation "Treat C files as (potential) evolve files."
+    :initarg :c-files-are-evolve-files
+    :reader c-files-are-evolve-files))
+  (:documentation "Project specialization for c++ software objects.")
+  (:default-initargs
+   :c-files-are-evolve-files nil))
 
 (defmethod initialize-instance :after ((project cpp-project) &key)
   (unless (component-class project)
@@ -38,7 +43,15 @@
     (setf (compiler project) "c++")))
 
 (defmethod collect-evolve-files ((project cpp-project))
-  (collect-evolve-files* project :extensions *cpp-extensions*))
+  (collect-evolve-files*
+   project
+   :extensions
+   ;; NB These will still be parsed as C++ files not C files.
+   (if (c-files-are-evolve-files project)
+       (union *cpp-extensions*
+              *cpp-extensions*
+              :test #'equal)
+       *cpp-extensions*)))
 
 (defun restrict-map (base-map filter-map)
   "Remove keys from BASE-MAP not present in FILTER-MAP, recursively.
