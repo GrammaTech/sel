@@ -163,6 +163,10 @@ Rust macro invocations can use (), [], and {} equivalently."
   (unless (text self)
     (setf (text self) "crate")))
 
+(defmethod initialize-instance :after ((self rust-mutable-specifier) &key)
+  (unless (text self)
+    (setf (text self) "mut")))
+
 (defmethod initialize-instance :after ((self rust-super) &key)
   (unless (text self)
     (setf (text self) "super")))
