@@ -2475,6 +2475,9 @@ this involves handling some translations between types."
 (defmethod qualify-name ((id cpp-identifier) (ns cpp-type-identifier))
   (qualify-name id (convert 'cpp-namespace-identifier ns)))
 
+(defmethod qualify-name ((id cpp-type-identifier) (ns cpp-type-identifier))
+  (qualify-name id (convert 'cpp-namespace-identifier ns)))
+
 (defmethod qualify-name ((id cpp-qualified-identifier)
                          (ns cpp-namespace-identifier))
   (cpp* "$NS::$NAME"
