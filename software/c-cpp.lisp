@@ -840,6 +840,8 @@ circular dependencies."
 
 (defmethod definition-name-ast ((ast c/cpp-function-definition))
   (declarator-name-ast (c/cpp-declarator ast)))
+(defmethod definition-name-ast ((ast c/cpp-declaration))
+  (declarator-name-ast (c/cpp-declarator ast)))
 (defmethod definition-name-ast ((ast c/cpp-struct-specifier))
   (c/cpp-name ast))
 (defmethod definition-name-ast ((ast c/cpp-union-specifier))
