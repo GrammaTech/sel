@@ -779,7 +779,8 @@
            :virtual-functions
            :qualify-name
            :qualify-function-name
-           :qualify-type-name)
+           :qualify-type-name
+           :unqualify-name)
   (:local-nicknames
    (:dbg :software-evolution-library/utility/debug)
    #+sbcl (:md5 :sb-md5)

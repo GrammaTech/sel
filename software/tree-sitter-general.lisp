@@ -2058,7 +2058,9 @@ sets.")
     (promote-around-text-to-qualified-name
      qualified
      qualifier
-     #'call-next-method)))
+     #'call-next-method))
+  (:method (qualified (qualifier null))
+    qualified))
 
 (defgeneric qualify-type-name (qualified qualifier)
   (:documentation "Qualify the name of a type.")
@@ -2068,6 +2070,8 @@ sets.")
      qualified
      qualifier
      #'call-next-method))
+  (:method (qualified (qualifier null))
+    qualified)
   (:method (qualified qualifier)
     (qualify-name qualified qualifier)))
 
@@ -2079,8 +2083,20 @@ sets.")
      qualified
      qualifier
      #'call-next-method))
+  (:method (qualified (qualifier null))
+    qualified)
   (:method (qualified qualifier)
     (qualify-name qualified qualifier)))
+
+(defgeneric unqualify-name (qualified-name)
+  (:documentation "Split QUALIFIED-NAME into qualified and qualifier.
+The qualifipper is returned as a second value.
+
+   (multiple-value-call #'unqualify-name
+     (qualify-name name))
+   ≅ name")
+  (:method ((ast t))
+    (values ast)))
 
 
 ;;;; Structured text

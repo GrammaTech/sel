@@ -2491,6 +2491,10 @@ this involves handling some translations between types."
 (defmethod qualify-name ((id cpp-identifier) (ns cpp-namespace-identifier))
   (cpp* "$NS::$NAME" :ns ns :name id))
 
+(defmethod unqualify-name ((id cpp-qualified-identifier))
+  (values (cpp-name id)
+          (convert 'cpp-identifier (cpp-scope id))))
+
 (defgeneric explicit-namespace-qualifiers (ast)
   (:documentation "Explicit namespace qualifiers (e.g. A::x).")
   (:method ((ast cpp-ast)) nil)
