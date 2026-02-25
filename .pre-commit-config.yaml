@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v6.0.0
     hooks:
       - id: check-executables-have-shebangs
       - id: check-json
@@ -12,14 +12,14 @@ repos:
       - id: trailing-whitespace
       - id: check-added-large-files
   - repo: https://github.com/pycqa/flake8
-    rev: 3.8.4
+    rev: 7.3.0
     hooks:
       - id: flake8
         args:
           - --config
           - python/.flake8
   - repo: https://github.com/ambv/black
-    rev: 24.10.0
+    rev: 26.1.0
     hooks:
       - id: black
         args:
