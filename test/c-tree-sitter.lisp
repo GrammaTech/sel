@@ -837,6 +837,15 @@ __STDC_VERSION__, __DATE__, __TIME__);")
       (is (equal (macro-type "__DATE__") "const char[12]"))
       (is (equal (macro-type "__TIME__") "const char[9]")))))
 
+(deftest test-infer-assignment-type-fallback ()
+  "The type of the RHS of an assignment should be used if the LHS is
+unknown."
+  (is (equal "int"
+             (source-text
+              (let ((c (c* "x = 1")))
+                (with-attr-table c
+                  (infer-type c)))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
