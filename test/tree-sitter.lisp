@@ -238,7 +238,10 @@ root AST."
     (let ((obj (from-file 'cpp p)))
       (is (typep (genome obj) 'root-ast))
       (is (equal (original-path obj)
-                 (original-path (genome obj)))))))
+                 (original-path (genome obj))))
+      ;; Should persist across copies.
+      (is (equal (original-path obj)
+                 (original-path (copy (genome obj))))))))
 
 
 ;;; Mutations

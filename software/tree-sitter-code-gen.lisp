@@ -3576,6 +3576,14 @@ Superclass of every generated LANGUAGE-comment class."))
       (when-let (path (original-path ast))
         (format stream "~a" path))))
 
+  (defmethod copy :around ((ast root-ast)
+                           &key (original-path (original-path ast))
+                           &allow-other-keys)
+    (lret ((result (call-next-method)))
+      (unless (original-path result)
+        (setf (slot-value result 'original-path)
+              original-path))))
+
   (defclass statement-ast (ast) ()
     (:documentation "Mix-in for AST classes that are statements."))
 
