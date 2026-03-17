@@ -1163,7 +1163,8 @@ circular dependencies."
   (infer-type (c/cpp-right ast)))
 
 (defmethod infer-type ((ast c/cpp-assignment-expression))
-  (infer-type (c/cpp-left ast)))
+  (or (infer-type (c/cpp-left ast))
+      (infer-type (c/cpp-right ast))))
 
 (defmethod infer-type ((ast c/cpp-conditional-expression))
   (let ((type1 (infer-type (c/cpp-consequence ast)))
