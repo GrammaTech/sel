@@ -1057,6 +1057,15 @@ table."
       (field-adjoin type map-out)
       map-out)))
 
+(defmethod field-adjoin ((field cpp-declaration) map)
+  "Exclude operators from field table."
+  (match (cpp-declarator field)
+    ;; E.g.. `explicit operator bool() const;` parses this way. What
+    ;; would be a good way to represent that in the field table?
+    ((list (cpp-operator-cast))
+     map)
+    (otherwise (call-next-method))))
+
 (defun export-static-members (ast decls namespaces)
   "Export appropriate static members in symbol table leaving AST.
 Static here means both static members and subclasses; anything that
