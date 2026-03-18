@@ -49,19 +49,21 @@
   (:method ((node error-variation-point) (result list))
     (source-text= node "...")))
 
-(defgeneric ast-for-match (language string &key software context tolerant)
-  (:method :around (language string &key software context tolerant)
+(defgeneric ast-for-match (language string &key software focus context tolerant)
+  (:method :around (language string &key software context tolerant focus)
     (let ((string (disarm-metavariables language string)))
-      (if (and software context)
-          (parse-in-context software context string)
-          (if tolerant
-              (parse-tolerant (language-ast-class language)
-                              string)
-              (call-next-method language string
-                                :software software
-                                :context context)))))
-  (:method (language string &key software context tolerant)
-    (declare (ignore software context tolerant))
+      (funcall
+       (or focus #'identity)
+       (if (and software context)
+           (parse-in-context software context string)
+           (if tolerant
+               (parse-tolerant (language-ast-class language)
+                               string)
+               (call-next-method language string
+                                 :software software
+                                 :context context))))))
+  (:method (language string &key focus software context tolerant)
+    (declare (ignore software context focus tolerant))
     (convert (language-ast-class language)
              string
              :deepest t)))
@@ -208,10 +210,11 @@ in context."
 
 (defmethod convert :around
     ((to-type (eql 'match)) (clause string)
-     &key language software context (tolerant t) &allow-other-keys)
+     &key language software focus context (tolerant t) &allow-other-keys)
   (if language
       (convert 'match (ast-for-match language clause
                                      :software software
+                                     :focus focus
                                      :context context
                                      :tolerant tolerant))
       (call-next-method)))
