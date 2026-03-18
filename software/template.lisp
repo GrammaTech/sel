@@ -560,10 +560,7 @@ they are not \"the same\", the match fails)."
              (match class
                ((list 'quote class) class)
                (otherwise class)))
-            (language
-             (find-external-symbol (drop-suffix "-AST" (string class))
-                                   :sel/sw/ts
-                                   :error t))
+            (language (ast-language-class class))
             (pattern
              (convert 'match template :language language :tolerant *tolerant*))
             (template names placeholders subtrees
