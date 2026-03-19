@@ -1066,6 +1066,9 @@ table."
      map)
     (otherwise (call-next-method))))
 
+(defmethod field-adjoin ((field cpp-reference-declarator) map)
+  (adjoin-fields map (cpp-declarator field)))
+
 (defun export-static-members (ast decls namespaces)
   "Export appropriate static members in symbol table leaving AST.
 Static here means both static members and subclasses; anything that

@@ -2752,6 +2752,17 @@ struct make_integer_sequence : make_integer_sequence<T, N - 1, N - 1, Ns...> {};
       (symbol-table cpp)
       (finishes (field-table struct)))))
 
+(deftest test-field-table-reference-declarators ()
+  "Reference members should be included in C++ field tables."
+  (with-attr-table (cpp* "struct RefMembers {
+  unsigned int &c;
+  unsigned long int &v;
+}")
+    (let ((table (direct-field-table (attrs-root*))))
+      (is (= (size table) 2))
+      (is (lookup table "v"))
+      (is (lookup table "c")))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.
