@@ -375,7 +375,7 @@ for the language.")
        (c-struct-specifier
         (c-body :reader body :initarg :body))
        (c-function-definition
-        (c-body :reader function-body)
+        (c-body :initarg :body :reader body :reader function-body)
         (c-type :reader return-type :initarg :return-type))
        (c-preproc-ifdef
         (c-alternative :reader alternative :initarg :alternative))
@@ -409,7 +409,7 @@ for the language.")
        (cpp-for-range-loop
         (cpp-body :reader body :initarg :body))
        (cpp-function-definition
-        (cpp-body :reader function-body)
+        (cpp-body :initarg :body :reader body :reader function-body)
         (cpp-type :reader return-type :initarg :return-type))
        (cpp-if-statement
         (cpp-condition :initarg :condition :reader condition)
