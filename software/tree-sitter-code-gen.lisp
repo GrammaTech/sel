@@ -541,22 +541,22 @@ for the language.")
         (rust-left :initarg :lhs :reader lhs)
         (rust-right :initarg :rhs :reader rhs))
        (rust-const-block
-        (rust-body :initarg :body :reader rust-body))
+        (rust-body :initarg :body :reader body :reader rust-body))
        (rust-const-item
         (rust-name :reader definition-name-ast))
        (rust-call-expression
         (rust-function :reader call-function :initarg :function)
         (rust-arguments :reader call-arguments-ast :initarg :arguments))
        (rust-closure-expression
-        (rust-body :initarg :body :reader rust-body))
+        (rust-body :initarg :body :reader body :reader rust-body))
        (rust-enum-item
-        (rust-body :initarg :body :reader rust-body)
+        (rust-body :initarg :body :reader body :reader rust-body)
         (rust-name :reader definition-name-ast))
        (rust-enum-variant
-        (rust-body :initarg :body :reader rust-body)
+        (rust-body :initarg :body :reader body :reader rust-body)
         (rust-name :reader definition-name-ast))
        (rust-foreign-mod-item
-        (rust-body :initarg :body :reader rust-body))
+        (rust-body :initarg :body :reader body :reader rust-body))
        (rust-for-expression
         (rust-body :reader body :initarg :body))
        (rust-function-item
@@ -583,7 +583,7 @@ for the language.")
        (rust-loop-expression
         (rust-body :reader body :initarg :body))
        (rust-match-expression
-        (rust-body :initarg :body :reader rust-body))
+        (rust-body :initarg :body :reader body :reader rust-body))
        (rust-macro-invocation
         (rust-macro :reader call-function))
        (rust-mod-item
@@ -598,10 +598,10 @@ for the language.")
        (rust-struct-expression
         (rust-body :initarg :body :reader rust-body))
        (rust-struct-item
-        (rust-body :initarg :body :reader rust-body)
+        (rust-body :initarg :body :reader body :reader rust-body)
         (rust-name :reader definition-name-ast))
        (rust-trait-item
-        (rust-body :initarg :body :reader rust-body)
+        (rust-body :initarg :body :reader body :reader rust-body)
         (rust-name :reader definition-name-ast))
        (rust-type-item
         (rust-name :reader definition-name-ast))
@@ -609,7 +609,7 @@ for the language.")
         (rust-operator :initarg :operator :reader operator)
         (rust-argument :initarg :argument :reader argument))
        (rust-union-item
-        (rust-body :initarg :body :reader rust-body)
+        (rust-body :initarg :body :reader body :reader rust-body)
         (rust-name :reader definition-name-ast))
        (rust-while-expression
         (rust-body :reader body :initarg :body)
