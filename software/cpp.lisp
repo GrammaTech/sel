@@ -1906,15 +1906,20 @@ then the return type of the call is the return type of the field."
 (defmethod expression-type ((ast cpp-new-expression))
   (cpp-type ast))
 
+(defun get-create-nullptr-type-for (ast)
+  (flet ((make-type ()
+           (make 'cpp-type-identifier :text "nullptr_t")))
+    (if (boundp '*attrs*)
+        (or (car (find-in-symbol-table ast :type "std::nullptr_t"))
+            (lret ((type (make-type)))
+              (setf (attr-proxy type) ast)))
+        (make-type))))
+
 (defmethod expression-type ((ast cpp-nullptr))
-  (or (and (boundp '*attrs*)
-           (car
-            (find-in-symbol-table ast :type "std::nullptr_t")))
-      (let ((type
-              (make 'cpp-type-identifier :text "nullptr_t")))
-        (when (boundp '*attrs*)
-          (setf (attr-proxy type) ast))
-        type)))
+  (get-create-nullptr-type-for ast))
+
+(defmethod expression-type ((ast cpp-null))
+  (get-create-nullptr-type-for ast))
 
 (defmethod placeholder-type-p ((ast cpp-auto))
   t)

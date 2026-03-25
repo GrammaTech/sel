@@ -2351,7 +2351,7 @@ using MyclassAlias = MyClass;
            (cpp::list-all-constructors alias))))))
 
 (deftest test-nullptr-type ()
-  "We should be able to infer the type of nullptr whether or noit cstddef
+  "We should be able to infer the type of nullptr whether or not cstddef
 is included."
   (is (source-text= "nullptr_t" (expression-type (cpp* "nullptr"))))
   (with-attr-table (from-string 'sel/sw/cpp-project:cpp-project "#include <cstddef>
@@ -2361,6 +2361,16 @@ int main() { nullptr; }")
       (is (source-text=
            (infer-type nullptr)
            "nullptr_t")))))
+
+(deftest test-null-type ()
+  "We should be able to infer the type of NULL whether or not its
+defining headers are included."
+  (is (source-text= "nullptr_t" (expression-type (cpp* "NULL"))))
+  (with-attr-table
+      (from-string 'sel/sw/cpp-project:cpp-project
+                   (fmt "#include <stddef.h>~% int main() { NULL; }"))
+    (let ((null (is (find-if (of-type 'cpp-null) (attrs-root*)))))
+      (is (source-text= (infer-type null) "nullptr_t")))))
 
 (def +bit-cast-source+
   "double f64v = 19880124.0;
