@@ -10,6 +10,7 @@
   (:export
     :absolute-name
     :constructorp
+    :derived-class-p
     :destructorp))
 
 (in-package :software-evolution-library/software/tree-sitter)
@@ -1236,7 +1237,7 @@ class (AS-DEFINED)."
     ;; public/protected field is protected.
     ((protected (or public protected)) :protected)))
 
-(defun cpp::derived-class? (class)
+(defun cpp:derived-class-p (class)
   "If CLASS is a derived class, return the base class clause."
   (and (typep class 'c/cpp-classoid-specifier)
        (find-if (of-type 'cpp-base-class-clause)
@@ -1255,7 +1256,7 @@ order."
                    ((cons (cons last-class quals) alist)
                     (acons last-class (cons ast quals)
                            alist))))))
-    (when-let (clause (cpp::derived-class? class))
+    (when-let (clause (cpp:derived-class-p class))
       (let ((alist
               (reduce (flip #'update-base-class-alist)
                       (children clause)
@@ -1475,7 +1476,7 @@ inherits from."
     (if (has-attribute-p class 'symbol-table)
         (cpp::multiple-inheritance class direct-field-table)
         (progn
-          (when (cpp::derived-class? class)
+          (when (cpp:derived-class-p class)
             (dbg:lazy-note :debug
                            "Cannot inherit without a symbol table: ~a"
                            (definition-name-ast class)))
