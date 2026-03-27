@@ -1796,6 +1796,7 @@ Should return `:failure' in the base case.")
     (otherwise (call-next-method))))
 
 (defmethod arg-usage-table ((ast c/cpp-call-expression))
+  ;; TODO Also implement for references?
   (let ((table (empty-ch-map)))
     (labels ((identifier-use? (arg)
                "Is ARG an identifier use (identifier, or dereference of an identifier)?"
