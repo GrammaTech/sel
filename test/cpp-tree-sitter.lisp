@@ -847,6 +847,18 @@ iterator from a call on a dereferenced element."
     (with-attr-table cpp
       (is (length= 2 (collect-arg-uses cpp x))))))
 
+(deftest test-collect-arg-uses-in-initializer-list ()
+  "Using a variable in an initializer list should count as using an
+argument."
+  (let* ((file (path-join +test-data-dir+
+                          "cpp-fragments/initializer_arg_usage.cc"))
+         (cpp (from-file 'cpp file)))
+    (with-attr-table cpp
+      (let ((x (stmt-with-text cpp "x"))
+            (y (stmt-with-text cpp "y")))
+        (is (length= 1 (collect-arg-uses cpp x)))
+        (is (length= 1 (collect-arg-uses cpp y)))))))
+
 (deftest test-infer-type-loop-terminates ()
   (with-fixture/attrs trim-front
     (finishes (infer-type (find-soft-var "midpoint")))))

@@ -3025,6 +3025,10 @@ the body of the loop."
       (list (cpp-body parent))
       (call-next-method)))
 
+(defmethod arg-usage-table ((ast cpp-initializer-list))
+  "Add initializer list arguments to the arg usage table."
+  (c/cpp-arg-usage-table (direct-children ast)))
+
 
 ;;; Whitespace rules
 

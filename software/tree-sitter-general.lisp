@@ -1507,7 +1507,6 @@ If ALIAS is non-nil, resolve aliases during the search.")
                :variable
                (or (and alias (aliasee target))
                    target)))
-             (root (attrs-root*))
              (uses
               (convert 'list
                        (lookup (arg-usage-table (attrs-root*))
@@ -1523,10 +1522,7 @@ If ALIAS is non-nil, resolve aliases during the search.")
                   (append (mapcar #'cdr alias-uses)
                           direct-uses)
                   direct-uses)))
-      (filter-map
-       (compose (distinct)
-                (op (find-enclosing 'call-ast root _)))
-       all-uses))))
+      (nub all-uses))))
 
 (defmethod convert ((to-type (eql 'integer))
                     (ast integer-ast) &key)

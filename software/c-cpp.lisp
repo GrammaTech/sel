@@ -1795,9 +1795,9 @@ Should return `:failure' in the base case.")
              (call-next-method)))
     (otherwise (call-next-method))))
 
-(defmethod arg-usage-table ((ast c/cpp-call-expression))
-  ;; TODO Also implement for references?
-  (let ((table (empty-ch-map)))
+(-> c/cpp-arg-usage-table (list) ch-map)
+(defun c/cpp-arg-usage-table (arguments)
+  (let ((map (empty-ch-map)))
     (labels ((identifier-use? (arg)
                "Is ARG an identifier use (identifier, or dereference of an identifier)?"
                (typecase arg
@@ -1806,8 +1806,8 @@ Should return `:failure' in the base case.")
                   (when (source-text= "*" (c/cpp-operator arg))
                     (identifier-use? (c/cpp-argument arg))))))
              (collect-arg-for-decl (decl arg)
-               (withf table decl
-                      (with (or (lookup table decl) (empty-ch-set))
+               (withf map decl
+                      (with (or (lookup map decl) (empty-ch-set))
                             arg)))
              (collect-decls (arg)
                (when (identifier-use? arg)
@@ -1816,18 +1816,28 @@ Should return `:failure' in the base case.")
                  (when-let* ((alias (aliasee arg))
                              (decl (get-declaration-id :variable alias)))
                    (collect-arg-for-decl decl (cons :alias arg)))
-                 table)))
+                 map)))
+      (dolist (arg arguments map)
+        (collect-decls arg)))))
+
+(defmethod arg-usage-table ((ast c/cpp-call-expression))
+  "Collect arg usage, including pointer dereferences.
+Also, if the function is a field expressions, include the
+argument (the class whose method is being invoked) as a use."
+  (flet ((add-field-expr-argument (fn args)
+           (match fn
+             ((c/cpp-field-expression
+               (c/cpp-argument arg))
+              (cons arg args))
+             (otherwise args))))
+    (assure ch-map
       (match ast
         ((call-ast
           (call-function fn)
           (call-arguments (and args (type list))))
-         (match fn
-           ((c/cpp-field-expression
-             (c/cpp-argument arg))
-            (collect-decls arg)))
-         (dolist (arg args)
-           (collect-decls arg)))))
-    table))
+         (c/cpp-arg-usage-table
+          (add-field-expr-argument fn args)))
+        (otherwise (call-next-method))))))
 
 (defmethod collect-arg-uses (sw (target c/cpp-pointer-expression) &optional alias)
   (when (source-text= "*" (c/cpp-operator target))
