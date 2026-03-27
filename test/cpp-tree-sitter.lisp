@@ -2516,6 +2516,24 @@ the type of the field it's intializing."
         (is (every (op (source-text= "float" (canonicalize-structured-text _)))
                    (mapcar #'infer-expected-type vars)))))))
 
+(deftest test-infer-smart-pointer-type ()
+  "Types should be inferred when constructing smart pointers."
+  (flet ((infer-type* (cpp)
+           (source-text
+            (with-attr-table cpp
+              (infer-type
+               (find-if (of-type 'cpp-call-expression)
+                        cpp))))))
+    (is (equal "std::unique_ptr<T>" (infer-type* (cpp* "std::make_unique<T>(x);"))))
+    (is (equal "std::unique_ptr<T>" (infer-type* (cpp* "make_unique<T>(x);"))))
+    (is (equal "std::unique_ptr<T>" (infer-type* (cpp* "std::unique_ptr<T>(x);"))))
+    (is (equal "std::unique_ptr<T>" (infer-type* (cpp* "unique_ptr<T>(x);"))))
+
+    (is (equal "std::shared_ptr<T>" (infer-type* (cpp* "std::make_shared<T>(x);"))))
+    (is (equal "std::shared_ptr<T>" (infer-type* (cpp* "make_shared<T>(x);"))))
+    (is (equal "std::shared_ptr<T>" (infer-type* (cpp* "shared_ptr<T>(x);"))))
+    (is (equal "std::shared_ptr<T>" (infer-type* (cpp* "std::shared_ptr<T>(x);"))))))
+
 
 
 ;;; Parsing tests

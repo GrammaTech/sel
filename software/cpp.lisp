@@ -1845,28 +1845,47 @@ then the return type of the call is the return type of the field."
                                      (ast t))
   (second (children ast)))
 
-(defmethod expression-type ((ast cpp-call-expression))
-  "Extract the type from a casting operator."
+(defun function-style-cast-target-type (ast)
+  "Extract the target type from a function-style cast."
   (match ast
-    ((or (cpp* "$FN<$TYPE>(@_)"
-               :fn
-               #1=(make 'cpp-identifier
-                        :text
-                        (or "bit_cast"
-                            "const_cast"
-                            "dynamic_cast"
-                            "reinterpret_cast"
-                            "static_cast"))
-               :type type)
+    ((or (cpp* "$FN<$TYPE>(@_)" :fn (cpp-identifier :text name) :type type)
          ;; NB These are qualified identifers with template functions
          ;; in the name slot, not template functions with qualified
          ;; names.
-         (cpp* "std::$FN<$TYPE>(@_)"
-               :fn #1#
-               :type type))
-     type)
-    (otherwise
-     (call-next-method))))
+         (cpp* "std::$FN<$TYPE>(@_)" :fn (cpp-identifier :text name) :type type))
+     (string-case name
+       (("bit_cast"
+         "const_cast"
+         "dynamic_cast"
+         "reinterpret_cast"
+         "static_cast")
+        type)))))
+
+(defun extract-wrapper-constructor-type (ast)
+  "Extract the type from a wrapper constructor."
+  (flet ((wrapper-type (constructor-name)
+           (string-case constructor-name
+             (("make_shared" "make_shared_for_overwrite" "shared_ptr")
+              (make 'cpp-type-identifier :text "shared_ptr"))
+             (("make_unique" "make_unique_for_overwrite" "unique_ptr")
+              (make 'cpp-type-identifier :text "unique_ptr")))))
+    (match ast
+      ((or (cpp* "$FN<$TYPE>(@_)" :fn (cpp-identifier :text name) :type type)
+           ;; NB These are qualified identifers with template functions
+           ;; in the name slot, not template functions with qualified
+           ;; names.
+           (cpp* "std::$FN<$TYPE>(@_)" :fn (cpp-identifier :text name) :type type))
+       (when-let (wrapper-type (wrapper-type name))
+         (make-proxy
+          (cpp-type
+           (cpp* "std::$WRAPPER<$TYPE> _;" :type type :wrapper wrapper-type))
+          ast))))))
+
+(defmethod expression-type ((ast cpp-call-expression))
+  "Extract the type from a casting operator."
+  (or (function-style-cast-target-type ast)
+      (extract-wrapper-constructor-type ast)
+      (call-next-method)))
 
 (defmethod infer-expression-type ((ast cpp-call-expression))
   (match ast
@@ -1889,7 +1908,8 @@ then the return type of the call is the return type of the field."
 
 (defun make-proxy (type ast)
   "Make TYPE a proxy for AST, returning TYPE."
-  (setf (attr-proxy type) ast)
+  (when (boundp '*attrs*)
+    (setf (attr-proxy type) ast))
   type)
 
 (defmethod infer-expression-type ((ast cpp-binary-expression))
