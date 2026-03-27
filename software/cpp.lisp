@@ -2072,6 +2072,11 @@ then the return type of the call is the return type of the field."
                             :ns :variable))))
            (infer-type field)))))))
 
+(defun cpp-initializer-list-field (ast)
+  "If AST is in an initializer list, return the field it initializes."
+  (when-let (type (cpp-initializer-list-field ast))
+    (find-enclosing 'cpp-field-declaration (attrs-root*) type)))
+
 (defun concrete-type-p (type)
   "Is TYPE a concrete type (not from a type parameter)?"
   (nor
