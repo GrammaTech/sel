@@ -1887,20 +1887,24 @@ then the return type of the call is the return type of the field."
     (otherwise
      (call-next-method))))
 
+(defun make-proxy (type ast)
+  "Make TYPE a proxy for AST, returning TYPE."
+  (setf (attr-proxy type) ast)
+  type)
+
 (defmethod infer-expression-type ((ast cpp-binary-expression))
   (string-case (source-text (cpp-operator ast))
     ;; Infer the type of a write to an ostream as an ostream.
     ("<<"
      (or (and-let* ((lhs-type (infer-type (lhs ast)))
-                    ((source-text= "std::ostream" (cpp::absolute-name lhs-type)))
-                    (type
-                     (make 'cpp-type-descriptor
-                           :cpp-declarator
-                           (make 'cpp-abstract-reference-declarator
-                                 :cpp-valueness (make 'cpp-&))
-                           :cpp-type (tree-copy lhs-type))))
-           (setf (attr-proxy type) lhs-type)
-           type)
+                    ((source-text= "std::ostream" (cpp::absolute-name lhs-type))))
+           (make-proxy
+            (make 'cpp-type-descriptor
+                  :cpp-declarator
+                  (make 'cpp-abstract-reference-declarator
+                        :cpp-valueness (make 'cpp-&))
+                  :cpp-type (tree-copy lhs-type))
+            lhs-type))
          (call-next-method)))
     (t (call-next-method))))
 
@@ -1912,8 +1916,7 @@ then the return type of the call is the return type of the field."
            (make 'cpp-type-identifier :text "nullptr_t")))
     (if (boundp '*attrs*)
         (or (car (find-in-symbol-table ast :type "std::nullptr_t"))
-            (lret ((type (make-type)))
-              (setf (attr-proxy type) ast)))
+            (make-proxy (make-type) ast))
         (make-type))))
 
 (defmethod expression-type ((ast cpp-nullptr))
@@ -2144,15 +2147,15 @@ types."
              ;; arguments) the same as the namespace of the field
              ;; type, then we synthesize a new AST from both of them
              ;; with template arguments intact.
-             (let ((new-arg-type (tree-copy arg-type))
-                   (new-field-type (tree-copy field-type)))
-               (setf (attr-proxy new-arg-type) arg-type
-                     (attr-proxy new-field-type) field-type)
-               (lret ((qname
-                       (list->qualified-name
-                        (append (cpp::qualified-name->list new-arg-type)
-                                (cpp::qualified-name->list new-field-type)))))
-                 (setf (attr-proxy qname) field-type)))
+             (let ((new-arg-type
+                     (make-proxy (tree-copy arg-type) arg-type))
+                   (new-field-type
+                     (make-proxy (tree-copy field-type) field-type)))
+               (make-proxy
+                (list->qualified-name
+                 (append (cpp::qualified-name->list new-arg-type)
+                         (cpp::qualified-name->list new-field-type)))
+                field-type))
              field-type)))
       (t
        field-type))))
@@ -2417,12 +2420,14 @@ this involves handling some translations between types."
     (error "Empty lists cannot become qualified names!"))
   (labels ((type-id->ns-id (type-id)
              "Create a namespace identifier from a text identifier."
-             (lret ((ns-id (tree-copy (convert 'cpp-namespace-identifier type-id))))
-               (setf (attr-proxy ns-id) type-id)))
+             (make-proxy
+              (tree-copy (convert 'cpp-namespace-identifier type-id))
+              type-id))
            (ns-id->type-id (ns-id)
              "Create a type identifier from a namespace identifier."
-             (lret ((type-id (tree-copy (convert 'cpp-type-identifier ns-id))))
-               (setf (attr-proxy type-id) ns-id)))
+             (make-proxy
+              (tree-copy (convert 'cpp-type-identifier ns-id))
+              ns-id))
            (fix-scope (scope)
              "Make sure SCOPE is an AST that can appear in the scope
               slot of a qualified identifier."
