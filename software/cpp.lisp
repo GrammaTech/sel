@@ -11,7 +11,8 @@
     :absolute-name
     :constructorp
     :derived-class-p
-    :destructorp))
+    :destructorp
+    :has-constructor-defined-p))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -2193,7 +2194,7 @@ types."
                                   decl)))
         (definition-name-ast class))
       (and-let* ((decl (get-declaration-ast :type ast))
-                 ((cpp::has-constructor-defined-p decl)))
+                 ((cpp:has-constructor-defined-p decl)))
         (definition-name-ast decl))))
 
 (defmethod infer-expression-type ((ast cpp-initializer-list))
@@ -2313,7 +2314,7 @@ types."
                (attrs-root*))
               class)))))
 
-(defgeneric cpp::has-constructor-defined-p (type-ast)
+(defgeneric cpp:has-constructor-defined-p (type-ast)
   (:documentation
    "Return T if TYPE-AST is a C++ class and has a declared or defined
 constructor.
@@ -2333,14 +2334,14 @@ This includes an explicitly defaulted constructor.")
                 (attrs-root*))
                type-ast))))
   (:method ((type-ast c/cpp-type-definition))
-    (cpp::has-constructor-defined-p (cpp-type type-ast)))
+    (cpp:has-constructor-defined-p (cpp-type type-ast)))
   (:method ((type-ast cpp-alias-declaration))
-    (cpp::has-constructor-defined-p (cpp-type type-ast)))
+    (cpp:has-constructor-defined-p (cpp-type type-ast)))
   (:method ((ast t))
     (when-let ((type-ast
                 (get-declaration-ast :type ast)))
       (unless (eql type-ast ast)
-        (cpp::has-constructor-defined-p type-ast)))))
+        (cpp:has-constructor-defined-p type-ast)))))
 
 (defun cpp::method-deleted-p (ast)
   (when (typep ast 'cpp-function-definition)
