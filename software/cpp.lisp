@@ -12,7 +12,8 @@
     :constructorp
     :derived-class-p
     :destructorp
-    :has-constructor-defined-p))
+    :has-constructor-defined-p
+    :list-all-constructors))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -1991,7 +1992,7 @@ then the return type of the call is the return type of the field."
                                    ;; TODO variadic
                                    (arity (length args))
                                    (position (position ast args))
-                                   (constructors (cpp::list-all-constructors definition)))
+                                   (constructors (cpp:list-all-constructors definition)))
                           (dolist (ctor constructors)
                             (and-let* ((params-ast (find-if (of-type 'cpp-parameter-list) ctor))
                                        (params (direct-children params-ast)))
@@ -2011,7 +2012,7 @@ then the return type of the call is the return type of the field."
                                 (cpp-template-type (cpp-name type))))
                              ((source-text= "initializer_list" type-name))))))
                (unless (typep definition 'cpp-type-parameter-declaration)
-                 (let ((constructors (cpp::list-all-constructors definition)))
+                 (let ((constructors (cpp:list-all-constructors definition)))
                    (if (no constructors)
                        (get-type-from-implicit-constructor definition ast init-list)
                        (if-let (init-list-constructors
@@ -2284,7 +2285,7 @@ types."
       (fset:ch-map (class (list ast)))
       (empty-ch-map))))
 
-(defgeneric cpp::list-all-constructors (class)
+(defgeneric cpp:list-all-constructors (class)
   (:documentation "List all user-defined constructors for CLASS.")
   (:method ((type-ast c/cpp-primitive-type))
     nil)
@@ -2300,7 +2301,7 @@ types."
     nil)
   (:method ((type type-alias-ast))
     (if-let (aliasee (type-aliasee type))
-      (cpp::list-all-constructors aliasee)
+      (cpp:list-all-constructors aliasee)
       (warn "Could not find aliasee for ~a when listing constructors"
             type)))
   (:method ((class c/cpp-classoid-specifier))
@@ -2357,7 +2358,7 @@ constructor OR a default constructor.")
   (:method ((type-ast c/cpp-sized-type-specifier))
     nil)
   (:method ((ast c/cpp-classoid-specifier))
-    (let ((ctors (cpp::list-all-constructors ast)))
+    (let ((ctors (cpp:list-all-constructors ast)))
       (or (no ctors)
           (notevery #'cpp::method-deleted-p ctors))))
   (:method ((ast type-alias-ast))
