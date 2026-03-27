@@ -2024,19 +2024,22 @@ then the return type of the call is the return type of the field."
                          (get-type-from-arg-position definition ast init-list))))))))
     (let ((parents (lookup-parent-asts* (attrs-root*) ast)))
       (match parents
-        ((or (list*
-              (and init-list (cpp-initializer-list))
-              (cpp-compound-literal-expression
-               (cpp-type type))
-              _)
-             (list*
-              (and init-list (cpp-initializer-list))
-              (cpp-init-declarator
-               (cpp-declarator
-                ;; Don't cast nested initializer lists.
-                (not (cpp-array-declarator))))
-              (cpp-declaration (cpp-type type))
-              _))
+        ((or
+          ;; T x = T{...};
+          (list*
+           (and init-list (cpp-initializer-list))
+           (cpp-compound-literal-expression
+            (cpp-type type))
+           _)
+          ;; T x{...};
+          (list*
+           (and init-list (cpp-initializer-list))
+           (cpp-init-declarator
+            (cpp-declarator
+             ;; Don't cast nested initializer lists.
+             (not (cpp-array-declarator))))
+           (cpp-declaration (cpp-type type))
+           _))
          ;; It's possible not to be in the child list for an error node.
          (when (position ast (direct-children init-list))
            (and-let* ((definition (get-declaration-ast :type type)))
