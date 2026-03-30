@@ -252,7 +252,8 @@ to produce valid code when unconvential indentation occurs."))
        (cpp-type-parameter-declaration (:keyword))
        (cpp-abstract-reference-declarator (:valueness))
        (cpp-reference-declarator (:valueness))
-       (cpp-variadic-reference-declarator (:valueness)))
+       (cpp-variadic-reference-declarator (:valueness))
+       (cpp-using-declaration (:keyword)))
       (:java
        (java-modifiers (:modifiers (:multiple . t)))
        (java-module-declaration (:open)))
@@ -2748,7 +2749,16 @@ tree-sitter.")
             (:MEMBERS ((:TYPE . "STRING") (:VALUE . "class"))
                       ((:TYPE . "STRING") (:VALUE . "struct"))))
            ((:TYPE . "BLANK"))))
-         :as "scope")))
+         :as "scope"))
+       (:using-declaration
+        (:label
+          ((:TYPE . "CHOICE")
+           (:MEMBERS
+            ((:TYPE . "CHOICE")
+             (:MEMBERS ((:TYPE . "STRING") (:VALUE . "namespace"))
+                       ((:TYPE . "STRING") (:VALUE . "enum"))))
+            ((:TYPE . "BLANK"))))
+          :as "keyword")))
       (:rust
        (:arguments
         (:replace

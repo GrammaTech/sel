@@ -2809,6 +2809,12 @@ struct make_integer_sequence : make_integer_sequence<T, N - 1, N - 1, Ns...> {};
       (is (lookup table "v"))
       (is (lookup table "c")))))
 
+(deftest test-preserve-using-declaration-keyword ()
+  "Representations should be distinct for `using x`, `using enum x`, and `using namespace x`."
+  (is (not (matchesp (cpp* "using x;") (cpp* "using enum $_"))))
+  (is (not (matchesp (cpp* "using x;") (cpp* "using namespace $_"))))
+  (is (not (matchesp (cpp* "using namespace x;") (cpp* "using enum $_")))))
+
 
 ;;;; Rule Substitution tests
 ;;; These tests that the rule substitutions are working as intended.

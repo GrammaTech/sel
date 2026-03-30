@@ -570,6 +570,15 @@ to look it up as `y::z' or just `z'."
   (with-modify-parse-tree (parse-tree)
     ((:typename :class) (label-as :keyword))))
 
+;;; We pattern-match against using below.
+(eval-always
+  (defmethod transform-parse-tree
+      ((language (eql :cpp)) (class (eql 'cpp-using-declaration))
+       parse-tree &key)
+    "Label the enum/namespace terminal of a using declaration/directive."
+    (with-modify-parse-tree (parse-tree)
+      ((:namespace :enum) (label-as :keyword)))))
+
 (defmethod transform-parse-tree
     ((language (eql :cpp)) (class (eql 'cpp-enum-specifier))
      parse-tree &key)
