@@ -719,7 +719,7 @@ auto d = p1->Distance(p2);")))
                     (source-text
                      (get-declaration-ast :function field-expr))))
       ;; We get the type of `p1' (`Point').
-      (is (source-text= "Point"
+      (is (source-text= "Point*"
                         (infer-type
                          (cpp-declarator
                           (find-if (of-type 'cpp-init-declarator)
@@ -2546,6 +2546,12 @@ the type of the field it's intializing."
     (is (equal "std::shared_ptr<T>" (infer-type* (cpp* "shared_ptr<T>(x);"))))
     (is (equal "std::shared_ptr<T>" (infer-type* (cpp* "std::shared_ptr<T>(x);"))))))
 
+(deftest test-new-expression-type ()
+  (flet ((infer-ast-type (ast)
+           (with-attr-table ast
+             (infer-type ast))))
+    (is (source-text= "int*" (infer-ast-type (cpp* "new int"))))
+    (is (source-text= "int[10]" (infer-ast-type (cpp* "new int[10]"))))))
 
 
 ;;; Parsing tests

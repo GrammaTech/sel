@@ -1931,7 +1931,31 @@ then the return type of the call is the return type of the field."
     (t (call-next-method))))
 
 (defmethod expression-type ((ast cpp-new-expression))
-  (cpp-type ast))
+  (flet ((new-expression-type (ast)
+           (match ast
+             ((cpp-new-expression
+               :cpp-declarator nil
+               :cpp-type type)
+              (make 'cpp-type-descriptor
+                    :cpp-declarator
+                    (make 'cpp-abstract-pointer-declarator)
+                    :cpp-type
+                    (tree-copy (copy-without-surrounding-text type))))
+             ;; TODO Multidimensional arrays.
+             ((cpp-new-expression
+               :cpp-declarator
+               (cpp-new-declarator
+                :cpp-length len
+                :children nil)
+               :cpp-type type)
+              (make 'cpp-type-descriptor
+                    :cpp-declarator
+                    (make 'cpp-abstract-array-declarator
+                          :cpp-size len)
+                    :cpp-type (tree-copy (copy-without-surrounding-text type)))))))
+    (if-let (type (new-expression-type ast))
+      (make-proxy type (cpp-type ast))
+      (call-next-method))))
 
 (defun get-create-nullptr-type-for (ast)
   (flet ((make-type ()
