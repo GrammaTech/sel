@@ -636,7 +636,7 @@ instances."
                               (compilable (subtypep (component-class project) 'compilable)))
   (assert project-dir (project-dir) "project-dir must be set on ~S" project)
   (debug:note :trace "Collecting evolve files from filesystem")
-  (with-current-directory (project-dir)
+  (cmd:with-working-directory (project-dir)
     (walk-directory
      (project-dir project)
      (lambda (file)

@@ -50,21 +50,22 @@
   "Create a new c-git project and ensure that its temporary directories have been
 removed."
   (with-gensyms (path git-path)
-    `(with-git-repository (,git-path ,project-path)
-       (let (,path )
-         (declare (ignorable ,path))
-         (unwind-protect
-              (let ((,project-name (from-file 'c-git ,git-path)))
-                (setf ,path (repository-path ,project-name))
-                (setf (fitness ,project-name) 1)
-                ,@body)
-           ;; Invoke worktree finalizers.
-           #+(or) (tg:gc :full t)
-           #+(or) (when ,path
-                    (finalize/remove-local-repo ,path))
-           ;; TODO Above disabled because unreliable. Delete the whole
-           ;; ancestral-git superdirectory instead.
-           (delete-directory-tree (tmp/ancestral-git) :validate t))))))
+    `(synchronized ('with-c-git-cleanup)
+       (with-git-repository (,git-path ,project-path)
+         (let (,path )
+           (declare (ignorable ,path))
+           (unwind-protect
+                (let ((,project-name (from-file 'c-git ,git-path)))
+                  (setf ,path (repository-path ,project-name))
+                  (setf (fitness ,project-name) 1)
+                  ,@body)
+             ;; Invoke worktree finalizers.
+             #+(or) (tg:gc :full t)
+             #+(or) (when ,path
+                      (finalize/remove-local-repo ,path))
+             ;; TODO Above disabled because unreliable. Delete the whole
+             ;; ancestral-git superdirectory instead.
+             (delete-directory-tree (tmp/ancestral-git) :validate t)))))))
 
 (defun has-commit-p (ancestral-git &rest words)
   "Return T if the latest commit in the repository for ANCESTRAL-GIT contains all

@@ -68,7 +68,7 @@
       (setf component-class 'typescript))))
 
 (defmethod collect-evolve-files ((project javascript-project) &aux result)
-  (with-current-directory ((project-dir project))
+  (cmd:with-working-directory ((project-dir project))
     (assert (probe-file "package.json") ((project-dir project))
             "JavaScript project requires a package.json file in ~a."
             (project-dir project))

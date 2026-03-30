@@ -411,6 +411,7 @@ That is, test that the result of calling `source-text' on an AST is the same as 
   "Hack to print the name of a test when it fails."
   ;; NB This method is only called when a test fails.
   (when (boundp 'stefil::*context*)
-    (format *error-output* "~&FAILURE: ~a~%"
-            (stefil::name-of (stefil::test-of (stefil::current-context)))))
+    (synchronized ()
+      (format *error-output* "~&FAILURE: ~a~%"
+              (stefil::name-of (stefil::test-of (stefil::current-context))))))
   (call-next-method))

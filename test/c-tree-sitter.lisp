@@ -935,7 +935,7 @@ unknown."
   ;; There are a lot of C source files and parsing them is slow
   ;; so set a limit. Note the files actually tested are chosen at
   ;; random from the set of all files.
-  (uiop::with-current-directory
+  (cmd:with-working-directory
       ((asdf:system-relative-pathname :software-evolution-library "test/etc/"))
     (let* ((c-files (expand-wildcard #p"*/*.c"))
            ;; FIXME: There is a performance issue in `ast-source-ranges'

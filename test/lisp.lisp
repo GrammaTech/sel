@@ -271,7 +271,8 @@ t")))))
 
 (deftest test-round-trip-sharpsign-dot ()
   ;; Strings with `#.' converted to 'lisp-ast and back are the same.
-  (is-convert-round-trip-p #?(+ #.1 #.2)))
+  (let ((*read-eval* t))
+    (is-convert-round-trip-p #?(+ #.1 #.2))))
 
 (deftest test-round-trip-sharpsign-quote ()
   ;; Strings with "#'" converted to 'lisp-ast and back are the same.
