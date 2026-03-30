@@ -46,8 +46,6 @@
     :reader choice-subclasses
     :allocation :class)))
 
-(defmethod computed-text-node-p ((ast c-variadic-declaration)) t)
-
 (defmethod transform-parse-tree
     ((language (eql ':c)) (class (eql 'c-sized-type-specifier)) parse-tree &key)
   "Transform PARSE-TREE such that all modifiers are stored in the :modifiers
