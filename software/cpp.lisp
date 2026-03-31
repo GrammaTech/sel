@@ -2778,6 +2778,11 @@ instance we only want to remove one).")
   (find-if #'noexcept-specifier?
            (direct-children (cpp-declarator ast))))
 
+(defmethod exception-set ((ast cpp-call-expression))
+  (if (string^= "__builtin_" (source-text (call-function ast)))
+      +exception-bottom-type+
+      (call-next-method)))
+
 (defmethod exception-set ((ast cpp-field-initializer-list))
   ;; TODO Get the exception set of the initializer of each member.
   (let ((args
