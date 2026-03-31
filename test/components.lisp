@@ -18,7 +18,10 @@
 (defun make-sleeper (&optional (n 3))
   (make 'test-case
         :program-name "sleep"
-        :program-args (list (fmt "~a" n))))
+        :program-args
+        ;; Binding needed for parallel testing.
+        (let ((*read-default-float-format* 'single-float))
+          (list (fmt "~a" n)))))
 
 (deftest no-timeout-test ()
   (let ((*process-kill-timeout* nil))
