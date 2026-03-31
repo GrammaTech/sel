@@ -2466,6 +2466,18 @@ constructor OR a default constructor.")
                     &key)
   (convert-terminal to id))
 
+(defmethod convert ((to (eql 'type-ast))
+                    (id cpp-identifier)
+                    &key)
+  (convert 'cpp-type-identifier id))
+
+(defmethod convert ((to (eql 'type-ast))
+                    (id cpp-qualified-identifier)
+                    &key)
+  (qualify-type-name
+   (convert 'type-ast (cpp-name id))
+   (cpp-scope id)))
+
 (-> list->qualified-name ((soft-list-of (or null cpp-ast)))
     (values cpp-ast &optional))
 (defun list->qualified-name (list)
