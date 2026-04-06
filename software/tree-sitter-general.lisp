@@ -3160,9 +3160,11 @@ will prevent unnecessary copying."
 
 (defmethod with :around ((ast structured-text) (value1 structured-text)
                          &optional value2)
-  (if  (typep value2 'structured-text)
-       (call-next-method ast value1 (copy-with-surrounding-text value2 value1))
-       (call-next-method)))
+  (cond ((eq value1 value2)
+         (call-next-method))
+        ((typep value2 'structured-text)
+         (call-next-method ast value1 (copy-with-surrounding-text value2 value1)))
+        (t (call-next-method))))
 
 (defmethod with :around ((ast structured-text) (value1 list) &optional value2)
   (if-let* ((structuredp (typep value2 'structured-text))

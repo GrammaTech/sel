@@ -229,6 +229,8 @@
                  (old-file parseable)
                  &optional new)
   "When updating an evolve-file, update the genome too."
+  (when (eq old-file new)
+    (return-from with project))
   (unless (typep new 'parseable)
     (return-from with (call-next-method)))
   (verify-project-in-sync
@@ -725,7 +727,7 @@ instances."
                  (unless (lookup (genome project) path)
                    (debug:note :trace "~%Inserting ~a into tree~%"
                                path)
-                   (let ((temp-project (with project path software)))
+                   (let ((temp-project (with (copy project) path software)))
                      (setf (genome project)
                            (genome temp-project)
                            (evolve-files project)

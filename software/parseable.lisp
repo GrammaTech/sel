@@ -1159,6 +1159,10 @@ the `genome' of the software object."
  insert
  splice)
 
+(defmethod with :around ((obj parseable) value1 &optional value2)
+  (if (eq value1 value2) obj
+      (call-next-method)))
+
 (defmethod less ((obj parseable) value1 &optional value2)
   (declare (ignorable value2))
   (copy obj :genome (less (genome obj) value1)))
