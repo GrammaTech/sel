@@ -10,6 +10,7 @@
    :software-evolution-library/software/simple
    :software-evolution-library/software/asm
    :software-evolution-library/software/asm-heap)
+  (:import-from :cmd :cmd?)
   (:export :test-asm))
 (in-package :software-evolution-library/test/asm)
 (in-readtable :curry-compose-reader-macros)
@@ -42,27 +43,16 @@
     (is (equal 'asm (type-of *gcd*)))))
 
 (deftest (idempotent-read-write :long-running) ()
-  (let ((a (temp-file-name)))
-    (unwind-protect
-         (with-gcd-fixture gcd-asm
-           (to-file *gcd* a)
-           (multiple-value-bind (out err ret)
-               (shell "diff ~s ~a"
-                      (namestring (gcd-dir "gcd.s.intel")) a)
-             (declare (ignorable out err))
-             (is (= 0 ret))))
-      (delete-file a))))
+  (with-temporary-file (:pathname a)
+    (with-gcd-fixture gcd-asm
+      (to-file *gcd* a))
+    (is (cmd? "diff" (gcd-dir "gcd.s.intel") a))))
 
 (deftest (idempotent-read-copy-write :long-running) ()
-  (let ((a (temp-file-name)))
-    (unwind-protect
-         (with-gcd-fixture gcd-asm
-           (to-file (copy *gcd*) a)
-           (multiple-value-bind (out err ret)
-               (shell "diff ~s ~a" (namestring (gcd-dir "gcd.s.intel")) a)
-             (declare (ignorable out err))
-             (is (= 0 ret))))
-      (delete-file a))))
+  (with-temporary-file (:pathname a)
+    (with-gcd-fixture gcd-asm
+      (to-file (copy *gcd*) a))
+    (is (cmd? "diff" (gcd-dir "gcd.s.intel") a))))
 
 (deftest edit-of-copy-does-not-change-original ()
   (with-gcd-fixture gcd-asm
@@ -246,15 +236,9 @@
     (is (equal (asm-syntax *gcd*) ':att))))
 
 (defun idempotent-asm-heap-read-write (filename)
-  (let ((a (temp-file-name)))
-    (unwind-protect
-         (to-file *gcd* a)
-      (multiple-value-bind (out err ret)
-          (shell "diff ~s ~a"
-                 (namestring (gcd-dir filename)) a)
-        (declare (ignorable out err))
-        (is (= 0 ret)))
-      (delete-file a))))
+  (with-temporary-file (:pathname a)
+    (to-file *gcd* a)
+    (is (cmd? "diff" (gcd-dir filename) a))))
 
 (deftest (idempotent-asm-heap-read-write-intel :long-running) ()
   (with-gcd-fixture gcd-asm-heap-intel
@@ -265,14 +249,9 @@
     (idempotent-asm-heap-read-write "gcd.s.att")))
 
 (defun idempotent-asm-heap-read-copy-write (filename)
-  (let ((a (temp-file-name)))
-    (unwind-protect
-         (to-file (copy *gcd*) a)
-      (multiple-value-bind (out err ret)
-          (shell "diff ~s ~a" (namestring (gcd-dir filename)) a)
-        (declare (ignorable out err))
-        (is (= 0 ret)))
-      (delete-file a))))
+  (with-temporary-file (:pathname a)
+    (to-file (copy *gcd*) a)
+    (is (cmd? "diff" (gcd-dir filename) a))))
 
 (deftest (idempotent-asm-heap-read-copy-write-intel :long-running) ()
   (with-gcd-fixture gcd-asm-heap-intel
