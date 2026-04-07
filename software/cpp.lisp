@@ -2325,7 +2325,8 @@ types."
 (defgeneric cpp:constructorp (ast)
   (:method ((ast t)) nil)
   (:method ((fn cpp-function-definition))
-    (no (cpp-type fn)))
+    (and (no (cpp-type fn))
+         (not (cpp:destructorp fn))))
   (:method ((decl cpp-declaration))
     ;; Only in a field declaration list?
     (unless (cpp-type decl)
