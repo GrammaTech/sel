@@ -8,12 +8,49 @@
         :software-evolution-library/software/string-clauses
         :software-evolution-library/software/c-cpp)
   (:export
+    :+access+
+    :+vf-declarator+
+    :+vf-name+
+    :+vf-param-types+
+    :+virtual+
     :absolute-name
+    :base-class-access
+    :base-class-alist
+    :base-class-names
+    :base-classes
+    :cached-namespace-qualified-name
+    :cached-qualified-names
+    :class-method-declarators
     :constructorp
+    :declared-function-name
+    :declared-virtual-p
     :derived-class-p
     :destructorp
+    :enumerator-rhs-type
+    :field-access
+    :field-method-declarators
+    :field-table-collect-properties
+    :field-table-with-inheritance
+    :field-virtual?
     :has-constructor-defined-p
-    :list-all-constructors))
+    :inherited-member-access
+    :initializer-list-field
+    :initializer-list-type
+    :list-all-constructors
+    :method-deleted-p
+    :multiple-inheritance
+    :out-of-class-function-definitions
+    :qualified-name->list
+    :qualified-names
+    :single-inheritance
+    :type-constructible-p
+    :virtual-declarator
+    :virtual-function-key
+    :virtual-method-definitions
+    :virtual-method-override-definitions
+    :virtual-method-overrides
+    :virtual-name
+    :virtual-param-types))
 
 (in-package :software-evolution-library/software/tree-sitter)
 (in-readtable :curry-compose-reader-macros)
@@ -1198,9 +1235,9 @@ from a prior sibling \(`public:', `private:', `protected:').")
 (defun protected? (ast)
   (eql :protected (member-access ast)))
 
-(define-field-key cpp::field-access cpp::+access+)
+(define-field-key cpp:field-access cpp:+access+)
 
-(define-field-key cpp::field-virtual? cpp::+virtual+)
+(define-field-key cpp:field-virtual? cpp:+virtual+)
 
 (defmethod type-aliasee ((typedef cpp-type-definition))
   (match typedef
@@ -1221,8 +1258,8 @@ from a prior sibling \(`public:', `private:', `protected:').")
     (field-table (car possible-types))
     (empty-symbol-table)))
 
-(-> cpp::inherited-member-access (member-access member-access) member-access)
-(defun cpp::inherited-member-access (as-inherited as-defined)
+(-> cpp:inherited-member-access (member-access member-access) member-access)
+(defun cpp:inherited-member-access (as-inherited as-defined)
   "Compute the final visibility of a member give how it is inherited in
 the derived class (AS-INHERITED) and how it is defined in the base
 class (AS-DEFINED)."
@@ -1252,7 +1289,7 @@ class (AS-DEFINED)."
        (find-if (of-type 'cpp-base-class-clause)
                 (children class))))
 
-(defun cpp::base-class-alist (class)
+(defun cpp:base-class-alist (class)
   "Return an alist from the base classes of CLASS to their
 qualifiers (public/private/protected/virtual). Maintain textual
 order."
@@ -1274,7 +1311,7 @@ order."
         (mapcar (op (cons (car _1) (nreverse (cdr _1))))
                 alist)))))
 
-(defun cpp::field-table-collect-properties (field-table)
+(defun cpp:field-table-collect-properties (field-table)
   "For all the fields in FIELD-TABLE, record properties (member access,
 virtuality) from class where they are declared."
   (labels ((field-ast-virtual? (field)
@@ -1285,18 +1322,18 @@ virtuality) from class where they are declared."
                                   'function-declaration-ast
                                   (attrs-root*)
                                   ast)))
-                      (cpp::declared-virtual-p decl)))))
+                      (cpp:declared-virtual-p decl)))))
            (collect-properties (field)
              (let* ((field
-                      (if (cpp::field-access field) field
+                      (if (cpp:field-access field) field
                           (let ((access
                                   (member-access
                                    (field-id field))))
-                            (cpp::field-access field access)))))
-               (if (nth-value 1 (cpp::field-virtual? field))
+                            (cpp:field-access field access)))))
+               (if (nth-value 1 (cpp:field-virtual? field))
                    field
                    (if (field-ast-virtual? field)
-                       (cpp::field-virtual? field t)
+                       (cpp:field-virtual? field t)
                        field)))))
     (iter (for (name fields) in-map field-table)
           (collect-map
@@ -1305,7 +1342,7 @@ virtuality) from class where they are declared."
 
 (defmethod direct-field-table :around ((ast cpp-ast))
   (when-let (map (call-next-method))
-    (cpp::field-table-collect-properties map)))
+    (cpp:field-table-collect-properties map)))
 
 ;;; TODO
 (defmethod direct-field-table ((ast cpp-type-parameter-declaration))
@@ -1315,7 +1352,7 @@ virtuality) from class where they are declared."
 (defmethod direct-field-table ((ast cpp-type-forward-declaration))
   (empty-symbol-table))
 
-(defun cpp::base-class-access (derived-class quals)
+(defun cpp:base-class-access (derived-class quals)
   "Determine the base class access based on DERIVED-CLASS and QUALIFIERS.
 QUALIFIERS could contain a public, private, or protected qualifier;
 otherwise use the default (public for a struct, private for a class)."
@@ -1336,7 +1373,7 @@ otherwise use the default (public for a struct, private for a class)."
                ((typep derived-class 'cpp-struct-specifier)
                 :public)))))))
 
-(defun cpp::single-inheritance (derived-field-table
+(defun cpp:single-inheritance (derived-field-table
                                 derived-class
                                 base-class
                                 quals)
@@ -1346,23 +1383,23 @@ DERIVED-CLASS shadow those of BASE-CLASS, except for overrides of
 virtual methods."
   (declare (fset:ch-map derived-field-table)
            (ast derived-class base-class))
-  (let ((base-access (cpp::base-class-access derived-class quals)))
+  (let ((base-access (cpp:base-class-access derived-class quals)))
     (labels ((field-private? (field)
                "Is FIELD defined as private."
-               (eql :private (@ field cpp::+access+)))
+               (eql :private (@ field cpp:+access+)))
              (field-virtual? (field)
                "Is FIELD defined as virtual?"
-               (@ field cpp::+virtual+))
+               (@ field cpp:+virtual+))
              (set-final-visibility (field)
                "Return a copy of FIELD with final visibility.
                 The final visibility is the combination of the field's
                 visibility where it was defined and the declared
                 visibility of the base class where it was inherited."
                (let ((final-visibility
-                       (cpp::inherited-member-access
+                       (cpp:inherited-member-access
                         base-access
-                        (@ field cpp::+access+))))
-                 (with field cpp::+access+ final-visibility)))
+                        (@ field cpp:+access+))))
+                 (with field cpp:+access+ final-visibility)))
              (filter-fields (base-fields)
                "Remove non-virtual private fields from BASE-FIELDS."
                (mapcar #'set-final-visibility
@@ -1376,7 +1413,7 @@ virtual methods."
              (mark-virtual (field)
                "Return a copy of FIELD marked as virtual."
                (if (field-virtual? field) field
-                   (with field cpp::+virtual+ t)))
+                   (with field cpp:+virtual+ t)))
              (update-derived-field-table (field-table key base-fields)
                "Add BASE-FIELDS into FIELD-TABLE under KEY."
                ;; C++ uses "name hiding": if a derived class specifies
@@ -1430,8 +1467,8 @@ virtual methods."
                        base-fields))
             (finally (return new-field-table))))))
 
-(-> cpp::multiple-inheritance (ast fset:ch-map) fset:ch-map)
-(defun cpp::multiple-inheritance (class field-table)
+(-> cpp:multiple-inheritance (ast fset:ch-map) fset:ch-map)
+(defun cpp:multiple-inheritance (class field-table)
   "Extend FIELD-TABLE with the members of all classes FIELD-TABLE
 inherits from."
   (restart-case
@@ -1442,7 +1479,7 @@ inherits from."
                          (progn
                            (dbg:note :debug "Class extends itself: ~a" class)
                            field-table)
-                         (cpp::single-inheritance field-table
+                         (cpp:single-inheritance field-table
                                                   class
                                                   base-class
                                                   quals))
@@ -1464,7 +1501,7 @@ inherits from."
                            base-class-specifiers
                            :initial-value field-table))
                  (inherit-from-base-classes (class field-table)
-                   (let ((base-class-alist (cpp::base-class-alist class)))
+                   (let ((base-class-alist (cpp:base-class-alist class)))
                      (cond ((no base-class-alist)
                             field-table)
                            ((has-attribute-p class 'symbol-table)
@@ -1477,13 +1514,13 @@ inherits from."
     (continue ()
       :report "Return base field table"
       (dbg:note :debug "Error in field table: ~a" class)
-      (return-from cpp::multiple-inheritance field-table))))
+      (return-from cpp:multiple-inheritance field-table))))
 
-(defun cpp::field-table-with-inheritance (class)
+(defun cpp:field-table-with-inheritance (class)
   "Return CLASS's field table, with inheritance if possible."
   (let ((direct-field-table (direct-field-table class)))
     (if (has-attribute-p class 'symbol-table)
-        (cpp::multiple-inheritance class direct-field-table)
+        (cpp:multiple-inheritance class direct-field-table)
         (progn
           (when (cpp:derived-class-p class)
             (dbg:lazy-note :debug
@@ -1492,10 +1529,10 @@ inherits from."
           direct-field-table))))
 
 (defmethod field-table ((struct cpp-struct-specifier))
-  (cpp::field-table-with-inheritance struct))
+  (cpp:field-table-with-inheritance struct))
 
 (defmethod field-table ((class cpp-class-specifier))
-  (cpp::field-table-with-inheritance class))
+  (cpp:field-table-with-inheritance class))
 
 (defmethod outer-declarations ((ast cpp-template-declaration))
   ;; TODO Store the template parameters somehow in the symbol table?
@@ -1558,7 +1595,7 @@ If ALIAS-NAME is null, alias the outer defs to unqualified names."
              (nest
               (let* ((ns-name (definition-name-ast decl))
                      (enclosing-namespace (namespace ns-name))
-                     (ns-prefix (string+ (cpp::absolute-name ns-name) "::"))
+                     (ns-prefix (string+ (cpp:absolute-name ns-name) "::"))
                      (alias-name (and alias-name (source-text alias-name)))
                      (outer-defs (outer-defs decl))))
               (labels ((shadow-ns-map (ns-map)
@@ -1803,7 +1840,7 @@ then the return type of the call is the return type of the field."
   (match ast
     ((cpp-qualified-identifier)
      (smart-pointer-type-arg
-      (lastcar (cpp::qualified-name->list ast))))
+      (lastcar (cpp:qualified-name->list ast))))
     ((cpp-template-type
       (cpp-name
        (cpp-type-identifier
@@ -1816,7 +1853,7 @@ then the return type of the call is the return type of the field."
 (defmethod deref-type ((type cpp-qualified-identifier))
   ;; TODO This needs to be generalized.
   (or (smart-pointer-type-arg type)
-      (let ((parts (cpp::qualified-name->list type)))
+      (let ((parts (cpp:qualified-name->list type)))
         (if (member (lastcar parts) '("iterator" "const_iterator")
                     :test #'source-text=)
             (resolve-container-element-type type)
@@ -1926,7 +1963,7 @@ then the return type of the call is the return type of the field."
     ;; Infer the type of a write to an ostream as an ostream.
     ("<<"
      (or (and-let* ((lhs-type (infer-type (lhs ast)))
-                    ((source-text= "std::ostream" (cpp::absolute-name lhs-type))))
+                    ((source-text= "std::ostream" (cpp:absolute-name lhs-type))))
            (make-proxy
             (make 'cpp-type-descriptor
                   :cpp-declarator
@@ -1987,7 +2024,7 @@ then the return type of the call is the return type of the field."
 (defmethod placeholder-type-p ((ast cpp-type-descriptor))
   (placeholder-type-p (cpp-type ast)))
 
-(defun cpp-enumerator-rhs-type (ast)
+(defun cpp:enumerator-rhs-type (ast)
   "If AST is the RHS of an enumerator, return the enumerator's underlying type."
   (let ((parent (lookup-parent-ast (attrs-root*) ast)))
     (and (typep parent 'cpp-enumerator)
@@ -1997,7 +2034,7 @@ then the return type of the call is the return type of the field."
                            (attrs-root*)
                            parent)))))
 
-(defun cpp-initializer-list-type (ast)
+(defun cpp:initializer-list-type (ast)
   "If AST is in an initializer list, infer its type from a constructor."
   (labels ((get-type-from-implicit-constructor (definition ast init-list)
              ;; It's possible not to be in the child list for an error node.
@@ -2103,9 +2140,9 @@ then the return type of the call is the return type of the field."
                             :ns :variable))))
            (infer-type field)))))))
 
-(defun cpp-initializer-list-field (ast)
+(defun cpp:initializer-list-field (ast)
   "If AST is in an initializer list, return the field it initializes."
-  (when-let (type (cpp-initializer-list-field ast))
+  (when-let (type (cpp:initializer-list-type ast))
     (find-enclosing 'cpp-field-declaration (attrs-root*) type)))
 
 (defun concrete-type-p (type)
@@ -2120,8 +2157,8 @@ then the return type of the call is the return type of the field."
   ;; Only return the expected type if it's concrete. Return a template
   ;; type here would interfere with template analysis.
   (or (when-let (expected-type
-                 (or (cpp-enumerator-rhs-type ast)
-                     (cpp-initializer-list-type ast)))
+                 (or (cpp:enumerator-rhs-type ast)
+                     (cpp:initializer-list-type ast)))
         (and (concrete-type-p expected-type)
              expected-type))
       (call-next-method)))
@@ -2214,8 +2251,8 @@ types."
                      (make-proxy (tree-copy field-type) field-type)))
                (make-proxy
                 (list->qualified-name
-                 (append (cpp::qualified-name->list new-arg-type)
-                         (cpp::qualified-name->list new-field-type)))
+                 (append (cpp:qualified-name->list new-arg-type)
+                         (cpp:qualified-name->list new-field-type)))
                 field-type))
              field-type)))
       (t
@@ -2254,7 +2291,7 @@ types."
                             (source-text
                              (list->qualified-name
                               (butlast
-                               (cpp::qualified-name->list id))))))
+                               (cpp:qualified-name->list id))))))
             (types
               (or (find-in-symbol-table fn :type query
                                            :symbol-table
@@ -2314,7 +2351,7 @@ types."
   (:method ((d cpp-function-declarator))
     (cpp:destructorp (declarator-name-ast d))))
 
-(define-synthesized-attribute cpp::out-of-class-function-definitions ()
+(define-synthesized-attribute cpp:out-of-class-function-definitions ()
   (:union-fn #'union)
   (:method ((ast cpp-function-definition))
     (if-let ((class (out-of-class-function-definition-class ast)))
@@ -2347,7 +2384,7 @@ types."
                   (children (cpp-body class))))
      (filter #'cpp:constructorp
              (lookup
-              (cpp::out-of-class-function-definitions
+              (cpp:out-of-class-function-definitions
                (attrs-root*))
               class)))))
 
@@ -2367,7 +2404,7 @@ This includes an explicitly defaulted constructor.")
                       (children (cpp-body type-ast))))
         (some #'cpp:constructorp
               (lookup
-               (cpp::out-of-class-function-definitions
+               (cpp:out-of-class-function-definitions
                 (attrs-root*))
                type-ast))))
   (:method ((type-ast c/cpp-type-definition))
@@ -2380,12 +2417,12 @@ This includes an explicitly defaulted constructor.")
       (unless (eql type-ast ast)
         (cpp:has-constructor-defined-p type-ast)))))
 
-(defun cpp::method-deleted-p (ast)
+(defun cpp:method-deleted-p (ast)
   (when (typep ast 'cpp-function-definition)
     (find-if (of-type 'cpp-delete-method-clause)
              ast)))
 
-(defgeneric cpp::type-constructible-p (type-ast)
+(defgeneric cpp:type-constructible-p (type-ast)
   (:documentation
    "Return T if TYPE-AST is a C++ class and has a non-deleted user-defined
 constructor OR a default constructor.")
@@ -2396,15 +2433,15 @@ constructor OR a default constructor.")
   (:method ((ast c/cpp-classoid-specifier))
     (let ((ctors (cpp:list-all-constructors ast)))
       (or (no ctors)
-          (notevery #'cpp::method-deleted-p ctors))))
+          (notevery #'cpp:method-deleted-p ctors))))
   (:method ((ast type-alias-ast))
     (if-let (aliasee (type-aliasee ast))
-      (cpp::type-constructible-p aliasee)
+      (cpp:type-constructible-p aliasee)
       (call-next-method)))
   (:method ((ast t))
     (when-let ((type-ast (get-declaration-ast :type ast)))
       (unless (eql type-ast ast)
-        (cpp::type-constructible-p type-ast)))))
+        (cpp:type-constructible-p type-ast)))))
 
 (defmethod infer-expression-type ((ast cpp-this) &aux (obj (attrs-root*)))
   (if-let (type-ast (find-enclosing 'type-declaration-ast obj ast))
@@ -2413,17 +2450,17 @@ constructor OR a default constructor.")
     (when-let (fn (find-enclosing 'cpp-function-definition obj ast))
       (out-of-class-function-definition-class fn))))
 
-(defgeneric cpp::qualified-name->list (ast)
+(defgeneric cpp:qualified-name->list (ast)
   ;; TODO Qualified type and field identifiers.
   (:method ((ast cpp-ast))
     (list ast))
   (:method ((ast cpp-qualified-identifier))
     (cons (cpp-scope ast)
-          (cpp::qualified-name->list (cpp-name ast))))
+          (cpp:qualified-name->list (cpp-name ast))))
   (:method ((ast cpp-dependent-type))
     ;; "The keyword typename may only be used in this way before
     ;; qualified names (e.g. T::x)."
-    (mappend #'cpp::qualified-name->list
+    (mappend #'cpp:qualified-name->list
              (children ast))))
 
 (define-condition unqualifiable-ast-error (error)
@@ -2814,7 +2851,7 @@ instance we only want to remove one).")
       (if-let (body (cpp-body ast))
         (exception-set body)
         +exception-bottom-type+)))
-    ((cpp::virtual-method-definitions ast)
+    ((cpp:virtual-method-definitions ast)
      (reduce #'exception-set-union
              (remove ast found)
              :key #'exception-set
@@ -3270,7 +3307,7 @@ multiple locations.")
   "Override to prevent namespacing primitive types."
   (source-text type))
 
-(def-attr-fun cpp::cached-namespace-qualified-name (name)
+(def-attr-fun cpp:cached-namespace-qualified-name (name)
   (:documentation "Attribute to cache namespace-qualified names.")
   (:circular #'equal (constantly nil))
   (:method ((ast cpp-ast) &optional name)
@@ -3289,14 +3326,14 @@ multiple locations.")
           ;; Don't trust the cache until the symbol table has been
           ;; computed.
           ((and (has-attribute-p ast 'symbol-table)
-                (has-attribute-p ast 'cpp::cached-namespace-qualified-name))
-           (cpp::cached-namespace-qualified-name ast))
+                (has-attribute-p ast 'cpp:cached-namespace-qualified-name))
+           (cpp:cached-namespace-qualified-name ast))
           (t
-           (cpp::cached-namespace-qualified-name
+           (cpp:cached-namespace-qualified-name
             ast
             (call-next-method))))))
 
-(defgeneric cpp::absolute-name (ast &key source-text)
+(defgeneric cpp:absolute-name (ast &key source-text)
   (:documentation
    "Resolve AST into an absolute (relative to global namespace) name.")
   (:method ((ast cpp-primitive-type) &key (source-text (source-text ast)))
@@ -3331,7 +3368,7 @@ multiple locations.")
              (or (declarator-name declared-ast)
                  (source-text-take 2048 declared-ast)))
            (qualify-declared-ast-name (declared-ast)
-             (cpp::absolute-name
+             (cpp:absolute-name
               declared-ast
               :source-text
               (enough-source-text declared-ast))))
@@ -3346,13 +3383,13 @@ multiple locations.")
 (defmethod qualify-declared-ast-name ((id cpp-namespace-identifier))
   (qualify-declared-ast-name/namespaces id))
 
-(def-attr-fun cpp::cached-qualified-names (names)
+(def-attr-fun cpp:cached-qualified-names (names)
   (:documentation "Attribute to cache all the suffixes of a qualified name.")
   (:circular #'equal (constantly nil))
   (:method ((ast cpp-ast) &optional names)
     names))
 
-(defgeneric cpp::qualified-names (ast)
+(defgeneric cpp:qualified-names (ast)
   (:documentation
    "Return all the in-scope qualified names we might look AST up under.
 For example, x::y::z in:
@@ -3370,10 +3407,10 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
           ;; Don't trust the cache until the symbol table has been
           ;; computed.
           ((and (has-attribute-p ast 'symbol-table)
-                (has-attribute-p ast 'cpp::cached-qualified-names))
-           (cpp::cached-qualified-names ast))
+                (has-attribute-p ast 'cpp:cached-qualified-names))
+           (cpp:cached-qualified-names ast))
           (t
-           (cpp::cached-qualified-names
+           (cpp:cached-qualified-names
             ast
             (call-next-method)))))
   (:method ((declared-ast cpp-ast))
@@ -3386,7 +3423,7 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 (defmethod qualify-declared-ast-names-for-lookup ((declared-ast cpp-ast))
   "E.g. x::y::z becomes `'(\"x::y::z\", \"y::z\", \"z\")'."
-  (cpp::qualified-names declared-ast))
+  (cpp:qualified-names declared-ast))
 
 (defmethod qualify-declared-ast-name ((id cpp-type-identifier))
   (or (and-let* ((type (find-enclosing 'type-declaration-ast (attrs-root*) id))
@@ -3426,16 +3463,16 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 ;;; Inheritance.
 
-(-> cpp::base-class-names (c/cpp-classoid-specifier)
+(-> cpp:base-class-names (c/cpp-classoid-specifier)
     (soft-list-of type-ast))
-(defun cpp::base-class-names (struct)
+(defun cpp:base-class-names (struct)
   "Return a list of the name (ASTs) of the base classes of STRUCT."
   (when-let* ((base-class-clause
                (find-if (of-type 'cpp-base-class-clause) struct)))
     (filter (of-type 'type-ast)
             (children base-class-clause))))
 
-(defun cpp::base-classes (derived-class)
+(defun cpp:base-classes (derived-class)
   "Base classes of a class."
   (filter-map
    (lambda (base-class-name)
@@ -3445,10 +3482,10 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
           "Missing base class ~a for ~a"
           (source-text base-class-name)
           (definition-name derived-class))))
-   (cpp::base-class-names derived-class)))
+   (cpp:base-class-names derived-class)))
 
 (defmethod inheritance-graph ((class c/cpp-classoid-specifier))
-  (let* ((superclasses (cpp::base-classes class))
+  (let* ((superclasses (cpp:base-classes class))
          (map (empty-ch-map)))
     ;; Record the base classes of CLASS.
     (withf map
@@ -3473,18 +3510,18 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 ;;; Virtual functions
 
-(defun cpp::virtual-method-overrides (method)
+(defun cpp:virtual-method-overrides (method)
   (when-let* ((class (find-enclosing 'class-ast (attrs-root*) method))
               (virtuals (virtual-functions class))
-              (decls (cpp::field-method-declarators method)))
+              (decls (cpp:field-method-declarators method)))
     (when (subsetp decls virtuals)
-      (let ((keys (filter-map #'cpp::virtual-function-key decls)))
+      (let ((keys (filter-map #'cpp:virtual-function-key decls)))
         (iter outer
               (for subclass in (subclasses class))
               (for overrides = (nth-value 1 (virtual-functions subclass)))
               (iter (for override in overrides)
                     (for override-key
-                         = (cpp::virtual-function-key override))
+                         = (cpp:virtual-function-key override))
                     (when (and override-key
                                (member override-key keys :test #'equal?))
                       (in outer (collecting override)))))))))
@@ -3502,14 +3539,14 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
   (:method ((class c/cpp-classoid-specifier) (name-ast cpp-ast))
     (when-let* ((out-of-class-defs
                  (lookup
-                  (cpp::out-of-class-function-definitions (attrs-root*))
+                  (cpp:out-of-class-function-definitions (attrs-root*))
                   class)))
-      (find (cpp::absolute-name name-ast)
+      (find (cpp:absolute-name name-ast)
             out-of-class-defs
-            :key (op (cpp::absolute-name (definition-name-ast _)))
+            :key (op (cpp:absolute-name (definition-name-ast _)))
             :test #'equal))))
 
-(defun cpp::virtual-method-override-definitions (virtual-method)
+(defun cpp:virtual-method-override-definitions (virtual-method)
   "Return the definitions of any overrides of VIRTUAL-METHOD."
   (labels ((lookup-override-definition (override)
              (when-let*
@@ -3520,7 +3557,7 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
                 class
                 (declarator-name-ast override)))))
     (iter
-      (for override in (cpp::virtual-method-overrides virtual-method))
+      (for override in (cpp:virtual-method-overrides virtual-method))
       (if-let (fn (or (find-enclosing 'cpp-function-definition
                                       (attrs-root*)
                                       override)
@@ -3533,7 +3570,7 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
 
 (defun cpp-declaration-virtual-method-definitions (virtual-method)
   (let ((overrides
-          (cpp::virtual-method-override-definitions virtual-method)))
+          (cpp:virtual-method-override-definitions virtual-method)))
     ;; The virtual method is pure, but it might still
     ;; have an out of class definition.
     (if-let* ((name
@@ -3548,16 +3585,16 @@ Would have the qualified names \"x::y::z\", \"y::z\", and \"z\".")
       (cons definition overrides)
       overrides)))
 
-(defgeneric cpp::virtual-method-definitions (virtual-method)
+(defgeneric cpp:virtual-method-definitions (virtual-method)
   (:documentation
    "Collect all definitions of VIRTUAL-METHOD.
-This differs from `cpp::virtual-method-override-definitions' in that
+This differs from `cpp:virtual-method-override-definitions' in that
 it includes VIRTUAL-METHOD itself, if it is a definition, or, if
 VIRTUAL-METHOD is a pure virtual method declaration, then its
 out-of-class definition, assuming it has one.")
   (:method ((virtual-method cpp-function-definition))
     (cons virtual-method
-          (cpp::virtual-method-override-definitions virtual-method)))
+          (cpp:virtual-method-override-definitions virtual-method)))
   ;; The virtual method is pure.
   (:method ((virtual-method cpp-field-declaration))
     (cpp-declaration-virtual-method-definitions virtual-method))
@@ -3567,27 +3604,27 @@ out-of-class definition, assuming it has one.")
 (defmethod c/cpp-function-declaration-definitions-table ((ast cpp-ast))
   "If AST is a virtual function declaration, collect its overrides as its
 definitions."
-  (if (cpp::declared-virtual-p ast)
-      (ch-map (ast (convert 'ch-set (cpp::virtual-method-definitions ast))))
+  (if (cpp:declared-virtual-p ast)
+      (ch-map (ast (convert 'ch-set (cpp:virtual-method-definitions ast))))
       (call-next-method)))
 
-(defun cpp::declared-virtual-p (ast)
+(defun cpp:declared-virtual-p (ast)
   "Is AST declared virtual?"
   (typecase ast
     (cpp-function-declarator
-     (cpp::declared-virtual-p (lookup-parent-ast (attrs-root*) ast)))
+     (cpp:declared-virtual-p (lookup-parent-ast (attrs-root*) ast)))
     (t (find-if (of-type 'cpp-virtual)
                 (slot-value-safe ast 'cpp-pre-specifiers)))))
 
-(define-tuple-accessor cpp::virtual-name
-  cpp::+vf-name+)
-(define-tuple-accessor cpp::virtual-param-types
-  cpp::+vf-param-types+)
-(define-tuple-accessor cpp::virtual-declarator
-  cpp::+vf-declarator+)
+(define-tuple-accessor cpp:virtual-name
+  cpp:+vf-name+)
+(define-tuple-accessor cpp:virtual-param-types
+  cpp:+vf-param-types+)
+(define-tuple-accessor cpp:virtual-declarator
+  cpp:+vf-declarator+)
 
 ;;; TODO cv-qualifiers and ref-qualifiers
-(defgeneric cpp::virtual-function-key (ast)
+(defgeneric cpp:virtual-function-key (ast)
   (:documentation "Extract the virtual function key from AST.
 The virtual function AST contains the information necessary to
 determine if a definition overrides a virtual method.")
@@ -3595,29 +3632,29 @@ determine if a definition overrides a virtual method.")
     (warn "Unsupported virtual function key: ~a" ast)
     nil)
   (:method ((fn cpp-function-definition))
-    (cpp::virtual-function-key (cpp-declarator fn)))
+    (cpp:virtual-function-key (cpp-declarator fn)))
   (:method ((decl cpp-declaration))
     (let ((fn-decl (only-elt (cpp-declarator decl))))
-      (cpp::virtual-function-key fn-decl)))
+      (cpp:virtual-function-key fn-decl)))
   (:method ((decl cpp-field-declaration))
     (let ((fn-decl (only-elt (cpp-declarator decl))))
-      (cpp::virtual-function-key fn-decl)))
+      (cpp:virtual-function-key fn-decl)))
   (:method ((decl cpp-function-declarator))
     (fset:tuple
      ;; TODO Why source-text?
-     (cpp::+vf-name+
+     (cpp:+vf-name+
       (let ((dc (cpp-declarator decl)))
         ;; The names are different for destructors, but there's only
         ;; one per class.
         (if (typep dc 'cpp-destructor-name)
             :destructor
             (source-text dc))))
-     (cpp::+vf-param-types+
+     (cpp:+vf-param-types+
       (mapcar #'cpp-type (direct-children (cpp-parameters decl))))))
   (:method ((decl cpp-reference-declarator))
-    (cpp::virtual-function-key (only-elt (direct-children decl))))
+    (cpp:virtual-function-key (only-elt (direct-children decl))))
   (:method ((decl cpp-pointer-declarator))
-    (cpp::virtual-function-key (cpp-declarator decl)))
+    (cpp:virtual-function-key (cpp-declarator decl)))
   (:method ((ast cpp-operator-cast))
     "Handle operator methods."
     ;; In some cases operator method definitions get parsed as casts.
@@ -3628,8 +3665,8 @@ determine if a definition overrides a virtual method.")
         (cpp-abstract-function-declarator
          :cpp-parameters params))
        (fset:tuple
-        (cpp::+vf-name+ (fmt "operator ~a" (source-text type)))
-        (cpp::+vf-param-types+
+        (cpp:+vf-name+ (fmt "operator ~a" (source-text type)))
+        (cpp:+vf-param-types+
          (mapcar #'cpp-type (direct-children params)))))
       ((cpp-operator-cast
         :cpp-declarator
@@ -3638,8 +3675,8 @@ determine if a definition overrides a virtual method.")
          (cpp-abstract-function-declarator
           :cpp-parameters params)))
        (fset:tuple
-        (cpp::+vf-name+ "operator*")
-        (cpp::+vf-param-types+
+        (cpp:+vf-name+ "operator*")
+        (cpp:+vf-param-types+
          (mapcar #'cpp-type (direct-children params)))))
       ((cpp-operator-cast
         :cpp-type type
@@ -3649,14 +3686,14 @@ determine if a definition overrides a virtual method.")
            (fail))
          (warn "Unsupported operator ~a" type)
          (fset:tuple
-          (cpp::+vf-name+ (fmt "operator ~a" (source-text type)))
-          (cpp::+vf-param-types+
+          (cpp:+vf-name+ (fmt "operator ~a" (source-text type)))
+          (cpp:+vf-param-types+
            (mapcar #'cpp-type (direct-children (cpp-parameters fn)))))))
       (otherwise
        (call-next-method)))))
 
-(-> cpp::declared-function-name (cpp-ast) (or null cpp-ast))
-(defun cpp::declared-function-name (ast)
+(-> cpp:declared-function-name (cpp-ast) (or null cpp-ast))
+(defun cpp:declared-function-name (ast)
   "If AST declares a function, return its name."
   (and (or (typep ast 'cpp-function-definition)
            (typep ast 'cpp-function-declarator)
@@ -3666,7 +3703,7 @@ determine if a definition overrides a virtual method.")
        (or (definition-name-ast ast)
            (declarator-name-ast ast))))
 
-(defun cpp::field-method-declarators (field)
+(defun cpp:field-method-declarators (field)
   (typecase field
     (cpp-function-definition
      (list (cpp-declarator field)))
@@ -3675,25 +3712,25 @@ determine if a definition overrides a virtual method.")
              (cpp-declarator field)))
     (t nil)))
 
-(defun cpp::class-method-declarators (class)
+(defun cpp:class-method-declarators (class)
   (when-let ((body (cpp-body class)))
-    (mappend #'cpp::field-method-declarators
+    (mappend #'cpp:field-method-declarators
              (direct-children body))))
 
 (defmethod virtual-functions ((class c/cpp-classoid-specifier))
   (let* ((virtuals-set
            (iter (for v in (inherited-virtual-functions class))
-                 (when-let (key (cpp::virtual-function-key v))
+                 (when-let (key (cpp:virtual-function-key v))
                    (set-collect key))))
          (declarators
-           (cpp::class-method-declarators class))
+           (cpp:class-method-declarators class))
          (methods
            (filter #'declarator-name-ast declarators))
          (declared-virtual
-           (filter #'cpp::declared-virtual-p methods))
+           (filter #'cpp:declared-virtual-p methods))
          (overrides
            (filter (op (lookup virtuals-set
-                               (cpp::virtual-function-key _)))
+                               (cpp:virtual-function-key _)))
                    methods)))
     (values
      (stable-set-difference declared-virtual overrides)

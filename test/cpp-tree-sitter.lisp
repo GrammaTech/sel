@@ -2139,9 +2139,9 @@ using foo_t = Foo;")))
   (let ((cpp (cpp* "typedef Foo foo;")))
     (is (typep cpp 'type-alias-ast))
     (with-attr-table cpp
-      (finishes (cpp::list-all-constructors cpp))
-      (finishes (cpp::type-constructible-p cpp))
-      (finishes (cpp::has-constructor-defined-p cpp)))))
+      (finishes (cpp:list-all-constructors cpp))
+      (finishes (cpp:type-constructible-p cpp))
+      (finishes (cpp:has-constructor-defined-p cpp)))))
 
 (deftest test-template-call-specializations ()
   "Template function calls should be assigned to the proper template."
@@ -2242,7 +2242,7 @@ int MyClass::myfun() {
     (is (not (ancestor-of-p cpp fn class)))
     (with-attr-table cpp
       (is (eql class (ts::out-of-class-function-definition-class fn)))
-      (is (member fn (lookup (cpp::out-of-class-function-definitions cpp)
+      (is (member fn (lookup (cpp:out-of-class-function-definitions cpp)
                              class))))))
 
 (deftest test-out-of-class-definitions-have-members-in-scope ()
@@ -2297,9 +2297,9 @@ auto x = S(1);")))
   (let ((cpp (cpp* "class X {}")))
     (with-attr-table cpp
       ;; The type is constructible.
-      (is (cpp::type-constructible-p cpp))
+      (is (cpp:type-constructible-p cpp))
       ;; But the type does not have an observable constructor.
-      (is (not (cpp::has-constructor-defined-p cpp))))))
+      (is (not (cpp:has-constructor-defined-p cpp))))))
 
 (deftest test-default-constructor/implicitly-declared-explicitly-defined ()
   "A type with an implicitly declared, explicitly default constructor is
@@ -2309,19 +2309,19 @@ X::X() {}"))
          (class (is (find-if (of-type 'cpp-class-specifier) cpp))))
     (with-attr-table cpp
       ;; The type is constructible.
-      (is (cpp::type-constructible-p class))
+      (is (cpp:type-constructible-p class))
       ;; The type has one observable constructor.
-      (is (cpp::has-constructor-defined-p class))
+      (is (cpp:has-constructor-defined-p class))
       ;; The type has observable constructors.
-      (is (cpp::list-all-constructors class)))))
+      (is (cpp:list-all-constructors class)))))
 
 (deftest test-default-constructor/explicitly-declared-implicitly-defined ()
   "An explicitly declared, implicitly defined constructor is analyzed."
   (let* ((class (cpp* "class X { X(); }")))
     (with-attr-table class
-      (is (cpp::type-constructible-p class))
-      (is (cpp::has-constructor-defined-p class))
-      (is (cpp::list-all-constructors class)))))
+      (is (cpp:type-constructible-p class))
+      (is (cpp:has-constructor-defined-p class))
+      (is (cpp:list-all-constructors class)))))
 
 (deftest test-deleted-constructor ()
   "A deleted constructor is analyzed."
@@ -2329,9 +2329,9 @@ X::X() {}"))
     MyClass() = delete;
 }")))
     (with-attr-table class
-      (is (single (cpp::list-all-constructors class)))
-      (is (not (cpp::type-constructible-p class)))
-      (is (cpp::has-constructor-defined-p class)))))
+      (is (single (cpp:list-all-constructors class)))
+      (is (not (cpp:type-constructible-p class)))
+      (is (cpp:has-constructor-defined-p class)))))
 
 (deftest test-explicitly-defaulted-constructor ()
   "An explicitly defaulted constructor is analyzed."
@@ -2339,9 +2339,9 @@ X::X() {}"))
     MyClass() = default;
 }")))
     (with-attr-table class
-      (is (single (cpp::list-all-constructors class)))
-      (is (cpp::type-constructible-p class))
-      (is (cpp::has-constructor-defined-p class)))))
+      (is (single (cpp:list-all-constructors class)))
+      (is (cpp:type-constructible-p class))
+      (is (cpp:has-constructor-defined-p class)))))
 
 (deftest test-alias-constructors ()
   "Aliases should be transparent for constructor analysis."
@@ -2356,11 +2356,11 @@ using MyclassAlias = MyClass;
          (typedef (is (find-if (of-type 'cpp-type-definition) cpp)))
          (alias (is (find-if (of-type 'cpp-alias-declaration) cpp))))
     (with-attr-table cpp
-      (is (single (cpp::list-all-constructors class)))
+      (is (single (cpp:list-all-constructors class)))
       (is (equal*
-           (cpp::list-all-constructors class)
-           (cpp::list-all-constructors typedef)
-           (cpp::list-all-constructors alias))))))
+           (cpp:list-all-constructors class)
+           (cpp:list-all-constructors typedef)
+           (cpp:list-all-constructors alias))))))
 
 (deftest test-nullptr-type ()
   "We should be able to infer the type of nullptr whether or not cstddef
@@ -2494,7 +2494,7 @@ int main() {
         (symbol-table cout)
         (is (get-declaration-ast :variable cout))
         (is (source-text= "std::ostream"
-                          (cpp::absolute-name
+                          (cpp:absolute-name
                            (infer-type cout))))))))
 
 (deftest test-infer-ostream-type ()
@@ -2754,7 +2754,7 @@ public:
   (is (equal "::ns::x"
              (source-text
               (ts::list->qualified-name
-               (cpp::qualified-name->list
+               (cpp:qualified-name->list
                 (cpp* "::ns::x")))))))
 
 (deftest qualified-names-from-dependent-types ()
@@ -2762,7 +2762,7 @@ public:
   (let ((cpp (cpp* "typename iterator_type::value m_type")))
     (is (equal '("iterator_type" "value")
                (mapcar #'source-text
-                       (cpp::qualified-name->list
+                       (cpp:qualified-name->list
                         (cpp-type cpp)))))))
 
 (deftest test-qualified-template-type ()
@@ -2770,7 +2770,7 @@ public:
   (let ((cpp (cpp* "internal::MatcherCastImpl<T, M>::Cast")))
     (is (equal? cpp
                (ts::list->qualified-name
-                (cpp::qualified-name->list
+                (cpp:qualified-name->list
                  cpp))))))
 
 (deftest test-namespace-definition-visibility ()
@@ -3824,7 +3824,7 @@ class Unrelated {};"))))
         (is (null (subclasses derived2)))))))
 
 (defun declared-function-names (fns)
-  (mapcar (op (source-text (cpp::declared-function-name _)))
+  (mapcar (op (source-text (cpp:declared-function-name _)))
           fns))
 
 (deftest test-pure-virtual-function ()
@@ -4040,8 +4040,8 @@ class Unrelated {};"))))
     (with-attr-table cpp
       (is (member (only-elt (cpp-declarator destructor))
                   (virtual-functions class)))
-      (is (single (cpp::virtual-method-overrides destructor)))
-      (is (length= (cpp::virtual-method-definitions destructor) 2)))))
+      (is (single (cpp:virtual-method-overrides destructor)))
+      (is (length= (cpp:virtual-method-definitions destructor) 2)))))
 
 (deftest test-symbol-table-namespace-alias ()
   "Test namespace aliases are added to the symbol table.
