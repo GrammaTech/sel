@@ -1878,6 +1878,14 @@ unqualified."
         (is (null (field-table-lookup ft "x" :ns nil)))
         (is (null (field-table-lookup ft "inc" :ns nil)))))))
 
+(deftest test-field-table-pointer-function-namespace ()
+  "Test that declarations of functions returning pointers get added to
+the right namespace."
+  (with-attr-table (cpp* "struct S { int* f(); }")
+    (is (field-table-lookup (field-table (attrs-root*))
+                            "f"
+                            :ns :function))))
+
 (deftest test-field-table-ids-by-ns ()
   "Test we can filter field table IDs by namespace."
   (let* ((cpp (cpp* "struct inc {
