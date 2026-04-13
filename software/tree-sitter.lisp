@@ -527,7 +527,9 @@
            :parameters-ast
            :declaration-ast
            :variable-declaration-ast
+           :variable-declaration-p
            :function-declaration-ast
+           :function-declaration-p
            :type-declaration-ast
            :macro-declaration-ast
            :variable-initialization-ast

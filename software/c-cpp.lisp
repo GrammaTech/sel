@@ -1049,6 +1049,18 @@ circular dependencies."
                 (identifiers ast)
                 :key #'relevant-declaration-type)))
 
+(defmethod function-declaration-p :around ((ast c/cpp-ast))
+  (or (call-next-method)
+      (and (typep ast '(or c/cpp-declaration c/cpp-field-declaration))
+           (some (of-type 'c/cpp-function-declarator)
+                 (c/cpp-declarator ast)))))
+
+(defmethod variable-declaration-p :around ((ast c/cpp-ast))
+  (or (call-next-method)
+      (and (typep ast '(or c/cpp-declaration c/cpp-field-declaration))
+           (some (of-type '(not c/cpp-function-declarator))
+                   (c/cpp-declarator ast)))))
+
 (defmethod find-enclosing-declaration :around (type
                                                root
                                                (id c/cpp-field-identifier))
@@ -1293,7 +1305,7 @@ There can be multiple classes if FIELD occurs in a template."
   (or (call-next-method)
       (when-let* ((id (get-declaration-id :variable ast))
                   (decl
-                   (find-enclosing 'variable-declaration-ast obj id)))
+                   (find-enclosing #'variable-declaration-p obj id)))
         (let ((id-text (source-text id)))
           (find-following
            (lambda (ast)

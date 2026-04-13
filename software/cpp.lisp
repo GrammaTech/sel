@@ -3057,6 +3057,14 @@ set of possible concrete specializations of that type."
      (op (find-enclosing-declaration :type root _))
      (possible-types type))))
 
+(defmethod variable-declaration-p :around ((ast cpp-ast))
+  (or (call-next-method)
+      (when-let* (for-range-loop
+                  (find-enclosing 'cpp-for-range-loop
+                                  (attrs-root*)
+                                  ast))
+        (eql ast (cpp-declarator for-range-loop)))))
+
 (defmethod find-enclosing-declaration ((type (eql 'function-declaration-ast))
                                        root
                                        (id cpp-destructor-name))
@@ -3087,18 +3095,11 @@ set of possible concrete specializations of that type."
                                        root
                                        (id cpp-identifier))
   (or (call-next-method)
-      ;; Special handles for for-range-loop.
+      ;; Special handling for for-range-loop.
       (and-let* ((for-range-loop (find-enclosing 'cpp-for-range-loop root id))
                  ((find id (cpp-declarator for-range-loop))))
         (cpp-declarator for-range-loop))))
 
-(defmethod find-enclosing-declaration ((type (eql 'variable-declaration-ast))
-                                       root
-                                       (id cpp-identifier))
-  (or (call-next-method)
-      (and-let* ((for-range-loop (find-enclosing 'cpp-for-range-loop root id))
-                 ((find id (cpp-declarator for-range-loop))))
-        (cpp-declarator for-range-loop))))
 (defmethod entry-control-flow ((ast cpp-for-range-loop))
   "Control flow in a range loop flows to the thing being looped over."
   (list (cpp-right ast)))

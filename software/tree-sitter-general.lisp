@@ -1292,7 +1292,7 @@ initialization to be separate."
     (iter (for id in (identifiers ast))
           (when (subtypep (relevant-declaration-type id)
                           'variable-declaration-ast)
-            (when (some (op (typep _ 'variable-declaration-ast))
+            (when (some #'variable-declaration-p
                         (get-declaration-asts :variable id))
               (dolist (id (get-declaration-ids :variable id))
                 (set-collect (assure ast id) into ids))))

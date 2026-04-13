@@ -3764,6 +3764,10 @@ not declarations)."))
   (defclass function-declaration-ast (function-ast declaration-ast) ()
     (:documentation "Mix-in for AST classes that are function declarations."))
 
+  (defgeneric function-declaration-p (ast)
+    (:method ((ast t)) nil)
+    (:method ((ast function-declaration-ast)) t))
+
   (defclass lambda-ast (function-ast) ()
     (:documentation "Mix-in for AST classes that are lambdas."))
 
@@ -3775,6 +3779,10 @@ not declarations)."))
 
   (defclass variable-declaration-ast (declaration-ast) ()
     (:documentation "Mix-in for AST classes that are variable declarations."))
+
+  (defgeneric variable-declaration-p (ast)
+    (:method ((ast t)) nil)
+    (:method ((ast variable-declaration-ast)) t))
 
   (defclass variable-initialization-ast (variable-declaration-ast) ()
     (:documentation "Mix-in for AST classes that are variable initializers."))
