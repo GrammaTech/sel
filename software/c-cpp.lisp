@@ -886,6 +886,8 @@ circular dependencies."
   (match (c/cpp-declarator ast)
     ((list (and init (c/cpp-init-declarator)))
      (wrap-type-descriptor (lhs init) (c/cpp-type ast)))
+    ((list (and decl (not (identifier-ast))))
+     (wrap-type-descriptor decl (c/cpp-type ast)))
     (otherwise (c/cpp-type ast))))
 
 (defmethod field-name-asts ((ast c/cpp-field-declaration))
@@ -1512,7 +1514,7 @@ appears as a return statement is assumed to be the type of the function."
     (t (call-next-method))))
 
 (defmethod expression-type ((ast c/cpp-declaration))
-  (c/cpp-type ast))
+  (declaration-type ast))
 
 (defmethod resolve-declaration-type ((decl c/cpp-function-declarator)
                                      (ast t)

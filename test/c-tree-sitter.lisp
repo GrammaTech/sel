@@ -846,6 +846,14 @@ unknown."
                 (with-attr-table c
                   (infer-type c)))))))
 
+(deftest test-uninitialized-declaration-types ()
+  "Uninitialized pointer and array declarations should be appropriately typed."
+  (flet ((infer-type* (s)
+           (with-attr-table (c* s)
+             (infer-type (attrs-root*)))))
+    (is (equal (source-text (infer-type* "int x[];")) "int[]"))
+    (is (equal (source-text (infer-type* "int* x;")) "int*"))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
