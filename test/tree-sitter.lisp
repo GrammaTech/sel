@@ -254,6 +254,17 @@ root AST."
                            (:right . ,two))))
                "2+2"))))
 
+(deftest test-nil-in-spec ()
+  "Nil in specs should be allowed."
+  (c* "if (x) {}")
+  (convert 'c-ast
+           `((:class . :if-statement)
+             (:alternative . nil)
+             (:condition
+              (:class . :parenthesized-expression)
+              (:children ((:class . :identifier) (:text . "x"))))
+             (:consequence (:class . :compound-statement)))))
+
 
 ;;; Mutations
 #+ignore

@@ -3922,9 +3922,11 @@ the indentation slots."
   "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
 correct class name for subclasses of SUPERCLASS."
   (declare (optimize (speed 3)))
-  (when (typep spec 'ast)
+  (when  (typep spec '(or null ast))
     (return-from convert-spec spec))
-  (lret* ((class (aget :class spec))
+  (lret* ((class
+           (or (aget :class spec)
+               (error "No class in spec: ~s" spec)))
           (instance
            (if (eq :text-fragment class)
                (make 'text-fragment)
