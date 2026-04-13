@@ -2751,19 +2751,7 @@ instance we only want to remove one).")
 (defmethod initializer-aliasee ((sw t) (lhs cpp-reference-declarator) rhs)
   (aliasee rhs))
 
-(defmethod wrap-type-descriptor ((d cpp-pointer-declarator) type)
-  (make 'cpp-type-descriptor
-        :cpp-declarator (make 'cpp-abstract-pointer-declarator)
-        :cpp-type type))
-
-(defmethod wrap-type-descriptor ((d cpp-array-declarator) type)
-  (make 'cpp-type-descriptor
-        :cpp-declarator (make 'cpp-abstract-array-declarator
-                              :cpp-size (cpp-size d))
-        :cpp-type type))
-
 (defmethod wrap-type-descriptor ((d cpp-reference-declarator) type)
-  ;; type
   (make 'cpp-type-descriptor
         :cpp-declarator
         (make 'cpp-abstract-reference-declarator

@@ -1556,6 +1556,29 @@ appears as a return statement is assumed to be the type of the function."
   (:method ((d c/cpp-init-declarator) type)
     (wrap-type-descriptor (c/cpp-declarator d) type)))
 
+(defmethod wrap-type-descriptor ((d c/cpp-pointer-declarator) type)
+  (convert (ast-language-ast-class d)
+           `((:class . :type-descriptor)
+             (:declarator
+              (:class . :abstract-pointer-declarator))
+             (:type . ,type))))
+
+(defmethod wrap-type-descriptor ((d c/cpp-array-declarator) type)
+  (convert (ast-language-ast-class d)
+           `((:class . :type-descriptor)
+             (:declarator
+              (:class . :abstract-array-declarator)
+              ,@(and (c/cpp-size d) `((:size . ,(c/cpp-size d)))))
+             (:type . ,type))))
+
+(defmethod wrap-type-descriptor ((d c/cpp-function-declarator) type)
+  (convert (ast-language-ast-class d)
+           `((:class . :type-descriptor)
+             (:declarator
+              (:class . :abstract-function-declarator)
+              (:parameters . ,(tree-copy (c/cpp-parameters d))))
+             (:type . ,type))))
+
 (defmethod resolve-declaration-type ((decl c/cpp-init-declarator)
                                      (ast c/cpp-identifier))
   (if-let (outer-decl (find-enclosing 'c/cpp-declaration (attrs-root*) decl))

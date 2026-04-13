@@ -365,17 +365,6 @@ recursively resolve that struct."
 (defmethod get-declaration-ids ((ns (eql :tag)) (ast c-tag-specifier))
   (get-declaration-ids :tag (c-name ast)))
 
-(defmethod wrap-type-descriptor ((d c-pointer-declarator) type)
-  (make 'c-type-descriptor
-        :c-declarator (make 'c-abstract-pointer-declarator)
-        :c-type type))
-
-(defmethod wrap-type-descriptor ((d c-array-declarator) type)
-  (make 'c-type-descriptor
-        :c-declarator (make 'c-abstract-array-declarator
-                            :c-size (c-size d))
-        :c-type type))
-
 
 ;;; Symbol Table
 
