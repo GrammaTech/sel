@@ -1434,8 +1434,12 @@ by providing a `:union-fn` option."
     (reduce (lambda (map assignee)
               (with map assignee (cons assigner (lookup map assignee))))
             (mappend (lambda (assignee)
-                       (filter-map (op (get-declaration-id :variable _))
-                                   (identifiers assignee)))
+                       (append
+                        ;; E.g., for x.y, we want the ids of x.y as
+                        ;; well as x and .y.
+                        (get-declaration-ids :variable assignee)
+                        (mappend (op (get-declaration-ids :variable _))
+                                 (identifiers assignee))))
                      (assignees assigner))
             :initial-value (call-next-method))))
 

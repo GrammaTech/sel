@@ -828,6 +828,20 @@ iterator from a call on a dereferenced element."
       (is (not (assigned (find-soft-var "frac"))))
       (is (not (assigned (find-soft-var "midpoint")))))))
 
+(deftest test-field-assignments ()
+  (with-attr-table (cpp* "struct S { int& n; };
+S inc_y(S s) {
+  s.n++;
+  return s;
+}")
+    (assignments
+     (definition-name-ast
+      (first
+       (direct-children
+        (find-if
+         (of-type 'cpp-field-declaration-list)
+         (attrs-root*))))))))
+
 (deftest test-collect-arg-uses ()
   (with-fixture/attrs trim-front
     (is (length= 2 (collect-arg-uses *soft* (find-soft-var "next_point"))))

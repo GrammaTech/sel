@@ -1192,6 +1192,9 @@ circular dependencies."
 is the operator of a binary ast.")
   (:method (op ast) nil))
 
+(defmethod definition-name-ast ((field c/cpp-field-declaration))
+  (declarator-name-ast (c/cpp-declarator field)))
+
 (defmethod field-adjoin ((field c/cpp-field-declaration) map)
   (adjoin-fields map (c/cpp-declarator field)))
 

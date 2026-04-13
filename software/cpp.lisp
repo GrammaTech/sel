@@ -947,20 +947,6 @@ given name if the function is inherited by the specified superclass."
       (call-next-method)
       nil))
 
-(defmethod definition-name-ast ((field cpp-field-declaration))
-  (match field
-    ((cpp-field-declaration
-      (cpp-declarator
-       (list (and declarator (cpp-function-declarator)))))
-     (declarator-name-ast declarator))
-    ((cpp-field-declaration
-      (cpp-declarator
-       (list (cpp-pointer-declarator
-              (cpp-declarator
-               (and decl (cpp-function-declarator)))))))
-     (declarator-name-ast decl))
-    (otherwise (call-next-method))))
-
 (defmethod function-name ((field cpp-field-declaration))
   (when-let (ast (definition-name-ast field))
     (source-text ast)))
