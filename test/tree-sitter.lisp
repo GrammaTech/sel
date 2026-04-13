@@ -243,6 +243,17 @@ root AST."
       (is (equal (original-path obj)
                  (original-path (copy (genome obj))))))))
 
+(deftest test-literal-ast-in-spec ()
+  "AST instances in specs should be allowed."
+  (let ((two (make 'c-number-literal :text "2")))
+    (is (equal (source-text
+                (convert 'c-ast
+                         `((:class . :binary-expression)
+                           (:operator (:class . :+))
+                           (:left . ,two)
+                           (:right . ,two))))
+               "2+2"))))
+
 
 ;;; Mutations
 #+ignore

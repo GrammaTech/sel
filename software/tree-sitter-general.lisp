@@ -3918,24 +3918,26 @@ the indentation slots."
 ;; Make inline to save stack space.
 (declaim (inline convert-spec))
 (defun convert-spec (spec prefix superclass
-                     &aux (package (symbol-package superclass))
-                       (class (aget :class spec)))
+                     &aux (package (symbol-package superclass)))
   "Convert SPEC into an ast of type SUPERCLASS. PREFIX is used to find the
 correct class name for subclasses of SUPERCLASS."
   (declare (optimize (speed 3)))
-  (lret ((instance
-          (if (eq :text-fragment class)
-              (make-instance 'text-fragment)
-              (make-instance
-               (symbol-cat-in-package
-                package
-                prefix
-                (if (stringp class)
-                    (nest (make-keyword)
-                          (string-upcase)
-                          (translate-camelcase-name)
-                          class)
-                    class))))))
+  (when (typep spec 'ast)
+    (return-from convert-spec spec))
+  (lret* ((class (aget :class spec))
+          (instance
+           (if (eq :text-fragment class)
+               (make 'text-fragment)
+               (make
+                (symbol-cat-in-package
+                 package
+                 prefix
+                 (if (stringp class)
+                     (nest (make-keyword)
+                           (string-upcase)
+                           (translate-camelcase-name)
+                           class)
+                     class))))))
     (iter
       (iter:with child-types = (child-slots instance))
       (iter:with annotations = nil)
