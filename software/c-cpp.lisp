@@ -1556,30 +1556,44 @@ appears as a return statement is assumed to be the type of the function."
   (:method (declarator type)
     type)
   (:method ((d c/cpp-init-declarator) type)
-    (wrap-type-descriptor (c/cpp-declarator d) type)))
+    (wrap-type-descriptor (c/cpp-declarator d) type))
+  (:method ((ast c/cpp-ast) type)
+    (if-let (abstract (make-abstract-declarator ast))
+      (convert (ast-language-ast-class ast)
+               `((:class . :type-descriptor)
+                 (:declarator . ,abstract)
+                 (:type . ,type)))
+      type)))
 
-(defmethod wrap-type-descriptor ((d c/cpp-pointer-declarator) type)
-  (convert (ast-language-ast-class d)
-           `((:class . :type-descriptor)
-             (:declarator
-              (:class . :abstract-pointer-declarator))
-             (:type . ,type))))
+(defgeneric make-abstract-declarator (declarator)
+  (:method ((declarator t)) nil))
 
-(defmethod wrap-type-descriptor ((d c/cpp-array-declarator) type)
+(defmethod make-abstract-declarator ((d c/cpp-pointer-declarator))
   (convert (ast-language-ast-class d)
-           `((:class . :type-descriptor)
-             (:declarator
-              (:class . :abstract-array-declarator)
-              ,@(and (c/cpp-size d) `((:size . ,(c/cpp-size d)))))
-             (:type . ,type))))
+           `((:class . :abstract-pointer-declarator)
+             (:declarator . ,(make-abstract-declarator (c/cpp-declarator d))))))
 
-(defmethod wrap-type-descriptor ((d c/cpp-function-declarator) type)
+(defmethod make-abstract-declarator ((d c/cpp-array-declarator))
   (convert (ast-language-ast-class d)
-           `((:class . :type-descriptor)
-             (:declarator
-              (:class . :abstract-function-declarator)
-              (:parameters . ,(tree-copy (c/cpp-parameters d))))
-             (:type . ,type))))
+           `((:class . :abstract-array-declarator)
+             (:declarator . ,(make-abstract-declarator (c/cpp-declarator d)))
+             ,@(and (c/cpp-size d) `((:size . ,(c/cpp-size d)))))))
+
+(defmethod make-abstract-declarator ((d c/cpp-function-declarator))
+  (convert (ast-language-ast-class d)
+           `((:class . :abstract-function-declarator)
+             (:declarator . ,(make-abstract-declarator
+                              (c/cpp-declarator d)))
+             (:parameters
+              . ,(copy (c/cpp-parameters d)
+                       :children
+                       (mapcar (lambda (param)
+                                 (copy param
+                                       :c/cpp-declarator
+                                       (make-abstract-declarator
+                                        (c/cpp-declarator param))))
+                               (direct-children
+                                (c/cpp-parameters d))))))))
 
 (defmethod resolve-declaration-type ((decl c/cpp-init-declarator)
                                      (ast c/cpp-identifier))

@@ -2751,12 +2751,10 @@ instance we only want to remove one).")
 (defmethod initializer-aliasee ((sw t) (lhs cpp-reference-declarator) rhs)
   (aliasee rhs))
 
-(defmethod wrap-type-descriptor ((d cpp-reference-declarator) type)
-  (make 'cpp-type-descriptor
-        :cpp-declarator
-        (make 'cpp-abstract-reference-declarator
-              :cpp-valueness (cpp-valueness d))
-        :cpp-type type))
+(defmethod make-abstract-declarator ((d cpp-reference-declarator))
+  (make 'cpp-abstract-reference-declarator
+        :cpp-declarator (make-abstract-declarator (cpp-declarator d))
+        :cpp-valueness (cpp-valueness d)))
 
 (defmethod ltr-eval-ast-p ((ast cpp-binary-expression))
   (or (member (operator ast) '(:<< :>>))

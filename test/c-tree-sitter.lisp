@@ -854,6 +854,13 @@ unknown."
     (is (equal (source-text (infer-type* "int x[];")) "int[]"))
     (is (equal (source-text (infer-type* "int* x;")) "int*"))))
 
+(deftest test-function-declaration-types ()
+  (flet ((infer-type* (s)
+           (with-attr-table (c* s)
+             (infer-type (attrs-root*)))))
+    (is (equal (source-text (infer-type* "int* x(int y);")) "int*(int)"))
+    (is (equal (source-text (infer-type* "int x[](int y)")) "int[](int)"))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
