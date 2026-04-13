@@ -1019,7 +1019,7 @@ circular dependencies."
 
 (defmethod expression-type ((ast c/cpp-function-definition))
   "Use the return type of a function definition as its expression type."
-  (c/cpp-type ast))
+  (declaration-type ast))
 
 (defmethod resolve-overloads ((type (eql :function))
                               (ast c/cpp-function-definition)
@@ -1086,6 +1086,16 @@ circular dependencies."
       (c/cpp-type type))
      type)
     (otherwise (call-next-method))))
+
+(defmethod function-type-return-type ((type c/cpp-ast))
+  type)
+
+(defmethod function-type-return-type ((type c/cpp-type-descriptor))
+  (if (and (typep type 'c/cpp-type-descriptor)
+           (find-if (of-type 'c/cpp-abstract-function-declarator)
+                    (c/cpp-declarator type)))
+      (c/cpp-type type)
+      type))
 
 (defmethod infer-type ((field c/cpp-field-declaration))
   (c/cpp-type field))
@@ -1379,7 +1389,7 @@ appears as a return statement is assumed to be the type of the function."
        (and-let* (((equal (list ast) (children parent)))
                   (fn (find-if (of-type 'function-declaration-ast)
                                parents)))
-         (declaration-type fn)))
+         (function-type-return-type (declaration-type fn))))
       ;; Boolean if it's in an if statement (or do-while condition).
       ((or (list* (c/cpp-condition-clause)
                   ;; TODO An integral type for C, integer/enum/class

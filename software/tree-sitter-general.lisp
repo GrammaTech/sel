@@ -1635,8 +1635,12 @@ Calls `expression-type' by default."
     (expression-type ast))
   (:method ((ast call-ast))
     "Infer the type of a call from its declaration."
-    (or (infer-type (call-function ast))
+    (or (function-type-return-type (infer-type (call-function ast)))
         (call-next-method))))
+
+(defgeneric function-type-return-type (type)
+  (:method ((type t))
+    type))
 
 (defgeneric infer-expected-type (ast)
   (:documentation "Infer the type of AST from its context.
