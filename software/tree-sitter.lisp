@@ -624,6 +624,7 @@
            :infer-type-as-nil          ;Restart
            :infer-expression-type
            :expression-type
+           :function-type-return-type
            :canonicalize-structured-text
            :placeholder-type-p
            :boolean-type-p
