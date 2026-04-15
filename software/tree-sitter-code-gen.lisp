@@ -816,6 +816,9 @@ for the language.")
        (:c/cpp-#ifdef c-#ifdef cpp-#ifdef)
        (:c/cpp-#ifndef c-#ifndef cpp-#ifndef)
        (:c/cpp-#include c-#include cpp-#include)
+       (:c/cpp--abstract-declarator
+        c--abstract-declarator
+        cpp--abstract-declarator)
        (:c/cpp-abstract-array-declarator c-abstract-array-declarator
         cpp-abstract-array-declarator)
        (:c/cpp-abstract-function-declarator c-abstract-function-declarator
