@@ -1583,7 +1583,11 @@ appears as a return statement is assumed to be the type of the function."
       type)))
 
 (defgeneric make-abstract-declarator (declarator)
-  (:method ((declarator t)) nil))
+  (:method ((declarator t)) nil)
+  (:method ((d c/cpp-abstract-array-declarator)) d)
+  (:method ((d c/cpp-abstract-function-declarator)) d)
+  (:method ((d c/cpp-abstract-pointer-declarator)) d)
+  (:method ((d cpp-abstract-reference-declarator)) d))
 
 (defmethod make-abstract-declarator ((d c/cpp-pointer-declarator))
   (convert (ast-language-ast-class d)

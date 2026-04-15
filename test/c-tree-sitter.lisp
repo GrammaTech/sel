@@ -872,6 +872,15 @@ unknown."
                  (find-if (of-type 'c-identifier)
                           (body (attrs-root*)))))))))
 
+(deftest test-abstract-parameter-declaration-types ()
+  "Abstract Pointer parameters have their types correctly inferred."
+  (with-attr-table (c* "void f(int*)")
+    (is (equal "int*"
+               (source-text
+                (declaration-type
+                 (find-if (of-type 'c-parameter-declaration)
+                          (attrs-root*))))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()
