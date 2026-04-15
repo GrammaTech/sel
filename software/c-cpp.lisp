@@ -854,6 +854,8 @@ circular dependencies."
   (c/cpp-name ast))
 (defmethod definition-name-ast ((ast c/cpp-enum-specifier))
   (c/cpp-name ast))
+(defmethod definition-name-ast ((ast c/cpp-parameter-declaration))
+  (declarator-name-ast ast))
 
 (defmethod declarator-name-ast ((ast c/cpp-identifier))
   ast)
