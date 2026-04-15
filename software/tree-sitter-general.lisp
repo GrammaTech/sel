@@ -1470,6 +1470,10 @@ For languages without pointers, this will always return nil."
   (:method ((target t))
     nil))
 
+(defgeneric pointee-type (pointer-type)
+  (:documentation "Get the type of the pointee of POINTER-TYPE.")
+  (:method ((pointer-type t)) nil))
+
 (define-synthesized-attribute arg-usage-table ()
   (:union-fn #'union)
   (:method ((ast call-ast))

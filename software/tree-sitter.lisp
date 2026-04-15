@@ -631,6 +631,7 @@
            :primitive-type-p
            :resolve-declaration-type
            :declaration-type
+           :pointee-type
            :find-enclosing
            :find-enclosing*
            :find-all-enclosing

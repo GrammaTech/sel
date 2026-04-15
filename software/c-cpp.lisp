@@ -894,6 +894,25 @@ circular dependencies."
      (wrap-type-descriptor decl (c/cpp-type ast)))
     (otherwise (c/cpp-type ast))))
 
+(defmethod pointee-type ((pointer-type c/cpp-type-descriptor))
+  (match pointer-type
+    ((cpp-type-descriptor
+      :cpp-declarator
+      (or (c/cpp-abstract-array-declarator :cpp-declarator inner-decl)
+          (c/cpp-abstract-pointer-declarator :cpp-declarator inner-decl))
+      :cpp-type type)
+     (if (typep inner-decl 'c/cpp--abstract-declarator)
+         (wrap-type-descriptor inner-decl type)
+         type))))
+
+(defmethod pointee-type ((pointer-type cpp-type-descriptor))
+  (match pointer-type
+    ((cpp-type-descriptor
+      :cpp-declarator (cpp-abstract-reference-declarator)
+      :cpp-type type)
+     type)
+    (otherwise (call-next-method))))
+
 (defmethod field-name-asts ((ast c/cpp-field-declaration))
   (collect-if (of-type 'c/cpp-field-identifier) ast))
 (defmethod field-name-asts ((ast c/cpp-enumerator))

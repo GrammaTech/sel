@@ -2576,6 +2576,27 @@ the type of the field it's intializing."
     (is (source-text= "int*" (infer-ast-type (cpp* "new int"))))
     (is (source-text= "int[10]" (infer-ast-type (cpp* "new int[10]"))))))
 
+(deftest test-pointee-type ()
+  "Pointee type should return correct results, even for nested pointers."
+  (flet ((test-pointee-type (cpp expected)
+           (with-attr-table cpp
+             (is (equal expected
+                        (source-text
+                         (pointee-type
+                          (declaration-type
+                           (find-if (of-type 'c/cpp-parameter-declaration)
+                                    cpp)))))))))
+    (test-pointee-type (cpp* "int f(int*)") "int")
+    (test-pointee-type (cpp* "int f(int* i)") "int")
+    (test-pointee-type (cpp* "int f(int**)") "int*")
+    (test-pointee-type (cpp* "int f(int** i)") "int*")
+    (test-pointee-type (cpp* "int f(int[])") "int")
+    (test-pointee-type (cpp* "int f(int[] a)") "int")
+    (test-pointee-type (cpp* "int f(int[][])") "int[]")
+    (test-pointee-type (cpp* "int f(int[][] m)") "int[]")
+    (test-pointee-type (cpp* "int f(int&)") "int")
+    (test-pointee-type (cpp* "int f(int& r)") "int")))
+
 
 ;;; Parsing tests
 
