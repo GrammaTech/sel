@@ -863,6 +863,15 @@ unknown."
     (is (equal (source-text (infer-type* "int* x(int y);")) "int*(int)"))
     (is (equal (source-text (infer-type* "int x[](int y)")) "int[](int)"))))
 
+(deftest test-parameter-declaration-types ()
+  "Pointer parameters have their types correctly inferred."
+  (with-attr-table (c* "void f(int* x) { x; }")
+    (is (equal "int*"
+               (source-text
+                (infer-type
+                 (find-if (of-type 'c-identifier)
+                          (body (attrs-root*)))))))))
+
 
 ;;; Tests
 (deftest test-deepest-sans-semicolon ()

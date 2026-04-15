@@ -881,7 +881,9 @@ circular dependencies."
 (defmethod declaration-type ((ast c/cpp-field-declaration))
   (c/cpp-type ast))
 (defmethod declaration-type ((ast c/cpp-parameter-declaration))
-  (c/cpp-type ast))
+  (wrap-type-descriptor
+   (c/cpp-declarator ast)
+   (c/cpp-type ast)))
 (defmethod declaration-type ((ast c/cpp-declaration))
   (match (c/cpp-declarator ast)
     ((list (and init (c/cpp-init-declarator)))
