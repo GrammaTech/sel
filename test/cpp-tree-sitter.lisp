@@ -3279,6 +3279,17 @@ fragments."
            (ts::function-declarator->init-declarator new-decl)))
     (is (typep result 'cpp-init-declarator))))
 
+(deftest test-convert-to-init-declarator/qualified-name-in-arguments ()
+  "`function-declarator->init-declarator' should handle qualified names."
+  (let ((conversion
+          (ts::function-declarator->init-declarator
+           (car (cpp-declarator (cpp* "S f(A::B::C, y)"))))))
+    (is (typep conversion 'cpp-init-declarator))
+    (is (length= (direct-children
+                  (is (find-if (of-type 'cpp-argument-list) conversion)))
+                 2))
+    (is (equal (source-text conversion) "f(A::B::C, y)"))))
+
 
 ;;; Canonical-type Tests
 (defmacro with-canonicalize-type-test

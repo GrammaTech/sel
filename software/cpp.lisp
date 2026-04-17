@@ -347,23 +347,36 @@ to look it up as `y::z' or just `z'."
                    (:text . ,(text rhs))
                    ,@(preserve-properties rhs))
                   ,@(preserve-properties parameter)))))
+           (type-identifier->identifier (type-id)
+             (typecase type-id
+               (cpp-qualified-identifier
+                (reduce (flip #'qualify-name)
+                        (cpp:qualified-name->list type-id)
+                        :from-end t
+                        :key #'type-identifier->identifier))
+               (t (convert 'cpp-identifier type-id))))
            (parameter-declaration->identifier (parameter)
              "Convert PARAMETER into an identifier."
              (let* ((type-identifier (cpp-type parameter))
                     (type-properties-grouping
                       (preserve-properties type-identifier :group-by-position t))
                     (parameter-properties-grouping
-                      (preserve-properties parameter :group-by-position t)))
-               (convert
-                'cpp-ast
-                `((:class . :identifier)
-                  (:text . ,(text type-identifier))
-                  ,@(merge-preserved-properties
-                     (aget :before parameter-properties-grouping)
-                     (aget :before type-properties-grouping))
-                  ,@(merge-preserved-properties
-                     (aget :after type-properties-grouping)
-                     (aget :after parameter-properties-grouping))))))
+                      (preserve-properties parameter :group-by-position t))
+                    (donor
+                      (convert 'cpp-ast
+                               `((:class . :identifier)
+                                 (:text . "unused")
+                                 ,@(merge-preserved-properties
+                                    (aget :before parameter-properties-grouping)
+                                    (aget :before type-properties-grouping))
+                                 ,@(merge-preserved-properties
+                                    (aget :after type-properties-grouping)
+                                    (aget :after parameter-properties-grouping))))))
+               (copy (steal-surrounding-text
+                      (type-identifier->identifier type-identifier)
+                      donor)
+                     :indent-adjustment (indent-adjustment donor)
+                     :indent-children (indent-children donor))))
            (convert-for-argument-list (target-ast)
              "Convert TARGET-AST to a type that is suited for an argument list."
              ;; TODO: this probably doesn't cover every case.
