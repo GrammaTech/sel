@@ -3029,13 +3029,11 @@ set of possible concrete specializations of that type."
      (op (find-enclosing-declaration :type root _))
      (possible-types type))))
 
-(defmethod variable-declaration-p :around ((ast cpp-ast))
-  (or (call-next-method)
-      (when-let* (for-range-loop
-                  (find-enclosing 'cpp-for-range-loop
-                                  (attrs-root*)
-                                  ast))
-        (eql ast (cpp-declarator for-range-loop)))))
+(defmethod canonicalize-type ((declaration cpp-for-range-loop) &key ast-type canonical-type)
+  (make-instance
+      canonical-type
+    :specifier (get-specifier-list ast-type declaration)
+    :declarator (canonicalize-declarator (c/cpp-declarator declaration))))
 
 (defmethod find-enclosing-declaration ((type (eql 'function-declaration-ast))
                                        root

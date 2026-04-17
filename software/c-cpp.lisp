@@ -1084,7 +1084,7 @@ circular dependencies."
   (or (call-next-method)
       (and (typep ast '(or c/cpp-declaration c/cpp-field-declaration))
            (some (of-type '(not c/cpp-function-declarator))
-                   (c/cpp-declarator ast)))))
+                 (c/cpp-declarator ast)))))
 
 (defmethod find-enclosing-declaration :around (type
                                                root
@@ -2482,7 +2482,8 @@ of the four parts and `values' is the relevant information attached to the key."
                   (and (setf implicit-int-p t)
                        (c/cpp-modifiers ast))))
                ((or c/cpp-declaration c/cpp-field-declaration
-                    c/cpp-parameter-declaration c/cpp-function-definition)
+                    c/cpp-parameter-declaration c/cpp-function-definition
+                    cpp-for-range-loop)
                 (append (c/cpp-pre-specifiers ast)
                         (c/cpp-post-specifiers ast)
                         (unwind-c/cpp-type (c/cpp-type ast))))
@@ -2624,6 +2625,9 @@ array, function parameter, parens, and pointer information.")
            (declarator-pointer= (pointer-part1 pointer-part2)
              "Return T if the declarator pointer parts are equal."
              (specifier= pointer-part1 pointer-part2))
+           (declarator-reference= (reference-part1 reference-part2)
+             "Return T if the declarator reference parts are equal."
+             (specifier= reference-part1 reference-part2))
            (declarator-array= (array-part1 array-part2)
              "Return T if the CDRs in the declarator array parts are equal."
              ;; NOTE: this may need to account for identifiers at some point
@@ -2644,7 +2648,8 @@ array, function parameter, parens, and pointer information.")
                 (case key
                   (:function (declarator-function= value1 value2))
                   (:pointer (declarator-pointer= value1 value2))
-                  (:array (declarator-array= value1 value2))))))
+                  (:array (declarator-array= value1 value2))
+                  (:reference (declarator-reference= value1 value2))))))
            (declarator= (declarator1 declarator2)
              "Return T if the declarator array parts have the same lengths and
               are equal."

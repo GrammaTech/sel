@@ -746,6 +746,7 @@ for the language.")
         cpp-namespace-definition)
        (:string-ast cpp-raw-string-literal)
        (:variable-declaration-ast
+        cpp-for-range-loop              ;It has a type, declarator, etc.
         cpp-optional-parameter-declaration
         cpp-variadic-parameter-declaration)
        (:variable-initialization-ast cpp-optional-parameter-declaration)

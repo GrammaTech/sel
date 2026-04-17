@@ -3454,6 +3454,12 @@ different orders."
          (param (is (first (children (cpp-parameters (first (cpp-declarator cpp))))))))
     (is (occurs :reference (declarator (canonicalize-type param))))))
 
+(deftest cpp-canonicalize-for-range-loop-type ()
+  "For-range loops should be canonicalizable."
+  (with-canonicalize-type-test
+      ("for (const int &i : is) {}" :target-ast-type cpp-for-range-loop)
+    (is (canonical-type= result (canonicalize-type (cpp* "const int &i"))))))
+
 
 ;;; Symbol table
 
