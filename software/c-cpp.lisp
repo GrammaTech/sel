@@ -1585,10 +1585,13 @@ appears as a return statement is assumed to be the type of the function."
   (:method-combination standard/context)
   (:method :context (declarator type)
     (let ((final-type (call-next-method)))
-      (if (eql final-type type) type
-          ;; Copy to avoid a proxy containing itself.
-          (lret ((final-type (tree-copy final-type)))
-            (setf (attr-proxy final-type) type)))))
+      (when final-type
+        (if (eql final-type type) type
+            ;; Copy to avoid a proxy containing itself.
+            (if type
+                (lret ((final-type (tree-copy final-type)))
+                  (setf (attr-proxy final-type) type))
+                final-type)))))
   (:method (declarator type)
     type)
   (:method ((d c/cpp-init-declarator) type)

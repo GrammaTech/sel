@@ -2328,7 +2328,8 @@ types."
          (not (cpp:destructorp fn))))
   (:method ((decl cpp-declaration))
     ;; Only in a field declaration list?
-    (unless (cpp-type decl)
+    (unless (or (cpp-type decl)
+                (cpp:destructorp decl))
       ;; Correct?
       (every (of-type 'cpp-function-declarator)
              (cpp-declarator decl))))
@@ -2350,6 +2351,42 @@ types."
     (every #'cpp:destructorp (cpp-declarator d)))
   (:method ((d cpp-function-declarator))
     (cpp:destructorp (declarator-name-ast d))))
+
+(defmethod declaration-type ((ast cpp-function-definition))
+  (cond ((cpp:constructorp ast)
+         (lret* ((name (definition-name-ast ast))
+                 (type
+                  (with-attr-session ((copy ast
+                                            :cpp-type
+                                            (tree-copy
+                                             (convert 'type-ast name)))
+                                      :shadow t)
+                    (declaration-type (attrs-root*)))))
+           (setf (attr-proxy type) name)))
+        ((cpp:destructorp ast)
+         (lret ((type
+                 (with-attr-session ((cpp* "void _()" )
+                                     :shadow t)
+                   (declaration-type (attrs-root*)))))
+           (setf (attr-proxy type) ast)))
+        (t (call-next-method))))
+
+(defmethod declaration-type ((ast cpp-declaration))
+  (cond ((cpp:constructorp ast)
+         (lret* ((name (declarator-name-ast (c/cpp-declarator ast)))
+                 (type
+                  (with-attr-session ((copy ast :cpp-type
+                                            (convert 'type-ast name))
+                                      :shadow t)
+                    (declaration-type (attrs-root*)))))
+           (setf (attr-proxy type) name)))
+        ((cpp:destructorp ast)
+         (lret ((type
+                 (with-attr-session ((cpp* "void _()" )
+                                     :shadow t)
+                   (declaration-type (attrs-root*)))))
+           (setf (attr-proxy type) ast)))
+        (t (call-next-method))))
 
 (define-synthesized-attribute cpp:out-of-class-function-definitions ()
   (:union-fn #'union)

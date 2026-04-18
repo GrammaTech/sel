@@ -2597,6 +2597,30 @@ the type of the field it's intializing."
     (test-pointee-type (cpp* "int f(int&)") "int")
     (test-pointee-type (cpp* "int f(int& r)") "int")))
 
+(deftest test-constructor-and-destructor-definition-types ()
+  "Constructor and destructor definition types should be inferred correctly."
+  (with-attr-table (cpp* "struct S { S() {}; ~S() {}; }")
+    (let ((fns (collect-if (of-type 'cpp-function-definition) (attrs-root*))))
+      (is (length= 2 fns))
+      (is (equal (list (mapcar #'constructorp fns)
+                       (mapcar #'destructorp fns))
+                 '((t nil) (nil t))))
+      (is (every #'source-text=
+                 '("S()" "void()")
+                 (mapcar #'declaration-type fns))))))
+
+(deftest test-constructor-and-destructor-declaration-types ()
+  "Constructor and destructor definition types should be inferred correctly."
+  (with-attr-table (cpp* "struct S { S(); ~S(); }")
+    (let ((fns (collect-if (of-type 'cpp-declaration) (attrs-root*))))
+      (is (length= 2 fns))
+      (is (equal (list (mapcar #'constructorp fns)
+                       (mapcar #'destructorp fns))
+                 '((t nil) (nil t))))
+      (is (every #'source-text=
+                 '("S()" "void()")
+                 (mapcar #'declaration-type fns))))))
+
 
 ;;; Parsing tests
 
