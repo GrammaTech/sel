@@ -1117,8 +1117,12 @@ circular dependencies."
   (if-let (fn (and (typep type 'c/cpp-type-descriptor)
                    (find-if (of-type 'c/cpp-abstract-function-declarator)
                             (c/cpp-declarator type))))
-      (less type fn)
-      type))
+    ;; If the type descriptor is trivial, just return the type.
+    (let ((type (less type fn)))
+      (if (null (c/cpp-declarator type))
+          (c/cpp-type type)
+          type))
+    type))
 
 (defmethod infer-type ((field c/cpp-field-declaration))
   (c/cpp-type field))
