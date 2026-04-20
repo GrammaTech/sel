@@ -1114,10 +1114,10 @@ circular dependencies."
   type)
 
 (defmethod function-type-return-type ((type c/cpp-type-descriptor))
-  (if (and (typep type 'c/cpp-type-descriptor)
-           (find-if (of-type 'c/cpp-abstract-function-declarator)
-                    (c/cpp-declarator type)))
-      (c/cpp-type type)
+  (if-let (fn (and (typep type 'c/cpp-type-descriptor)
+                   (find-if (of-type 'c/cpp-abstract-function-declarator)
+                            (c/cpp-declarator type))))
+      (less type fn)
       type))
 
 (defmethod infer-type ((field c/cpp-field-declaration))

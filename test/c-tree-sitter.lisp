@@ -861,7 +861,27 @@ unknown."
            (with-attr-table (c* s)
              (infer-type (attrs-root*)))))
     (is (equal (source-text (infer-type* "int* x(int y);")) "int*(int)"))
-    (is (equal (source-text (infer-type* "int x[](int y)")) "int[](int)"))))
+    (is (equal (source-text (infer-type* "int x(int y)[]")) "int(int)[]"))
+    (infer-type* "int x(int y)[]")))
+
+(deftest test-function-type-return-type ()
+  "Function return types should preserve pointer, array types."
+  (flet ((function-return-type (fn)
+           (with-attr-table fn
+             (source-text
+              (function-type-return-type
+               (declaration-type fn))))))
+    (is (equal "int" (function-return-type (c* "int f() {}"))))
+    (is (equal "int" (function-return-type (c* "int f()"))))
+
+    (is (equal "int*" (function-return-type (c* "int* f() {}"))))
+    (is (equal "int*" (function-return-type (c* "int* f()"))))
+
+    (is (equal "int**" (function-return-type (c* "int** f() {}"))))
+    (is (equal "int**" (function-return-type (c* "int** f()"))))
+
+    (is (equal "int[]" (function-return-type (c* "int f()[] {}"))))
+    (is (equal "int[]" (function-return-type (c* "int f()[]"))))))
 
 (deftest test-parameter-declaration-types ()
   "Pointer parameters have their types correctly inferred."
