@@ -1409,7 +1409,7 @@ appears as a return statement is assumed to be the type of the function."
        (unless (placeholder-type-p (cpp-type decl))
          (resolve-declaration-type decl ast)))
       ((list* (and parent (c/cpp-return-statement)) _)
-       (and-let* (((equal (list ast) (children parent)))
+       (and-let* (((equal (list ast) (direct-children parent)))
                   (fn (find-if (of-type 'function-declaration-ast)
                                parents)))
          (function-type-return-type (declaration-type fn))))
