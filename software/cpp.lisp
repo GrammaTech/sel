@@ -492,16 +492,17 @@ to look it up as `y::z' or just `z'."
       ;; NOTE: perform blanket transformation for now.
       (function-declarator->init-declarator ast))))
 
-(defclass cpp-variadic-declaration
-    (cpp-parameter-declaration cpp-identifier)
-  ((text :accessor text
-         :initform "..."
-         :initarg :text
-         :allocation :class)
-   (choice-subclasses
-    :initform nil
-    :reader choice-subclasses
-    :allocation :class)))
+(eval-always
+  (defclass cpp-variadic-declaration
+      (cpp-parameter-declaration cpp-identifier)
+    ((text :accessor text
+           :initform "..."
+           :initarg :text
+           :allocation :class)
+     (choice-subclasses
+      :initform nil
+      :reader choice-subclasses
+      :allocation :class))))
 
 (defmethod transform-parse-tree
     ((language (eql ':cpp)) (class (eql 'cpp-assignment-expression)) parse-tree
