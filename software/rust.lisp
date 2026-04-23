@@ -171,6 +171,9 @@ Rust macro invocations can use (), [], and {} equivalently."
   (unless (text self)
     (setf (text self) "super")))
 
+(defmethod source-text :around ((self rust-unit-expression) &key stream)
+  (if (no stream) "()" (write-string "()" stream)))
+
 (defmethod qualify-name ((id rust-identifier) (path rust-type-identifier))
   (make 'rust-scoped-identifier
         :rust-path (convert 'rust-identifier path)
