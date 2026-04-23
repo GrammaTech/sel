@@ -172,6 +172,7 @@ Rust macro invocations can use (), [], and {} equivalently."
     (setf (text self) "super")))
 
 (defmethod source-text :around ((self rust-unit-expression) &key stream)
+  "Ensure a unit expression with a stray comma, like (,), still prints as ()."
   (if (no stream) "()" (write-string "()" stream)))
 
 (defmethod qualify-name ((id rust-identifier) (path rust-type-identifier))

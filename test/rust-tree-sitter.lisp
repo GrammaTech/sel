@@ -591,7 +591,14 @@ adding a visibility modifier."
     (test-delimiters "{}" (rust* "macro!{x}"))))
 
 
-;;; Whitespace tests.
+;;; Source text tests.
+
+(deftest test-print-unit-without-comma ()
+  "The unit expression should always print as ()."
+  (is (equal (source-text
+              (is (find-if (of-type 'rust-unit-expression)
+                           (rust* "(,)"))))
+             "()")))
 
 (defun check-patch-whitespace (rust)
   (let ((ast (convert 'rust-ast rust :deepest t)))
