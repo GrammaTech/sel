@@ -2621,6 +2621,18 @@ the type of the field it's intializing."
                  '("S()" "void()")
                  (mapcar #'declaration-type fns))))))
 
+(deftest test-type-of-function-declaration-with-optional-parameter ()
+  "The type of a function declaration with a defaulted parameter should
+be representable."
+  (with-attr-table (cpp* "class C { f(int defaulted = 1); };")
+    (is (equal "f(unsigned)"
+               (source-text
+                (declaration-type
+                 (car
+                  (direct-children
+                   (body (is (find-if (of-type 'class-ast)
+                                      (attrs-root*))))))))))))
+
 
 ;;; Parsing tests
 
@@ -3313,6 +3325,13 @@ fragments."
                   (is (find-if (of-type 'cpp-argument-list) conversion)))
                  2))
     (is (equal (source-text conversion) "f(A::B::C, y)"))))
+
+(deftest test-contextualize-declaration-with-sized-type ()
+  "Contextualization should understand sized type specifiers."
+  (let ((cpp (cpp* "class C { f(unsigned v); };")))
+    (with-attr-table cpp
+      (let ((decl (car (direct-children (body (find-if (of-type 'class-ast) cpp))))))
+        (is (equal? decl (contextualize-ast cpp decl)))))))
 
 
 ;;; Canonical-type Tests

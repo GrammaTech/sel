@@ -131,6 +131,7 @@
   "Return a keyword giving the context for AST."
   (etypecase ast
     (c/cpp-primitive-type :type)
+    (c/cpp-sized-type-specifier :type)
     ((or c/cpp-identifier c/cpp-type-identifier cpp-qualified-identifier)
      (cond ((get-declaration-id :tag ast)
             :type)
@@ -1615,6 +1616,13 @@ appears as a return statement is assumed to be the type of the function."
   (:method ((d c/cpp-abstract-pointer-declarator)) d)
   (:method ((d cpp-abstract-reference-declarator)) d))
 
+(defgeneric make-abstract-parameter (param)
+  (:method ((param c/cpp-ast))
+    (copy param
+          :c/cpp-declarator
+          (make-abstract-declarator
+           (c/cpp-declarator param)))))
+
 (defmethod make-abstract-declarator ((d c/cpp-pointer-declarator))
   (convert (ast-language-ast-class d)
            `((:class . :abstract-pointer-declarator)
@@ -1634,11 +1642,7 @@ appears as a return statement is assumed to be the type of the function."
              (:parameters
               . ,(copy (c/cpp-parameters d)
                        :children
-                       (mapcar (lambda (param)
-                                 (copy param
-                                       :c/cpp-declarator
-                                       (make-abstract-declarator
-                                        (c/cpp-declarator param))))
+                       (mapcar #'make-abstract-parameter
                                (direct-children
                                 (c/cpp-parameters d))))))))
 

@@ -462,6 +462,10 @@ to look it up as `y::z' or just `z'."
              "Return T if PARAMETER-AST definitely represents a type in
               context."
              (match parameter-ast
+               ;; SetAtttribute (unsigned value);
+               ((cpp-parameter-declaration
+                 :cpp-type (cpp-sized-type-specifier))
+                t)
                ((cpp-parameter-declaration
                  :cpp-type (and identifier (identifier-ast))
                  ;; Currently assumes that abstract function declarators won't
@@ -2792,6 +2796,14 @@ instance we only want to remove one).")
   (make 'cpp-abstract-reference-declarator
         :cpp-declarator (make-abstract-declarator (cpp-declarator d))
         :cpp-valueness (cpp-valueness d)))
+
+(defmethod make-abstract-parameter ((p cpp-optional-parameter-declaration))
+  (make-abstract-parameter
+   (make 'cpp-parameter-declaration
+         :cpp-declarator (cpp-declarator p)
+         :cpp-post-specifiers (cpp-post-specifiers p)
+         :cpp-pre-specifiers (cpp-pre-specifiers p)
+         :cpp-type (cpp-type p))))
 
 (defmethod ltr-eval-ast-p ((ast cpp-binary-expression))
   (or (member (operator ast) '(:<< :>>))
