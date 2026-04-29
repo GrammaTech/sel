@@ -944,8 +944,10 @@ given name if the function is inherited by the specified superclass."
   (match field
     ((cpp-field-declaration
       (cpp-declarator
-       (list (and declarator (cpp-function-declarator)))))
-     (function-parameters-ast declarator))
+       (list decl)))
+     (if-let (fn (find-if (of-type 'cpp-function-declarator) decl))
+       (function-parameters-ast fn)
+       (call-next-method)))
     (otherwise (call-next-method))))
 
 (defmethod return-type ((field cpp-field-declaration))

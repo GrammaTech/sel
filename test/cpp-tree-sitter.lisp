@@ -1225,11 +1225,30 @@ int main () {
            'cpp-enumerator)))))
 
 (deftest test-field-parameters ()
+  "`function-parameters' should work on a field that declares a function."
   (let ((cpp (cpp* "struct s { s add(const s d) const; }")))
     (finishes
-     (function-parameters
-      (find-if (of-type 'cpp-field-declaration)
-               cpp)))))
+      (function-parameters
+       (find-if (of-type 'cpp-field-declaration)
+                cpp)))))
+
+(deftest test-decl-parameters ()
+  "`function-parameters' should work on a function declaration returning
+a pointer."
+  (let ((cpp (cpp* "char* f();")))
+    (finishes
+      (function-parameters
+       (find-if (of-type 'cpp-declaration)
+                cpp)))))
+
+(deftest test-field-parameters/pointer ()
+  "`function-parameters' should work on a field that declares a function
+returning a pointer."
+  (let ((cpp (cpp* "struct S { char* f(); };")))
+    (finishes
+      (function-parameters
+       (find-if (of-type 'cpp-field-declaration)
+                cpp)))))
 
 (deftest test-conditional-type ()
   (let ((cpp (from-string 'cpp "int x = 1;

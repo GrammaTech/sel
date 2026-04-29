@@ -602,8 +602,10 @@ MACROS is a map from macro names to expansions."
 (defmethod function-parameters-ast ((ast c/cpp-declaration))
   (match ast
     ((c/cpp-declaration
-      (c/cpp-declarator (list (and d (c/cpp-function-declarator)))))
-     (function-parameters-ast d))
+      (c/cpp-declarator (list d)))
+     (if-let (d (find-if (of-type 'c/cpp-function-declarator) d))
+       (function-parameters-ast d)
+       (call-next-method)))
     (otherwise (call-next-method))))
 
 (defmethod parameter-type ((ast c/cpp-parameter-declaration))
