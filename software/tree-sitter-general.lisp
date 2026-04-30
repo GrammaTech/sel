@@ -1547,6 +1547,11 @@ If ALIAS is non-nil, resolve aliases during the search.")
                     &rest args &key)
   (apply #'convert 'float ast args))
 
+(defmethod convert ((to-type (eql 'type-ast))
+                    (ast type-ast)
+                    &key)
+  ast)
+
 
 ;;;; Cross-language generics and methods
 (defgeneric end-of-parameter-list (software node)
