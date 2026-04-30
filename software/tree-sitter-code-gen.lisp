@@ -3458,7 +3458,7 @@ of an AST."))
     (when (and before-text-supplied-p (null before-text))
       (setf (before-text self) ""))
     (when (and after-text-supplied-p (null after-text))
-        (setf (after-text self) "")))
+      (setf (after-text self) "")))
 
   (defmethod copy :around ((self structured-text)
                            &rest kwargs
