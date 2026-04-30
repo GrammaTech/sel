@@ -2652,6 +2652,19 @@ be representable."
                    (body (is (find-if (of-type 'class-ast)
                                       (attrs-root*))))))))))))
 
+(deftest test-type-of-function-with-variadic-parameter ()
+  "The type of a function with a variadic parameter should be representable."
+  (flet ((test-infer-type (cpp source-text)
+           (with-attr-table (from-string 'cpp cpp)
+             (is (equal source-text
+                        (source-text
+                         (infer-type
+                          (find-if (of-type 'cpp-declaration)
+                                   (attrs-root*)))))))))
+    (test-infer-type "void f(T... x) {};" "void(T...)")
+    (test-infer-type "void f(T&... x) {};" "void(T&...)")
+    (test-infer-type "void f(T&&... x) {};" "void(T&&...)")))
+
 
 ;;; Parsing tests
 

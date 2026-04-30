@@ -202,6 +202,10 @@ to look it up as `y::z' or just `z'."
   (unless (compiler cpp)
     (setf (compiler cpp) "c++")))
 
+(defmethod initialize-instance :after ((self cpp-variadic-declarator) &key)
+  (unless (direct-children self)
+    (setf (text self) "...")))
+
 ;;; The following information is gathered from
 ;;;   Meta-Compilation for C++ by Edward D. Willink.
 ;;;
@@ -2806,6 +2810,11 @@ instance we only want to remove one).")
          :cpp-post-specifiers (cpp-post-specifiers p)
          :cpp-pre-specifiers (cpp-pre-specifiers p)
          :cpp-type (cpp-type p))))
+
+(defmethod make-abstract-parameter ((p cpp-variadic-parameter-declaration))
+  (if-let ((v (find-if (of-type 'cpp-variadic-declarator) p)))
+    (with p v (copy v :children nil))
+    (call-next-method)))
 
 (defmethod ltr-eval-ast-p ((ast cpp-binary-expression))
   (or (member (operator ast) '(:<< :>>))
