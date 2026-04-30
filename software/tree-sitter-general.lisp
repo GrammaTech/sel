@@ -2587,6 +2587,11 @@ of groupings to drop from the stack. See convert-parse-tree for advanced usage."
   (when (slot-exists-p instance 'ordered-children)
     (slot-makunbound instance 'ordered-children)))
 
+;;; TODO This shouldn't be needed.
+(defmethod tree-copy :around ((ast structured-text))
+  (lret ((result (call-next-method)))
+    (slot-makunbound result 'ordered-children)))
+
 
 ;;;
 ;;; Primitive mutation types
