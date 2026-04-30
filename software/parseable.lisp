@@ -320,7 +320,7 @@ RECURSIVE is passed, recursive AST children will also be returned.")
         (remove-if-not {typep _ 'ast} (children ast)))))
 
 ;;; TODO What's the value of these? They cause us to miss errors due
-;;; to misspelled keywords.
+;;; to misspelled keywords. Also a potential memory leak.
 
 (defmethod initialize-instance :after ((ast functional-tree-ast)
                                        &rest args &key)
