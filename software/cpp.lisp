@@ -2804,17 +2804,17 @@ instance we only want to remove one).")
         :cpp-valueness (cpp-valueness d)))
 
 (defmethod make-abstract-parameter ((p cpp-optional-parameter-declaration))
-  (make-abstract-parameter
-   (make 'cpp-parameter-declaration
-         :cpp-declarator (cpp-declarator p)
-         :cpp-post-specifiers (cpp-post-specifiers p)
-         :cpp-pre-specifiers (cpp-pre-specifiers p)
-         :cpp-type (cpp-type p))))
+  (if-not-let ((d (find-if (of-type 'cpp-optional-parameter-declaration) p)))
+    (call-next-method)
+    (with p d
+          (copy d
+                :cpp-declarator nil
+                :cpp-type (copy (cpp-type d) :after-text " ")))))
 
 (defmethod make-abstract-parameter ((p cpp-variadic-parameter-declaration))
-  (if-let ((v (find-if (of-type 'cpp-variadic-declarator) p)))
-    (with p v (copy v :children nil))
-    (call-next-method)))
+  (if-not-let ((d (find-if (of-type 'cpp-variadic-declarator) p)))
+    (call-next-method)
+    (with p d (copy d :children nil))))
 
 (defmethod ltr-eval-ast-p ((ast cpp-binary-expression))
   (or (member (operator ast) '(:<< :>>))

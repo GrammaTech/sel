@@ -2640,17 +2640,27 @@ the type of the field it's intializing."
                  '("S()" "void()")
                  (mapcar #'declaration-type fns))))))
 
-(deftest test-type-of-function-declaration-with-optional-parameter ()
+(deftest test-type-of-function-declaration-with-named-optional-parameter ()
   "The type of a function declaration with a defaulted parameter should
 be representable."
   (with-attr-table (cpp* "class C { f(int defaulted = 1); };")
-    (is (equal "f(unsigned)"
+    (is (equal "f(int = 1)"
                (source-text
                 (declaration-type
                  (car
                   (direct-children
                    (body (is (find-if (of-type 'class-ast)
                                       (attrs-root*))))))))))))
+
+(deftest test-type-of-function-declaration-with-abstract-optional-parameter ()
+  "The type of an optional parameter that is already abstract should be
+inferrable."
+  (with-attr-table (from-string 'cpp (cpp* "void f(size_t = 0)"))
+    (is (equal "void(size_t = 0)"
+               (source-text
+                (infer-type
+                 (find-if (of-type 'cpp-declaration)
+                          (attrs-root*))))))))
 
 (deftest test-type-of-function-with-variadic-parameter ()
   "The type of a function with a variadic parameter should be representable."
