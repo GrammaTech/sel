@@ -836,10 +836,10 @@ to look it up as `y::z' or just `z'."
       ;; Don't add it if it's already there.
       (if (find slot-name slot-specs :key #'ft::slot-specifier-slot)
           slot-specs
-          (cons (make 'ft::slot-specifier
-                      :class t
-                      :slot slot-name
-                      :arity arity)
+          (cons (ft::make-slot-specifier
+                 :class (class-of ast)
+                 :slot slot-name
+                 :arity arity)
                 slot-specs))
       slot-specs))
 

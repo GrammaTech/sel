@@ -472,12 +472,11 @@ children. (This can happen when they store alternative ASTs)."
 children. (This can happen when they store alternative ASTs)."
   (macrolet ((wrap-slot (slot)
                `(when (typep (slot-value ast ',slot) 'alternative-ast)
-                  (load-time-value
-                   (list
-                    (make 'ft::slot-specifier
-                          :class t
-                          :slot ',slot
-                          :arity 1))))))
+                  (list
+                   (ft::make-slot-specifier
+                    :class (class-of ast)
+                    :slot ',slot
+                    :arity 1)))))
     (append (wrap-slot before-text)
             (wrap-slot text)
             (call-next-method)
