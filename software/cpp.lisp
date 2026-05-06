@@ -3138,11 +3138,13 @@ set of possible concrete specializations of that type."
 (defmethod find-enclosing-declaration ((type (eql 'variable-declaration-ast))
                                        root
                                        (id cpp-identifier))
-  (or (call-next-method)
-      ;; Special handling for for-range-loop.
-      (and-let* ((for-range-loop (find-enclosing 'cpp-for-range-loop root id))
-                 ((find id (cpp-declarator for-range-loop))))
-        (cpp-declarator for-range-loop))))
+  (let ((result (call-next-method)))
+    (cond ((not (typep result 'cpp-for-range-loop))
+           result)
+          ((find id (cpp-declarator result))
+           (cpp-declarator result))
+          (t
+           result))))
 
 (defmethod entry-control-flow ((ast cpp-for-range-loop))
   "Control flow in a range loop flows to the thing being looped over."
