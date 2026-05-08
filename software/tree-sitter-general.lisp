@@ -4047,7 +4047,7 @@ list specifications."
                     &aux (prefix (get-language-from-superclass superclass)))
   (labels
       ((ensure-beginning-bound (parse-tree)
-         "Desctructively ensures that the beginning bound of PARSE-TREE is the
+         "Destructively ensures that the beginning bound of PARSE-TREE is the
           beginning of the string."
          (setf (car (cadr parse-tree)) '(0 0))
          parse-tree)
