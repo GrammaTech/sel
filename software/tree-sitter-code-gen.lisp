@@ -5685,7 +5685,11 @@ subclass based on the order of the children were read in."
                          (choice-subclasses
                           :initform nil
                           :reader choice-subclasses
-                          :allocation :class)))))
+                          :allocation :class)
+                         ;; Ensure the subclass gets its own slot
+                         ;; specifier list to optimize iteration over
+                         ;; child slots.
+                         (child-slot-specifiers :allocation :class)))))
              (generate-subclasses (subclass-pairs)
                "Generate a defclass forms for SUBCLASS-PAIRS."
                ;; TODO: rename this function since it doesn't generate anything
