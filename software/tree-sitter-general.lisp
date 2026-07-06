@@ -3975,11 +3975,11 @@ correct class name for subclasses of SUPERCLASS."
          ;; TODO: look into a better way to do this for structured text?
          (setf (slot-value instance translated-key)
                (if-let ((spec (find translated-key child-types :key #'car)))
-                 (ematch spec
+                 (ecase (cdr spec)
                    ;; (cons key arity)
-                   ((cons _ 1) (convert superclass value))
-                   ((cons _ 0) (iter (for item in value)
-                                     (collect (convert superclass item)))))
+                   (1 (convert superclass value))
+                   (0 (iter (for item in value)
+                            (collect (convert superclass item)))))
                  value)))
         ;; Account for slots in superclasses.
         ((slot-exists-p instance key) (setf (slot-value instance key) value))
