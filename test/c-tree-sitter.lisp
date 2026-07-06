@@ -973,10 +973,10 @@ unknown."
                 (:type
                  (:class . :primitive-type)
                  (:text "int"))))))
-    (is (find-if {typep _ 'c-declaration} ast))
-    (is (find-if {typep _ 'c-init-declarator} ast))
-    (is (find-if {typep _ 'c-identifier} ast))
-    (is (find-if {typep _ 'c-number-literal} ast))
+    (is (find-if (of-type 'c-declaration) ast))
+    (is (find-if (of-type 'c-init-declarator) ast))
+    (is (find-if (of-type 'c-identifier) ast))
+    (is (find-if (of-type 'c-number-literal) ast))
     (is (equal "int a = 0;" (source-text ast)))))
 
 (deftest c-tree-sitter-handles-unicode ()
