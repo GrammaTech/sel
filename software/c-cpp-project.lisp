@@ -1222,6 +1222,7 @@ the standard path and add it to PROJECT."))
             absolute-include-path)))
 
 (defun global-search-include (project file path-ast base)
+  "Fallback search method that searches the whole project for a header."
   (receive (include-path-string
             include-path
             tweaked-include-path
