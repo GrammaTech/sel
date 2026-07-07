@@ -6,6 +6,10 @@
            :term-size
            :return-no-extent-term
            :*view-stream*
+           :string-output-stream-p
+           :clear-terminal
+           :hide-cursor
+           :with-line-printing
            ;; Colors and control sequences.
            :+set-G1+
            :+reset-G1+
