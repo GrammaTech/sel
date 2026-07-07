@@ -1140,9 +1140,16 @@ the standard path and add it to PROJECT."))
                                   (fmt "Including ~a"
                                        (source-text
                                         (include-ast-path-ast include-ast))))
-                 (find-include project file-ast include-ast
-                               :global t
-                               :header-dirs header-dirs)))))
+                 (handler-bind ((include-conflict-error
+                                  (lambda (e)
+                                    (declare (ignore e))
+                                    ;; Preloading isn't meant to be
+                                    ;; exact. If there's an include
+                                    ;; conflict, just pick one.
+                                    (maybe-invoke-restart 'whichever))))
+                   (find-include project file-ast include-ast
+                                 :global t
+                                 :header-dirs header-dirs))))))
     (iter (iter:with preload-count = 0)
           (iter:with last-evolve-files = (evolve-files project))
           (for pass-number from 0)
