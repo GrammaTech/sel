@@ -46,8 +46,10 @@
     :only-paths
     :other-files
     :parallel-parse-thread-count
+    :parsed-evolve-files
+    ;; Re-exported from sel/sw/project:pick-file.
     :pick-file
-    :parsed-evolve-files))
+    :project-in-sync-p))
 (in-package :software-evolution-library/software/directory)
 (in-readtable :curry-compose-reader-macros)
 
@@ -324,6 +326,17 @@ optimization settings."
   (when force
     (check-project-in-sync project))
   project)
+
+(defun project-in-sync-p (project)
+  "Return T if PROJECT is a valid, synced project."
+  (let ((genome (slot-value project 'genome)))
+    (when (typep genome 'ast)
+      (handler-case
+          (progn
+            (check-project-in-sync project)
+            t)
+        (error ()
+          nil)))))
 
 (defun insert-software-at (project path new)
   "Insert NEW, a software object, into PROJECT at PATH."
