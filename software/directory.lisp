@@ -306,11 +306,13 @@ the project AST."
   (iter (for (file . software) in (parsed-evolve-files project))
         (for genome = (slot-value software 'genome))
         (when (typep genome 'ast)
-          (when-let (tree-file (lookup project file))
+          (if-let (tree-file (lookup project file))
             (let ((tree-genome (only-elt (contents tree-file))))
               (unless (eql genome tree-genome)
                 (error "Evolve file is out of sync: ~a (~a vs ~a)"
-                       file genome tree-genome)))))))
+                       file genome tree-genome)))
+            (error "Parsed evolve file ~a not present in project genome: ~a"
+                   file software)))))
 
 (defun verify-project-in-sync (project &key (force *verify-project-in-sync*))
   "Return PROJECT after checking that it's in sync.

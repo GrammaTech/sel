@@ -13,7 +13,8 @@
    :software-evolution-library/software/cpp-project
    :software-evolution-library/software/json)
   (:import-from :software-evolution-library/software/directory
-                :*verify-project-in-sync*)
+                :*verify-project-in-sync*
+                :verify-project-in-sync)
   (:import-from :software-evolution-library/software/parseable
                 :ast-path
                 :ast-source-ranges
@@ -204,23 +205,27 @@ module.exports = {
       (is (length= 2 (collect-if (of-type 'file-ast) new-project))))))
 
 (defmacro define-sync-test (name (&rest args) &body body)
-  `(deftest ,name ,args
-     (labels ((file-root (file-ast)
-                (only-elt (contents file-ast))))
-       (let* ((*verify-project-in-sync* t)
-              (sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
-              (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
-              (project (is (from-file (make 'cpp-project) project-dir)))
-              (hpp-file (lookup project "my_class.h"))
-              (hpp-ast (find-if (of-type 'cpp-field-declaration) hpp-file)))
-         (declare (ignorable hpp-ast))
-         (flet ((test-sync (new-project new-file)
-                  (is (not (eql new-project project)))
-                  (is (not (eql hpp-file new-file)))
-                  (is (rassoc (file-root new-file)
-                              (evolve-files new-project)
-                              :key #'genome))))
-           ,@body)))))
+  (multiple-value-bind (body decls docstring)
+      (parse-body body :documentation t)
+    `(deftest ,name ,args
+       ,@(and docstring (list docstring))
+       (labels ((file-root (file-ast)
+                  (only-elt (contents file-ast))))
+         (let* ((*verify-project-in-sync* t)
+                (sel-dir (asdf:system-relative-pathname :software-evolution-library nil))
+                (project-dir (path-join sel-dir #p"test/etc/cpp-symbol-table-project2"))
+                (project (is (from-file (make 'cpp-project) project-dir)))
+                (hpp-file (lookup project "my_class.h"))
+                (hpp-ast (find-if (of-type 'cpp-field-declaration) hpp-file)))
+           (declare (ignorable hpp-ast))
+           (flet ((test-sync (new-project new-file)
+                    (is (not (eql new-project project)))
+                    (is (not (eql hpp-file new-file)))
+                    (is (rassoc (file-root new-file)
+                                (evolve-files new-project)
+                                :key #'genome))))
+             ,@decls
+             ,@body))))))
 
 (define-sync-test test-update-evolve-files-with-genome/with ()
   (let* ((new-ast (tree-copy hpp-ast))
@@ -276,6 +281,17 @@ module.exports = {
            project))
          (new-file (lookup new-project "my_class.h")))
     (test-sync new-project new-file)))
+
+(define-sync-test test-verify-project-catches-parsed-genome-not-in-tree ()
+  "Verifying the project should catch parsed evolve files not being part
+of the genome."
+  (declare (ignore #'test-sync))
+  (setf (genome project)
+        (less (genome project)
+              (lookup (genome project)
+                      "my_class.cc")))
+  (is (evolve-files-ref project "my_class.cc"))
+  (signals error (verify-project-in-sync project)))
 
 (deftest invoke-sequence-methods-on-project-genomes ()
   ;; This test checks that we're invoking sequence methods on project
